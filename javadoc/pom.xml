@@ -17,30 +17,28 @@
 
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-			    http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
-	<groupId>com.sun.mail</groupId>
-	<artifactId>all</artifactId>
-	<version>2.0.2-SNAPSHOT</version>
+        <groupId>org.eclipse.angus</groupId>
+        <artifactId>all</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>javadoc</artifactId>
     <packaging>pom</packaging>
-    <version>2.0.2-SNAPSHOT</version>
-    <name>Jakarta Mail API javadocs</name>
+    <name>Angus Mail javadocs</name>
     <description>${project.name}</description>
 
     <build>
         <plugins>
-	    <!--
-		To allow us to generate aggregated javadocs that only include some
-		classes in certain packages from certain modules, we need to copy the sources
-		to another location and run javadoc against that set
-		of the sources. This gets sources.
-	    -->
+            <!--
+                To allow us to generate aggregated javadocs that only include some
+                classes in certain packages from certain modules, we need to copy the sources
+                to another location and run javadoc against that set
+                of the sources. This gets sources.
+            -->
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
@@ -55,29 +53,25 @@
                             <artifactItems>
                                 <artifactItem>
                                     <groupId>jakarta.mail</groupId>
-                                    <artifactId>mailapi</artifactId>
-                                    <version>${mail.version}</version>
+                                    <artifactId>jakarta.mail-api</artifactId>
                                     <classifier>sources</classifier>
                                     <outputDirectory>${project.build.directory}/javadoc-sources/jakarta.mail</outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
-                                    <groupId>com.sun.mail</groupId>
-                                    <artifactId>jakarta.mail</artifactId>
-                                    <version>${mail.version}</version>
+                                    <groupId>org.eclipse.angus</groupId>
+                                    <artifactId>angus-mail</artifactId>
                                     <classifier>sources</classifier>
                                     <outputDirectory>${project.build.directory}/javadoc-sources/com.sun.mail</outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
-                                    <groupId>com.sun.mail</groupId>
+                                    <groupId>org.eclipse.angus</groupId>
                                     <artifactId>dsn</artifactId>
-                                    <version>${mail.version}</version>
                                     <classifier>sources</classifier>
                                     <outputDirectory>${project.build.directory}/javadoc-sources/com.sun.mail.dsn</outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
-                                    <groupId>com.sun.mail</groupId>
+                                    <groupId>org.eclipse.angus</groupId>
                                     <artifactId>gimap</artifactId>
-                                    <version>${mail.version}</version>
                                     <classifier>sources</classifier>
                                     <outputDirectory>${project.build.directory}/javadoc-sources/com.sun.mail.gimap</outputDirectory>
                                 </artifactItem>
@@ -94,20 +88,20 @@
                 which is in conflict with 'module-source-path' (as of maven-javadoc-plugin:3.2.0).
                 Ant task is used here to get around that limitation for the time being.
             -->
-	    <plugin>
+            <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
-		    <execution>
-			<phase>package</phase>
+                    <execution>
+                        <phase>package</phase>
                         <goals>
                             <goal>run</goal>
                         </goals>
-			<configuration>
+                        <configuration>
                             <target>
                                 <mkdir dir="${project.build.directory}/javadoc-ant"/>
                                 <javadoc destdir="${project.build.directory}/site/apidocs"
                                          modulesourcepath="${project.build.directory}/javadoc-sources/"
-                                         modulepath="${com.sun.activation:jakarta.activation:jar}"
+                                         modulepath="${jakarta.activation:jakarta.activation-api:jar}"
                                          author="false"
                                          docfilessubdirs="true"
                                          failonerror="true"
@@ -116,7 +110,7 @@
                                          source="11"
                                          splitindex="true"
                                          use="true"
-                                         >
+                                >
                                     <arg value="-J-Xmx256m" />
                                     <arg value="-Xdoclint:none" />
                                     <arg value="-notimestamp" />
@@ -128,10 +122,10 @@
                                     <group title="Jakarta Mail API Packages" packages="jakarta.mail.*"/>
                                     <group title="Implementation-specific Packages" packages="com.sun.mail.*"/>
                                     <fileset dir="${project.build.directory}/javadoc-sources/jakarta.mail">
-									   <include name="jakarta/mail/**/*.java"/>
-								    </fileset>
+                                        <include name="jakarta/mail/**/*.java"/>
+                                    </fileset>
                                     <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail"
-					includes="
+                                             includes="
 			com/sun/mail/imap/IMAPFolder.java,
 			com/sun/mail/imap/IMAPMessage.java,
 			com/sun/mail/imap/IMAPStore.java,
@@ -164,7 +158,7 @@
 			com/sun/mail/util/logging/*.java
 					"/>
                                     <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail.dsn"
-					includes="
+                                             includes="
 			com/sun/mail/dsn/DeliveryStatus.java,
 			com/sun/mail/dsn/DispositionNotification.java,
 			com/sun/mail/dsn/MessageHeaders.java,
@@ -174,29 +168,28 @@
                                     <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail.gimap" includes="com/sun/mail/gimap/*.java"/>
                                 </javadoc>
                             </target>
-			</configuration>
-		    </execution>
+                        </configuration>
+                    </execution>
                 </executions>
-	    </plugin>
-	</plugins>
+            </plugin>
+        </plugins>
     </build>
 
     <dependencies>
         <dependency>
             <groupId>jakarta.mail</groupId>
-            <artifactId>mailapi</artifactId>
-            <version>${mail.version}</version>
+            <artifactId>jakarta.mail-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.sun.mail</groupId>
-            <artifactId>jakarta.mail</artifactId>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>angus-mail</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.sun.mail</groupId>
+            <groupId>org.eclipse.angus</groupId>
             <artifactId>dsn</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.sun.mail</groupId>
+            <groupId>org.eclipse.angus</groupId>
             <artifactId>gimap</artifactId>
         </dependency>
     </dependencies>

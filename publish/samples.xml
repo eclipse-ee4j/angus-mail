@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!--
 
-    Copyright (c) 1997, 2019 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Public License v. 2.0, which is available at
@@ -20,63 +20,63 @@
 <assembly>
     <id>samples</id>
     <formats>
-	<format>zip</format>
+        <format>zip</format>
     </formats>
     <baseDirectory>jakartamail-samples</baseDirectory>
     <fileSets>
-	<fileSet>
-	    <directory>../demo/src/main/java</directory>
-	    <outputDirectory>/</outputDirectory>
-	    <excludes>
-		<exclude>internal/**</exclude>
-	    </excludes>
-	</fileSet>
-	<fileSet>
-	    <directory>../client/src/main/java</directory>
-	    <outputDirectory>client</outputDirectory>
-	</fileSet>
-	<fileSet>
-	    <directory>../webapp/src/main/java</directory>
-	    <outputDirectory>webapp/src/classes</outputDirectory>
-	</fileSet>
-	<fileSet>
-	    <directory>../webapp/src/main/webapp</directory>
-	    <outputDirectory>webapp/src/docroot</outputDirectory>
-	</fileSet>
-	<fileSet>
-	    <directory>../webapp/</directory>
-	    <outputDirectory>webapp</outputDirectory>
-	    <includes>
-		<include>build.*</include>
-		<include>webapp.README.txt</include>
-	    </includes>
-	</fileSet>
-	<fileSet>
-	    <directory>../taglib/src/main/java</directory>
-	    <outputDirectory>webapp/src/taglib</outputDirectory>
-	</fileSet>
-	<fileSet>
-	    <directory>../taglib/src/main/resources</directory>
-	    <outputDirectory>webapp/src/taglib</outputDirectory>
-	</fileSet>
-	<fileSet>
-	    <directory>../outlook/src/main/java</directory>
-	    <outputDirectory>outlook</outputDirectory>
-	</fileSet>
-	<fileSet>
-	    <directory>../logging/src/main/java</directory>
-	    <outputDirectory>logging</outputDirectory>
-	</fileSet>
+        <fileSet>
+            <directory>../demos/demo/src/main/java</directory>
+            <outputDirectory>/</outputDirectory>
+            <excludes>
+                <exclude>internal/**</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>../demos/client/src/main/java</directory>
+            <outputDirectory>client</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>../demos/webapp/src/main/java</directory>
+            <outputDirectory>webapp/src/classes</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>../demos/webapp/src/main/webapp</directory>
+            <outputDirectory>webapp/src/docroot</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>../demos/webapp/</directory>
+            <outputDirectory>webapp</outputDirectory>
+            <includes>
+                <include>build.*</include>
+                <include>webapp.README.txt</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>../demos/taglib/src/main/java</directory>
+            <outputDirectory>webapp/src/taglib</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>../demos/taglib/src/main/resources</directory>
+            <outputDirectory>webapp/src/taglib</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>../demos/outlook/src/main/java</directory>
+            <outputDirectory>outlook</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>../demos/logging/src/main/java</directory>
+            <outputDirectory>logging</outputDirectory>
+        </fileSet>
     </fileSets>
     <dependencySets>
-	<!-- include sources from the demo modules -->
-	<!--
-	<dependencySet>
-	    <includes>
-		<include>com.sun.mail:demo:jar:sources</include>
-	    </includes>
-	    <unpack>true</unpack>
-	</dependencySet>
-	-->
+        <!-- include sources from the demo modules -->
+        <!--
+        <dependencySet>
+            <includes>
+                <include>com.sun.mail:demo:jar:sources</include>
+            </includes>
+            <unpack>true</unpack>
+        </dependencySet>
+        -->
     </dependencySets>
 </assembly>

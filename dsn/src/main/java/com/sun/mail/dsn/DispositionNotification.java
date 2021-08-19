@@ -25,7 +25,6 @@ import com.sun.mail.util.PropUtil;
 import jakarta.mail.*;
 import jakarta.mail.internet.*;
 import jakarta.mail.util.LineOutputStream;
-import jakarta.mail.util.StreamProvider;
 
 /**
  * A message/disposition-notification message content, as defined in
@@ -122,9 +121,9 @@ public class DispositionNotification extends Report {
 
     private static void writeInternetHeaders(InternetHeaders h,
 				LineOutputStream los) throws IOException {
-	Enumeration e = h.getAllHeaderLines();
+	Enumeration<String> e = h.getAllHeaderLines();
 	while (e.hasMoreElements())
-	    los.writeln((String)e.nextElement());
+	    los.writeln(e.nextElement());
     }
 
     public String toString() {

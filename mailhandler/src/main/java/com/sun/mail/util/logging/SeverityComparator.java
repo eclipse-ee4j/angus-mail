@@ -1,10 +1,5 @@
 /*
  * Copyright (c) 2013, 2021 Oracle and/or its affiliates. All rights reserved.
-<<<<<<< HEAD:mailhandler/src/main/java/com/sun/mail/util/logging/SeverityComparator.java
- * Copyright (c) 2013, 2018 Jason Mehrens. All rights reserved.
-=======
- * Copyright (c) 2013, 2021 Jason Mehrens. All rights reserved.
->>>>>>> master:mail/src/main/java/com/sun/mail/util/logging/SeverityComparator.java
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at

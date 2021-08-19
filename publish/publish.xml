@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!--
 
-    Copyright (c) 1997, 2018 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Public License v. 2.0, which is available at
@@ -20,40 +20,38 @@
 <assembly>
     <id>publish</id>
     <formats>
-	<format>dir</format>
+        <format>dir</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
     <dependencySets>
-	<!-- include the main jakarta.mail.jar file -->
-	<dependencySet>
-	    <includes>
-		<include>com.sun.mail:jakarta.mail</include>
-	    </includes>
-	    <useTransitiveDependencies>false</useTransitiveDependencies>
-	    <unpack>false</unpack>
-	    <outputFileNameMapping>
-		jakarta.mail.jar
-	    </outputFileNameMapping>
-	</dependencySet>
+        <!-- include the main jakarta.mail.jar file -->
+        <dependencySet>
+            <includes>
+                <include>org.eclipse.angus:angus-mail</include>
+            </includes>
+            <useTransitiveDependencies>false</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <outputFileNameMapping>angus-mail.jar</outputFileNameMapping>
+        </dependencySet>
     </dependencySets>
 
     <!-- include docs, specs, and javadocs -->
     <fileSets>
-	<fileSet>
-	    <directory>../doc/release</directory>
-	    <outputDirectory></outputDirectory>
-	    <filtered>true</filtered>
-	    <includes>
-		<include>*.txt</include>
-	    </includes>
-	</fileSet>
-	<fileSet>
-	    <directory>../doc/spec</directory>
-	    <outputDirectory>docs</outputDirectory>
-	</fileSet>
-	<fileSet>
-	    <directory>../javadoc/target/site/apidocs</directory>
-	    <outputDirectory>docs/api</outputDirectory>
-	</fileSet>
+        <fileSet>
+            <directory>../doc/release</directory>
+            <outputDirectory></outputDirectory>
+            <filtered>true</filtered>
+            <includes>
+                <include>*.txt</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>../doc/spec</directory>
+            <outputDirectory>docs</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>../javadoc/target/site/apidocs</directory>
+            <outputDirectory>docs/api</outputDirectory>
+        </fileSet>
     </fileSets>
 </assembly>

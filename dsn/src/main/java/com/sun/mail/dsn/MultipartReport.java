@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -132,7 +132,7 @@ public class MultipartReport extends MimeMultipart {
 
     /**
      * Constructs a MultipartReport object and its bodyparts from the 
-     * given DataSource. <p>
+     * given DataSource.
      *
      * @param	ds	DataSource, can be a MultipartDataSource
      * @exception	MessagingException for failures
