@@ -20,7 +20,6 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetHeaders;
 import jakarta.mail.util.LineOutputStream;
-import jakarta.mail.util.StreamProvider;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -180,11 +179,12 @@ public class DeliveryStatus extends Report {
 
     private static void writeInternetHeaders(InternetHeaders h,
 				LineOutputStream los) throws IOException {
-	Enumeration e = h.getAllHeaderLines();
+	Enumeration<String> e = h.getAllHeaderLines();
 	while (e.hasMoreElements())
-	    los.writeln((String)e.nextElement());
+	    los.writeln(e.nextElement());
     }
 
+    @Override
     public String toString() {
 	return "DeliveryStatus: Reporting-MTA=" +
 	    messageDSN.getHeader("Reporting-MTA", null) + ", #Recipients=" +

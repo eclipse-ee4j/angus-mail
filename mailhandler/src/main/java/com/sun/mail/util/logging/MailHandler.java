@@ -610,7 +610,7 @@ public class MailHandler extends Handler {
      * attachment filters.
      * However it does <b>not</b> check whether the <code>LogRecord</code> would
      * result in a "push" of the buffer contents.
-     * <p>
+     *
      * @param record  a <code>LogRecord</code> or null.
      * @return true if the <code>LogRecord</code> would be logged.
      */
@@ -1111,7 +1111,7 @@ public class MailHandler extends Handler {
      * <p>
      * Some <code>Handlers</code> may not use <code>Formatters</code>, in which
      * case the <code>Formatter</code> will be remembered, but not used.
-     * <p>
+     *
      * @param newFormatter the <code>Formatter</code> to use (may not be null)
      * @throws SecurityException  if a security manager exists and if the caller
      * does not have <code>LoggingPermission("control")</code>.

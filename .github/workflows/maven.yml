@@ -10,7 +10,7 @@
 # SPDX-License-Identifier: EPL-2.0 OR BSD-3-Clause
 #
 
-name: Jakarta Mail API CI
+name: Angus Mail
 
 on:
   pull_request:
@@ -40,6 +40,4 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
     - name: Verify
-      run: |
-        cd api
-        mvn -B -U -C -V clean verify org.glassfish.copyright:glassfish-copyright-maven-plugin:check -Poss-release,staging -Dgpg.skip=true
+      run: mvn -B -U -C -V clean verify org.glassfish.copyright:glassfish-copyright-maven-plugin:check -Poss-release,staging,snapshots,build-only -Dgpg.skip=true
