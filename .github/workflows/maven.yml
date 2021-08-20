@@ -40,4 +40,4 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
     - name: Verify
-      run: mvn -B -U -C -V clean verify org.glassfish.copyright:glassfish-copyright-maven-plugin:check -Poss-release,staging,snapshots,build-only -Dgpg.skip=true
+      run: mvn -B -U -C -V clean verify org.glassfish.copyright:glassfish-copyright-maven-plugin:check -Poss-release,staging,build-only -Dgpg.skip=true
