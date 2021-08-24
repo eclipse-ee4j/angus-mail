@@ -482,7 +482,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>add-resource</id>
+                        <id>add-legal-resources</id>
                         <phase>generate-resources</phase>
                         <goals>
                             <goal>add-resource</goal>
