@@ -57,7 +57,7 @@
                             <includeScope>provided</includeScope>
                             <classifier>sources</classifier>
                             <excludeTransitive>true</excludeTransitive>
-                            <excludes>module-info.*,META-INF/versions/**,META-INF/MANIFEST.MF</excludes>
+                            <excludes>module-info.*,META-INF/versions/**,META-INF/MANIFEST.MF,META-INF/services/jakarta.mail.Provider</excludes>
                             <outputDirectory>${dep.sources}</outputDirectory>
                         </configuration>
                     </execution>
