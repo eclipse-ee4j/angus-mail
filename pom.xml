@@ -79,11 +79,11 @@
         <legal.doc.source>${maven.multiModuleProjectDirectory}</legal.doc.source>
 
         <mail.spec.version>2.1</mail.spec.version>
-        <mail-api.version>2.1.0-RC1</mail-api.version>
-        <activation-api.version>2.1.0-RC1</activation-api.version>
+        <mail-api.version>2.1.0</mail-api.version>
+        <activation-api.version>2.1.0</activation-api.version>
         <jsp-api.version>3.0.0</jsp-api.version>
         <servlet-api.version>5.0.0</servlet-api.version>
-        <angus.activation.version>1.0.0-M1</angus.activation.version>
+        <angus.activation.version>1.0.0-M2</angus.activation.version>
     </properties>
 
     <developers>
