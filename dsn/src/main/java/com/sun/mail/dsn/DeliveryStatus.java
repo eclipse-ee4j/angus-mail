@@ -16,11 +16,6 @@
 
 package com.sun.mail.dsn;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.Session;
-import jakarta.mail.internet.InternetHeaders;
-import jakarta.mail.util.LineOutputStream;
-
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,6 +26,11 @@ import java.util.logging.Level;
 
 import com.sun.mail.util.MailLogger;
 import com.sun.mail.util.PropUtil;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.InternetHeaders;
+import jakarta.mail.util.LineOutputStream;
+import jakarta.mail.util.StreamProvider;
 
 /**
  * A message/delivery-status message content, as defined in
@@ -166,7 +166,7 @@ public class DeliveryStatus extends Report {
 	if (os instanceof LineOutputStream) {
 	    los = (LineOutputStream) os;
 	} else {
-	    los = Session.STREAM_PROVIDER.outputLineStream(os, false);
+	    los = StreamProvider.provider().outputLineStream(os, false);
 	}
 
 	writeInternetHeaders(messageDSN, los);
