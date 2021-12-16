@@ -72,7 +72,7 @@
         <copyright.update>false</copyright.update>
         <spotbugs.skip>true</spotbugs.skip>
         <spotbugs.threshold>High</spotbugs.threshold>
-        <spotbugs.plugin.version>4.4.2.2</spotbugs.plugin.version>
+        <spotbugs.plugin.version>4.5.0.0</spotbugs.plugin.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javadoc.title>Angus Mail API documentation</javadoc.title>
@@ -83,7 +83,7 @@
         <activation-api.version>2.1.0</activation-api.version>
         <jsp-api.version>3.0.0</jsp-api.version>
         <servlet-api.version>5.0.0</servlet-api.version>
-        <angus.activation.version>1.0.0-M2</angus.activation.version>
+        <angus.activation.version>1.0.0</angus.activation.version>
     </properties>
 
     <developers>
