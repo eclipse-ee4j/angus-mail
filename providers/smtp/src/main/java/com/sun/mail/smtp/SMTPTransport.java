@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -1969,13 +1969,30 @@ public class SMTPTransport extends Transport {
 		break;
 
 	    default:
-		// handle remaining 4xy & 5xy codes
+		// handle remaining 2xy, 4xy & 5xy codes
 		if (retCode >= 400 && retCode <= 499) {
 		    // assume address is valid, although we don't really know
 		    validUnsent.add(ia);
 		} else if (retCode >= 500 && retCode <= 599) {
-		    // assume address is invalid, although we don't really know
-		    invalid.add(ia);
+			// assume address is invalid, although we don't really know
+			invalid.add(ia);
+		} else if (retCode >= 200 && retCode <= 299) {
+			// see RFC 5321 section 4.3.2
+			// assume address is valid, although we don't really know
+			valid.add(ia);
+			if (!reportSuccess)
+				break;
+
+			// user wants exception even when successful, including
+			// details of the return code
+
+			// create and chain the exception
+			sfex = new SMTPAddressSucceededException(ia, cmd, retCode,
+					lastServerResponse);
+			if (mex == null)
+				mex = sfex;
+			else
+				mex.setNextException(sfex);
 		} else {
 		    // completely unexpected response, just give up
 		    if (logger.isLoggable(Level.FINE))
