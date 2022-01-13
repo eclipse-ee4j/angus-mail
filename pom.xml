@@ -66,7 +66,9 @@
     </licenses>
 
     <properties>
-        <copyright.exclude>copyright-exclude</copyright.exclude>
+        <project.build.commonResourcesDirectory>${project.build.directory}/common-resources</project.build.commonResourcesDirectory>
+        <legal.doc.source>${project.build.commonResourcesDirectory}/legal</legal.doc.source>
+        <copyright.exclude>${project.build.commonResourcesDirectory}/config/copyright-exclude</copyright.exclude>
         <copyright.ignoreyear>false</copyright.ignoreyear>
         <copyright.scmonly>true</copyright.scmonly>
         <copyright.update>false</copyright.update>
@@ -76,7 +78,6 @@
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javadoc.title>Angus Mail API documentation</javadoc.title>
-        <legal.doc.source>${maven.multiModuleProjectDirectory}</legal.doc.source>
 
         <mail.spec.version>2.1</mail.spec.version>
         <mail-api.version>2.1.0</mail-api.version>
@@ -346,6 +347,51 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>common-resources</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <inherited>false</inherited>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/main/assembly/resources.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>unpack-resource</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.eclipse.angus</groupId>
+                                    <artifactId>all</artifactId>
+                                    <version>${project.version}</version>
+                                    <classifier>resources</classifier>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.commonResourcesDirectory}</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!--
             This plugin is reponsible for packaging artifacts
             as OSGi bundles.  Please refer to
@@ -492,10 +538,6 @@
                                 <resource>
                                     <directory>${legal.doc.source}</directory>
                                     <targetPath>META-INF</targetPath>
-                                    <includes>
-                                        <include>LICENSE.md</include>
-                                        <include>NOTICE.md</include>
-                                    </includes>
                                 </resource>
                             </resources>
                         </configuration>
