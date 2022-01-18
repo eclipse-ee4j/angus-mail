@@ -1,0 +1,371 @@
+***********************************************************************************
+***                        TCK bundle information                               ***
+*** Name:       jakarta-mail-tck-2.1.0.zip                                     ***
+*** Bundle Copied to URL:    https://download.eclipse.org/ee4j/jakartaee-tck/jakartaee10/staged/eftl//jakarta-mail-tck-2.1.0.zip ***
+*** Date and size: date: 2022-01-18 12:04:05.000000000 +0000, size(b): 12710568        ***
+*** SHA256SUM: 56033d9ae33d5ffd9c70e29fb93bea1082fe14e2c04bcefdbc9b0335b76c1fd1 ***
+***                                                                             ***
+***********************************************************************************
+***                        TCK results summary                                  ***
+[javatest.batch] ***************************************************************
+[javatest.batch] Completed running 321 tests.
+[javatest.batch] Number of Tests Passed      = 321
+[javatest.batch] Number of Tests Failed      = 0
+[javatest.batch] Number of Tests with Errors = 0
+[javatest.batch] Number of Tests Not Run     = 0
+[javatest.batch] ---------------------------------------------------------------
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Address/equals_Test.java#equals_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Address/getType_Test.java#getType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Address/toString_Test.java#toString_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/event/ConnectionEvent/addConnectionListener_Test.java#addConnectionListener_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/event/FolderEvent/addFolderListener_Test.java#addFolderListener_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/event/FolderEvent/addMsgChangeList_Test.java#addMsgChangeList_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/event/FolderEvent/addMsgCntList_Test.java#addMsgCntList_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/event/StoreEvent/addStoreListener_Test.java#addStoreListener_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/event/TransportEvent/addTransportListener_Test.java#addTransportListener_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/exception/authenFailExp_Test.java#authenFailExp_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/exception/folderClosedException_Test.java#folderClosedException_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/exception/folderNotFoundExp_Test.java#folderNotFoundExp_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/exception/illegalWriteException_Test.java#illegalWriteException_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/exception/msgRemoveExp_Test.java#msgRemoveExp_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/exception/noSuchProvExp_Test.java#noSuchProvExp_Test
+[javatest.batch] Jan 18, 2022, 12:02:32 PM Finished executing all tests, wait for cleanup...PASSED........javasoft/sqe/tests/jakarta/mail/FetchProfile/add_Test.java#add_Test
+[javatest.batch]
+[javatest.batch] Jan 18, 2022, 12:02:32 PM Harness done with cleanup from test run.
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/FetchProfile/contains_Test.java#contains_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/FetchProfile/fetchProfile_Test.java#fetchProfile_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/FetchProfile/getHeaderNames_Test.java#getHeaderNames_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/FetchProfile/getItems_Test.java#getItems_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Flags/add_Test.java#add_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Flags/clear_Test.java#clear_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Flags/clone_Test.java#clone_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Flags/contains_Test.java#contains_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Flags/equals_Test.java#equals_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Flags/Flags_Test.java#Flags_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Flags/getSystemFlags_Test.java#getSystemFlags_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Flags/getUserFlags_Test.java#getUserFlags_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Flags/remove_Test.java#remove_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Flags/retainAll_Test.java#retainAll_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/appendMessages_Test.java#appendMessages_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/autoclose_Test.java#autoclose_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/close_Test.java#close_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/create_Test.java#create_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/delete_Test.java#delete_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/exists_Test.java#exists_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/fetch_Test.java#fetch_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getFolder_Test.java#getFolder_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getFullName_Test.java#getFullName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getMessage_Test.java#getMessage_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getMessageContent_Test.java#getMessageContent_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getMessageCount_Test.java#getMessageCount_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getMessages_Test.java#getMessages_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getName_Test.java#getName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getNewMessageCount_Test.java#getNewMessageCount_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getParent_Test.java#getParent_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getPermanentFlags_Test.java#getPermanentFlags_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getSeparator_Test.java#getSeparator_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getStore_Test.java#getStore_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getType_Test.java#getType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/getUnreadMessageCount_Test.java#getUnreadMessageCount_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/hasNewMessages_Test.java#hasNewMessages_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/isOpen_Test.java#isOpen_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/isSubscribed_Test.java#isSubscribed_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/list_Test.java#list_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/listSubscribed_Test.java#listSubscribed_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/open_Test.java#open_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/renameTo_Test.java#renameTo_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/search_Test.java#search_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Folder/setSubscribed_Test.java#setSubscribed_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Header/header_Test.java#header_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/AddressException/addressException_Test.java#addressException_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/AddressException/getPos_Test.java#getPos_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/AddressException/getRef_Test.java#getRef_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/contentType_Test.java#contentType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/getBaseType_Test.java#getBaseType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/getParameter_Test.java#getParameter_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/getParameterList_Test.java#getParameterList_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/getPrimaryType_Test.java#getPrimaryType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/getSubType_Test.java#getSubType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/match_Test.java#match_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/setParameter_Test.java#setParameter_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/setParameterList_Test.java#setParameterList_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/setPrimaryType_Test.java#setPrimaryType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/setSubType_Test.java#setSubType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ContentType/toString_Test.java#toString_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/HeaderTokenizer/getRemainder_Test.java#getRemainder_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/HeaderTokenizer/headerTokenizer_Test.java#headerTokenizer_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/HeaderTokenizer/next_Test.java#next_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/HeaderTokenizer/peek_Test.java#peek_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetAddress/getAddress_Test.java#getAddress_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetAddress/getPersonal_Test.java#getPersonal_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetAddress/getType_Test.java#getType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetAddress/internetAddress_Test.java#internetAddress_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetAddress/setAddress_Test.java#setAddress_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetAddress/setPersonal_Test.java#setPersonal_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetAddress/unicode_Test.java#unicode_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetAddress/utilmethods_Test.java#utilmethods_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/accessProtected_Test.java#accessProtected_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/addHeader_Test.java#addHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/addHeaderLine_Test.java#addHeaderLine_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/getAllHeaderLines_Test.java#getAllHeaderLines_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/getAllHeaders_Test.java#getAllHeaders_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/getMatchHeadLines_Test.java#getMatchHeadLines_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/getMatchingHeaders_Test.java#getMatchingHeaders_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/getNonMatchHead_Test.java#getNonMatchHead_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/getNonMatchHeadLines_Test.java#getNonMatchHeadLines_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/InternetHeaders_Test.java#InternetHeaders_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/load_Test.java#load_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/removeHeader_Test.java#removeHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/InternetHeaders/setHeader_Test.java#setHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MailDateFormat/unsupportedOperation_Test.java#unsupportedOperation_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/addHeader_Test.java#addHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/addHeaderLine_Test.java#addHeaderLine_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/attachFile_saveFile_Test.java#attachFile_saveFile_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getAllHeaderLines_Test.java#getAllHeaderLines_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getAllHeaders_Test.java#getAllHeaders_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getContent_Test.java#getContent_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getContentID_Test.java#getContentID_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getContentLanguage_Test.java#getContentLanguage_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getContentMD5_Test.java#getContentMD5_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getContentType_Test.java#getContentType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getDataHandler_Test.java#getDataHandler_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getDescription_Test.java#getDescription_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getDisposition_Test.java#getDisposition_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getEncoding_Test.java#getEncoding_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getFileName_Test.java#getFileName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getHeader_Test.java#getHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getLineCount_Test.java#getLineCount_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getMatchHeadLines_Test.java#getMatchHeadLines_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getMatchingHeaders_Test.java#getMatchingHeaders_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getNonMatchHead_Test.java#getNonMatchHead_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getNonMatchHeadLines_Test.java#getNonMatchHeadLines_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/getSize_Test.java#getSize_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/isMimeType_Test.java#isMimeType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/mimeBodyPart_Test.java#mimeBodyPart_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/removeHeader_Test.java#removeHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/setContent_Test.java#setContent_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/setContentLanguage_Test.java#setContentLanguage_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/setContentMD5_Test.java#setContentMD5_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/setDataHandler_Test.java#setDataHandler_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/setDescription_Test.java#setDescription_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/setDisposition_Test.java#setDisposition_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/setFileName_Test.java#setFileName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/setFileNameEncoded_Test.java#setFileNameEncoded_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/setHeader_Test.java#setHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/setText_Test.java#setText_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeBodyPart/writeTo_Test.java#writeTo_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/addHeaderLine_Test.java#addHeaderLine_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/addRecipients_Test.java#addRecipients_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/createMimeMessage_Test.java#createMimeMessage_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/getAllHeaderLines_Test.java#getAllHeaderLines_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/getContentID_Test.java#getContentID_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/getContentLanguage_Test.java#getContentLanguage_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/getContentMD5_Test.java#getContentMD5_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/getEncoding_Test.java#getEncoding_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/getHeader_Test.java#getHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/getInputStream_Test.java#getInputStream_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/getMatchHeadLines_Test.java#getMatchHeadLines_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/getNonMatchHeadLines_Test.java#getNonMatchHeadLines_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/getSentDate_Test.java#getSentDate_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/MimeMessage_Test.java#MimeMessage_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/reply_Test.java#reply_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/setContent_Test.java#setContent_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/setContentID_Test.java#setContentID_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/setContentMD5_Test.java#setContentMD5_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/setDataHandler_Test.java#setDataHandler_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/setDescription_Test.java#setDescription_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/setDisposition_Test.java#setDisposition_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/setFileNameEncoded_Test.java#setFileNameEncoded_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/setFrom_Test.java#setFrom_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/setSentDate_Test.java#setSentDate_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/setSubject_Test.java#setSubject_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/unicode_Test.java#unicode_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/updateHeaders_Test.java#updateHeaders_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/updateMessageID_Test.java#updateMessageID_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMessage/writeTo_Test.java#writeTo_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMultipart/getBodyPart_Test.java#getBodyPart_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMultipart/getCount_Test.java#getCount_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMultipart/getsetPreamble_Test.java#getsetPreamble_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMultipart/initializeProperties_Test.java#initializeProperties_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMultipart/MimeMultipart_Test.java#MimeMultipart_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMultipart/properties_Test.java#properties_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMultipart/setSubType_Test.java#setSubType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeMultipart/writeTo_Test.java#writeTo_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimePartDataSource/getContentType_Test.java#getContentType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimePartDataSource/getInputStream_Test.java#getInputStream_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimePartDataSource/getName_Test.java#getName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimePartDataSource/getOutputStream_Test.java#getOutputStream_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimePartDataSource/mimePartDataSource_Test.java#mimePartDataSource_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeUtility/decodeText_Test.java#decodeText_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeUtility/decodeWord_Test.java#decodeWord_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeUtility/encodeText_Test.java#encodeText_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeUtility/encodeWord_Test.java#encodeWord_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/MimeUtility/foldUnfold_Test.java#foldUnfold_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/NewsAddress/equals_Test.java#equals_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/NewsAddress/getHost_Test.java#getHost_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/NewsAddress/getNewsgroup_Test.java#getNewsgroup_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/NewsAddress/getType_Test.java#getType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/NewsAddress/newsAddress_Test.java#newsAddress_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/NewsAddress/parse_Test.java#parse_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/NewsAddress/setHost_Test.java#setHost_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/NewsAddress/setNewsgroup_Test.java#setNewsgroup_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/NewsAddress/toString_Test.java#toString_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/combineSegments_Test.java#combineSegments_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/encoded_default_Test.java#encoded_default_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/encoded_false_Test.java#encoded_false_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/encoded_true_Test.java#encoded_true_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/get_Test.java#get_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/getNames_Test.java#getNames_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/parameterList_Test.java#parameterList_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/remove_Test.java#remove_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/set_Test.java#set_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/set_withDecodeStrict_Test.java#set_withDecodeStrict_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/size_Test.java#size_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParameterList/toString_Test.java#toString_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/ParseException/parseException_Test.java#parseException_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/internet/PreencodedMimeBodyPart/PreencodedMimeBodyPart_Test.java#PreencodedMimeBodyPart_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/addFrom_Test.java#addFrom_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/addHeader_Test.java#addHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/addRecipient_Test.java#addRecipient_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getAllHeaders_Test.java#getAllHeaders_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getContent_Test.java#getContent_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getContentType_Test.java#getContentType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getDataHandler_Test.java#getDataHandler_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getDescription_Test.java#getDescription_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getDisposition_Test.java#getDisposition_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getFileName_Test.java#getFileName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getFlags_Test.java#getFlags_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getFolder_Test.java#getFolder_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getFrom_Test.java#getFrom_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getHeader_Test.java#getHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getInputStream_Test.java#getInputStream_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getMatchingHeaders_Test.java#getMatchingHeaders_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getMessageNumber_Test.java#getMessageNumber_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getNonMatchingHeaders_Test.java#getNonMatchingHeaders_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getReceivedDate_Test.java#getReceivedDate_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getReplyTo_Test.java#getReplyTo_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getSession_Test.java#getSession_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getSize_Test.java#getSize_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/getSubject_Test.java#getSubject_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/isExpunged_Test.java#isExpunged_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/isSet_Test.java#isSet_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/match_Test.java#match_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/removeHeader_Test.java#removeHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/saveChanges_Test.java#saveChanges_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/setDataHandler_Test.java#setDataHandler_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/setFileName_Test.java#setFileName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/setFileNameTest_encodeFalse_decodeTrue.java#setFileNameTest_encodeFalse_decodeTrue
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/setFileNameTest_encodeTrue_decodeFalse.java#setFileNameTest_encodeTrue_decodeFalse
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/setFlag_Test.java#setFlag_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/setFrom_Test.java#setFrom_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/setHeader_Test.java#setHeader_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/setRecipients_Test.java#setRecipients_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/setReplyTo_Test.java#setReplyTo_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Message/setSubject_Test.java#setSubject_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Multipart/addBodyPart1_Test.java#addBodyPart1_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Multipart/addBodyPart2_Test.java#addBodyPart2_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Multipart/getBodyPart_Test.java#getBodyPart_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Multipart/getContentType_Test.java#getContentType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Multipart/getCount_Test.java#getCount_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Multipart/removeBodyPart1_Test.java#removeBodyPart1_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Multipart/removeBodyPart2_Test.java#removeBodyPart2_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Multipart/writeTo_Test.java#writeTo_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/PasswordAuthentication/getPassword_Test.java#getPassword_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/PasswordAuthentication/getUserName_Test.java#getUserName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/PasswordAuthentication/passwdAuthen_Test.java#passwdAuthen_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Provider/getClassName_Test.java#getClassName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Provider/getProtocol_Test.java#getProtocol_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Provider/getType_Test.java#getType_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Provider/getVendor_Test.java#getVendor_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Provider/getVersion_Test.java#getVersion_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/AndTerm/andterm_Test.java#andterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/BodyTerm/bodyterm_Test.java#bodyterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/FlagTerm/flagterm_Test.java#flagterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/FromTerm/fromterm_Test.java#fromterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/HeaderTerm/headerterm_Test.java#headerterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/MessageIDTerm/messageidterm_Test.java#messageidterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/MessageNumberTerm/messagenumberterm_Test.java#messagenumberterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/NotTerm/notterm_Test.java#notterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/OrTerm/orterm_Test.java#orterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/ReceivedDateTerm/receiveddateterm_Test.java#receiveddateterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/SearchException/searchException_Test.java#searchException_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/SentDateTerm/sentdateterm_Test.java#sentdateterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/SizeTerm/sizeterm_Test.java#sizeterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/search/SubjectTerm/subjectterm_Test.java#subjectterm_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/addProvider_Test.java#addProvider_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/getDefaultInstance_Test.java#getDefaultInstance_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/getFolder_Test.java#getFolder_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/getInstance_Test.java#getInstance_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/getPasswdAuthen_Test.java#getPasswdAuthen_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/getProperties_Test.java#getProperties_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/getProperty_Test.java#getProperty_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/getProvider_Test.java#getProvider_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/getProviders_Test.java#getProviders_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/getStore_Test.java#getStore_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/getTransport_Test.java#getTransport_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/loadFromConf_Test.java#loadFromConf_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/loadFromLib_Test.java#loadFromLib_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/reqPasswdAuthen_Test.java#reqPasswdAuthen_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/setPasswdAuthen_Test.java#setPasswdAuthen_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/setProtocolForAddress_Test.java#setProtocolForAddress_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Session/setProvider_Test.java#setProvider_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Store/autoclose_Test.java#autoclose_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Store/close_Test.java#close_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Store/connect_Test.java#connect_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Store/getDefaultFolder_Test.java#getDefaultFolder_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Store/getFolder_Test.java#getFolder_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Store/getURLName_Test.java#getURLName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Transport/autoclose_Test.java#autoclose_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Transport/close_Test.java#close_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Transport/connect_Test.java#connect_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Transport/getURLName_Test.java#getURLName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Transport/isConnected_Test.java#isConnected_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Transport/send_Test.java#send_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Transport/sendMessage_Test.java#sendMessage_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/UIDFolder/getUID_Test.java#getUID_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/UIDFolder/getUIDNext_Test.java#getUIDNext_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/URLName/equals_Test.java#equals_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/URLName/getFile_Test.java#getFile_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/URLName/getHost_Test.java#getHost_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/URLName/getPassword_Test.java#getPassword_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/URLName/getPort_Test.java#getPort_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/URLName/getProtocol_Test.java#getProtocol_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/URLName/getUsername_Test.java#getUsername_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/URLName/toString_Test.java#toString_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/URLName/urlName_Test.java#urlName_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/util/ByteArrayDataSource_Test.java#ByteArrayDataSource_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/util/SharedByteArrayInputStream_Test.java#SharedByteArrayInputStream_Test
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/util/SharedFileInputStream_Test.java#SharedFileInputStream_Test
+[javatest.batch] PASSED........com/sun/tdk/signaturetest/SignatureTest.java
+[javatest.batch] Total time = 171s
+[javatest.batch] Setup time = 0s
+[javatest.batch] Cleanup time = 0s
+[javatest.batch] Test results: passed: 321
+[javatest.batch] Results written to /home/jenkins/agent/workspace/mail-tck_master/JTwork/mail-tck.
+[javatest.batch] Report written to /home/jenkins/agent/workspace/mail-tck_master/mail-tck/JTreport
+
+run.pluggability:
+[javatest.batch] Jan 18, 2022, 12:02:33 PM Harness starting test run with configuration "mailUnix"...Starting tests
+[javatest.batch] ***************************************************************
+[javatest.batch]
+[javatest.batch] Beginning Test:  javasoft/sqe/tests/jakarta/mail/Pluggability/StreamProviderTest.java#StreamProviderTest
+[javatest.batch] Jan 18, 2022, 12:02:33 PM Finished executing all tests, wait for cleanup...
+[javatest.batch] Jan 18, 2022, 12:02:33 PM Harness done with cleanup from test run.
+[javatest.batch] ---------------------------------------------------------------
+[javatest.batch] Finished Test:  PASSED........javasoft/sqe/tests/jakarta/mail/Pluggability/StreamProviderTest.java#StreamProviderTest
+[javatest.batch] ---------------------------------------------------------------
+[javatest.batch] Number of tests completed:  1 (1 pass, 0 fail, 0 errors)
+[javatest.batch] ***************************************************************
+[javatest.batch] Completed running 1 tests.
+[javatest.batch] Number of Tests Passed      = 1
+[javatest.batch] Number of Tests Failed      = 0
+[javatest.batch] Number of Tests with Errors = 0
+[javatest.batch] Number of Tests Not Run     = 0
+[javatest.batch] ---------------------------------------------------------------
+[javatest.batch] PASSED........javasoft/sqe/tests/jakarta/mail/Pluggability/StreamProviderTest.java#StreamProviderTest
+[javatest.batch] Total time = 0s
+[javatest.batch] Setup time = 0s
+[javatest.batch] Cleanup time = 0s
+[javatest.batch] Test results: passed: 1
+[javatest.batch] Results written to /home/jenkins/agent/workspace/mail-tck_master/JTwork/mail-tck.
+[javatest.batch] Report written to /home/jenkins/agent/workspace/mail-tck_master/mail-tck/JTreport-Pluggability

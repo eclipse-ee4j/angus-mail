@@ -31,3 +31,5 @@ mail/src/main/java/doc-files/speclicense.html
 docker/JTReportParser/
 providers/angus-mail/src/test/resources/com/sun/mail/util/paramdatanostrict
 providers/angus-mail/src/test/resources/com/sun/mail/util/paramdata
+.txt
+.TXT
