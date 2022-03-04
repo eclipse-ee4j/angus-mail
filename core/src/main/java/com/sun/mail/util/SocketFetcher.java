@@ -627,7 +627,7 @@ public class SocketFetcher {
 	 * Check server identity and trust.
 	 */
 	boolean idCheck = PropUtil.getBooleanProperty(props,
-			    prefix + ".ssl.checkserveridentity", false);
+			    prefix + ".ssl.checkserveridentity", true);
 	if (idCheck)
 	    checkServerIdentity(host, sslsocket);
 	if (sf instanceof MailSSLSocketFactory) {

@@ -97,6 +97,7 @@ public final class WriteTimeoutSocketTest {
 	properties.setProperty("mail.imap.writetimeout", "" + TIMEOUT);
 	properties.setProperty("mail.imap.ssl.enable", "true");
 	properties.setProperty("mail.imap.ssl.trust", "localhost");
+	properties.setProperty("mail.imap.ssl.checkserveridentity", "false");
 	test(properties, true);
     }
 
@@ -113,6 +114,7 @@ public final class WriteTimeoutSocketTest {
 	// this property would cause MailSSLSocketFactory to be used instead
 	// of TestSSLSocketFactory, which we don't want.
 	//properties.setProperty("mail.imap.ssl.trust", "localhost");
+	properties.setProperty("mail.imap.ssl.checkserveridentity", "false");
 	TestSSLSocketFactory sf = new TestSSLSocketFactory();
 	properties.put("mail.imap.ssl.socketFactory", sf);
 	// don't fall back to non-SSL
