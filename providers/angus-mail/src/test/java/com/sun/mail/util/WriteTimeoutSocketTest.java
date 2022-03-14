@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -19,6 +19,7 @@ package com.sun.mail.util;
 import jakarta.activation.DataHandler;
 import jakarta.mail.Folder;
 import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.StoreClosedException;
@@ -64,7 +65,7 @@ public final class WriteTimeoutSocketTest {
      * Test write timeouts with plain sockets.
      */
     @Test
-    public void test() {
+    public void test() throws Exception {
 	final Properties properties = new Properties();
 	properties.setProperty("mail.imap.host", "localhost");
 	properties.setProperty("mail.imap.writetimeout", "" + TIMEOUT);
@@ -75,7 +76,7 @@ public final class WriteTimeoutSocketTest {
      * Test write timeouts with custom socket factory.
      */
     @Test
-    public void testSocketFactory() {
+    public void testSocketFactory() throws Exception {
 	final Properties properties = new Properties();
 	properties.setProperty("mail.imap.host", "localhost");
 	properties.setProperty("mail.imap.writetimeout", "" + TIMEOUT);
@@ -87,13 +88,24 @@ public final class WriteTimeoutSocketTest {
 	assertTrue(sf.getSocketCreated());
     }
 
+    @Test(expected = MessagingException.class)
+    public void testSSLCheckserveridentityDefaultsTrue() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.imap.host", "localhost");
+        properties.setProperty("mail.imap.writetimeout", "" + TIMEOUT);
+        properties.setProperty("mail.imap.ssl.enable", "true");
+        properties.setProperty("mail.imap.ssl.trust", "localhost");
+        test(properties, true);
+    }
+
     /**
      * Test write timeouts with SSL sockets.
      */
     @Test
-    public void testSSL() {
+    public void testSSL() throws Exception {
 	final Properties properties = new Properties();
 	properties.setProperty("mail.imap.host", "localhost");
+	properties.setProperty("mail.imap.ssl.checkserveridentity", "false");
 	properties.setProperty("mail.imap.writetimeout", "" + TIMEOUT);
 	properties.setProperty("mail.imap.ssl.enable", "true");
 	properties.setProperty("mail.imap.ssl.trust", "localhost");
@@ -107,6 +119,7 @@ public final class WriteTimeoutSocketTest {
     public void testSSLSocketFactory() throws Exception {
 	final Properties properties = new Properties();
 	properties.setProperty("mail.imap.host", "localhost");
+	properties.setProperty("mail.imap.ssl.checkserveridentity", "false");
 	properties.setProperty("mail.imap.writetimeout", "" + TIMEOUT);
 	properties.setProperty("mail.imap.ssl.enable", "true");
 	// TestSSLSocketFactory always trusts "localhost"; setting
@@ -156,53 +169,46 @@ public final class WriteTimeoutSocketTest {
 	assertTrue(socketMethods.isEmpty());
     }
 
-    private void test(Properties properties, boolean isSSL) {
+    private void test(Properties properties, boolean isSSL) throws Exception {
         TestServer server = null;
         try {
             final TimeoutHandler handler = new TimeoutHandler();
             server = new TestServer(handler, isSSL);
             server.start();
 
-	    properties.setProperty("mail.imap.port", "" + server.getPort());
-            final Session session = Session.getInstance(properties);
-            //session.setDebug(true);
-
-	    MimeMessage msg = new MimeMessage(session);
-	    msg.setFrom("test@example.com");
-	    msg.setSubject("test");
-	    final int size = 8192000;	// enough data to fill network buffers
-	    byte[] part = new byte[size];
-	    for (int i = 0; i < size; i++) {
-		int j = i % 64;
-		if (j == 62)
-		    part[i] = (byte)'\r';
-		else if (j == 63)
-		    part[i] = (byte)'\n';
-		else
-		    part[i] = (byte)data.charAt((j + i / 64) % 62);
-	    }
-	    msg.setDataHandler(new DataHandler(
-		new ByteArrayDataSource(part, "text/plain")));
-	    msg.saveChanges();
+    	    properties.setProperty("mail.imap.port", "" + server.getPort());
+                final Session session = Session.getInstance(properties);
+                //session.setDebug(true);
+    
+    	    MimeMessage msg = new MimeMessage(session);
+    	    msg.setFrom("test@example.com");
+    	    msg.setSubject("test");
+    	    final int size = 8192000;	// enough data to fill network buffers
+    	    byte[] part = new byte[size];
+    	    for (int i = 0; i < size; i++) {
+    		int j = i % 64;
+    		if (j == 62)
+    		    part[i] = (byte)'\r';
+    		else if (j == 63)
+    		    part[i] = (byte)'\n';
+    		else
+    		    part[i] = (byte)data.charAt((j + i / 64) % 62);
+    	    }
+    	    msg.setDataHandler(new DataHandler(
+    		new ByteArrayDataSource(part, "text/plain")));
+    	    msg.saveChanges();
 
             final Store store = session.getStore("imap");
             try {
                 store.connect("test", "test");
-		final Folder f = store.getFolder("test");
-		f.appendMessages(new Message[] { msg });
-		fail("No timeout");
-	    } catch (StoreClosedException scex) {
-		// success!
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
-            } finally {
+        		final Folder f = store.getFolder("test");
+        		f.appendMessages(new Message[] { msg });
+        		fail("No timeout");
+        	} catch (StoreClosedException scex) {
+        		// success!
+        	} finally {
                 store.close();
             }
-        } catch (final Exception e) {
-            //e.printStackTrace();
-            fail(e.getMessage());
         } finally {
             if (server != null) {
                 server.quit();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -627,7 +627,7 @@ public class SocketFetcher {
 	 * Check server identity and trust.
 	 */
 	boolean idCheck = PropUtil.getBooleanProperty(props,
-			    prefix + ".ssl.checkserveridentity", false);
+			    prefix + ".ssl.checkserveridentity", true);
 	if (idCheck)
 	    checkServerIdentity(host, sslsocket);
 	if (sf instanceof MailSSLSocketFactory) {

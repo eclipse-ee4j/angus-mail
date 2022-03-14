@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -444,11 +444,11 @@
  * <TD><A ID="mail.pop3.ssl.checkserveridentity">mail.pop3.ssl.checkserveridentity</A></TD>
  * <TD>boolean</TD>
  * <TD>
- * If set to true, check the server identity as specified by
+ * If set to false, it does not check the server identity as specified by
  * <A HREF="http://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
  * These additional checks based on the content of the server's certificate
  * are intended to prevent man-in-the-middle attacks.
- * Defaults to false.
+ * Defaults to true.
  * </TD>
  * </TR>
  *
