@@ -164,23 +164,25 @@ class Protocol {
     }
 
     private static IOException cleanupAndThrow(Socket socket, IOException ife) {
-	try {
-	    socket.close();
-	} catch (Throwable thr) {
-	    if (isRecoverable(thr)) {
-		ife.addSuppressed(thr);
-	    } else {
-		thr.addSuppressed(ife);
-		if (thr instanceof Error) {
-		    throw (Error) thr;
-		}
-		if (thr instanceof RuntimeException) {
-		    throw (RuntimeException) thr;
-		}
-		throw new RuntimeException("unexpected exception", thr);
-	    }
-	}
-	return ife;
+        if (socket != null) {
+        	try {
+        	   socket.close();
+        	} catch (Throwable thr) {
+        	    if (isRecoverable(thr)) {
+        		ife.addSuppressed(thr);
+        	    } else {
+        		thr.addSuppressed(ife);
+        		if (thr instanceof Error) {
+        		    throw (Error) thr;
+        		}
+        		if (thr instanceof RuntimeException) {
+        		    throw (RuntimeException) thr;
+        		}
+        		throw new RuntimeException("unexpected exception", thr);
+        	    }
+        	}
+        }
+        return ife;
     }
 
     private static boolean isRecoverable(Throwable t) {
