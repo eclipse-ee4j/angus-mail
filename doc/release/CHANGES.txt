@@ -7,6 +7,10 @@ for the Eclipse EE4J Angus Mail project:
 
     https://github.com/eclipse-ee4j/angus-mail/issues/<bug-number>
 
+          CHANGES IN THE 1.0.1 RELEASE
+          ----------------------------
+20: POP3 Protocol error handling can throw NPE
+
           CHANGES IN THE 1.0.0 RELEASE
           ----------------------------
 The following bugs have been fixed in the 1.0.0 release.
