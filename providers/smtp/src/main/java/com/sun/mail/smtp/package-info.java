@@ -219,10 +219,29 @@
  * <TD>int</TD>
  * <TD>Socket write timeout value in milliseconds.
  * This timeout is implemented by using a
- * java.util.concurrent.ScheduledExecutorService per connection
+ * {@link java.util.concurrent.ScheduledExecutorService} per connection
  * that schedules a thread to close the socket if the timeout expires.
  * Thus, the overhead of using this timeout is one thread per connection.
  * Default is infinite timeout.</TD>
+ * </TR>
+ *
+ * <TR>
+ * <TD><A ID="mail.smtp.executor.writetimeout">mail.smtp.executor.writetimeout</A></TD>
+ * <TD>java.util.concurrent.ScheduledExecutorService</TD>
+ * <TD> Provides specific ScheduledExecutorService for mail.smtp.writetimeout option.
+ * The value of mail.smtp.writetimeout shouldn't be a null.
+ * For provided executor pool it is highly recommended to have set up in true
+ * {@link java.util.concurrent.ScheduledThreadPoolExecutor#setRemoveOnCancelPolicy(boolean)}.
+ * Without it, write methods will create garbage that would only be reclaimed after the timeout.
+ * Be careful with calling {@link java.util.concurrent.ScheduledThreadPoolExecutor#shutdownNow()} in your executor,
+ * it can kill the running tasks. It would be ok to use shutdownNow only when JavaMail sockets are closed.
+ * This would be all service subclasses ({@link jakarta.mail.Store}/{@link jakarta.mail.Transport})
+ * Invoking run {@link java.lang.Runnable#run()} on the returned {@link java.util.concurrent.Future} objects
+ * would force close the open connections.
+ * Instead of shutdownNow you can use {@link java.util.concurrent.ScheduledThreadPoolExecutor#shutdown()} ()}
+ * and
+ * {@link java.util.concurrent.ScheduledThreadPoolExecutor#awaitTermination(long, java.util.concurrent.TimeUnit)} ()}.
+ * </TD>
  * </TR>
  *
  * <TR>

@@ -16,19 +16,22 @@
 
 package com.sun.mail.util;
 
-import java.util.Properties;
 import jakarta.mail.Session;
-import com.sun.mail.util.PropUtil;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import org.junit.Test;
 
 /**
  * Test that the PropUtil methods return the correct values,
  * especially when defaults and non-String values are considered.
  */
 public class PropUtilTest {
+
     @Test
     public void testInt() throws Exception {
 	Properties props = new Properties();
@@ -178,5 +181,35 @@ public class PropUtilTest {
     public void testSystemBoolean() throws Exception {
 	System.getProperties().put("testboolean", true);
 	assertTrue(PropUtil.getBooleanSystemProperty("testboolean", false));
+    }
+
+    @Test
+    public void testScheduledExecutorWriteTimeout() {
+        final String executorPropertyName = "test";
+        ScheduledExecutorService ses = new ScheduledThreadPoolExecutor(1);
+        try {
+            Properties props = new Properties();
+            props.put(executorPropertyName, ses);
+            assertEquals(ses, PropUtil.getScheduledExecutorServiceProperty(props, executorPropertyName));
+        } finally {
+            ses.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testScheduledExecutorWriteTimeoutIsNull() {
+        final String executorPropertyName = "test";
+        Properties props = new Properties();
+
+        assertEquals(null, PropUtil.getScheduledExecutorServiceProperty(props, executorPropertyName));
+    }
+
+    @Test(expected = ClassCastException.class)
+    public void testScheduledExecutorWriteTimeoutWrongType() {
+        final String executorPropertyName = "test";
+        Properties props = new Properties();
+        props.put(executorPropertyName, new HashSet<>());
+
+        PropUtil.getScheduledExecutorServiceProperty(props, executorPropertyName);
     }
 }

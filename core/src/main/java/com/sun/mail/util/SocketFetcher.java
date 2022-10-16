@@ -42,6 +42,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -342,7 +343,11 @@ public class SocketFetcher {
 	if (writeTimeout != -1) {	// wrap original
 	    if (logger.isLoggable(Level.FINEST))
 		logger.finest("set socket write timeout " + writeTimeout);
-	    socket = new WriteTimeoutSocket(socket, writeTimeout);
+		ScheduledExecutorService executorService = PropUtil.getScheduledExecutorServiceProperty(props,
+			prefix + ".executor.writetimeout");
+		socket = executorService == null ?
+			new WriteTimeoutSocket(socket, writeTimeout) :
+			new WriteTimeoutSocket(socket, writeTimeout, executorService);
 	}
 	if (localaddr != null)
 	    socket.bind(new InetSocketAddress(localaddr, localport));
