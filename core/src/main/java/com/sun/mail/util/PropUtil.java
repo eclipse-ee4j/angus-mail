@@ -16,8 +16,9 @@
 
 package com.sun.mail.util;
 
-import java.util.*;
 import jakarta.mail.Session;
+import java.util.Properties;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Utilities to make it easier to get property values.
@@ -55,6 +56,20 @@ public class PropUtil {
 				String name, boolean def) {
 	return getBoolean(getProp(props, name), def);
     }
+
+	/**
+	 * Get a ScheduledExecutorService valued property.
+	 *
+	 * @param	props	the properties
+	 * @param	name	the property name
+	 * @return		the property value, null if the property is null
+	 * @throws ClassCastException if the property value's class is
+	 * not {@link java.util.concurrent.ScheduledThreadPoolExecutor }
+	 */
+	public static ScheduledExecutorService getScheduledExecutorServiceProperty(Properties props,
+				String name) {
+		return getScheduledExecutorService(getProp(props, name));
+	}
 
     /**
      * Get an integer valued property.
@@ -148,6 +163,10 @@ public class PropUtil {
 	    return ((Integer)value).intValue();
 	return def;
     }
+
+	private static ScheduledExecutorService getScheduledExecutorService(Object value) {
+		return (ScheduledExecutorService) value;
+	}
 
     /**
      * Interpret the value object as a boolean,
