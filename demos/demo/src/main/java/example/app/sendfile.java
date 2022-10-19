@@ -1,3 +1,4 @@
+package example.app;
 /*
  * Copyright (c) 1996, 2021 Oracle and/or its affiliates. All rights reserved.
  *

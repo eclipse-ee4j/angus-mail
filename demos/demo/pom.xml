@@ -38,7 +38,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <excludes>
-                        <exclude>internal/**</exclude>
+                        <exclude>example/app/internal/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
