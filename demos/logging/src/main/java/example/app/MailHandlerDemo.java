@@ -1,5 +1,6 @@
+package example.app;
 /*
- * Copyright (c) 2009, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2009, 2018 Jason Mehrens. All Rights Reserved.
  *
  * This program and the accompanying materials are made available under the

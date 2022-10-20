@@ -429,58 +429,14 @@
                 </executions>
             </plugin>
 
-            <!--
-            Use the JDK 11+ compiler for Jakarta Mail itself,
-            but restrict it to 1.8 source and target.
-                    The 11+ compiler is used *only* to compile module-info descriptors.
-            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>default-compile</id>
-                        <configuration>
-                            <release>9</release>
-                            <showDeprecation>true</showDeprecation>
-                            <showWarnings>true</showWarnings>
-                            <!--
-                                Configure compiler plugin to print lint warnings.
-                                Need to exclude options warning because bootstrap
-                                classpath isn't set (on purpose).
-                                Need to exclude path warnings because Maven includes
-                                source directories that don't exist (e.g., generated-sources).
-                            -->
-                            <compilerArgs>
-                                <arg>-Xlint</arg>
-                                <arg>-Xlint:-options</arg>
-                                <arg>-Xlint:-path</arg>
-                                <!--
-                                    Too many finalize warnings.
-                                <arg>-Werror</arg>
-                                -->
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>base-compile</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <release>8</release>
-                            <excludes>
-                                <exclude>module-info.java</exclude>
-                            </excludes>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>default-testCompile</id>
-                        <configuration>
-                            <release>8</release>
-                        </configuration>
-                    </execution>
-                </executions>
+                <configuration>
+                    <source>11</source>
+                    <release>11</release>
+                    <target>11</target>
+                </configuration>
             </plugin>
 
             <plugin>
