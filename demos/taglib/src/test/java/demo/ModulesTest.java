@@ -14,7 +14,7 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
 
-package example.app;
+package demo;
 
 import static org.junit.Assert.assertEquals;
 
@@ -24,17 +24,21 @@ import org.junit.Test;
 
 import com.sun.mail.util.MailStreamProvider;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.NoSuchProviderException;
+import jakarta.mail.Provider;
 import jakarta.mail.Session;
 import jakarta.mail.util.StreamProvider;
 
 public class ModulesTest {
 
-    // With org.eclipse.angus:jakarta.mail
+    // With org.eclipse.angus:jakarta.mail and org.eclipse.angus:gimap
     @Test
     public void test() throws Exception {
         Session session = Session.getDefaultInstance(new Properties());
         StreamProvider provider = session.getStreamProvider();
         assertEquals(MailStreamProvider.class, provider.getClass());
         Class.forName("com.sun.mail.imap.IMAPProvider");
+        Class.forName("com.sun.mail.gimap.GmailProvider");
     }
 }

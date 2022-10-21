@@ -25,7 +25,6 @@ import org.junit.Test;
 import com.sun.mail.util.MailStreamProvider;
 
 import jakarta.mail.NoSuchProviderException;
-import jakarta.mail.Provider;
 import jakarta.mail.Session;
 import jakarta.mail.util.StreamProvider;
 
@@ -33,10 +32,10 @@ public class ModulesTest {
 
     // With org.eclipse.angus:angus-mail
     @Test
-    public void test() throws NoSuchProviderException {
+    public void test() throws NoSuchProviderException, ClassNotFoundException {
         Session session = Session.getDefaultInstance(new Properties());
         StreamProvider provider = session.getStreamProvider();
         assertEquals(MailStreamProvider.class, provider.getClass());
-        assertEquals(Provider.class, session.getProvider("imap").getClass());
+        Class.forName("com.sun.mail.imap.IMAPProvider");
     }
 }

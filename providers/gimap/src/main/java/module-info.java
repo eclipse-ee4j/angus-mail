@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -16,8 +16,8 @@
 
 module com.sun.mail.gimap {
 
-    requires transitive jakarta.mail;
-    requires transitive com.sun.mail;
+    requires static com.sun.mail;
+    requires static jakarta.mail;
 
     exports com.sun.mail.gimap;
     exports com.sun.mail.gimap.protocol;
