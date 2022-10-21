@@ -31,7 +31,6 @@
     <artifactId>dsn</artifactId>
     <packaging>jar</packaging>
     <name>Angus Mail dsn support</name>
-
     <build>
 	<plugins>
 	    <!--
@@ -60,6 +59,13 @@
         <dependency>
             <groupId>org.eclipse.angus</groupId>
             <artifactId>angus-mail</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>jakarta.mail</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
         </dependency>
 		<dependency>
 		    <groupId>junit</groupId>

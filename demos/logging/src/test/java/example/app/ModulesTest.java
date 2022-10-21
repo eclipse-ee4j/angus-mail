@@ -31,9 +31,9 @@ import jakarta.mail.util.StreamProvider;
 
 public class ModulesTest {
 
-    // With org.eclipse.angus:jakarta-mail
+    // With org.eclipse.angus:jakarta.mail
     @Test
-    public void orgEclipseAngusAngusMail() throws NoSuchProviderException {
+    public void test() throws NoSuchProviderException {
         Session session = Session.getDefaultInstance(new Properties());
         StreamProvider provider = session.getStreamProvider();
         assertEquals(MailStreamProvider.class, provider.getClass());

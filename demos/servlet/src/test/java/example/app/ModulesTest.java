@@ -22,8 +22,10 @@ import java.util.Properties;
 
 import org.junit.Test;
 
+import com.sun.mail.dsn.DeliveryStatus;
 import com.sun.mail.util.MailStreamProvider;
 
+import jakarta.mail.MessagingException;
 import jakarta.mail.NoSuchProviderException;
 import jakarta.mail.Provider;
 import jakarta.mail.Session;
@@ -31,12 +33,13 @@ import jakarta.mail.util.StreamProvider;
 
 public class ModulesTest {
 
-    // With org.eclipse.angus:angus-mail
+    // With org.eclipse.angus:jakarta.mail and org.eclipse.angus:dsn
     @Test
-    public void test() throws NoSuchProviderException {
+    public void test() throws NoSuchProviderException, MessagingException {
         Session session = Session.getDefaultInstance(new Properties());
         StreamProvider provider = session.getStreamProvider();
         assertEquals(MailStreamProvider.class, provider.getClass());
         assertEquals(Provider.class, session.getProvider("imap").getClass());
+        new DeliveryStatus();
     }
 }
