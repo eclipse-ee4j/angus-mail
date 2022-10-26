@@ -39,6 +39,8 @@ public class ModulesTest {
         StreamProvider provider = session.getStreamProvider();
         assertEquals(MailStreamProvider.class, provider.getClass());
         Class.forName("com.sun.mail.imap.IMAPProvider");
+        Class.forName("com.sun.mail.pop3.POP3Provider");
+        Class.forName("com.sun.mail.smtp.SMTPProvider");
         Class.forName("com.sun.mail.gimap.GmailProvider");
     }
 }

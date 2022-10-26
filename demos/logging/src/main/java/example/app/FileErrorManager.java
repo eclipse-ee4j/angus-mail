@@ -285,7 +285,7 @@ public class FileErrorManager extends ErrorManager {
         assert out != null;
         Class<?> k;
         try {
-            k = Class.forName("NewlineOutputStream");
+            k = Class.forName("example.app.NewlineOutputStream");
             if (OutputStream.class.isAssignableFrom(k)) {
                 Constructor<?> c = k.getConstructor(OutputStream.class);
                 return (OutputStream) c.newInstance(out);

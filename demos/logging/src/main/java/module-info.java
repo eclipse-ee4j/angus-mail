@@ -17,4 +17,5 @@
 module example.app {
     requires jakarta.mail;
     requires java.management;
+    requires java.logging;
 }
