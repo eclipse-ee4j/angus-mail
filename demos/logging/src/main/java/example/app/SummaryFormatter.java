@@ -1,4 +1,3 @@
-package example.app;
 /*
  * Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2009, 2018 Jason Mehrens. All Rights Reserved.
@@ -9,6 +8,8 @@ package example.app;
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
+
+package example.app.internal;
 
 import com.sun.mail.util.logging.CollectorFormatter;
 import com.sun.mail.util.logging.CompactFormatter;

@@ -1,4 +1,3 @@
-package example.app;
 /*
  * Copyright (c) 1997, 2022 Oracle and/or its affiliates. All rights reserved.
  *
@@ -8,6 +7,8 @@ package example.app;
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
+
+package example.app.internal;
 
 import java.util.*;
 
