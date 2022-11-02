@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Contributors to the Eclipse Foundation
+# Copyright (c) 2021, 2022 Contributors to the Eclipse Foundation
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License v. 2.0 which is available at
@@ -23,7 +23,7 @@ jobs:
 
     strategy:
       matrix:
-        java_version: [ 11, 17 ]
+        java_version: [ 8, 11, 17 ]
 
     steps:
     - name: Checkout for build
@@ -35,4 +35,4 @@ jobs:
         java-version: ${{ matrix.java_version }}
         cache: maven
     - name: Verify
-      run: mvn -B -U -C -V clean verify org.glassfish.copyright:glassfish-copyright-maven-plugin:check -Poss-release,staging,build-only -Dgpg.skip=true -Dcopyright.ignoreyear=true
+      run: mvn -B -U -C -V clean verify org.glassfish.copyright:glassfish-copyright-maven-plugin:check -Poss-release,staging,build-only -Dgpg.skip=true -Dcopyright.ignoreyear=true -Denforcer.skip
