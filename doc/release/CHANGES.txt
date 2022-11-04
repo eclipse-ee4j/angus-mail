@@ -10,6 +10,7 @@ for the Eclipse EE4J Angus Mail project:
           CHANGES IN THE 1.0.1 RELEASE
           ----------------------------
 20: POP3 Protocol error handling can throw NPE
+15: org.eclipse.angus.mail bundle fails to resolve under OSGi due to mandatory 'sun.security.util' package
 
           CHANGES IN THE 1.0.0 RELEASE
           ----------------------------
