@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2009, 2021 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -18,8 +18,6 @@
 package com.sun.mail.util.logging;
 
 import java.io.*;
-import java.lang.management.CompilationMXBean;
-import java.lang.management.ManagementFactory;
 import java.lang.reflect.*;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -52,14 +50,6 @@ public class LogManagerPropertiesTest extends AbstractLogging {
 
     private static void fullFence() {
         LogManager.getLogManager().getProperty("");
-    }
-
-    private static void assumeNoJit() {
-        CompilationMXBean c = ManagementFactory.getCompilationMXBean();
-        if (c != null) { //-Xint
-            Assume.assumeNoException(new IllegalArgumentException(
-                    c.getName() + " must be disabled."));
-        }
     }
 
     @Before
@@ -106,42 +96,6 @@ public class LogManagerPropertiesTest extends AbstractLogging {
         }
     }
 
-    @Ignore
-    public void testCheckAccessAbsent() throws Exception {
-        assumeNoJit();
-        final Class<?> k = LogManagerProperties.class;
-        final Field f = k.getDeclaredField("LOG_MANAGER");
-        Field mod = setAccessible(f);
-        try {
-            final Object lm = f.get(null);
-            f.set(null, null);
-            try {
-                fullFence();
-                LogManagerProperties.checkLogManagerAccess();
-
-                LogPermSecurityManager sm = new LogPermSecurityManager();
-                sm.secure = false;
-                System.setSecurityManager(sm);
-                try {
-                    sm.secure = true;
-                    try {
-                        LogManagerProperties.checkLogManagerAccess();
-                        fail(LogManagerProperties.class.getName());
-                    } catch (SecurityException expect) {
-                    }
-                } finally {
-                    sm.secure = false;
-                    System.setSecurityManager((SecurityManager) null);
-                }
-            } finally {
-                f.set(null, lm);
-                fullFence();
-            }
-        } finally {
-            mod.setInt(f, f.getModifiers() | Modifier.FINAL);
-        }
-    }
-
     @Test
     public void testFromLogManagerPresent() throws Exception {
         String prefix = LogManagerPropertiesTest.class.getName();
@@ -166,84 +120,6 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             LogManagerProperties.fromLogManager((String) null);
             fail("");
         } catch (NullPointerException expect) {
-        }
-    }
-
-    @Ignore
-    public void testFromLogManagerNull() throws Exception {
-        assumeNoJit();
-        testFromLogManager((Properties) null);
-    }
-
-    @Ignore
-    public void testFromLogManagerAbsent() throws Exception {
-        assumeNoJit();
-        final String cfgKey = "java.util.logging.config.file";
-        final Class<?> k = LogManagerProperties.class;
-        String old = System.getProperty(cfgKey);
-        try {
-            Properties props = new Properties();
-            props.put("", "empty");
-            props.put(k.getName().concat(".dummy"), "value");
-            final File f = File.createTempFile(k.getName(), ".properties");
-            try {
-                try (FileOutputStream out = new FileOutputStream(f)) {
-                    props.store(out, "testFromLogManagerAbsent");
-                }
-                System.setProperty(cfgKey, f.getAbsolutePath());
-                final Method m = k.getDeclaredMethod("readConfiguration");
-                assertTrue(Modifier.isPrivate(m.getModifiers()));
-                m.setAccessible(true);
-                props = (Properties) m.invoke(null);
-                testFromLogManager(props);
-            } finally {
-                assertTrue(f.toString(), f.delete() || !f.exists());
-            }
-        } finally {
-            if (old != null) {
-                System.setProperty(cfgKey, old);
-            } else {
-                System.clearProperty(cfgKey);
-            }
-        }
-    }
-
-    private void testFromLogManager(Properties parent) throws Exception {
-        assertTrue(LogManagerProperties.hasLogManager());
-        final Class<?> k = LogManagerProperties.class;
-        final Field f = k.getDeclaredField("LOG_MANAGER");
-        Field mod = setAccessible(f);
-        try {
-            fullFence();
-            final Object lm = f.get(null);
-            f.set(null, parent);
-            try {
-                fullFence();
-                assertFalse(LogManagerProperties.hasLogManager());
-                if (parent != null) {
-                    assertFalse(parent.isEmpty());
-                    for (Map.Entry<Object, Object> e : parent.entrySet()) {
-                        String key = e.getKey().toString();
-                        String val = LogManagerProperties.fromLogManager(key);
-                        assertEquals(e.getValue(), val);
-                    }
-                } else {
-                    assertNull(LogManagerProperties.fromLogManager(""));
-                    assertNull(LogManagerProperties.fromLogManager("val"));
-                }
-
-                try {
-                    LogManagerProperties.fromLogManager((String) null);
-                    fail("");
-                } catch (NullPointerException expect) {
-                }
-            } finally {
-                f.set(null, lm);
-                fullFence();
-            }
-        } finally {
-            mod.setInt(f, f.getModifiers() | Modifier.FINAL);
-            fullFence();
         }
     }
 
@@ -1202,22 +1078,6 @@ public class LogManagerPropertiesTest extends AbstractLogging {
                 throw new AssertionError(t);
             }
         }
-    }
-
-    private static Field setAccessible(Field f) {
-        f.setAccessible(true);
-        try {
-            assumeNoJit();
-            if (Modifier.isFinal(f.getModifiers())) {
-                Field mod = Field.class.getDeclaredField("modifiers");
-                mod.setAccessible(true);
-                mod.setInt(f, f.getModifiers() & ~Modifier.FINAL);
-                return mod;
-            }
-        } catch (RuntimeException | ReflectiveOperationException re) {
-            Assume.assumeNoException(re);
-        }
-        throw new AssertionError();
     }
 
     private boolean contains(Properties props, String key, String value) {

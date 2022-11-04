@@ -71,7 +71,12 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.angus</groupId>
-            <artifactId>angus-mail</artifactId>
+            <artifactId>jakarta.mail</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>dsn</artifactId>
         </dependency>
     </dependencies>
 </project>
