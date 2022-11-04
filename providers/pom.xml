@@ -42,24 +42,6 @@
         <module>jakarta.mail</module>
     </modules>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <configuration>
-                    <instructions>
-                        <Import-Package>
-                            javax.security.sasl;resolution:=optional,
-                            sun.security.util;resolution:=optional,
-                            *
-                        </Import-Package>
-                    </instructions>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
     <profiles>
         <!--
             This profile contains modules that should only be built

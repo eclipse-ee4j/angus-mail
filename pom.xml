@@ -405,6 +405,11 @@
                     <instructions>
                         <_noextraheaders>true</_noextraheaders>
                         <DynamicImport-Package>*</DynamicImport-Package>
+                        <Import-Package>
+                            javax.security.sasl;resolution:=optional,
+                            sun.security.util;resolution:=optional,
+                            *
+                        </Import-Package>
                     </instructions>
                     <niceManifest>true</niceManifest>
                     <archive>
