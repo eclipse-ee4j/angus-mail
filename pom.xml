@@ -84,7 +84,7 @@
         <activation-api.version>2.1.0</activation-api.version>
         <jsp-api.version>3.0.0</jsp-api.version>
         <servlet-api.version>5.0.0</servlet-api.version>
-        <angus.activation.version>2.0.0-SNAPSHOT</angus.activation.version>
+        <angus.activation.version>1.0.0</angus.activation.version>
     </properties>
 
     <developers>
