@@ -1,0 +1,15 @@
+remote_theme: jakartaee/jekyll-theme-jakarta-ee
+
+title: [Eclipse Angus]
+description: [Angus-Mail]
+
+links:
+  source: https://github.com/eclipse-ee4j/angus-mail
+  javadocs: docs/api/
+  download: https://github.com/eclipse-ee4j/angus-mail/releases
+  mailinglist: https://accounts.eclipse.org/mailing-list/angus-dev
+  faq: FAQ
+
+include:
+  - LICENSE.md
+  - CONTRIBUTING.md

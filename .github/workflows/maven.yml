@@ -14,7 +14,11 @@ name: Angus Mail
 
 on:
   pull_request:
+    paths:
+      - '!www/**'
   push:
+    paths:
+      - '!www/**'
 
 jobs:
   build:
