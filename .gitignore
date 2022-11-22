@@ -7,3 +7,9 @@ mbox/.ccls-cache/
 .classpath
 .project
 .settings/
+
+www/_site
+www/.sass-cache
+www/.jekyll-cache
+www/.jekyll-metadata
+www/vendor
