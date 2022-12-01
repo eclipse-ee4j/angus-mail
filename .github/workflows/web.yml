@@ -51,7 +51,6 @@ jobs:
         run: |
           export ANGUS_MAIL_VERSION=`curl -s https://repo1.maven.org/maven2/org/eclipse/angus/angus-mail/maven-metadata.xml | tac | grep -o -m 1 "<version>[[:digit:]]\.[[:digit:]]\.[[:digit:]]</version" | cut -f 2 -d ">" | cut -f 1 -d "<"`
           echo Building javadoc for Angus Mail version: $ANGUS_MAIL_VERSION
-          mvn -B -U -C org.apache.maven.plugins:maven-dependency-plugin:3.4.0:tree -f doc/pom.xml -Dincludes=\*:jakarta.activation-api:\* -Dangus-mail.version=$ANGUS_MAIL_VERSION
           export ACTIVATION_API_VERSION=`mvn -B -U -C org.apache.maven.plugins:maven-dependency-plugin:3.4.0:tree -f doc/pom.xml -Dincludes=\*:jakarta.activation-api:\* -Dangus-mail.version=$ANGUS_MAIL_VERSION | grep activation-api | cut -d ':' -f 4`
           export MAIL_API_VERSION=`mvn -B -U -C org.apache.maven.plugins:maven-dependency-plugin:3.4.0:tree -f doc/pom.xml -Dincludes=\*:jakarta.mail-api:\* -Dangus-mail.version=$ANGUS_MAIL_VERSION | grep mail-api | cut -d ':' -f 4`
           echo Activation API version: $ACTIVATION_API_VERSION
