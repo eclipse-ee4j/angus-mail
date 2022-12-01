@@ -79,7 +79,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <angus-mail.javadoc.source>11</angus-mail.javadoc.source>
         <angus-mail.javadoc.title>Angus Mail API documentation</angus-mail.javadoc.title>
-        <angus-mail.javadoc.header><![CDATA[<br>Angus Mail v${project.version}]]></angus-mail.javadoc.header>
+        <angus-mail.javadoc.header><![CDATA[<br>Angus Mail v${angus-mail.version}]]></angus-mail.javadoc.header>
         <angus-mail.javadoc.bottom><![CDATA[
 Comments to: <a href="mailto:angus-dev@eclipse.org">angus-dev@eclipse.org</a>.<br>
 Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]]></angus-mail.javadoc.bottom>
