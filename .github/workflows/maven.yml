@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Contributors to the Eclipse Foundation
+# Copyright (c) 2021, 2022 Contributors to the Eclipse Foundation
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License v. 2.0 which is available at
@@ -15,9 +15,11 @@ name: Angus Mail
 on:
   pull_request:
     paths:
+      - '!doc/**'
       - '!www/**'
   push:
     paths:
+      - '!doc/**'
       - '!www/**'
 
 jobs:
@@ -31,7 +33,7 @@ jobs:
 
     steps:
     - name: Checkout for build
-      uses: actions/checkout@v2.3.4
+      uses: actions/checkout@v3
     - name: Set up JDK
       uses: actions/setup-java@v2
       with:

@@ -1,20 +1,20 @@
-How to Contribute to Jakarta Mail
+How to Contribute to Angus Mail
 =================================
 
 If you're interested in contributing fixes, enhancements, etc. to
-Jakarta Mail, please contact us at [mail-dev@eclipse.org](https://accounts.eclipse.org/mailing-list/mail-dev)
+Angus Mail, please contact us at [angus-dev@eclipse.org](https://accounts.eclipse.org/mailing-list/angus-dev)
 before you start.  We can give you advice you might need to make it easier to
 contribute, and we can better coordinate contributions with other
-planned or ongoing work on Jakarta Mail.
+planned or ongoing work on Angus Mail.
 
-Contributions to Jakarta Mail follow the same rules and process as
+Contributions to Angus Mail follow the same rules and process as
 contributions to other Eclipse projects.
 
 See [CONTRIBUTING](CONTRIBUTING.md) for the legal details.
 
 ## Coding Style
 
-Modifications to existing Jakarta Mail source files, and contributions of
+Modifications to existing Angus Mail source files, and contributions of
 new source files, should use the standard Java coding style as
 originally described
 [here](http://www.oracle.com/technetwork/java/codeconvtoc-136057.html)
@@ -66,7 +66,7 @@ The most important points are summarized below:
        }
 ```
 
--   When in doubt, copy the style used in existing Jakarta Mail code.
+-   When in doubt, copy the style used in existing Angus Mail code.
 
 * * * * *
 

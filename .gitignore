@@ -8,8 +8,12 @@ mbox/.ccls-cache/
 .project
 .settings/
 
-www/_site
+_site
 www/.sass-cache
 www/.jekyll-cache
 www/.jekyll-metadata
 www/vendor
+www/docs
+www/CONTRIBUTING.md
+www/README.md
+www/TCK-Results.md
