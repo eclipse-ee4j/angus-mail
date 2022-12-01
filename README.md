@@ -33,7 +33,7 @@ the terms of [Eclipse Contributor Agreement](http://www.eclipse.org/legal/ECA.ph
 ## Links
 
 * [Angus Mail web site](https://eclipse-ee4j.github.io/angus-mail/)
-* [Jakarta Mail Specification project](https://github.com/jakarta/mail-api)
+* [Jakarta Mail Specification project](https://github.com/jakartaee/mail-api)
 * [Jakarta Mail web site](https://jakartaee.github.io/mail-api/)
 * [Javadoc](https://eclipse-ee4j.github.io/angus-mail/docs/api)
 * [Mailing list](https://accounts.eclipse.org/mailing-list/angus-dev)
