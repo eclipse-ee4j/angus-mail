@@ -45,19 +45,37 @@ public final class IMAPIdleUntaggedResponseTest {
 
     @Test
     public void test() {
+        test(false);
+    }
+    
+    @Test
+    public void testProtocolFindSocketChannel() {
+        test(true);
+    }
+        
+    private void test(boolean isSSL) {
         TestServer server = null;
         try {
             final IMAPHandlerIdleExists handler = new IMAPHandlerIdleExists();
-            server = new TestServer(handler);
+            server = new TestServer(handler, isSSL);
             server.start();
 
             final Properties properties = new Properties();
-            properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            if (isSSL) {
+                properties.setProperty("mail.imaps.host", "localhost");
+                properties.setProperty("mail.imaps.port", "" + server.getPort());
+                properties.setProperty("mail.imaps.socketFactory.class", 
+                        "com.sun.mail.util.MailSSLSocketFactory");
+                properties.setProperty("mail.imaps.ssl.trust", "*");
+                properties.setProperty("mail.imaps.ssl.checkserveridentity", "false");
+            } else {
+                properties.setProperty("mail.imap.host", "localhost");
+                properties.setProperty("mail.imap.port", "" + server.getPort());
+            }
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
-            final Store store = session.getStore("imap");
+            final Store store = session.getStore(isSSL ? "imaps" : "imap");
 	    Folder folder0 = null;
             try {
                 store.connect("test", "test");
@@ -76,6 +94,7 @@ public final class IMAPIdleUntaggedResponseTest {
 			    fp.add(FetchProfile.Item.ENVELOPE);
 			    folder.fetch(folder.getMessages(), fp);
 			} catch (Exception ex) {
+                            //ex.printStackTrace(System.out);
 			}
 		    }
 		};
@@ -88,6 +107,7 @@ public final class IMAPIdleUntaggedResponseTest {
 	    } catch (Exception ex) {
 		System.out.println(ex);
 		//ex.printStackTrace();
+                System.out.flush();
 		fail(ex.toString());
             } finally {
 		if (folder0 != null)
@@ -96,6 +116,7 @@ public final class IMAPIdleUntaggedResponseTest {
             }
         } catch (final Exception e) {
             e.printStackTrace();
+            System.err.flush();
             fail(e.getMessage());
         } finally {
             if (server != null) {

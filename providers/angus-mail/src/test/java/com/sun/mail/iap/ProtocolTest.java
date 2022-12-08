@@ -87,7 +87,7 @@ public final class ProtocolTest {
 	tag = p.writeCommand("CMD", null);
 	assertEquals("A0", tag);
     }
-
+    
     @Test
     public void testLayer1Socket() throws IOException, ProtocolException {
         try (LayerAbstractSocket s = new Layer1of5()) {
@@ -193,6 +193,22 @@ public final class ProtocolTest {
         }
     }
     
+    @Test(timeout = 10000)
+    public void testSelfNamedSocket() throws IOException, ProtocolException {
+        try (WrappedSocket s = new SelfNamedSocket()) {
+            findSocketChannel(s);
+            assertFalse(WrappedSocket.foundChannel(s));
+        }
+    }
+    
+    @Test(timeout = 10000)
+    public void testSelfHiddenSocket() throws IOException, ProtocolException {
+        try (WrappedSocket s = new SelfHiddenSocket()) {
+            findSocketChannel(s);
+            assertFalse(WrappedSocket.foundChannel(s));
+        }
+    }
+    
     private SocketChannel findSocketChannel(Socket s) throws IOException {
         try {
 	    Method m = Protocol.class.getDeclaredMethod("findSocketChannel", Socket.class);
@@ -247,6 +263,16 @@ public final class ProtocolTest {
         public boolean foundChannel() {
             return WrappedSocket.foundChannel(socket);
         }
+    }
+    
+    private static class SelfNamedSocket extends WrappedSocket {
+        @SuppressWarnings("unused") //Reflective access
+        private Socket socket = this;
+    }
+    
+    private static class SelfHiddenSocket extends WrappedSocket {
+        @SuppressWarnings("unused") //Reflective access
+        private Socket hidden = this;
     }
     
     

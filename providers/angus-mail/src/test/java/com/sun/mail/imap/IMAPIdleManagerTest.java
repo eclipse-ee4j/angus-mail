@@ -21,15 +21,11 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import jakarta.mail.Session;
-import jakarta.mail.Store;
 import jakarta.mail.Folder;
 import jakarta.mail.FetchProfile;
 import jakarta.mail.MessagingException;
-import jakarta.mail.event.ConnectionAdapter;
-import jakarta.mail.event.ConnectionEvent;
 
 import com.sun.mail.test.TestServer;
 
@@ -56,29 +52,53 @@ public final class IMAPIdleManagerTest {
      */
     @Test
     public void testDone() {
-	testSuccess(new IMAPHandlerIdleDone());
+	testSuccess(false, new IMAPHandlerIdleDone(), false);
     }
 
     @Test
     public void testExists() {
-	testSuccess(new IMAPHandlerIdleExists());
+	testSuccess(false, new IMAPHandlerIdleExists(), false);
+    }
+    
+    @Test
+    public void testDoneProtocolFindSocketChannel() {
+        testSuccess(true, new IMAPHandlerIdleDone(), false);
+    }
+    
+    @Test
+    public void testExistsProtocolFindSocketChannel() {
+        testSuccess(true, new IMAPHandlerIdleExists(), false);
     }
 
-    private void testSuccess(IMAPHandlerIdle handler) {
+    private void testSuccess(boolean isSSL, IMAPHandlerIdle handler, boolean setTimeout) {
         TestServer server = null;
 	IdleManager idleManager = null;
+        ExecutorService executor = Executors.newCachedThreadPool();
         try {
             server = new TestServer(handler);
             server.start();
 
             final Properties properties = new Properties();
-            properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
-            properties.setProperty("mail.imap.usesocketchannels", "true");
+            if (isSSL) {
+                properties.setProperty("mail.imaps.host", "localhost");
+                properties.setProperty("mail.imaps.port", "" + server.getPort());
+                properties.setProperty("mail.imaps.socketFactory.class", 
+                        "com.sun.mail.util.MailSSLSocketFactory");
+                properties.setProperty("mail.imaps.ssl.trust", "*");
+                properties.setProperty("mail.imaps.ssl.checkserveridentity", "false");
+                properties.setProperty("mail.imaps.usesocketchannels", "true");
+                if (setTimeout)
+                    properties.setProperty("mail.imaps.timeout", "" + TIMEOUT);
+            } else {
+                properties.setProperty("mail.imap.host", "localhost");
+                properties.setProperty("mail.imap.port", "" + server.getPort());
+                properties.setProperty("mail.imap.usesocketchannels", "true");
+                if (setTimeout)
+                    properties.setProperty("mail.imap.timeout", "" + TIMEOUT);
+            }
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
-	    ExecutorService executor = Executors.newCachedThreadPool();
 	    idleManager = new IdleManager(session, executor);
 
             final IMAPStore store = (IMAPStore)session.getStore("imap");
@@ -102,7 +122,9 @@ public final class IMAPIdleManagerTest {
 		assertEquals(3, count);
 	    } catch (Exception ex) {
 		System.out.println(ex);
+                System.out.flush();
 		ex.printStackTrace();
+                System.err.flush();
 		fail(ex.toString());
             } finally {
 		try {
@@ -112,8 +134,10 @@ public final class IMAPIdleManagerTest {
             }
         } catch (final Exception e) {
             e.printStackTrace();
+            System.err.flush();
             fail(e.getMessage());
         } finally {
+            executor.shutdown();
 	    if (idleManager != null)
 		idleManager.stop();
             if (server != null) {

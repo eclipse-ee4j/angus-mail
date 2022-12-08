@@ -41,20 +41,39 @@ public final class IMAPIdleStateTest {
     public Timeout deadlockTimeout = Timeout.seconds(20);
 
     @Test
-    public void test() {
+    public void testInsecure() {
+        test(false);
+    }
+    
+    @Test
+    public void testProtocolFindSocketChannel() {
+        test(true);
+    }
+    
+    private void test(boolean isSSL) {
         TestServer server = null;
         try {
             final IMAPHandlerIdleBye handler = new IMAPHandlerIdleBye();
-            server = new TestServer(handler);
+            server = new TestServer(handler, isSSL);
             server.start();
 
             final Properties properties = new Properties();
-            properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            if (isSSL) {
+                properties.setProperty("mail.imaps.host", "localhost");
+                properties.setProperty("mail.imaps.port", "" + server.getPort());
+                properties.setProperty("mail.imaps.socketFactory.class", 
+                        "com.sun.mail.util.MailSSLSocketFactory");
+                properties.setProperty("mail.imaps.ssl.trust", "*");
+                properties.setProperty("mail.imaps.ssl.checkserveridentity", "false");
+            } else {
+                properties.setProperty("mail.imap.host", "localhost");
+                properties.setProperty("mail.imap.port", "" + server.getPort());
+            }
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
-            final IMAPStore store = (IMAPStore)session.getStore("imap");
+            final IMAPStore store = (IMAPStore)session.getStore(
+                    isSSL ? "imaps" : "imap");
             try {
                 store.connect("test", "test");
 
