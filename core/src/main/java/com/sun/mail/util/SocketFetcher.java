@@ -854,13 +854,15 @@ public class SocketFetcher {
 	requestBuilder.append("Proxy-Connection: keep-alive\r\n\r\n");
 	os.print(requestBuilder.toString());
 	os.flush();
-	BufferedReader r = new BufferedReader(new InputStreamReader(
-			    socket.getInputStream(), StandardCharsets.UTF_8));
+	LineInputStream r = new LineInputStream(socket.getInputStream(), true);
+
 	String line;
 	boolean first = true;
 	while ((line = r.readLine()) != null) {
-	    if (line.length() == 0)
+	    if (line.length() == 0) {
+	        // End of HTTP response
 		break;
+	    }
 	    logger.finest(line);
 	    if (first) {
 		StringTokenizer st = new StringTokenizer(line);
