@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -16,7 +16,10 @@
 
 package com.sun.mail.util;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -29,6 +32,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -89,6 +93,41 @@ public final class SocketFetcherTest {
     @Test
     public void testNoProxy() {
 	assertFalse("no proxy", testProxy("none", "localhost", null));
+    }
+
+    /**
+     * HTTP response and IMAP response together.
+     * This test verifies the IMAP response will not be read when reading the proxy response.
+     */
+    @Test
+    public void issue45Success() throws IOException {
+        String imapResponse = "* OK NAME IMAP4rev1 Server  Server 1ece50b148c8 is ready.";
+        StringBuilder message = new StringBuilder();
+        message.append("HTTP/1.0 200 Connection established\r\n");
+        message.append("More things\r\n");
+        message.append("\r\n");
+        message.append(imapResponse).append("\r\n");
+        InputStream proxyResponse = new ByteArrayInputStream(message.toString().getBytes("UTF-8"));
+        assertTrue(SocketFetcher.readProxyResponse(proxyResponse, new StringBuilder()));
+        LineInputStream r = new LineInputStream(proxyResponse, true);
+        /* IMAP response was not read yet.
+         * Next line would fail if SocketFetcher.readProxyResponse uses a BufferedInputStream
+         * because all the input is read and buffered.
+         */
+        assertEquals(imapResponse, r.readLine());
+    }
+
+    @Test
+    public void issue45Failure() throws IOException {
+        String errorMessage = "HTTP/1.0 403 Error";
+        StringBuilder message = new StringBuilder();
+        message.append(errorMessage).append("\r\n");
+        message.append("More things\r\n");
+        message.append("\r\n");
+        InputStream proxyResponse = new ByteArrayInputStream(message.toString().getBytes("UTF-8"));
+        StringBuilder error = new StringBuilder();
+        assertFalse(SocketFetcher.readProxyResponse(proxyResponse, error));
+        assertEquals(errorMessage, error.toString());
     }
 
     /**
