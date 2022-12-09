@@ -59,6 +59,7 @@
                         <configuration>
                             <includeScope>provided</includeScope>
                             <classifier>sources</classifier>
+                            <excludeArtifactIds>graal-sdk</excludeArtifactIds>
                             <excludeTransitive>true</excludeTransitive>
                             <excludes>module-info.*,META-INF/versions/**,META-INF/MANIFEST.MF,jakarta/mail/Version.java</excludes>
                             <outputDirectory>${dep.sources}</outputDirectory>
@@ -196,6 +197,13 @@ Use is subject to <a href="{@docRoot}/doc-files/speclicense.html" target="_top">
         <dependency>
             <groupId>org.eclipse.angus</groupId>
             <artifactId>angus-mail</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>graal-sdk</artifactId>
+            <optional>true</optional>
             <scope>provided</scope>
         </dependency>
     </dependencies>

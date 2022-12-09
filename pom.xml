@@ -91,6 +91,9 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
         <servlet-api.version>5.0.0</servlet-api.version>
         <angus.activation.version>1.0.0</angus.activation.version>
         <angus-mail.version>${project.version}</angus-mail.version>
+        <graal.sdk.version>22.3.0</graal.sdk.version>
+        <!-- used in jakarta.mail/jakarta.mail.Version -->
+        <mail.version>${mail-api.version}</mail.version>
     </properties>
 
     <developers>
@@ -174,6 +177,11 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                 <groupId>org.eclipse.angus</groupId>
                 <artifactId>mbox</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.graalvm.sdk</groupId>
+                <artifactId>graal-sdk</artifactId>
+                <version>${graal.sdk.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.angus</groupId>

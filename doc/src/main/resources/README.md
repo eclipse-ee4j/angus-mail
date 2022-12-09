@@ -33,7 +33,13 @@ This project is part of [Eclipse Angus project](https://projects.eclipse.org/pro
 
 Changes `com.sun.mail` module name prefix 
 to `org.eclipse.angus.mail` and package name prefix from
-`com.sun.mail` to `org.eclipse.angus.mail`.
+`com.sun.mail` to `org.eclipse.angus.mail`
+and adds built-in support for GraalVM native-image.
+
+| native-image option            | description                               | value                      |
+|:-------------------------------|:------------------------------------------|:---------------------------|
+| angus.mail.native-image.enable | Turn on built-in support for native image | false / **true** (default) |
+| angus.mail.native-image.trace  | Print log messages to `System.out`        | **false** (default) / true |
 
 ## December 14, 2021 - Angus Mail 1.0.0 Final Release ##
 
