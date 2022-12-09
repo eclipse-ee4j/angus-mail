@@ -57,6 +57,7 @@
                             <includeScope>provided</includeScope>
                             <classifier>sources</classifier>
                             <excludeTransitive>true</excludeTransitive>
+                            <excludeArtifactIds>graal-sdk</excludeArtifactIds>
                             <excludes>module-info.*,META-INF/versions/**,META-INF/MANIFEST.MF,META-INF/services/jakarta.mail.Provider</excludes>
                             <outputDirectory>${dep.sources}</outputDirectory>
                         </configuration>
@@ -158,6 +159,13 @@
         <dependency>
             <groupId>org.eclipse.angus</groupId>
             <artifactId>logging-mailhandler</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>graal-sdk</artifactId>
+            <optional>true</optional>
             <scope>provided</scope>
         </dependency>
     </dependencies>

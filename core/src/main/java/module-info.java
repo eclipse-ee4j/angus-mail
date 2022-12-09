@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -23,9 +23,13 @@ module com.sun.mail {
     requires transitive jakarta.mail;
     requires transitive jakarta.activation;
 
+    requires static org.graalvm.sdk; // for graal integration
+
     exports com.sun.mail.auth;
     exports com.sun.mail.handlers;
     exports com.sun.mail.util;
+
+    uses jakarta.mail.Provider;
 
     provides jakarta.mail.util.StreamProvider with
             com.sun.mail.util.MailStreamProvider;
