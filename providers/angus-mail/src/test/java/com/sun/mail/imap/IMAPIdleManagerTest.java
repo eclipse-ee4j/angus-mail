@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -75,7 +75,7 @@ public final class IMAPIdleManagerTest {
 	IdleManager idleManager = null;
         ExecutorService executor = Executors.newCachedThreadPool();
         try {
-            server = new TestServer(handler);
+            server = new TestServer(handler, isSSL);
             server.start();
 
             final Properties properties = new Properties();
@@ -101,7 +101,8 @@ public final class IMAPIdleManagerTest {
 
 	    idleManager = new IdleManager(session, executor);
 
-            final IMAPStore store = (IMAPStore)session.getStore("imap");
+            final IMAPStore store = (IMAPStore)session
+                    .getStore(isSSL ? "imaps" : "imap");
 	    Folder folder = null;
             try {
                 store.connect("test", "test");
