@@ -65,6 +65,7 @@ public final class IMAPIdleStateTest {
                         "com.sun.mail.util.MailSSLSocketFactory");
                 properties.setProperty("mail.imaps.ssl.trust", "*");
                 properties.setProperty("mail.imaps.ssl.checkserveridentity", "false");
+                //mail.imaps.usesocketchannels is not set which forces default of false.
             } else {
                 properties.setProperty("mail.imap.host", "localhost");
                 properties.setProperty("mail.imap.port", "" + server.getPort());

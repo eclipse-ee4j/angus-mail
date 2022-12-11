@@ -67,6 +67,8 @@ public final class IMAPIdleUntaggedResponseTest {
                         "com.sun.mail.util.MailSSLSocketFactory");
                 properties.setProperty("mail.imaps.ssl.trust", "*");
                 properties.setProperty("mail.imaps.ssl.checkserveridentity", "false");
+                //Add property and set to false.
+                properties.setProperty("mail.imaps.usesocketchannels", "false");
             } else {
                 properties.setProperty("mail.imap.host", "localhost");
                 properties.setProperty("mail.imap.port", "" + server.getPort());
