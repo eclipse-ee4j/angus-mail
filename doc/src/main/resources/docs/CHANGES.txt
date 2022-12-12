@@ -11,6 +11,7 @@ for the Eclipse EE4J Angus Mail project:
           ----------------------------
 The following bugs have been fixed in the 1.0.1 release.
 
+26: Illegal reflective access when calling idle()
 30: DSN module with jakarta-mail bundle module issue (1)
 32: DSN module with jakarta-mail bundle module issue (2)
 33: Missing 'uses' in jakarta-mail bundle module-info
