@@ -15,6 +15,7 @@ The following bugs have been fixed in the 1.0.1 release.
 32: DSN module with jakarta-mail bundle module issue (2)
 33: Missing 'uses' in jakarta-mail bundle module-info
 35: Add proper tests with JDK9+ modules
+26: Illegal reflective access when calling idle()
 20: POP3 Protocol error handling can throw NPE
 15: org.eclipse.angus.mail bundle fails to resolve under OSGi due to mandatory 'sun.security.util' package
 
