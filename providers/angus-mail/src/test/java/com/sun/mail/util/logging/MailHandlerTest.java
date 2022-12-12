@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2009, 2021 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -18,8 +18,6 @@
 package com.sun.mail.util.logging;
 
 import java.io.*;
-import java.lang.management.CompilationMXBean;
-import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -94,14 +92,6 @@ public class MailHandlerTest extends AbstractLogging {
         anyClassPathDir = null;
     }
 
-    private static void assumeNoJit() {
-        CompilationMXBean c = ManagementFactory.getCompilationMXBean();
-        if (c != null) { //-Xint
-            Assume.assumeNoException(new IllegalArgumentException(
-                    c.getName() + " must be disabled."));
-        }
-    }
-
     private static void fullFence() {
         LogManager.getLogManager().getProperty("");
     }
@@ -155,24 +145,6 @@ public class MailHandlerTest extends AbstractLogging {
         } else {
             PENDING.remove();
         }
-    }
-
-    private static Field setAccessible(Field f) {
-        f.setAccessible(true);
-        try {
-            assumeNoJit();
-            if (Modifier.isFinal(f.getModifiers())) {
-                Field mod = Field.class.getDeclaredField("modifiers");
-                mod.setAccessible(true);
-                mod.setInt(f, f.getModifiers() & ~Modifier.FINAL);
-                return mod;
-            }
-        } catch (RuntimeException re) {
-            Assume.assumeNoException(re);
-        } catch (Exception e) {
-            Assume.assumeNoException(e);
-        }
-        throw new AssertionError();
     }
 
     private static void set(ClassLoader expect) {
@@ -5000,126 +4972,6 @@ public class MailHandlerTest extends AbstractLogging {
         } catch (PrintThrowsRuntimeException unexpected) {
             unexpected.dump();
             fail(unexpected.getMessage());
-        }
-    }
-
-    @Ignore
-    public void testGaeForbiddenHeaders() throws Exception {
-        assumeNoJit();
-        assertNull(System.getSecurityManager());
-        assertTrue(LogManagerProperties.hasLogManager());
-        final Class<?> k = LogManagerProperties.class;
-        final Field f = k.getDeclaredField("LOG_MANAGER");
-        final Field mod = setAccessible(f);
-        try {
-            final Object lm = f.get(null);
-            f.set(null, new Properties());
-            try {
-                fullFence();
-                assertFalse(LogManagerProperties.hasLogManager());
-                MailHandler instance = createHandlerWithRecords();
-                instance.setErrorManager(new GaeErrorManager(instance));
-                instance.close();
-            } finally {
-                f.set(null, lm);
-                fullFence();
-            }
-        } finally {
-            mod.setInt(f, f.getModifiers() | Modifier.FINAL);
-        }
-        assertTrue(LogManagerProperties.hasLogManager());
-    }
-
-    @Ignore
-    public void testGaeSecurityManager() throws Exception {
-        assumeNoJit();
-        InternalErrorManager em;
-        MailHandler h = null;
-        final GaeSecurityManager manager = new GaeSecurityManager();
-        System.setSecurityManager(manager);
-        try {
-            manager.secure = false;
-            h = new MailHandler(createInitProperties(""));
-            em = new InternalErrorManager();
-            h.setErrorManager(em);
-            manager.secure = true;
-            assertEquals(manager, System.getSecurityManager());
-
-            //GAE allows access to loggers.
-            Logger global = Logger.getLogger("global");
-            hardRef = global;
-            global.addHandler(h);
-            global.removeHandler(h);
-            global.removeHandler((Handler) null);
-            hardRef = null;
-
-            h.postConstruct();
-            h.setAttachmentFormatters(new Formatter[]{new ThrowFormatter()});
-            assertEquals(1, h.getAttachmentFormatters().length);
-
-            h.setAttachmentFilters(new Filter[]{new ThrowFilter()});
-            assertEquals(1, h.getAttachmentFormatters().length);
-
-            assertEquals(1, h.getAttachmentFormatters().length);
-            h.setAttachmentNames(new String[]{"error.txt"});
-
-            assertEquals(1, h.getAttachmentFormatters().length);
-            h.setAttachmentNames(new Formatter[]{new ThrowFormatter()});
-
-            h.setAuthenticator((Authenticator) null);
-            h.setComparator((Comparator<? super LogRecord>) null);
-
-            h.setLevel(Level.ALL);
-            h.setFilter(BooleanFilter.FALSE);
-            h.setFilter((Filter) null);
-            h.setFormatter(new EmptyFormatter());
-
-            assertNotNull(h.getErrorManager());
-            h.setErrorManager(new ErrorManager());
-
-            h.setEncoding((String) null);
-
-            h.flush();
-            h.push();
-
-            h.setMailProperties(new Properties());
-
-            h.setPushFilter((Filter) null);
-            h.setPushLevel(Level.OFF);
-
-            h.setSubject(new ThrowFormatter());
-            h.setSubject("test");
-
-            h.getAuthenticator();
-            h.getMailProperties();
-
-            h.preDestroy();
-            h.close();
-
-            //check for internal exceptions caused by security manager.
-            for (Exception e : em.exceptions) {
-                dump(e);
-            }
-            assertTrue(em.exceptions.isEmpty());
-
-            hardRef = h = new MailHandler();
-            h.close();
-
-            hardRef = h = new MailHandler(100);
-            assertEquals(100, h.getCapacity());
-            h.close();
-
-            Properties props = new Properties();
-            props.put("test", "test");
-            hardRef = h = new MailHandler(props);
-            assertEquals(props, h.getMailProperties());
-        } finally {
-            hardRef = null;
-            manager.secure = false;
-            System.setSecurityManager((SecurityManager) null);
-            if (h != null) {
-                h.close();
-            }
         }
     }
 

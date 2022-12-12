@@ -33,17 +33,6 @@
     <packaging>pom</packaging>
     <name>Angus Mail providers</name>
 
-    <dependencies>
-        <dependency>
-            <groupId>jakarta.mail</groupId>
-            <artifactId>jakarta.mail-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.angus</groupId>
-            <artifactId>angus-core</artifactId>
-        </dependency>
-    </dependencies>
-
     <modules>
         <module>angus-mail</module>
         <module>smtp</module>
@@ -52,24 +41,6 @@
         <module>pop3</module>
         <module>jakarta.mail</module>
     </modules>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <configuration>
-                    <instructions>
-                        <Import-Package>
-                            javax.security.sasl;resolution:=optional,
-                            sun.security.util;resolution:=optional,
-                            *
-                        </Import-Package>
-                    </instructions>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
     <profiles>
         <!--
