@@ -14,13 +14,13 @@ name: Angus Mail
 
 on:
   pull_request:
-    paths:
-      - '!doc/**'
-      - '!www/**'
+    paths-ignore:
+      - 'doc/**'
+      - 'www/**'
   push:
-    paths:
-      - '!doc/**'
-      - '!www/**'
+    paths-ignore:
+      - 'doc/**'
+      - 'www/**'
 
 jobs:
   build:
