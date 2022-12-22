@@ -34,6 +34,7 @@
     <properties>
         <angus-mail.www>${project.build.directory}/site</angus-mail.www>
         <angus-mail.javadoc.destdir>${angus-mail.www}/docs/api</angus-mail.javadoc.destdir>
+        <copyright.exclude>${project.basedir}/../copyright-exclude</copyright.exclude>
     </properties>
 
     <build>
