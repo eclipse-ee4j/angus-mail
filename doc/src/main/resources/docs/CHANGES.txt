@@ -19,6 +19,7 @@ The following bugs have been fixed in the 1.1.0 release.
 33: Missing 'uses' in jakarta-mail bundle module-info
 35: Add proper tests with JDK9+ modules
 47: support GraalVM native image
+56: Add the ability to provide own scheduled executor for SMTP timeout
 
           CHANGES IN THE 1.0.0 RELEASE
           ----------------------------
