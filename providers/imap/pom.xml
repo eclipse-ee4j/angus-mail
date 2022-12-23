@@ -43,4 +43,36 @@
             <artifactId>angus-core</artifactId>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Require-Capability><![CDATA[
+                            osgi.extender;filter:="(&(osgi.extender=osgi.serviceloader.registrar)
+                              (version>=1.0.0)(!(version>=2.0.0)))";resolution:=optional,
+                            osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+                            ]]>
+                        </Require-Capability>
+                        <Provide-Capability><![CDATA[
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.imap.IMAPProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.imap.IMAPProvider";
+                              osgi.serviceloader="com.sun.mail.imap.IMAPProvider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.imap.IMAPSSLProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.imap.IMAPSSLProvider";
+                              osgi.serviceloader="com.sun.mail.imap.IMAPSSLProvider"
+                            ]]>
+                        </Provide-Capability>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
