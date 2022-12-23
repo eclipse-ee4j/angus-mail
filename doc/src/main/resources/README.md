@@ -29,12 +29,16 @@ This project is part of [Eclipse Angus project](https://projects.eclipse.org/pro
 
 # <a name="Latest_News"></a>Latest News
 
-## TBD - Angus Mail 2.0.0 Final Release ##
+## December TBD, 2022 - Angus Mail 2.0.0 Final Release ##
 
-Changes `com.sun.mail` module name prefix 
+Changes `com.sun.mail` module name prefix
 to `org.eclipse.angus.mail` and package name prefix from
-`com.sun.mail` to `org.eclipse.angus.mail`
-and adds built-in support for GraalVM native-image.
+`com.sun.mail` to `org.eclipse.angus.mail`.
+
+## December TBD, 2022 - Angus Mail 1.1.0 Final Release ##
+
+Adds built-in support for GraalVM native-image, support for OSGi Mediator Specification,
+and contains multiple bug fixes and small enhancements.
 
 | native-image option            | description                               | value                      |
 |:-------------------------------|:------------------------------------------|:---------------------------|
