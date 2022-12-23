@@ -31,29 +31,6 @@
     <artifactId>dsn</artifactId>
     <packaging>jar</packaging>
     <name>Angus Mail dsn support</name>
-    <build>
-	<plugins>
-	    <!--
-		Configure SpotBugs to run with "mvn findbugs:findbugs"
-		and generate XML output that can be used by the Hudson
-		FindBugs plugin.
-	    -->
-	    <plugin>
-		<groupId>com.github.spotbugs</groupId>
-		<artifactId>spotbugs-maven-plugin</artifactId>
-		<configuration>
-		    <skip>false</skip>
-		    <threshold>${findbugs.threshold}</threshold>
-		    <!--
-		    <excludeFilterFile>
-			${project.basedir}/exclude.xml
-		    </excludeFilterFile>
-		    -->
-		    <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
-		</configuration>
-	    </plugin>
-	</plugins>
-    </build>
 
     <dependencies>
         <dependency>
@@ -73,5 +50,22 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Require-Capability><![CDATA[
+                            osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+                            ]]>
+                        </Require-Capability>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

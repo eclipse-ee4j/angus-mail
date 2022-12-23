@@ -153,6 +153,64 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Require-Capability><![CDATA[
+                          osgi.extender;filter:="(&(osgi.extender=osgi.serviceloader.processor)
+                            (version>=1.0.0)(!(version>=2.0.0)))";resolution:=optional,
+                          osgi.serviceloader;filter:="(osgi.serviceloader=jakarta.mail.Provider)";
+                            osgi.serviceloader="jakarta.mail.Provider";
+                              cardinality:=multiple;resolution:=optional,
+                          osgi.serviceloader;filter:="(osgi.serviceloader=jakarta.mail.util.StreamProvider)";
+                            osgi.serviceloader="jakarta.mail.util.StreamProvider";
+                              cardinality:=multiple;resolution:=optional,
+                          osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+                            ]]>
+                        </Require-Capability>
+                        <Provide-Capability><![CDATA[
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.util.MailStreamProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.util.MailStreamProvider";
+                              osgi.serviceloader="com.sun.mail.util.MailStreamProvider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.imap.IMAPProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.imap.IMAPProvider";
+                              osgi.serviceloader="com.sun.mail.imap.IMAPProvider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.imap.IMAPSSLProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.imap.IMAPSSLProvider";
+                              osgi.serviceloader="com.sun.mail.imap.IMAPSSLProvider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.smtp.SMTPProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.smtp.SMTPProvider";
+                              osgi.serviceloader="com.sun.mail.smtp.SMTPProvider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.smtp.SMTPSSLProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.smtp.SMTPSSLProvider";
+                              osgi.serviceloader="com.sun.mail.smtp.SMTPSSLProvider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.pop3.POP3Provider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.pop3.POP3Provider";
+                              osgi.serviceloader="com.sun.mail.pop3.POP3Provider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.pop3.POP3SSLProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.pop3.POP3SSLProvider";
+                              osgi.serviceloader="com.sun.mail.pop3.POP3SSLProvider"
+                            ]]>
+                        </Provide-Capability>
+                    </instructions>
+                </configuration>
+            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -170,7 +228,6 @@ Use is subject to <a href="{@docRoot}/doc-files/speclicense.html" target="_top">
     </build>
 
     <dependencies>
-
         <dependency>
             <groupId>jakarta.activation</groupId>
             <artifactId>jakarta.activation-api</artifactId>
