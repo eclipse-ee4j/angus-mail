@@ -85,11 +85,11 @@ Comments to: <a href="mailto:angus-dev@eclipse.org">angus-dev@eclipse.org</a>.<b
 Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]]></angus-mail.javadoc.bottom>
 
         <mail.spec.version>2.1</mail.spec.version>
-        <mail-api.version>2.1.0</mail-api.version>
-        <activation-api.version>2.1.0</activation-api.version>
+        <mail-api.version>2.1.1</mail-api.version>
+        <activation-api.version>2.1.1</activation-api.version>
         <jsp-api.version>3.0.0</jsp-api.version>
         <servlet-api.version>5.0.0</servlet-api.version>
-        <angus.activation.version>1.0.0</angus.activation.version>
+        <angus.activation.version>1.1.0</angus.activation.version>
         <angus-mail.version>${project.version}</angus-mail.version>
         <graal.sdk.version>22.3.0</graal.sdk.version>
         <!-- used in jakarta.mail/jakarta.mail.Version -->
