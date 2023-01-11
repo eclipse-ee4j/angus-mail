@@ -124,54 +124,89 @@
                     </execution>
                 </executions>
             </plugin>
+
             <!--
-                We want to produce aggregated javadoc for multiple JPMS modules. To do that
-                we have to pass 'module-source-path' to javadoc tool to make it module aware.
-                While we can pass that option to javadoc through maven-javadoc-plugin
-                using 'additionalOptions', the plugin also sets 'sourcepath' option,
-                which is in conflict with 'module-source-path' (as of maven-javadoc-plugin:3.2.0).
-                Ant task is used here to get around that limitation for the time being.
+                This is the rule that collects the release artifacts and
+                creates the samples zip file for a release.
             -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>generate-javadocs</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <mkdir dir="${project.build.directory}/javadoc-ant"/>
-                                <javadoc destdir="${angus-mail.javadoc.destdir}"
-                                         modulesourcepath="${project.build.directory}/javadoc-sources/"
-                                         modulepath="${jakarta.activation:jakarta.activation-api:jar}:${org.graalvm.sdk:graal-sdk:jar}"
-                                         author="false"
-                                         docfilessubdirs="true"
-                                         failonerror="true"
-                                         overview="${project.build.directory}/javadoc-sources/jakarta.mail/overview.html"
-                                         serialwarn="true"
-                                         source="${angus-mail.javadoc.source}"
-                                         splitindex="true"
-                                         use="true"
-                                         windowtitle="${angus-mail.javadoc.title}"
-                                >
-                                    <arg value="-J-Xmx256m" />
-                                    <arg value="-Xdoclint:none" />
-                                    <arg value="-notimestamp" />
-                                    <arg value="-quiet" />
-                                    <doctitle>${angus-mail.javadoc.title}</doctitle>
-                                    <bottom>${angus-mail.javadoc.bottom}</bottom>
-                                    <header>${angus-mail.javadoc.header}</header>
-                                    <group title="Jakarta Mail API Packages" packages="jakarta.mail,jakarta.mail.*"/>
-                                    <group title="Implementation-specific Packages" packages="com.sun.mail,com.sun.mail.*"/>
-                                    <fileset dir="${project.build.directory}/javadoc-sources/jakarta.mail">
-                                        <include name="jakarta/mail/**/*.java"/>
-                                    </fileset>
-                                    <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail"
-                                             includes="
+<!--            <plugin>-->
+<!--                <artifactId>maven-assembly-plugin</artifactId>-->
+<!--                <inherited>false</inherited>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <phase>package</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>single</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <outputDirectory>${angus-mail.www}</outputDirectory>-->
+<!--                            <finalName>angusmail</finalName>-->
+<!--                            <descriptors>-->
+<!--                                <descriptor>src/main/assembly/samples.xml</descriptor>-->
+<!--                            </descriptors>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+        </plugins>
+    </build>
+
+    <profiles>
+            <profile>
+                <id>jdk9</id>
+                <activation>
+                    <jdk>[9,)</jdk>
+                </activation>
+                <build>
+                    <plugins>
+                        <!--
+                        We want to produce aggregated javadoc for multiple JPMS modules. To do that
+                        we have to pass 'module-source-path' to javadoc tool to make it module aware.
+                        While we can pass that option to javadoc through maven-javadoc-plugin
+                        using 'additionalOptions', the plugin also sets 'sourcepath' option,
+                        which is in conflict with 'module-source-path' (as of maven-javadoc-plugin:3.2.0).
+                        Ant task is used here to get around that limitation for the time being.
+                        -->
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-antrun-plugin</artifactId>
+                            <executions>
+                                <execution>
+                                    <id>generate-javadocs</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>run</goal>
+                                    </goals>
+                                    <configuration>
+                                        <target>
+                                            <mkdir dir="${project.build.directory}/javadoc-ant"/>
+                                            <javadoc destdir="${angus-mail.javadoc.destdir}"
+                                                     modulesourcepath="${project.build.directory}/javadoc-sources/"
+                                                     modulepath="${jakarta.activation:jakarta.activation-api:jar}:${org.graalvm.sdk:graal-sdk:jar}"
+                                                     author="false"
+                                                     docfilessubdirs="true"
+                                                     failonerror="true"
+                                                     overview="${project.build.directory}/javadoc-sources/jakarta.mail/overview.html"
+                                                     serialwarn="true"
+                                                     source="${angus-mail.javadoc.source}"
+                                                     splitindex="true"
+                                                     use="true"
+                                                     windowtitle="${angus-mail.javadoc.title}"
+                                                >
+                                                <arg value="-J-Xmx256m" />
+                                                <arg value="-Xdoclint:none" />
+                                                <arg value="-notimestamp" />
+                                                <arg value="-quiet" />
+                                                <doctitle>${angus-mail.javadoc.title}</doctitle>
+                                                <bottom>${angus-mail.javadoc.bottom}</bottom>
+                                                <header>${angus-mail.javadoc.header}</header>
+                                                <group title="Jakarta Mail API Packages" packages="jakarta.mail,jakarta.mail.*"/>
+                                                <group title="Implementation-specific Packages" packages="com.sun.mail,com.sun.mail.*"/>
+                                                <fileset dir="${project.build.directory}/javadoc-sources/jakarta.mail">
+                                                    <include name="jakarta/mail/**/*.java"/>
+                                                </fileset>
+                                                <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail"
+                                                          includes="
 			com/sun/mail/imap/IMAPFolder.java,
 			com/sun/mail/imap/IMAPMessage.java,
 			com/sun/mail/imap/IMAPStore.java,
@@ -203,48 +238,25 @@
 			com/sun/mail/util/ReadableMime.java,
 			com/sun/mail/util/logging/*.java
 					"/>
-                                    <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail.dsn"
-                                             includes="
+                                                <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail.dsn"
+                                                          includes="
 			com/sun/mail/dsn/DeliveryStatus.java,
 			com/sun/mail/dsn/DispositionNotification.java,
 			com/sun/mail/dsn/MessageHeaders.java,
 			com/sun/mail/dsn/MultipartReport.java,
 			com/sun/mail/dsn/Report.java
 					"/>
-                                    <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail.gimap" includes="com/sun/mail/gimap/*.java"/>
-                                </javadoc>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!--
-                This is the rule that collects the release artifacts and
-                creates the samples zip file for a release.
-            -->
-<!--            <plugin>-->
-<!--                <artifactId>maven-assembly-plugin</artifactId>-->
-<!--                <inherited>false</inherited>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <phase>package</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>single</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <outputDirectory>${angus-mail.www}</outputDirectory>-->
-<!--                            <finalName>angusmail</finalName>-->
-<!--                            <descriptors>-->
-<!--                                <descriptor>src/main/assembly/samples.xml</descriptor>-->
-<!--                            </descriptors>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
-        </plugins>
-    </build>
-
+                                                <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail.gimap" includes="com/sun/mail/gimap/*.java"/>
+                                            </javadoc>
+                                        </target>
+                                    </configuration>
+                                </execution>
+                            </executions>
+                        </plugin>
+                    </plugins>
+                </build>
+            </profile>
+    </profiles>
     <dependencies>
         <dependency>
             <groupId>org.eclipse.angus</groupId>
