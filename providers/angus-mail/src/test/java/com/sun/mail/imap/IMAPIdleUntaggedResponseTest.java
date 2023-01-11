@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -23,7 +23,6 @@ import java.util.concurrent.CountDownLatch;
 import jakarta.mail.Folder;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
-import jakarta.mail.Message;
 import jakarta.mail.FetchProfile;
 
 import com.sun.mail.test.TestServer;
@@ -45,19 +44,39 @@ public final class IMAPIdleUntaggedResponseTest {
 
     @Test
     public void test() {
+        test(false);
+    }
+    
+    @Test
+    public void testProtocolFindSocketChannel() {
+        test(true);
+    }
+        
+    private void test(boolean isSSL) {
         TestServer server = null;
         try {
             final IMAPHandlerIdleExists handler = new IMAPHandlerIdleExists();
-            server = new TestServer(handler);
+            server = new TestServer(handler, isSSL);
             server.start();
 
             final Properties properties = new Properties();
-            properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            if (isSSL) {
+                properties.setProperty("mail.imaps.host", "localhost");
+                properties.setProperty("mail.imaps.port", "" + server.getPort());
+                properties.setProperty("mail.imaps.socketFactory.class", 
+                        "com.sun.mail.util.MailSSLSocketFactory");
+                properties.setProperty("mail.imaps.ssl.trust", "*");
+                properties.setProperty("mail.imaps.ssl.checkserveridentity", "false");
+                //Add property and set to false.
+                properties.setProperty("mail.imaps.usesocketchannels", "false");
+            } else {
+                properties.setProperty("mail.imap.host", "localhost");
+                properties.setProperty("mail.imap.port", "" + server.getPort());
+            }
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
-            final Store store = session.getStore("imap");
+            final Store store = session.getStore(isSSL ? "imaps" : "imap");
 	    Folder folder0 = null;
             try {
                 store.connect("test", "test");
@@ -76,6 +95,7 @@ public final class IMAPIdleUntaggedResponseTest {
 			    fp.add(FetchProfile.Item.ENVELOPE);
 			    folder.fetch(folder.getMessages(), fp);
 			} catch (Exception ex) {
+                            //ex.printStackTrace(System.out);
 			}
 		    }
 		};
@@ -88,6 +108,7 @@ public final class IMAPIdleUntaggedResponseTest {
 	    } catch (Exception ex) {
 		System.out.println(ex);
 		//ex.printStackTrace();
+                System.out.flush();
 		fail(ex.toString());
             } finally {
 		if (folder0 != null)
@@ -96,6 +117,7 @@ public final class IMAPIdleUntaggedResponseTest {
             }
         } catch (final Exception e) {
             e.printStackTrace();
+            System.err.flush();
             fail(e.getMessage());
         } finally {
             if (server != null) {

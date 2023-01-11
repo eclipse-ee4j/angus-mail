@@ -1,0 +1,19 @@
+github: [metadata]
+
+remote_theme: eclipsefdn/jekyll-theme-eclipsefdn
+
+title: [Eclipse Angus]
+description: [Angus - Mail]
+
+links:
+  source: https://github.com/eclipse-ee4j/angus-mail
+  api: docs/api/
+  download: https://repo1.maven.org/maven2/org/eclipse/angus/angus-mail
+  mailinglist: https://accounts.eclipse.org/mailing-list/angus-dev
+  spec: https://jakarta.ee/specifications/mail
+  faq: FAQ
+  contrib: CONTRIBUTING
+  tckresults: TCK-Results
+
+include:
+  - CONTRIBUTING.md

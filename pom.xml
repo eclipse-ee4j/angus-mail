@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!--
 
-    Copyright (c) 1997, 2022 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Public License v. 2.0, which is available at
@@ -24,14 +24,14 @@
         <groupId>org.eclipse.ee4j</groupId>
         <artifactId>project</artifactId>
         <version>1.0.7</version>
-        <relativePath></relativePath>
+        <relativePath/>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.eclipse.angus</groupId>
     <artifactId>all</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>2.0.0-SNAPSHOT</version>
     <name>Angus Mail Project</name>
     <description>${project.name}</description>
     <url>http://eclipse-ee4j.github.io/mail</url>
@@ -74,17 +74,26 @@
         <copyright.update>false</copyright.update>
         <spotbugs.skip>true</spotbugs.skip>
         <spotbugs.threshold>High</spotbugs.threshold>
-        <spotbugs.plugin.version>4.5.0.0</spotbugs.plugin.version>
+        <spotbugs.plugin.version>4.7.3.0</spotbugs.plugin.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javadoc.title>Angus Mail API documentation</javadoc.title>
+        <angus-mail.javadoc.source>11</angus-mail.javadoc.source>
+        <angus-mail.javadoc.title>Angus Mail API documentation</angus-mail.javadoc.title>
+        <angus-mail.javadoc.header><![CDATA[<br>Angus Mail v${angus-mail.version}]]></angus-mail.javadoc.header>
+        <angus-mail.javadoc.bottom><![CDATA[
+Comments to: <a href="mailto:angus-dev@eclipse.org">angus-dev@eclipse.org</a>.<br>
+Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]]></angus-mail.javadoc.bottom>
 
         <mail.spec.version>2.1</mail.spec.version>
-        <mail-api.version>2.1.0</mail-api.version>
-        <activation-api.version>2.1.0</activation-api.version>
+        <mail-api.version>2.1.1</mail-api.version>
+        <activation-api.version>2.1.1</activation-api.version>
         <jsp-api.version>3.0.0</jsp-api.version>
         <servlet-api.version>5.0.0</servlet-api.version>
-        <angus.activation.version>1.0.0</angus.activation.version>
+        <angus.activation.version>2.0.0</angus.activation.version>
+        <angus-mail.version>${project.version}</angus-mail.version>
+        <graal.sdk.version>22.3.0</graal.sdk.version>
+        <!-- used in jakarta.mail/jakarta.mail.Version -->
+        <mail.version>${mail-api.version}</mail.version>
     </properties>
 
     <developers>
@@ -170,6 +179,11 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.graalvm.sdk</groupId>
+                <artifactId>graal-sdk</artifactId>
+                <version>${graal.sdk.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.eclipse.angus</groupId>
                 <artifactId>taglib</artifactId>
                 <version>${project.version}</version>
@@ -244,6 +258,11 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.3.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
                     <version>3.3.0</version>
                 </plugin>
                 <plugin>
@@ -530,22 +549,18 @@
                             <addDefaultEntries>false</addDefaultEntries>
                         </manifest>
                     </archive>
-                    <source>11</source>
+                    <source>${angus-mail.javadoc.source}</source>
                     <author>false</author>
-                    <description>${javadoc.title}</description>
-                    <doctitle>${javadoc.title}</doctitle>
-                    <windowtitle>${javadoc.title}</windowtitle>
+                    <description>${angus-mail.javadoc.title}</description>
+                    <doctitle>${angus-mail.javadoc.title}</doctitle>
+                    <windowtitle>${angus-mail.javadoc.title}</windowtitle>
                     <splitindex>true</splitindex>
                     <use>true</use>
                     <notimestamp>true</notimestamp>
                     <serialwarn>true</serialwarn>
                     <quiet>true</quiet>
-                    <header><![CDATA[<br>Angus Mail v${project.version}]]></header>
-                    <bottom>
-                        <![CDATA[
-Comments to : <a href="mailto:angus-dev@eclipse.org">angus-dev@eclipse.org</a>.<br>
-Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]]>
-                    </bottom>
+                    <header>${angus-mail.javadoc.header}</header>
+                    <bottom>${angus-mail.javadoc.bottom}</bottom>
                     <!-- force the doc-files directory to be copied -->
                     <docfilessubdirs>true</docfilessubdirs>
                     <detectJavaApiLink>false</detectJavaApiLink>
@@ -582,8 +597,7 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
             <id>build-only</id>
             <modules>
                 <module>demos</module>
-                <module>javadoc</module>
-                <module>publish</module>
+                <module>doc</module>
             </modules>
             <activation>
                 <activeByDefault>true</activeByDefault>

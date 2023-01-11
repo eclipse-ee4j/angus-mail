@@ -22,6 +22,8 @@ module jakarta.mail {
     requires static java.security.sasl; // for OAuth2 support
     requires transitive jakarta.activation;
 
+    requires static org.graalvm.sdk;
+
     exports jakarta.mail;
     exports jakarta.mail.event;
     exports jakarta.mail.internet;

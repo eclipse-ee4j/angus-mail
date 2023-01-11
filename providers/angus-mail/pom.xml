@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.eclipse.angus</groupId>
         <artifactId>all</artifactId>
-        <version>1.0.1-SNAPSHOT</version>
+        <version>2.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -57,6 +57,7 @@
                             <includeScope>provided</includeScope>
                             <classifier>sources</classifier>
                             <excludeTransitive>true</excludeTransitive>
+                            <excludeArtifactIds>graal-sdk</excludeArtifactIds>
                             <excludes>module-info.*,META-INF/versions/**,META-INF/MANIFEST.MF,META-INF/services/jakarta.mail.Provider</excludes>
                             <outputDirectory>${dep.sources}</outputDirectory>
                         </configuration>
@@ -97,6 +98,58 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Require-Capability><![CDATA[
+                            osgi.extender;filter:="(&(osgi.extender=osgi.serviceloader.registrar)
+                              (version>=1.0.0)(!(version>=2.0.0)))";resolution:=optional,
+                            osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+                            ]]>
+                        </Require-Capability>
+                        <Provide-Capability><![CDATA[
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.util.MailStreamProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.util.MailStreamProvider";
+                              osgi.serviceloader="com.sun.mail.util.MailStreamProvider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.imap.IMAPProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.imap.IMAPProvider";
+                              osgi.serviceloader="com.sun.mail.imap.IMAPProvider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.imap.IMAPSSLProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.imap.IMAPSSLProvider";
+                              osgi.serviceloader="com.sun.mail.imap.IMAPSSLProvider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.smtp.SMTPProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.smtp.SMTPProvider";
+                              osgi.serviceloader="com.sun.mail.smtp.SMTPProvider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.smtp.SMTPSSLProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.smtp.SMTPSSLProvider";
+                              osgi.serviceloader="com.sun.mail.smtp.SMTPSSLProvider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.pop3.POP3Provider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.pop3.POP3Provider";
+                              osgi.serviceloader="com.sun.mail.pop3.POP3Provider",
+                            osgi.service;effective:=active;
+                              objectClass="com.sun.mail.pop3.POP3SSLProvider",
+                            osgi.serviceloader;
+                              register:="com.sun.mail.pop3.POP3SSLProvider";
+                              osgi.serviceloader="com.sun.mail.pop3.POP3SSLProvider"
+                            ]]>
+                        </Provide-Capability>
+                    </instructions>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -158,6 +211,13 @@
         <dependency>
             <groupId>org.eclipse.angus</groupId>
             <artifactId>logging-mailhandler</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>graal-sdk</artifactId>
+            <optional>true</optional>
             <scope>provided</scope>
         </dependency>
     </dependencies>

@@ -31,11 +31,14 @@ import java.nio.channels.SocketChannel;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * A special Socket that uses a ScheduledExecutorService to
@@ -50,14 +53,25 @@ public class WriteTimeoutSocket extends Socket {
     private final Socket socket;
     // to schedule task to cancel write after timeout
     private final ScheduledExecutorService ses;
+    // flag to indicate whether scheduled executor is provided from outside or
+    // should be created here in constructor
+    private final boolean isExternalSes;
     // the timeout, in milliseconds
     private final int timeout;
 
     public WriteTimeoutSocket(Socket socket, int timeout) throws IOException {
 	this.socket = socket;
 	// XXX - could share executor with all instances?
-        this.ses = Executors.newScheduledThreadPool(1);
+        this.ses = createScheduledThreadPool();
+        this.isExternalSes = false;
 	this.timeout = timeout;
+    }
+
+    public WriteTimeoutSocket(Socket socket, int timeout, ScheduledExecutorService ses) throws IOException {
+        this.socket = socket;
+        this.ses = ses;
+        this.timeout = timeout;
+        this.isExternalSes = true;
     }
 
     public WriteTimeoutSocket(int timeout) throws IOException {
@@ -158,7 +172,7 @@ public class WriteTimeoutSocket extends Socket {
     @Override
     public synchronized OutputStream getOutputStream() throws IOException {
 	// wrap the returned stream to implement write timeout
-        return new TimeoutOutputStream(socket.getOutputStream(), ses, timeout);
+        return new TimeoutOutputStream(socket, ses, timeout);
     }
 
     @Override
@@ -261,7 +275,8 @@ public class WriteTimeoutSocket extends Socket {
 	try {
 	    socket.close();
 	} finally {
-	    ses.shutdownNow();
+        if (!isExternalSes)
+	        ses.shutdownNow();
 	}
     }
 
@@ -350,6 +365,14 @@ public class WriteTimeoutSocket extends Socket {
         }
         return null;
     }
+
+    private ScheduledThreadPoolExecutor createScheduledThreadPool() {
+        ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
+        // Without setting setRemoveOnCancelPolicy = true write methods will create garbage that would only be
+        // reclaimed after the timeout.
+        scheduledThreadPoolExecutor.setRemoveOnCancelPolicy(true);
+        return scheduledThreadPoolExecutor;
+    }
 }
 
 
@@ -359,22 +382,32 @@ public class WriteTimeoutSocket extends Socket {
  * socket (aborting the write) if the timeout expires.
  */
 class TimeoutOutputStream extends OutputStream {
+    private static final String WRITE_TIMEOUT_MESSAGE = "Write timed out";
+    private static final String CANNOT_GET_TIMEOUT_TASK_RESULT_MESSAGE = "Couldn't get result of timeout task";
+
     private final OutputStream os;
     private final ScheduledExecutorService ses;
-    private final Callable<Object> timeoutTask;
+    private final Callable<String> timeoutTask;
     private final int timeout;
     private byte[] b1;
+    private final Socket socket;
+    // Implement timeout with a scheduled task
+    private ScheduledFuture<String> sf = null;
 
-    public TimeoutOutputStream(OutputStream os0, ScheduledExecutorService ses,
-				int timeout) throws IOException {
-	this.os = os0;
+    public TimeoutOutputStream(Socket socket, ScheduledExecutorService ses, int timeout) throws IOException {
+	this.os = socket.getOutputStream();
 	this.ses = ses;
 	this.timeout = timeout;
-	timeoutTask = new Callable<Object>() {
+    this.socket = socket;
+	timeoutTask = new Callable<String>() {
 	    @Override
-	    public Object call() throws Exception {
-		os.close();	// close the stream to abort the write
-		return null;
+	    public String call() throws Exception {
+            try {
+                os.close();	// close the stream to abort the write
+            } catch (Throwable t) {
+                return t.toString();
+            }
+		    return WRITE_TIMEOUT_MESSAGE;
 	    }
 	};
     }
@@ -397,26 +430,61 @@ class TimeoutOutputStream extends OutputStream {
 	    return;
 	}
 
-	// Implement timeout with a scheduled task
-	ScheduledFuture<Object> sf = null;
 	try {
-	    try {
-		if (timeout > 0)
-		    sf = ses.schedule(timeoutTask,
-					timeout, TimeUnit.MILLISECONDS);
-	    } catch (RejectedExecutionException ex) {
-		// ignore it; Executor was shut down by another thread,
-		// the following write should fail with IOException
-	    }
-	    os.write(bs, off, len);
+        try {
+            if (timeout > 0)
+                sf = ses.schedule(timeoutTask,
+                    timeout, TimeUnit.MILLISECONDS);
+        } catch (RejectedExecutionException ex) {
+            if (!socket.isClosed()) {
+                throw new IOException("Write aborted due to timeout not enforced", ex);
+            }
+        }
+
+        try {
+            os.write(bs, off, len);
+        } catch (IOException e) {
+            if (sf != null && !sf.cancel(true)) {
+                throw new IOException(handleTimeoutTaskResult(sf), e);
+            }
+            throw e;
+        }
 	} finally {
 	    if (sf != null)
-		sf.cancel(true);
-	}
+		    sf.cancel(true);
+	    }
     }
 
     @Override
     public void close() throws IOException {
-	os.close();
+	    os.close();
+        if (sf != null) {
+            sf.cancel(true);
+        }
+    }
+
+    private String handleTimeoutTaskResult(ScheduledFuture<String> sf)  {
+        boolean wasInterrupted = Thread.interrupted();
+        String exceptionMessage = null;
+        try {
+            return sf.get(timeout, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            exceptionMessage = String.format("%s %s", e, ses.toString());
+        } catch (CancellationException e) {
+            exceptionMessage = e.toString();
+        } catch (InterruptedException e) {
+            wasInterrupted = true;
+            exceptionMessage = e.toString();
+        } catch (ExecutionException e) {
+            exceptionMessage = e.getCause() == null ? e.toString() : e.getCause().toString();
+        } catch (Exception e) {
+            exceptionMessage = e.toString();
+        } finally {
+            if (wasInterrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        return String.format("%s. %s", CANNOT_GET_TIMEOUT_TASK_RESULT_MESSAGE, exceptionMessage);
     }
 }

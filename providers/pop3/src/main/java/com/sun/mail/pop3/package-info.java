@@ -234,6 +234,25 @@
  * </TR>
  *
  * <TR>
+ * <TD><A ID="mail.pop3.executor.writetimeout">mail.pop3.executor.writetimeout</A></TD>
+ * <TD>java.util.concurrent.ScheduledExecutorService</TD>
+ * <TD> Provides specific ScheduledExecutorService for mail.pop3.writetimeout option.
+ * The value of mail.pop3.writetimeout shouldn't be a null.
+ * For provided executor pool it is highly recommended to have set up in true
+ * {@link java.util.concurrent.ScheduledThreadPoolExecutor#setRemoveOnCancelPolicy(boolean)}.
+ * Without it, write methods will create garbage that would only be reclaimed after the timeout.
+ * Be careful with calling {@link java.util.concurrent.ScheduledThreadPoolExecutor#shutdownNow()} in your executor,
+ * it can kill the running tasks. It would be ok to use shutdownNow only when JavaMail sockets are closed.
+ * This would be all service subclasses ({@link jakarta.mail.Store}/{@link jakarta.mail.Transport})
+ * Invoking run {@link java.lang.Runnable#run()} on the returned {@link java.util.concurrent.Future} objects
+ * would force close the open connections.
+ * Instead of shutdownNow you can use {@link java.util.concurrent.ScheduledThreadPoolExecutor#shutdown()} ()}
+ * and
+ * {@link java.util.concurrent.ScheduledThreadPoolExecutor#awaitTermination(long, java.util.concurrent.TimeUnit)} ()}.
+ * </TD>
+ * </TR>
+ *
+ * <TR>
  * <TD><A ID="mail.pop3.rsetbeforequit">mail.pop3.rsetbeforequit</A></TD>
  * <TD>boolean</TD>
  * <TD>

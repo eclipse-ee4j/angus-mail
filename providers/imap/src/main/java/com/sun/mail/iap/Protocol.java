@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -533,61 +533,76 @@ public class Protocol {
      * @since	JavaMail 1.5.2
      */
     public SocketChannel getChannel() {
-	SocketChannel ret = socket.getChannel();
-	if (ret != null)
-		return ret;
-
-	if (socket instanceof SSLSocket) {
-		ret = Protocol.findSocketChannel(socket);
-	}
-	return ret;
+        //SocketFetcher controls if a socket has a channel via
+        //usesocketchannels property.  When the socket is known to not have
+        //a channel this guard ensures that the reflective search for a socket
+        //channel is avoided which can print warnings to error stream.
+        //This is assuming the session properties are not mutated after the
+        //socket has been connected.
+        if (PropUtil.getBooleanProperty(props,
+					prefix + ".usesocketchannels", false)) {
+            SocketChannel ret = socket.getChannel();
+            if (ret == null && socket instanceof SSLSocket) {
+                ret = Protocol.findSocketChannel(socket);
+            }
+            return ret;
+        }
+        return null;
     }
 
     /**
-     * Android is broken and SSL wrapped sockets don't delegate
-     * the getChannel method to the wrapped Socket.
+     * Android/Conscrypt is broken and SSL wrapped sockets don't delegate
+     * the getChannel method to the wrapped Socket.  This method attempts to
+     * examine the internals of the SSLSocket to locate the transport socket.
      * 
      * @param socket a non null socket
      * @return the SocketChannel or null if not found
+     * @throws NullPointerException if given socket is null
      */
     private static SocketChannel findSocketChannel(Socket socket) {
 	//Search class hierarchy for field name socket regardless of modifier.
+        //Old versions of Android and even versions of Conscrypt use this name.
 	for (Class<?> k = socket.getClass(); k != Object.class; k = k.getSuperclass()) {
-		try {
-			Field f = k.getDeclaredField("socket");
-			f.setAccessible(true);
-			Socket s = (Socket) f.get(socket);
-			SocketChannel ret = s.getChannel();
-			if (ret != null) {
-				return ret;
-			}
-		} catch (Exception ignore) {
-			//ignore anything that might go wrong
-		}
+            try {
+                Field f = k.getDeclaredField("socket");
+		f.setAccessible(true);
+		Socket s = (Socket) f.get(socket);
+                if (s != socket) { //reference compare only
+                    SocketChannel ret = s.getChannel();
+                    if (ret != null) {
+                        return ret;
+                    }
+                }
+            } catch (Exception ignore) {
+                    //ignore anything that might go wrong
+            }
 	}
 	
 	//Search class hierarchy for fields that can hold a Socket
-	//or subclass regardless of modifier.  Fields declared as super types of Socket
-	//will be ignored.
+	//or subclass regardless of modifier but ignoring synthetic fields.
+        //Fields declared as super types of Socket be ignored.
 	for (Class<?> k = socket.getClass(); k != Object.class; k = k.getSuperclass()) {
-		try {
-			for (Field f : k.getDeclaredFields()) {
-				if (Socket.class.isAssignableFrom(f.getType())) {
-					try {
-						f.setAccessible(true);
-						Socket s = (Socket) f.get(socket);
-						SocketChannel ret = s.getChannel();
-						if (ret != null) {
-							return ret;
-						}
-					} catch (Exception ignore) {
-						//ignore anything that might go wrong
-					}
-				}
-			}
-		} catch (Exception ignore) {
-			//ignore anything that might go wrong
+            try {
+		for (Field f : k.getDeclaredFields()) {
+                    if (Socket.class.isAssignableFrom(f.getType())
+                            && !f.isSynthetic()) {
+                        try {
+                            f.setAccessible(true);
+                            Socket s = (Socket) f.get(socket);
+                            if (s != socket) { //reference compare only
+                                SocketChannel ret = s.getChannel();
+                                if (ret != null) {
+                                    return ret;
+                                }
+                            }
+                        } catch (Exception ignore) {
+                                //ignore anything that might go wrong
+                        }
+                    }
 		}
+            } catch (Exception ignore) {
+            	//ignore anything that might go wrong
+            }
 	}
 	return null;
     }

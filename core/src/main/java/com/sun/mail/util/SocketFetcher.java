@@ -16,9 +16,8 @@
 
 package com.sun.mail.util;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -42,6 +41,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -342,7 +342,11 @@ public class SocketFetcher {
 	if (writeTimeout != -1) {	// wrap original
 	    if (logger.isLoggable(Level.FINEST))
 		logger.finest("set socket write timeout " + writeTimeout);
-	    socket = new WriteTimeoutSocket(socket, writeTimeout);
+		ScheduledExecutorService executorService = PropUtil.getScheduledExecutorServiceProperty(props,
+			prefix + ".executor.writetimeout");
+		socket = executorService == null ?
+			new WriteTimeoutSocket(socket, writeTimeout) :
+			new WriteTimeoutSocket(socket, writeTimeout, executorService);
 	}
 	if (localaddr != null)
 	    socket.bind(new InetSocketAddress(localaddr, localport));
@@ -854,34 +858,45 @@ public class SocketFetcher {
 	requestBuilder.append("Proxy-Connection: keep-alive\r\n\r\n");
 	os.print(requestBuilder.toString());
 	os.flush();
-	BufferedReader r = new BufferedReader(new InputStreamReader(
-			    socket.getInputStream(), StandardCharsets.UTF_8));
-	String line;
-	boolean first = true;
-	while ((line = r.readLine()) != null) {
-	    if (line.length() == 0)
-		break;
-	    logger.finest(line);
-	    if (first) {
-		StringTokenizer st = new StringTokenizer(line);
-		String http = st.nextToken();
-		String code = st.nextToken();
-		if (!code.equals("200")) {
-		    try {
-			socket.close();
-		    } catch (IOException ioex) {
-			// ignored
-		    }
-		    ConnectException ex = new ConnectException(
-			"connection through proxy " +
-			proxyHost + ":" + proxyPort + " to " +
-			host + ":" + port + " failed: " + line);
-		    logger.log(Level.FINE, "connect failed", ex);
-		    throw ex;
-		}
-		first = false;
-	    }
+	StringBuilder errorLine = new StringBuilder();
+	if (!readProxyResponse(socket.getInputStream(), errorLine)) {
+	    try {
+                socket.close();
+            } catch (IOException ioex) {
+                // ignored
+            }
+            ConnectException ex = new ConnectException(
+                "connection through proxy " +
+                proxyHost + ":" + proxyPort + " to " +
+                host + ":" + port + " failed: " + errorLine.toString());
+            logger.log(Level.FINE, "connect failed", ex);
+            throw ex;
 	}
+    }
+
+    static boolean readProxyResponse(InputStream input, StringBuilder errorLine) throws IOException {
+        LineInputStream r = new LineInputStream(input, true);
+
+        String line;
+        boolean first = true;
+        while ((line = r.readLine()) != null) {
+            if (line.length() == 0) {
+                // End of HTTP response
+                break;
+            }
+            logger.finest(line);
+            if (first) {
+                StringTokenizer st = new StringTokenizer(line);
+                String http = st.nextToken();
+                String code = st.nextToken();
+                if (!code.equals("200")) {
+                    errorLine.append(line);
+                    return false;
+                }
+                first = false;
+            }
+        }
+        return true;
     }
 
     /**
