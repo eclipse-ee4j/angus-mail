@@ -91,7 +91,7 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
         <servlet-api.version>5.0.0</servlet-api.version>
         <angus.activation.version>2.0.0</angus.activation.version>
         <angus-mail.version>${project.version}</angus-mail.version>
-        <graal.sdk.version>22.0.0</graal.sdk.version>
+        <graal.sdk.version>22.3.0</graal.sdk.version>
         <!-- used in jakarta.mail/jakarta.mail.Version -->
         <mail.version>${mail-api.version}</mail.version>
     </properties>
@@ -673,6 +673,7 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                             </testExcludes>
                             <excludes>
                                 <exclude>module-info.java</exclude>
+                                <exclude>com/sun/mail/nativeimage/**</exclude>
                             </excludes>
                         </configuration>
                     </plugin>
