@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022 Contributors to the Eclipse Foundation
+# Copyright (c) 2022, 2023 Contributors to the Eclipse Foundation
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License v. 2.0 which is available at
@@ -55,6 +55,7 @@ jobs:
           export MAIL_API_VERSION=`mvn -B -U -C org.apache.maven.plugins:maven-dependency-plugin:3.4.0:tree -f doc/pom.xml -Dincludes=\*:jakarta.mail-api:\* -Dangus-mail.version=$ANGUS_MAIL_VERSION | grep mail-api | cut -d ':' -f 4`
           echo Activation API version: $ACTIVATION_API_VERSION
           echo Mail API version: $MAIL_API_VERSION
+          echo mvn -B -U -C -V clean install -f doc/pom.xml -Dangus-mail.version=$ANGUS_MAIL_VERSION -Dmail-api.version=$MAIL_API_VERSION -Dactivation-api.version=$ACTIVATION_API_VERSION
           mvn -B -U -C -V clean install -f doc/pom.xml -Dangus-mail.version=$ANGUS_MAIL_VERSION -Dmail-api.version=$MAIL_API_VERSION -Dactivation-api.version=$ACTIVATION_API_VERSION
           rm -rf ./www/docs || true
           mkdir -p ./www/docs
