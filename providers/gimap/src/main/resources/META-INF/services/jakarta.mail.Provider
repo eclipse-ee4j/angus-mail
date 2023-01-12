@@ -1,2 +1,2 @@
-com.sun.mail.gimap.GmailProvider
-com.sun.mail.gimap.GmailSSLProvider
+org.eclipse.angus.mail.gimap.GmailProvider
+org.eclipse.angus.mail.gimap.GmailSSLProvider

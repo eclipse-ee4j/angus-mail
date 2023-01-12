@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!--
 
-    Copyright (c) 1997, 2022 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Public License v. 2.0, which is available at
@@ -132,6 +132,36 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>fix-default-provider</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <replace file="${project.build.directory}/generated-sources/dependencies/jakarta/mail/package-info.java">
+                                    <replacefilter>
+                                        <replacetoken><![CDATA[com.sun.mail]]></replacetoken>
+                                        <replacevalue><![CDATA[org.eclipse.angus.mail]]></replacevalue>
+                                    </replacefilter>
+                                </replace>
+                                <replace file="${project.build.directory}/generated-sources/dependencies/jakarta/mail/Session.java">
+                                    <replacefilter>
+                                        <replacetoken><![CDATA[com.sun.mail]]></replacetoken>
+                                        <replacevalue><![CDATA[org.eclipse.angus.mail]]></replacevalue>
+                                    </replacefilter>
+                                </replace>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
                     <execution>
@@ -172,40 +202,40 @@
                         </Require-Capability>
                         <Provide-Capability><![CDATA[
                             osgi.service;effective:=active;
-                              objectClass="com.sun.mail.util.MailStreamProvider",
+                              objectClass="org.eclipse.angus.mail.util.MailStreamProvider",
                             osgi.serviceloader;
-                              register:="com.sun.mail.util.MailStreamProvider";
-                              osgi.serviceloader="com.sun.mail.util.MailStreamProvider",
+                              register:="org.eclipse.angus.mail.util.MailStreamProvider";
+                              osgi.serviceloader="org.eclipse.angus.mail.util.MailStreamProvider",
                             osgi.service;effective:=active;
-                              objectClass="com.sun.mail.imap.IMAPProvider",
+                              objectClass="org.eclipse.angus.mail.imap.IMAPProvider",
                             osgi.serviceloader;
-                              register:="com.sun.mail.imap.IMAPProvider";
-                              osgi.serviceloader="com.sun.mail.imap.IMAPProvider",
+                              register:="org.eclipse.angus.mail.imap.IMAPProvider";
+                              osgi.serviceloader="org.eclipse.angus.mail.imap.IMAPProvider",
                             osgi.service;effective:=active;
-                              objectClass="com.sun.mail.imap.IMAPSSLProvider",
+                              objectClass="org.eclipse.angus.mail.imap.IMAPSSLProvider",
                             osgi.serviceloader;
-                              register:="com.sun.mail.imap.IMAPSSLProvider";
-                              osgi.serviceloader="com.sun.mail.imap.IMAPSSLProvider",
+                              register:="org.eclipse.angus.mail.imap.IMAPSSLProvider";
+                              osgi.serviceloader="org.eclipse.angus.mail.imap.IMAPSSLProvider",
                             osgi.service;effective:=active;
-                              objectClass="com.sun.mail.smtp.SMTPProvider",
+                              objectClass="org.eclipse.angus.mail.smtp.SMTPProvider",
                             osgi.serviceloader;
-                              register:="com.sun.mail.smtp.SMTPProvider";
-                              osgi.serviceloader="com.sun.mail.smtp.SMTPProvider",
+                              register:="org.eclipse.angus.mail.smtp.SMTPProvider";
+                              osgi.serviceloader="org.eclipse.angus.mail.smtp.SMTPProvider",
                             osgi.service;effective:=active;
-                              objectClass="com.sun.mail.smtp.SMTPSSLProvider",
+                              objectClass="org.eclipse.angus.mail.smtp.SMTPSSLProvider",
                             osgi.serviceloader;
-                              register:="com.sun.mail.smtp.SMTPSSLProvider";
-                              osgi.serviceloader="com.sun.mail.smtp.SMTPSSLProvider",
+                              register:="org.eclipse.angus.mail.smtp.SMTPSSLProvider";
+                              osgi.serviceloader="org.eclipse.angus.mail.smtp.SMTPSSLProvider",
                             osgi.service;effective:=active;
-                              objectClass="com.sun.mail.pop3.POP3Provider",
+                              objectClass="org.eclipse.angus.mail.pop3.POP3Provider",
                             osgi.serviceloader;
-                              register:="com.sun.mail.pop3.POP3Provider";
-                              osgi.serviceloader="com.sun.mail.pop3.POP3Provider",
+                              register:="org.eclipse.angus.mail.pop3.POP3Provider";
+                              osgi.serviceloader="org.eclipse.angus.mail.pop3.POP3Provider",
                             osgi.service;effective:=active;
-                              objectClass="com.sun.mail.pop3.POP3SSLProvider",
+                              objectClass="org.eclipse.angus.mail.pop3.POP3SSLProvider",
                             osgi.serviceloader;
-                              register:="com.sun.mail.pop3.POP3SSLProvider";
-                              osgi.serviceloader="com.sun.mail.pop3.POP3SSLProvider"
+                              register:="org.eclipse.angus.mail.pop3.POP3SSLProvider";
+                              osgi.serviceloader="org.eclipse.angus.mail.pop3.POP3SSLProvider"
                             ]]>
                         </Provide-Capability>
                     </instructions>

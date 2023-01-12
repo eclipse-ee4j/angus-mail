@@ -1,2 +1,2 @@
-com.sun.mail.mbox.MboxProvider
-com.sun.mail.remote.POP3RemoteProvider
+org.eclipse.angus.mail.mbox.MboxProvider
+org.eclipse.angus.mail.remote.POP3RemoteProvider

@@ -14,11 +14,11 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
 
-module com.sun.mail.mbox {
+module org.eclipse.angus.mail.mbox {
 
-    requires transitive com.sun.mail;
+    requires transitive org.eclipse.angus.mail;
     requires transitive jakarta.mail;
 
-    exports com.sun.mail.mbox;
-    exports com.sun.mail.remote;
+    exports org.eclipse.angus.mail.mbox;
+    exports org.eclipse.angus.mail.remote;
 }

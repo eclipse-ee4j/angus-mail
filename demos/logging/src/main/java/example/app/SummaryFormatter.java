@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2018 Jason Mehrens. All Rights Reserved.
+ * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2023 Jason Mehrens. All Rights Reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -11,8 +11,8 @@
 
 package example.app.internal;
 
-import com.sun.mail.util.logging.CollectorFormatter;
-import com.sun.mail.util.logging.CompactFormatter;
+import org.eclipse.angus.mail.util.logging.CollectorFormatter;
+import org.eclipse.angus.mail.util.logging.CompactFormatter;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;

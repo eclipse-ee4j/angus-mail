@@ -17,5 +17,5 @@
 module example.app {
     requires jakarta.mail;
     requires jakarta.servlet;
-    requires com.sun.mail.dsn;
+    requires org.eclipse.angus.mail.dsn;
 }

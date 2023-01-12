@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -14,15 +14,15 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
 
-module com.sun.mail.pop3 {
+module org.eclipse.angus.mail.pop3 {
 
     requires transitive jakarta.mail;
-    requires transitive com.sun.mail;
+    requires transitive org.eclipse.angus.mail;
 
-    exports com.sun.mail.pop3;
+    exports org.eclipse.angus.mail.pop3;
 
     provides jakarta.mail.Provider with
-            com.sun.mail.pop3.POP3Provider,
-            com.sun.mail.pop3.POP3SSLProvider;
+            org.eclipse.angus.mail.pop3.POP3Provider,
+            org.eclipse.angus.mail.pop3.POP3SSLProvider;
 
 }

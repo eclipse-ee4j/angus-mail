@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2018 Jason Mehrens. All Rights Reserved.
+ * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2023 Jason Mehrens. All Rights Reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -11,10 +11,10 @@
 
 package example.app.internal;
 
-import com.sun.mail.util.logging.CollectorFormatter;
-import com.sun.mail.util.logging.DurationFilter;
-import com.sun.mail.util.logging.MailHandler;
-import com.sun.mail.util.logging.SeverityComparator;
+import org.eclipse.angus.mail.util.logging.CollectorFormatter;
+import org.eclipse.angus.mail.util.logging.DurationFilter;
+import org.eclipse.angus.mail.util.logging.MailHandler;
+import org.eclipse.angus.mail.util.logging.SeverityComparator;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -323,8 +323,8 @@ public class MailHandlerDemo {
     /**
      * Example for body only messages. On close the remaining messages are sent.      <code>
      * ##logging.properties
-     * MailHandlerDemo.handlers=com.sun.mail.util.logging.MailHandler
-     * com.sun.mail.util.logging.MailHandler.subject=Body only demo
+     * MailHandlerDemo.handlers=org.eclipse.angus.mail.util.logging.MailHandler
+     * org.eclipse.angus.mail.util.logging.MailHandler.subject=Body only demo
      * ##
      * </code>
      */
@@ -340,9 +340,9 @@ public class MailHandlerDemo {
      * the size of an outgoing message. On close any remaining messages are
      * sent.      <code>
      * ##logging.properties
-     * MailHandlerDemo.handlers=com.sun.mail.util.logging.MailHandler
-     * com.sun.mail.util.logging.MailHandler.subject=Low capacity demo
-     * com.sun.mail.util.logging.MailHandler.capacity=5
+     * MailHandlerDemo.handlers=org.eclipse.angus.mail.util.logging.MailHandler
+     * org.eclipse.angus.mail.util.logging.MailHandler.subject=Low capacity demo
+     * org.eclipse.angus.mail.util.logging.MailHandler.capacity=5
      * ##
      * </code>
      */
@@ -355,10 +355,10 @@ public class MailHandlerDemo {
     /**
      * Example for body only messages. On close any remaining messages are sent.      <code>
      * ##logging.properties
-     * MailHandlerDemo.handlers=com.sun.mail.util.logging.MailHandler
-     * com.sun.mail.util.logging.MailHandler.subject=Body and attachment demo
-     * com.sun.mail.util.logging.MailHandler.attachment.formatters=java.util.logging.XMLFormatter
-     * com.sun.mail.util.logging.MailHandler.attachment.names=data.xml
+     * MailHandlerDemo.handlers=org.eclipse.angus.mail.util.logging.MailHandler
+     * org.eclipse.angus.mail.util.logging.MailHandler.subject=Body and attachment demo
+     * org.eclipse.angus.mail.util.logging.MailHandler.attachment.formatters=java.util.logging.XMLFormatter
+     * org.eclipse.angus.mail.util.logging.MailHandler.attachment.names=data.xml
      * ##
      * </code>
      */
@@ -375,9 +375,9 @@ public class MailHandlerDemo {
      * triggered the message is high priority. Otherwise, on close any remaining
      * messages are sent.      <code>
      * ##logging.properties
-     * MailHandlerDemo.handlers=com.sun.mail.util.logging.MailHandler
-     * com.sun.mail.util.logging.MailHandler.subject=Push level demo
-     * com.sun.mail.util.logging.MailHandler.pushLevel=WARNING
+     * MailHandlerDemo.handlers=org.eclipse.angus.mail.util.logging.MailHandler
+     * org.eclipse.angus.mail.util.logging.MailHandler.subject=Push level demo
+     * org.eclipse.angus.mail.util.logging.MailHandler.pushLevel=WARNING
      * ##
      * </code>
      */
@@ -393,12 +393,12 @@ public class MailHandlerDemo {
      * triggered the message is high priority. Otherwise, on close any remaining
      * messages are sent. If the capacity is set to the      <code>
      * ##logging.properties
-     * MailHandlerDemo.handlers=com.sun.mail.util.logging.MailHandler
-     * com.sun.mail.util.logging.MailHandler.subject=Push filter demo
-     * com.sun.mail.util.logging.MailHandler.pushLevel=ALL
-     * com.sun.mail.util.logging.MailHandler.pushFilter=com.sun.mail.util.logging.DurationFilter
-     * com.sun.mail.util.logging.DurationFilter.records=2
-     * com.sun.mail.util.logging.DurationFilter.duration=1 * 60 * 1000
+     * MailHandlerDemo.handlers=org.eclipse.angus.mail.util.logging.MailHandler
+     * org.eclipse.angus.mail.util.logging.MailHandler.subject=Push filter demo
+     * org.eclipse.angus.mail.util.logging.MailHandler.pushLevel=ALL
+     * org.eclipse.angus.mail.util.logging.MailHandler.pushFilter=org.eclipse.angus.mail.util.logging.DurationFilter
+     * org.eclipse.angus.mail.util.logging.DurationFilter.records=2
+     * org.eclipse.angus.mail.util.logging.DurationFilter.duration=1 * 60 * 1000
      * ##
      * </code>
      */
@@ -417,12 +417,12 @@ public class MailHandlerDemo {
      * records are discarded because they never reach the mail handler.      <code>
      * ##logging.properties
      * MailHandlerDemo.handlers=java.util.logging.MemoryHandler
-     * java.util.logging.MemoryHandler.target=com.sun.mail.util.logging.MailHandler
-     * com.sun.mail.util.logging.MailHandler.level=ALL
+     * java.util.logging.MemoryHandler.target=org.eclipse.angus.mail.util.logging.MailHandler
+     * org.eclipse.angus.mail.util.logging.MailHandler.level=ALL
      * java.util.logging.MemoryHandler.level=ALL
      * java.util.logging.MemoryHandler.push=WARNING
-     * com.sun.mail.util.logging.MailHandler.subject=Push only demo
-     * com.sun.mail.util.logging.MailHandler.pushLevel=WARNING
+     * org.eclipse.angus.mail.util.logging.MailHandler.subject=Push only demo
+     * org.eclipse.angus.mail.util.logging.MailHandler.pushLevel=WARNING
      * ##
      * </code>
      */

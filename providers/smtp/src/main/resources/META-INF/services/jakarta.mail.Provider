@@ -1,2 +1,2 @@
-com.sun.mail.smtp.SMTPProvider
-com.sun.mail.smtp.SMTPSSLProvider
+org.eclipse.angus.mail.smtp.SMTPProvider
+org.eclipse.angus.mail.smtp.SMTPSSLProvider

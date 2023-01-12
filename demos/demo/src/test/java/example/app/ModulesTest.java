@@ -22,7 +22,7 @@ import java.util.Properties;
 
 import org.junit.Test;
 
-import com.sun.mail.util.MailStreamProvider;
+import org.eclipse.angus.mail.util.MailStreamProvider;
 
 import jakarta.mail.NoSuchProviderException;
 import jakarta.mail.Session;
@@ -36,8 +36,8 @@ public class ModulesTest {
         Session session = Session.getDefaultInstance(new Properties());
         StreamProvider provider = session.getStreamProvider();
         assertEquals(MailStreamProvider.class, provider.getClass());
-        Class.forName("com.sun.mail.imap.IMAPProvider");
-        Class.forName("com.sun.mail.pop3.POP3Provider");
-        Class.forName("com.sun.mail.smtp.SMTPProvider");
+        Class.forName("org.eclipse.angus.mail.imap.IMAPProvider");
+        Class.forName("org.eclipse.angus.mail.pop3.POP3Provider");
+        Class.forName("org.eclipse.angus.mail.smtp.SMTPProvider");
     }
 }

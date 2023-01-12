@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -16,9 +16,8 @@ import java.io.*;
 import jakarta.mail.*;
 import jakarta.mail.event.*;
 import jakarta.mail.internet.*;
-import jakarta.activation.*;
-
-import com.sun.mail.imap.*;
+import org.eclipse.angus.mail.imap.IMAPFolder;
+import org.eclipse.angus.mail.imap.IMAPStore;
 
 /**
  * Test program for IDLE support in IMAP provider.
