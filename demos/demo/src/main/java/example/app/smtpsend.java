@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -11,14 +11,15 @@
 package example.app.internal;
 
 import java.io.*;
-import java.net.InetAddress;
 import java.util.Properties;
 import java.util.Date;
 
 import jakarta.mail.*;
 import jakarta.mail.internet.*;
-
-import com.sun.mail.smtp.*;
+import org.eclipse.angus.mail.smtp.SMTPAddressFailedException;
+import org.eclipse.angus.mail.smtp.SMTPAddressSucceededException;
+import org.eclipse.angus.mail.smtp.SMTPSendFailedException;
+import org.eclipse.angus.mail.smtp.SMTPTransport;
 
 /**
  * Demo app that shows how to construct and send an RFC822

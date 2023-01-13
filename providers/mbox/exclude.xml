@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2010, 2021 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2010, 2023 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Public License v. 2.0, which is available at
@@ -24,7 +24,7 @@
 	Without multi-catch we just catch all possible exceptions.
     -->
     <Match>
-	<Class name="com.sun.mail.mbox.MboxStore"/>
+	<Class name="org.eclipse.angus.mail.mbox.MboxStore"/>
 	<Method name="&lt;init&gt;"/> <!-- match constructor -->
 	<Bug pattern="REC_CATCH_EXCEPTION"/>
     </Match>
@@ -33,7 +33,7 @@
 	We purposely return null instead of an empty list.
     -->
     <Match>
-	<Class name="com.sun.mail.mbox.MboxFolder"/>
+	<Class name="org.eclipse.angus.mail.mbox.MboxFolder"/>
 	<Method name="load"/>
 	<Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS"/>
     </Match>
@@ -43,7 +43,7 @@
 	around the original stream that needs to remain open.
     -->
     <Match>
-	<Class name="com.sun.mail.mbox.SunV3Multipart"/>
+	<Class name="org.eclipse.angus.mail.mbox.SunV3Multipart"/>
 	<Method name="parse"/>
 	<Bug pattern="OS_OPEN_STREAM"/>
     </Match>
@@ -52,7 +52,7 @@
 	When deleting the temp file fails, there's really nothing to be done.
     -->
     <Match>
-	<Class name="com.sun.mail.mbox.TempFile"/>
+	<Class name="org.eclipse.angus.mail.mbox.TempFile"/>
 	<Method name="close"/>
 	<Bug pattern="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"/>
     </Match>
@@ -61,7 +61,7 @@
 	We never serialize this class.
     -->
     <Match>
-	<Class name="com.sun.mail.mbox.UNIXInbox"/>
+	<Class name="org.eclipse.angus.mail.mbox.UNIXInbox"/>
 	<Field name="lockfileName"/>
 	<Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED"/>
     </Match>
@@ -70,7 +70,7 @@
 	If close fails, what are we supposed to do?
     -->
     <Match>
-	<Class name="com.sun.mail.mbox.MboxFolder"/>
+	<Class name="org.eclipse.angus.mail.mbox.MboxFolder"/>
 	<Method name="appendMessages"/>
 	<Bug pattern="DE_MIGHT_IGNORE"/>
     </Match>
@@ -79,7 +79,7 @@
 	If getSentDate fails, treat it the same as returning null.
     -->
     <Match>
-	<Class name="com.sun.mail.mbox.MboxMessage"/>
+	<Class name="org.eclipse.angus.mail.mbox.MboxMessage"/>
 	<Method name="getUnixFromLine"/>
 	<Bug pattern="DE_MIGHT_IGNORE"/>
     </Match>

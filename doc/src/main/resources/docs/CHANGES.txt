@@ -7,10 +7,17 @@ for the Eclipse EE4J Angus Mail project:
 
     https://github.com/eclipse-ee4j/angus-mail/issues/<bug-number>
 
+          CHANGES IN THE 2.0.0 RELEASE
+          ----------------------------
+The following bugs have been fixed in the 2.0.0 release.
+
+64: change the package names to org.eclipse.angus.mail.*
+
           CHANGES IN THE 1.1.0 RELEASE
           ----------------------------
 The following bugs have been fixed in the 1.1.0 release.
 
+12: Check server identity by default
 15: org.eclipse.angus.mail bundle fails to resolve under OSGi due to mandatory 'sun.security.util' package
 20: POP3 Protocol error handling can throw NPE
 26: Illegal reflective access when calling idle()
@@ -25,5 +32,4 @@ The following bugs have been fixed in the 1.1.0 release.
           ----------------------------
 The following bugs have been fixed in the 1.0.0 release.
 
-14: Check server identity by default
 7: Don't throw exception on unknown 2yz recipient error

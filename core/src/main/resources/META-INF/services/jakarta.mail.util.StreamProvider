@@ -1,1 +1,1 @@
-com.sun.mail.util.MailStreamProvider
+org.eclipse.angus.mail.util.MailStreamProvider

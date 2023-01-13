@@ -4,6 +4,26 @@
 		    Angus Mail ${angus-mail.version} release
 		    ------------------------------
 
+-- Angus Mail 2.0.0 --
+
+- Java package and java module names changed
+
+    To different this project from its origin and match current
+    maven coordinates and project name, java package and module
+    names were renamed to start with "org.eclipse.angus.mail.".
+    The same applies to supported property names.
+
+-- Angus Mail 1.1.0 --
+
+- Server Identity Check is enabled by default
+
+    RFC 2595 specifies addition checks that must be performed on the
+    server's certificate to ensure that the server you connected to is
+    the server you intended to connect to. This reduces the risk of
+    "man in the middle" attacks. To disable these checks, set
+    the "mail.<protocol>.ssl.checkserveridentity" property to "false".
+
+
 -- Angus Mail 1.0.0 --
 
 The Angus Mail is the direct successor of the Jakarta Mail and implements

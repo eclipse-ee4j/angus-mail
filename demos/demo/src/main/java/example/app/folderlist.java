@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -12,8 +12,7 @@ package example.app.internal;
 
 import java.util.Properties;
 import jakarta.mail.*;
-
-import com.sun.mail.imap.*;
+import org.eclipse.angus.mail.imap.IMAPFolder;
 
 /**
  * Demo app that exercises the Message interfaces.

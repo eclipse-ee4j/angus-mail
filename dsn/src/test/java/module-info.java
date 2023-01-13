@@ -15,8 +15,8 @@
  */
 
 module example.app {
-    requires com.sun.mail.dsn;
-    requires com.sun.mail;
+    requires org.eclipse.angus.mail.dsn;
+    requires org.eclipse.angus.mail;
     requires junit;
     exports example.app;
 }

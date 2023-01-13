@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!--
 
-    Copyright (c) 2022 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2022, 2023 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Public License v. 2.0, which is available at
@@ -103,23 +103,149 @@
                                     <artifactId>angus-mail</artifactId>
                                     <version>${angus-mail.version}</version>
                                     <classifier>sources</classifier>
-                                    <outputDirectory>${project.build.directory}/javadoc-sources/com.sun.mail</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/javadoc-sources/org.eclipse.angus.mail</outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.eclipse.angus</groupId>
                                     <artifactId>dsn</artifactId>
                                     <version>${angus-mail.version}</version>
                                     <classifier>sources</classifier>
-                                    <outputDirectory>${project.build.directory}/javadoc-sources/com.sun.mail.dsn</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.dsn</outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.eclipse.angus</groupId>
                                     <artifactId>gimap</artifactId>
                                     <version>${angus-mail.version}</version>
                                     <classifier>sources</classifier>
-                                    <outputDirectory>${project.build.directory}/javadoc-sources/com.sun.mail.gimap</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.gimap</outputDirectory>
                                 </artifactItem>
                             </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
+                We want to produce aggregated javadoc for multiple JPMS modules. To do that
+                we have to pass 'module-source-path' to javadoc tool to make it module aware.
+                While we can pass that option to javadoc through maven-javadoc-plugin
+                using 'additionalOptions', the plugin also sets 'sourcepath' option,
+                which is in conflict with 'module-source-path' (as of maven-javadoc-plugin:3.2.0).
+                Ant task is used here to get around that limitation for the time being.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-javadocs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <condition property="jdoc.dir" value="org.eclipse.angus" else="com.sun">
+                                    <not>
+                                        <matches string="${angus-mail.version}" pattern="^1\..*$"/>
+                                    </not>
+                                </condition>
+                                <condition property="jdoc.pkg" value="org.eclipse.angus" else="com.sun">
+                                    <not>
+                                        <matches string="${angus-mail.version}" pattern="^1\..*$"/>
+                                    </not>
+                                </condition>
+                                <condition property="jdoc.pkg.path" value="org/eclipse/angus" else="com/sun">
+                                    <not>
+                                        <matches string="${angus-mail.version}" pattern="^1\..*$"/>
+                                    </not>
+                                </condition>
+                                <replace dir="${project.build.directory}/javadoc-sources/jakarta.mail/jakarta/mail"
+                                         includes="package-info.java,Session.java"
+                                         preserveLastModified="true">
+                                    <replacefilter>
+                                        <replacetoken><![CDATA[com.sun]]></replacetoken>
+                                        <replacevalue expandProperties="true"><![CDATA[${jdoc.pkg}]]></replacevalue>
+                                    </replacefilter>
+                                </replace>
+                                <move todir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail" failonerror="false">
+                                    <fileset dir="${project.build.directory}/javadoc-sources/org.eclipse.angus.mail"/>
+                                </move>
+                                <move todir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail.dsn" failonerror="false">
+                                    <fileset dir="${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.dsn"/>
+                                </move>
+                                <move todir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail.gimap" failonerror="false">
+                                    <fileset dir="${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.gimap"/>
+                                </move>
+                                <mkdir dir="${project.build.directory}/javadoc-ant"/>
+                                <javadoc destdir="${angus-mail.javadoc.destdir}"
+                                         modulesourcepath="${project.build.directory}/javadoc-sources/"
+                                         modulepath="${jakarta.activation:jakarta.activation-api:jar}:${org.graalvm.sdk:graal-sdk:jar}"
+                                         author="false"
+                                         docfilessubdirs="true"
+                                         failonerror="true"
+                                         overview="${project.build.directory}/javadoc-sources/jakarta.mail/overview.html"
+                                         serialwarn="true"
+                                         source="${angus-mail.javadoc.source}"
+                                         splitindex="true"
+                                         use="true"
+                                         windowtitle="${angus-mail.javadoc.title}"
+                                >
+                                    <arg value="-J-Xmx256m" />
+                                    <arg value="-Xdoclint:none" />
+                                    <arg value="-notimestamp" />
+                                    <arg value="-quiet" />
+                                    <doctitle>${angus-mail.javadoc.title}</doctitle>
+                                    <bottom>${angus-mail.javadoc.bottom}</bottom>
+                                    <header>${angus-mail.javadoc.header}</header>
+                                    <group title="Jakarta Mail API Packages" packages="jakarta.mail*"/>
+                                    <group title="Implementation-specific Packages" packages="${jdoc.pkg}.mail*"/>
+                                    <fileset dir="${project.build.directory}/javadoc-sources/jakarta.mail">
+                                        <include name="jakarta/mail/**/*.java"/>
+                                    </fileset>
+                                    <fileset dir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail"
+                                             includes="
+			${jdoc.pkg.path}/mail/imap/IMAPFolder.java,
+			${jdoc.pkg.path}/mail/imap/IMAPMessage.java,
+			${jdoc.pkg.path}/mail/imap/IMAPStore.java,
+			${jdoc.pkg.path}/mail/imap/IMAPSSLStore.java
+			${jdoc.pkg.path}/mail/imap/ACL.java,
+			${jdoc.pkg.path}/mail/imap/Rights.java,
+			${jdoc.pkg.path}/mail/imap/Quota.java,
+			${jdoc.pkg.path}/mail/imap/SortTerm.java,
+			${jdoc.pkg.path}/mail/imap/ResyncData.java,
+			${jdoc.pkg.path}/mail/imap/OlderTerm.java,
+			${jdoc.pkg.path}/mail/imap/YoungerTerm.java,
+			${jdoc.pkg.path}/mail/imap/MessageVanishedEvent.java,
+			${jdoc.pkg.path}/mail/imap/ModifiedSinceTerm.java,
+			${jdoc.pkg.path}/mail/imap/IdleManager.java,
+			${jdoc.pkg.path}/mail/imap/ReferralException.java,
+			${jdoc.pkg.path}/mail/pop3/POP3Store.java,
+			${jdoc.pkg.path}/mail/pop3/POP3SSLStore.java,
+			${jdoc.pkg.path}/mail/pop3/POP3Folder.java,
+			${jdoc.pkg.path}/mail/pop3/POP3Message.java,
+			${jdoc.pkg.path}/mail/smtp/SMTPMessage.java,
+			${jdoc.pkg.path}/mail/smtp/SMTPAddressFailedException.java,
+			${jdoc.pkg.path}/mail/smtp/SMTPAddressSucceededException.java,
+			${jdoc.pkg.path}/mail/smtp/SMTPSendFailedException.java,
+			${jdoc.pkg.path}/mail/smtp/SMTPSenderFailedException.java,
+			${jdoc.pkg.path}/mail/smtp/SMTPTransport.java,
+			${jdoc.pkg.path}/mail/smtp/SMTPSSLTransport.java,
+			${jdoc.pkg.path}/mail/util/MailConnectException.java,
+			${jdoc.pkg.path}/mail/util/MailSSLSocketFactory.java,
+			${jdoc.pkg.path}/mail/util/ReadableMime.java,
+			${jdoc.pkg.path}/mail/util/logging/*.java
+					"/>
+                                    <fileset dir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail.dsn"
+                                             includes="
+			${jdoc.pkg.path}/mail/dsn/DeliveryStatus.java,
+			${jdoc.pkg.path}/mail/dsn/DispositionNotification.java,
+			${jdoc.pkg.path}/mail/dsn/MessageHeaders.java,
+			${jdoc.pkg.path}/mail/dsn/MultipartReport.java,
+			${jdoc.pkg.path}/mail/dsn/Report.java
+					"/>
+                                    <fileset dir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail.gimap" includes="${jdoc.pkg.path}/mail/gimap/*.java"/>
+                                </javadoc>
+                            </target>
                         </configuration>
                     </execution>
                 </executions>
@@ -151,112 +277,6 @@
         </plugins>
     </build>
 
-    <profiles>
-            <profile>
-                <id>jdk9</id>
-                <activation>
-                    <jdk>[9,)</jdk>
-                </activation>
-                <build>
-                    <plugins>
-                        <!--
-                        We want to produce aggregated javadoc for multiple JPMS modules. To do that
-                        we have to pass 'module-source-path' to javadoc tool to make it module aware.
-                        While we can pass that option to javadoc through maven-javadoc-plugin
-                        using 'additionalOptions', the plugin also sets 'sourcepath' option,
-                        which is in conflict with 'module-source-path' (as of maven-javadoc-plugin:3.2.0).
-                        Ant task is used here to get around that limitation for the time being.
-                        -->
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-antrun-plugin</artifactId>
-                            <executions>
-                                <execution>
-                                    <id>generate-javadocs</id>
-                                    <phase>package</phase>
-                                    <goals>
-                                        <goal>run</goal>
-                                    </goals>
-                                    <configuration>
-                                        <target>
-                                            <mkdir dir="${project.build.directory}/javadoc-ant"/>
-                                            <javadoc destdir="${angus-mail.javadoc.destdir}"
-                                                     modulesourcepath="${project.build.directory}/javadoc-sources/"
-                                                     modulepath="${jakarta.activation:jakarta.activation-api:jar}:${org.graalvm.sdk:graal-sdk:jar}"
-                                                     author="false"
-                                                     docfilessubdirs="true"
-                                                     failonerror="true"
-                                                     overview="${project.build.directory}/javadoc-sources/jakarta.mail/overview.html"
-                                                     serialwarn="true"
-                                                     source="${angus-mail.javadoc.source}"
-                                                     splitindex="true"
-                                                     use="true"
-                                                     windowtitle="${angus-mail.javadoc.title}"
-                                                >
-                                                <arg value="-J-Xmx256m" />
-                                                <arg value="-Xdoclint:none" />
-                                                <arg value="-notimestamp" />
-                                                <arg value="-quiet" />
-                                                <doctitle>${angus-mail.javadoc.title}</doctitle>
-                                                <bottom>${angus-mail.javadoc.bottom}</bottom>
-                                                <header>${angus-mail.javadoc.header}</header>
-                                                <group title="Jakarta Mail API Packages" packages="jakarta.mail,jakarta.mail.*"/>
-                                                <group title="Implementation-specific Packages" packages="com.sun.mail,com.sun.mail.*"/>
-                                                <fileset dir="${project.build.directory}/javadoc-sources/jakarta.mail">
-                                                    <include name="jakarta/mail/**/*.java"/>
-                                                </fileset>
-                                                <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail"
-                                                          includes="
-			com/sun/mail/imap/IMAPFolder.java,
-			com/sun/mail/imap/IMAPMessage.java,
-			com/sun/mail/imap/IMAPStore.java,
-			com/sun/mail/imap/IMAPSSLStore.java
-			com/sun/mail/imap/ACL.java,
-			com/sun/mail/imap/Rights.java,
-			com/sun/mail/imap/Quota.java,
-			com/sun/mail/imap/SortTerm.java,
-			com/sun/mail/imap/ResyncData.java,
-			com/sun/mail/imap/OlderTerm.java,
-			com/sun/mail/imap/YoungerTerm.java,
-			com/sun/mail/imap/MessageVanishedEvent.java,
-			com/sun/mail/imap/ModifiedSinceTerm.java,
-			com/sun/mail/imap/IdleManager.java,
-			com/sun/mail/imap/ReferralException.java,
-			com/sun/mail/pop3/POP3Store.java,
-			com/sun/mail/pop3/POP3SSLStore.java,
-			com/sun/mail/pop3/POP3Folder.java,
-			com/sun/mail/pop3/POP3Message.java,
-			com/sun/mail/smtp/SMTPMessage.java,
-			com/sun/mail/smtp/SMTPAddressFailedException.java,
-			com/sun/mail/smtp/SMTPAddressSucceededException.java,
-			com/sun/mail/smtp/SMTPSendFailedException.java,
-			com/sun/mail/smtp/SMTPSenderFailedException.java,
-			com/sun/mail/smtp/SMTPTransport.java,
-			com/sun/mail/smtp/SMTPSSLTransport.java,
-			com/sun/mail/util/MailConnectException.java,
-			com/sun/mail/util/MailSSLSocketFactory.java,
-			com/sun/mail/util/ReadableMime.java,
-			com/sun/mail/util/logging/*.java
-					"/>
-                                                <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail.dsn"
-                                                          includes="
-			com/sun/mail/dsn/DeliveryStatus.java,
-			com/sun/mail/dsn/DispositionNotification.java,
-			com/sun/mail/dsn/MessageHeaders.java,
-			com/sun/mail/dsn/MultipartReport.java,
-			com/sun/mail/dsn/Report.java
-					"/>
-                                                <fileset dir="${project.build.directory}/javadoc-sources/com.sun.mail.gimap" includes="com/sun/mail/gimap/*.java"/>
-                                            </javadoc>
-                                        </target>
-                                    </configuration>
-                                </execution>
-                            </executions>
-                        </plugin>
-                    </plugins>
-                </build>
-            </profile>
-    </profiles>
     <dependencies>
         <dependency>
             <groupId>org.eclipse.angus</groupId>

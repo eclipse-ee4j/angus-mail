@@ -23,12 +23,12 @@ mail/src/test/resources/jakarta/mail/internet/tokenlist
 mail/src/test/resources/jakarta/mail/internet/addrlist
 mail/src/test/resources/jakarta/mail/internet/MailDateFormat_old.ser
 mail/src/test/resources/jakarta/mail/internet/MailDateFormat_new.ser
-mail/src/test/resources/com/sun/mail/test/keystore.jks
+mail/src/test/resources/org/eclipse/angus/mail/test/keystore.jks
 mail/src/main/java/doc-files/speclicense.html
 mailhandler/src/main/resources/META-INF/hk2-locator/default
 docker/JTReportParser/
-providers/angus-mail/src/test/resources/com/sun/mail/util/paramdatanostrict
-providers/angus-mail/src/test/resources/com/sun/mail/util/paramdata
+providers/angus-mail/src/test/resources/org/eclipse/angus/mail/util/paramdatanostrict
+providers/angus-mail/src/test/resources/org/eclipse/angus/mail/util/paramdata
 .txt
 .TXT
 www/

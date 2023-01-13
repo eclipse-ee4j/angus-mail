@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2010, 2021 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2010, 2023 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Public License v. 2.0, which is available at
@@ -49,9 +49,9 @@
 	    <Class name="jakarta.mail.SendFailedException"/>
 	    <Class name="jakarta.mail.event.MessageCountEvent"/>
 	    <Class name="jakarta.mail.event.TransportEvent"/>
-	    <Class name="com.sun.mail.iap.ByteArray"/>
-	    <Class name="com.sun.mail.imap.MessageVanishedEvent"/>
-	    <Class name="com.sun.mail.imap.protocol.FetchResponse"/>
+	    <Class name="org.eclipse.angus.mail.iap.ByteArray"/>
+	    <Class name="org.eclipse.angus.mail.imap.MessageVanishedEvent"/>
+	    <Class name="org.eclipse.angus.mail.imap.protocol.FetchResponse"/>
 	</Or>
 	<Or>
 	    <Bug pattern="EI_EXPOSE_REP"/>
@@ -59,7 +59,7 @@
 	</Or>
     </Match>
     <Match>
-	<Class name="com.sun.mail.smtp.SMTPTransport"/>
+	<Class name="org.eclipse.angus.mail.smtp.SMTPTransport"/>
 	<Method name="sendMessage"/>
 	<!-- passed in Address array -->
 	<Bug pattern="EI_EXPOSE_REP2"/>
@@ -77,19 +77,19 @@
 	<Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.util.MailSSLSocketFactory"/>
+	<Class name="org.eclipse.angus.mail.util.MailSSLSocketFactory"/>
 	<Method name="setTrustManagers"/>
 	<!-- passed in TrustManager array -->
 	<Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.util.MailSSLSocketFactory"/>
+	<Class name="org.eclipse.angus.mail.util.MailSSLSocketFactory"/>
 	<Method name="getTrustManagers"/>
 	<!-- returned TrustManager array -->
 	<Bug pattern="EI_EXPOSE_REP"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.imap.protocol.INTERNALDATE"/>
+	<Class name="org.eclipse.angus.mail.imap.protocol.INTERNALDATE"/>
 	<Method name="getDate"/>
 	<!--
 	    Returned Date object; it's only ever stored in
@@ -100,7 +100,7 @@
 	<Bug pattern="EI_EXPOSE_REP"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.imap.CopyUID"/>
+	<Class name="org.eclipse.angus.mail.imap.CopyUID"/>
 	<Method name="&lt;init&gt;"/> <!-- match constructor -->
 	<Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
@@ -117,7 +117,7 @@
 	<Bug pattern="WA_NOT_IN_LOOP"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.imap.IMAPStore"/>
+	<Class name="org.eclipse.angus.mail.imap.IMAPStore"/>
 	<Method name="idle"/>
 	<Bug pattern="WA_NOT_IN_LOOP"/>
     </Match>
@@ -132,7 +132,7 @@
 	Some of these could be converted to use multi-catch with JDK 1.7.
     -->
     <Match>
-	<Class name="com.sun.mail.imap.IMAPStore"/>
+	<Class name="org.eclipse.angus.mail.imap.IMAPStore"/>
 	<Or>
 	    <Method name="&lt;init&gt;"/> <!-- match constructor -->
 	    <Method name="getProtocol"/>
@@ -142,7 +142,7 @@
 	<Bug pattern="REC_CATCH_EXCEPTION"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.imap.protocol.IMAPProtocol"/>
+	<Class name="org.eclipse.angus.mail.imap.protocol.IMAPProtocol"/>
 	<Or>
 	    <Method name="authlogin"/>
 	    <Method name="authntlm"/>
@@ -153,17 +153,17 @@
 	<Bug pattern="REC_CATCH_EXCEPTION"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.imap.protocol.IMAPSaslAuthenticator"/>
+	<Class name="org.eclipse.angus.mail.imap.protocol.IMAPSaslAuthenticator"/>
 	<Method name="authenticate"/>
 	<Bug pattern="REC_CATCH_EXCEPTION"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.pop3.POP3Store"/>
+	<Class name="org.eclipse.angus.mail.pop3.POP3Store"/>
 	<Method name="&lt;init&gt;"/> <!-- match constructor -->
 	<Bug pattern="REC_CATCH_EXCEPTION"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.smtp.SMTPTransport"/>
+	<Class name="org.eclipse.angus.mail.smtp.SMTPTransport"/>
 	<Or>
 	    <Method name="isConnected"/>
 	    <Method name="sasllogin"/>
@@ -171,7 +171,7 @@
 	<Bug pattern="REC_CATCH_EXCEPTION"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.pop3.POP3Folder"/>
+	<Class name="org.eclipse.angus.mail.pop3.POP3Folder"/>
 	<Method name="createMessage"/>
 	<Or>
 	    <Bug pattern="REC_CATCH_EXCEPTION"/>
@@ -179,7 +179,7 @@
 	</Or>
     </Match>
     <Match>
-	<Class name="com.sun.mail.util.SocketFetcher"/>
+	<Class name="org.eclipse.angus.mail.util.SocketFetcher"/>
 	<Or>
 	    <Method name="getSocket"/>
 	    <Method name="startTLS"/>
@@ -188,7 +188,7 @@
 	<Bug pattern="REC_CATCH_EXCEPTION"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.util.MimeUtil"/>
+	<Class name="org.eclipse.angus.mail.util.MimeUtil"/>
 	<Method name="cleanContentType"/>
 	<Bug pattern="REC_CATCH_EXCEPTION"/>
     </Match>
@@ -209,7 +209,7 @@
 	<Bug pattern="REC_CATCH_EXCEPTION"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.imap.IMAPFolder"/>
+	<Class name="org.eclipse.angus.mail.imap.IMAPFolder"/>
 	<Method name="handleIdle"/>
 	<Bug pattern="DE_MIGHT_IGNORE"/>
     </Match>
@@ -219,7 +219,7 @@
 	but it seems to be just wrong; I don't see it.
     -->
     <Match>
-	<Class name="com.sun.mail.imap.IMAPMessage"/>
+	<Class name="org.eclipse.angus.mail.imap.IMAPMessage"/>
 	<Method name="loadHeaders"/>
 	<Bug pattern="DC_DOUBLECHECK"/>
     </Match>
@@ -231,11 +231,11 @@
 	is the same.
     -->
     <Match>
-	<Class name="com.sun.mail.imap.protocol.FLAGS"/>
+	<Class name="org.eclipse.angus.mail.imap.protocol.FLAGS"/>
 	<Bug pattern="EQ_DOESNT_OVERRIDE_EQUALS"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.imap.protocol.IMAPAddress"/>
+	<Class name="org.eclipse.angus.mail.imap.protocol.IMAPAddress"/>
 	<!-- defined in ENVELOPE.java -->
 	<Bug pattern="EQ_DOESNT_OVERRIDE_EQUALS"/>
     </Match>
@@ -249,7 +249,7 @@
 	need to depend on the field being initialized to the default value.
     -->
     <Match>
-	<Class name="com.sun.mail.imap.protocol.IMAPProtocol"/>
+	<Class name="org.eclipse.angus.mail.imap.protocol.IMAPProtocol"/>
 	<Method name="&lt;init&gt;"/> <!-- match constructor -->
 	<Bug pattern="UR_UNINIT_READ"/>
     </Match>
@@ -260,7 +260,7 @@
 	is better here; performance is not an issue.
     -->
     <Match>
-	<Class name="com.sun.mail.util.BASE64DecoderStream"/>
+	<Class name="org.eclipse.angus.mail.util.BASE64DecoderStream"/>
 	<Method name="recentChars"/>
 	<Bug pattern="SBSC_USE_STRINGBUFFER_CONCATENATION"/>
     </Match>
@@ -351,7 +351,7 @@
 	String object is the original default String object.
     -->
     <Match>
-	<Class name="com.sun.mail.smtp.SMTPTransport"/>
+	<Class name="org.eclipse.angus.mail.smtp.SMTPTransport"/>
 	<Method name="authenticate"/>
 	<Bug pattern="ES_COMPARING_STRINGS_WITH_EQ"/>
     </Match>
@@ -363,7 +363,7 @@
 	value.  Ignore this complaint.
     -->
     <Match>
-	<Class name="com.sun.mail.util.ASCIIUtility"/>
+	<Class name="org.eclipse.angus.mail.util.ASCIIUtility"/>
 	<Method name="getBytes"/>
 	<Bug pattern="DLS_DEAD_LOCAL_STORE"/>
     </Match>
@@ -406,7 +406,7 @@
 	When deleting the temp file fails, there's really nothing to be done.
     -->
     <Match>
-	<Class name="com.sun.mail.pop3.TempFile"/>
+	<Class name="org.eclipse.angus.mail.pop3.TempFile"/>
 	<Method name="close"/>
 	<Bug pattern="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"/>
     </Match>
@@ -417,7 +417,7 @@
 	cleanup, thus I don't believe these null checks are redundant.
     -->
     <Match>
-	<Class name="com.sun.mail.imap.IMAPFolder"/>
+	<Class name="org.eclipse.angus.mail.imap.IMAPFolder"/>
 	<Method name="close"/>
 	<Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE"/>
     </Match>
@@ -440,7 +440,7 @@
 	messageCacheLock is held, but FindBugs can't figure that out.
     -->
     <Match>
-	<Class name="com.sun.mail.imap.IMAPFolder"/>
+	<Class name="org.eclipse.angus.mail.imap.IMAPFolder"/>
 	<Field name="uidTable"/>
 	<Bug pattern="IS2_INCONSISTENT_SYNC"/>
     </Match>
@@ -450,7 +450,7 @@
 	messageCacheLock is held, but FindBugs can't figure that out.
     -->
     <Match>
-	<Class name="com.sun.mail.imap.IMAPFolder"/>
+	<Class name="org.eclipse.angus.mail.imap.IMAPFolder"/>
 	<Field name="doExpungeNotification"/>
 	<Bug pattern="IS2_INCONSISTENT_SYNC"/>
     </Match>
@@ -460,7 +460,7 @@
 	method, which is known to be thread safe, so we can ignore this error.
     -->
     <Match>
-	<Class name="com.sun.mail.imap.protocol.INTERNALDATE"/>
+	<Class name="org.eclipse.angus.mail.imap.protocol.INTERNALDATE"/>
 	<Bug pattern="STCAL_INVOKE_ON_STATIC_DATE_FORMAT_INSTANCE"/>
     </Match>
 
@@ -500,7 +500,7 @@
 	default encoding back to a String.
     -->
     <Match>
-	<Class name="com.sun.mail.util.LogOutputStream"/>
+	<Class name="org.eclipse.angus.mail.util.LogOutputStream"/>
 	<Method name="logBuf"/>
 	<Bug pattern="DM_DEFAULT_ENCODING"/>
     </Match>
@@ -526,14 +526,14 @@
     -->
     <Match>
 	<Or>
-	    <Class name="com.sun.mail.imap.DefaultFolder$1"/>
-	    <Class name="com.sun.mail.imap.DefaultFolder$2"/>
-	    <Class name="com.sun.mail.imap.IMAPFolder$1"/>
-	    <Class name="com.sun.mail.imap.IMAPFolder$4"/>
-	    <Class name="com.sun.mail.imap.IMAPFolder$7"/>
-	    <Class name="com.sun.mail.imap.IMAPFolder$13"/>
-	    <Class name="com.sun.mail.imap.IMAPFolder$20"/>
-	    <Class name="com.sun.mail.imap.IdleManager$2"/>
+	    <Class name="org.eclipse.angus.mail.imap.DefaultFolder$1"/>
+	    <Class name="org.eclipse.angus.mail.imap.DefaultFolder$2"/>
+	    <Class name="org.eclipse.angus.mail.imap.IMAPFolder$1"/>
+	    <Class name="org.eclipse.angus.mail.imap.IMAPFolder$4"/>
+	    <Class name="org.eclipse.angus.mail.imap.IMAPFolder$7"/>
+	    <Class name="org.eclipse.angus.mail.imap.IMAPFolder$13"/>
+	    <Class name="org.eclipse.angus.mail.imap.IMAPFolder$20"/>
+	    <Class name="org.eclipse.angus.mail.imap.IdleManager$2"/>
 	</Or>
 	<Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON"/>
     </Match>
@@ -561,7 +561,7 @@
 	array elements are changed.
     -->
     <Match>
-	<Class name="com.sun.mail.imap.IMAPFolder"/>
+	<Class name="org.eclipse.angus.mail.imap.IMAPFolder"/>
 	<Field name="attributes"/>
 	<Bug pattern="VO_VOLATILE_REFERENCE_TO_ARRAY"/>
     </Match>
@@ -571,7 +571,7 @@
 	the "match" method is being called for its side effects.
     -->
     <Match>
-	<Class name="com.sun.mail.imap.protocol.FetchResponse"/>
+	<Class name="org.eclipse.angus.mail.imap.protocol.FetchResponse"/>
 	<Method name="parseItem"/>
 	<Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
     </Match>
@@ -582,15 +582,15 @@
     -->
     <Match>
 	<Or>
-	    <Class name="com.sun.mail.imap.protocol.ENVELOPE"/>
-	    <Class name="com.sun.mail.imap.protocol.INTERNALDATE"/>
-	    <Class name="com.sun.mail.imap.protocol.RFC822SIZE"/>
+	    <Class name="org.eclipse.angus.mail.imap.protocol.ENVELOPE"/>
+	    <Class name="org.eclipse.angus.mail.imap.protocol.INTERNALDATE"/>
+	    <Class name="org.eclipse.angus.mail.imap.protocol.RFC822SIZE"/>
 	</Or>
 	<Field name="msgno"/>
 	<Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.imap.protocol.MailboxInfo"/>
+	<Class name="org.eclipse.angus.mail.imap.protocol.MailboxInfo"/>
 	<Field name="first"/>
 	<Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
     </Match>
@@ -615,7 +615,7 @@
 	which is invoked through a static synchronized method.
     -->
     <Match>
-	<Class name="com.sun.mail.imap.protocol.ENVELOPE"/>
+	<Class name="org.eclipse.angus.mail.imap.protocol.ENVELOPE"/>
 	<Bug pattern="STCAL_INVOKE_ON_STATIC_DATE_FORMAT_INSTANCE"/>
     </Match>
 
@@ -626,7 +626,7 @@
 	has been set.
     -->
     <Match>
-	<Class name="com.sun.mail.pop3.POP3Folder"/>
+	<Class name="org.eclipse.angus.mail.pop3.POP3Folder"/>
 	<Method name="getUID"/>
 	<Bug pattern="ES_COMPARING_STRINGS_WITH_EQ"/>
     </Match>
@@ -635,7 +635,7 @@
 	certain fields have been set.
     -->
     <Match>
-	<Class name="com.sun.mail.smtp.SMTPTransport"/>
+	<Class name="org.eclipse.angus.mail.smtp.SMTPTransport"/>
 	<Or>
 	    <Method name="getAuthorizationId"/>
 	    <Method name="getNTLMDomain"/>
@@ -686,12 +686,12 @@
 	treated as copy-on-write.
     -->
     <Match>
-	<Class name="com.sun.mail.util.logging.LogManagerProperties"/>
+	<Class name="org.eclipse.angus.mail.util.logging.LogManagerProperties"/>
 	<Field name="REFLECT_NAMES"/>
 	<Bug pattern="VO_VOLATILE_REFERENCE_TO_ARRAY"/>
     </Match>
     <Match>
-	<Class name="com.sun.mail.util.logging.MailHandler"/>
+	<Class name="org.eclipse.angus.mail.util.logging.MailHandler"/>
 	<Field name="attachmentFilters"/>
 	<Bug pattern="VO_VOLATILE_REFERENCE_TO_ARRAY"/>
     </Match>
@@ -711,7 +711,7 @@
 	Ignore failures to close connection.
     -->
     <Match>
-	<Class name="com.sun.mail.smtp.SMTPTransport"/>
+	<Class name="org.eclipse.angus.mail.smtp.SMTPTransport"/>
 	<Method name="protocolConnect"/>
 	<Bug pattern="DE_MIGHT_IGNORE"/>
     </Match>
@@ -721,7 +721,7 @@
 	inner class that *does* need "this".
     -->
     <Match>
-	<Class name="com.sun.mail.smtp.SMTPTransport$BDATOutputStream"/>
+	<Class name="org.eclipse.angus.mail.smtp.SMTPTransport$BDATOutputStream"/>
 	<Bug pattern="SIC_INNER_SHOULD_BE_STATIC_NEEDS_THIS"/>
     </Match>
 </FindBugsFilter>
