@@ -673,7 +673,7 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                             </testExcludes>
                             <excludes>
                                 <exclude>module-info.java</exclude>
-                                <exclude>com/sun/mail/nativeimage/**</exclude>
+                                <exclude>org/eclipse/angus/mail/nativeimage/**</exclude>
                             </excludes>
                         </configuration>
                     </plugin>
