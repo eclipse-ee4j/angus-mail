@@ -1,2 +1,2 @@
-com.sun.mail.imap.IMAPProvider
-com.sun.mail.imap.IMAPSSLProvider
+org.eclipse.angus.mail.imap.IMAPProvider
+org.eclipse.angus.mail.imap.IMAPSSLProvider

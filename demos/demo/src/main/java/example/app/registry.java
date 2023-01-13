@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -38,8 +38,8 @@ public class registry {
 	props.put("mail.store.protocol", "imap");
 
 	// 
-	props.put("mail.smtp.class", "com.sun.mail.smtp.SMTPTransport");
-	props.put("mail.imap.class", "com.sun.mail.imap.IMAPStore");
+	props.put("mail.smtp.class", "org.eclipse.angus.mail.smtp.SMTPTransport");
+	props.put("mail.imap.class", "org.eclipse.angus.mail.imap.IMAPStore");
 	
 	Session session = Session.getInstance(props, null);
 	//session.setDebug(true);
@@ -64,9 +64,9 @@ public class registry {
 	    if (providers[i].getClassName().endsWith("application.smtp"))
 		_bProvider = providers[i];
 
-	    // this Provider will be found since com.sun.mail.imap.IMAPStore
+	    // this Provider will be found since org.eclipse.angus.mail.imap.IMAPStore
 	    // is configured in javamail.default.providers
-	    if (providers[i].getClassName().equals("com.sun.mail.imap.IMAPStore")){
+	    if (providers[i].getClassName().equals("org.eclipse.angus.mail.imap.IMAPStore")){
 		_sunIMAP = providers[i];
 	    }
 

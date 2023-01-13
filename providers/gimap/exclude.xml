@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2013, 2021 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2013, 2023 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Public License v. 2.0, which is available at
@@ -25,7 +25,7 @@
 	safe that it doesn't return a copy.
     -->
     <Match>
-	<Class name="com.sun.mail.gimap.protocol.GmailProtocol"/>
+	<Class name="org.eclipse.angus.mail.gimap.protocol.GmailProtocol"/>
 	<Method name="getFetchItems"/>
 	<Bug pattern="EI_EXPOSE_REP"/>
     </Match>
@@ -36,7 +36,7 @@
 	the getItem method to do the synchronization.
     -->
     <Match>
-	<Class name="com.sun.mail.gimap.GmailMessage"/>
+	<Class name="org.eclipse.angus.mail.gimap.GmailMessage"/>
 	<Method name="getLabels"/>
 	<Bug pattern="UG_SYNC_SET_UNSYNC_GET"/>
     </Match>

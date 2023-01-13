@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -14,7 +14,7 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
 
-module com.sun.mail {
+module org.eclipse.angus.mail {
 
     requires transitive java.logging;
     requires java.xml;                  // for text/xml handler
@@ -25,29 +25,29 @@ module com.sun.mail {
 
     requires static org.graalvm.sdk; // for graal integration
 
-    exports com.sun.mail.util;
-    exports com.sun.mail.auth;
-    exports com.sun.mail.handlers;
+    exports org.eclipse.angus.mail.util;
+    exports org.eclipse.angus.mail.auth;
+    exports org.eclipse.angus.mail.handlers;
 
-    exports com.sun.mail.iap;
-    exports com.sun.mail.imap;
-    exports com.sun.mail.imap.protocol;
+    exports org.eclipse.angus.mail.iap;
+    exports org.eclipse.angus.mail.imap;
+    exports org.eclipse.angus.mail.imap.protocol;
 
-    exports com.sun.mail.pop3;
+    exports org.eclipse.angus.mail.pop3;
 
-    exports com.sun.mail.smtp;
+    exports org.eclipse.angus.mail.smtp;
 
-    exports com.sun.mail.util.logging;
+    exports org.eclipse.angus.mail.util.logging;
 
     uses jakarta.mail.Provider;
 
     provides jakarta.mail.Provider with
-            com.sun.mail.imap.IMAPProvider,
-            com.sun.mail.imap.IMAPSSLProvider,
-            com.sun.mail.smtp.SMTPProvider,
-            com.sun.mail.smtp.SMTPSSLProvider,
-            com.sun.mail.pop3.POP3Provider,
-            com.sun.mail.pop3.POP3SSLProvider;
+            org.eclipse.angus.mail.imap.IMAPProvider,
+            org.eclipse.angus.mail.imap.IMAPSSLProvider,
+            org.eclipse.angus.mail.smtp.SMTPProvider,
+            org.eclipse.angus.mail.smtp.SMTPSSLProvider,
+            org.eclipse.angus.mail.pop3.POP3Provider,
+            org.eclipse.angus.mail.pop3.POP3SSLProvider;
     provides jakarta.mail.util.StreamProvider with
-            com.sun.mail.util.MailStreamProvider;
+            org.eclipse.angus.mail.util.MailStreamProvider;
 }

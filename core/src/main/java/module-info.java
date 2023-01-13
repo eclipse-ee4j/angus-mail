@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -14,7 +14,7 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
 
-module com.sun.mail {
+module org.eclipse.angus.mail {
 
     requires transitive java.logging;
     requires java.xml;       // for text/xml handler
@@ -25,12 +25,12 @@ module com.sun.mail {
 
     requires static org.graalvm.sdk; // for graal integration
 
-    exports com.sun.mail.auth;
-    exports com.sun.mail.handlers;
-    exports com.sun.mail.util;
+    exports org.eclipse.angus.mail.auth;
+    exports org.eclipse.angus.mail.handlers;
+    exports org.eclipse.angus.mail.util;
 
     uses jakarta.mail.Provider;
 
     provides jakarta.mail.util.StreamProvider with
-            com.sun.mail.util.MailStreamProvider;
+            org.eclipse.angus.mail.util.MailStreamProvider;
 }

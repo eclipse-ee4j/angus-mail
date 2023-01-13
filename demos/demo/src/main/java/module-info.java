@@ -15,5 +15,5 @@
  */
 
 module example.app {
-    requires com.sun.mail;
+    requires org.eclipse.angus.mail;
 }

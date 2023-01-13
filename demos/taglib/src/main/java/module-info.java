@@ -17,6 +17,6 @@
 module demo {
     requires jakarta.servlet;
     requires jakarta.mail;
-    requires com.sun.mail.gimap;
+    requires org.eclipse.angus.mail.gimap;
     requires jakarta.servlet.jsp;
 }
