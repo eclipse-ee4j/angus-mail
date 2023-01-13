@@ -544,6 +544,7 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
+                    <skip>${jdk-8}</skip>
                     <archive>
                         <manifest>
                             <addDefaultEntries>false</addDefaultEntries>
@@ -660,6 +661,9 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
             <activation>
                 <jdk>1.8</jdk>
             </activation>
+            <properties>
+                <jdk-8>true</jdk-8>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -677,13 +681,6 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                             </excludes>
                         </configuration>
                     </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <configuration>
-                            <skip>true</skip>
-                        </configuration>
-                    </plugin>
                 </plugins>
             </build>
         </profile>
@@ -692,6 +689,9 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
             <activation>
                 <jdk>[9,)</jdk>
             </activation>
+            <properties>
+                <jdk-8>false</jdk-8>
+            </properties>
             <build>
                 <plugins>
                     <!--
