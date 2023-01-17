@@ -94,6 +94,8 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
         <graal.sdk.version>22.3.0</graal.sdk.version>
         <!-- used in jakarta.mail/jakarta.mail.Version -->
         <mail.version>${mail-api.version}</mail.version>
+        <skip9>false</skip9>
+        <skip8>true</skip8>
     </properties>
 
     <developers>
@@ -452,6 +454,86 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                     </execution>
                 </executions>
             </plugin>
+
+            <!--
+            Use the JDK 11+ compiler for Jakarta Mail itself,
+            but restrict it to 1.8 source and target.
+                    The 11+ compiler is used *only* to compile module-info descriptors.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <configuration>
+                            <skipMain>${skip9}</skipMain>
+                            <release>9</release>
+                            <excludes>
+                                <!-- This is for some demos -->
+                                <exclude>example/app/internal/**</exclude>
+                            </excludes>
+                            <showDeprecation>true</showDeprecation>
+                            <showWarnings>true</showWarnings>
+                            <!--
+                                Configure compiler plugin to print lint warnings.
+                                Need to exclude options warning because bootstrap
+                                classpath isn't set (on purpose).
+                                Need to exclude path warnings because Maven includes
+                                source directories that don't exist (e.g., generated-sources).
+                            -->
+                            <compilerArgs>
+                                <arg>-Xlint</arg>
+                                <arg>-Xlint:-options</arg>
+                                <arg>-Xlint:-path</arg>
+                                <!--
+                                    Too many finalize warnings.
+                                <arg>-Werror</arg>
+                                -->
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>base-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <skipMain>${skip8}</skipMain>
+                            <source>8</source>
+                            <target>8</target>
+                            <excludes>
+                                <exclude>module-info.java</exclude>
+                                <exclude>**/nativeimage/**</exclude>
+                                <!-- This is for some demos -->
+                                <exclude>example/app/internal/**</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <configuration>
+                            <skip>${skip9}</skip>
+                            <release>9</release>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>test-base-compile</id>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip8}</skip>
+                            <source>8</source>
+                            <target>8</target>
+                            <testExcludes>
+                                <testExclude>module-info.java</testExclude>
+                            </testExcludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -544,7 +626,7 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
-                    <skip>${jdk-8}</skip>
+                    <skip>${skip9}</skip>
                     <archive>
                         <manifest>
                             <addDefaultEntries>false</addDefaultEntries>
@@ -605,6 +687,17 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
             </activation>
         </profile>
 
+        <profile>
+            <id>jdk8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <properties>
+                <skip9>true</skip9>
+                <skip8>false</skip8>
+            </properties>
+        </profile>
+
         <!--
             This profile is used for deploying a Jakarta Mail final release.
 
@@ -646,100 +739,6 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                                 <goals>
                                     <goal>report</goal>
                                 </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <!--
-                Intentionally requires -Denforcer.skip to avoid unintentional jdk8 builds.
-                This is profile is to run tests with JDK8 in GH actions.
-            -->
-            <id>jdk1.8</id>
-            <activation>
-                <jdk>1.8</jdk>
-            </activation>
-            <properties>
-                <jdk-8>true</jdk-8>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <configuration>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <testExcludes>
-                                <testExclude>module-info.java</testExclude>
-                            </testExcludes>
-                            <excludes>
-                                <exclude>module-info.java</exclude>
-                                <exclude>org/eclipse/angus/mail/nativeimage/**</exclude>
-                            </excludes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>jdk9</id>
-            <activation>
-                <jdk>[9,)</jdk>
-            </activation>
-            <properties>
-                <jdk-8>false</jdk-8>
-            </properties>
-            <build>
-                <plugins>
-                    <!--
-                        Use the JDK 9+ compiler for Jakarta Mail itself,
-                        but restrict it to 1.8 source and target.
-                        The 9+ compiler is used *only* to compile module-info descriptors.
-                    -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>default-compile</id>
-                                <configuration>
-                                    <release>9</release>
-                                    <showDeprecation>true</showDeprecation>
-                                    <showWarnings>true</showWarnings>
-                                    <!--
-                                        Configure compiler plugin to print lint warnings.
-                                        Need to exclude options warning because bootstrap
-                                        classpath isn't set (on purpose).
-                                        Need to exclude path warnings because Maven includes
-                                        source directories that don't exist (e.g., generated-sources).
-                                    -->
-                                    <compilerArgs>
-                                        <arg>-Xlint</arg>
-                                        <arg>-Xlint:-options</arg>
-                                        <arg>-Xlint:-path</arg>
-                                    </compilerArgs>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>base-compile</id>
-                                <goals>
-                                    <goal>compile</goal>
-                                </goals>
-                                <configuration>
-                                    <release>8</release>
-                                    <excludes>
-                                        <exclude>module-info.java</exclude>
-                                    </excludes>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>default-testCompile</id>
-                                <configuration>
-                                    <release>9</release>
-                                </configuration>
                             </execution>
                         </executions>
                     </plugin>

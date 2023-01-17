@@ -143,7 +143,7 @@
                             <goal>run</goal>
                         </goals>
                         <configuration>
-                            <skip>${jdk-8}</skip>
+                            <skip>${skip9}</skip>
                             <target>
                                 <condition property="jdoc.dir" value="org.eclipse.angus" else="com.sun">
                                     <not>
