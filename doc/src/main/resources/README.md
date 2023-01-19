@@ -66,7 +66,9 @@ The latest release of Angus Mail is ${angus-mail.version}.
 
 The following table provides easy access to the latest release. Most
 people will only need the main Angus Mail implementation in the
-angus-mail.jar file.
+`angus-mail.jar` and `jakarta.mail-api.jar` files together
+with [the Angus Activation](https://eclipse-ee4j.github.io/angus-activation/)
+on the module path or on the class path.
 
 | Item                                                                                                                                     | Description                                                                            |
 |:-----------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------|
@@ -139,6 +141,15 @@ Finally, for fine-grained control over the providers in use, following jar files
 | [imap.jar](https://repo1.maven.org/maven2/org/eclipse/angus/imap/${angus-mail.version}/imap-${angus-mail.version}.jar)                                              | com.sun.mail.imap         | org.eclipse.angus | imap                | The IMAP protocol provider                                                                                           |
 | [pop3.jar](https://repo1.maven.org/maven2/org/eclipse/angus/pop3/${angus-mail.version}/pop3-${angus-mail.version}.jar)                                              | com.sun.mail.pop3         | org.eclipse.angus | pop3                | The POP3 protocol provider                                                                                           |
 | [logging-mailhandler.jar](https://repo1.maven.org/maven2/org/eclipse/angus/logging-mailhandler/${angus-mail.version}/logging-mailhandler-${angus-mail.version}.jar) | com.sun.mail.util.logging | org.eclipse.angus | logging-mailhandler | A java.util.logging handler that uses Jakarta Mail, suitable for use in Google App Engine.                           |
+
+<br/>
+
+[Angus Activation](https://eclipse-ee4j.github.io/angus-activation/) provides following jar files:
+
+| jar file                                                                                                                                                                              | module name                   | groupId            | artifactId             | Description                                                                 |
+|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------|:-------------------|:-----------------------|:----------------------------------------------------------------------------|
+| [jakarta.activation-api.jar](https://repo1.maven.org/maven2/jakarta/activation/jakarta.activation-api/${activation-api.version}/jakarta.activation-api-${activation-api.version}.jar) | jakarta.activation            | jakarta.activation | jakarta.activation-api | The Jakarta Activation API definitions only, suitable for compiling against |
+| [angus-activation.jar](https://repo1.maven.org/maven2/org/eclipse/angus/angus-activation/${angus-activation.version}/angus-activation-${angus-activation.version}.jar)                | com.sun.activation.registries | org.eclipse.angus  | angus-activation       | The Angus Activation runtime                                                |
 
 <br/>
 
