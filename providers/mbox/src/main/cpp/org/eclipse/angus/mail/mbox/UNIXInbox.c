@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -18,15 +18,15 @@
 #include <maillock.h>
 extern void touchlock();	/* XXX - should be in maillock.h */
 
-#include "com_sun_mail_mbox_UNIXInbox.h"
+#include "org_eclipse_angus_mail_mbox_UNIXInbox.h"
 
 /*
- * Class:     com_sun_mail_mbox_UNIXInbox
+ * Class:     org_eclipse_angus_mail_mbox_UNIXInbox
  * Method:    maillock
  * Signature: (Ljava/lang/String;I)Z
  */
 JNIEXPORT jboolean JNICALL
-Java_com_sun_mail_mbox_UNIXInbox_maillock(JNIEnv *env, jobject obj,
+Java_org_eclipse_angus_mail_mbox_UNIXInbox_maillock(JNIEnv *env, jobject obj,
     jstring user, jint retry_count)
 {
 	jboolean ret;
@@ -38,23 +38,23 @@ Java_com_sun_mail_mbox_UNIXInbox_maillock(JNIEnv *env, jobject obj,
 }
 
 /*
- * Class:     com_sun_mail_mbox_UNIXInbox
+ * Class:     org_eclipse_angus_mail_mbox_UNIXInbox
  * Method:    mailunlock
  * Signature: ()V
  */
 JNIEXPORT void JNICALL
-Java_com_sun_mail_mbox_UNIXInbox_mailunlock(JNIEnv *env, jobject obj)
+Java_org_eclipse_angus_mail_mbox_UNIXInbox_mailunlock(JNIEnv *env, jobject obj)
 {
 	(void) mailunlock();
 }
 
 /*
- * Class:     com_sun_mail_mbox_UNIXInbox
+ * Class:     org_eclipse_angus_mail_mbox_UNIXInbox
  * Method:    touchlock0
  * Signature: ()V
  */
 JNIEXPORT void JNICALL
-Java_com_sun_mail_mbox_UNIXInbox_touchlock0(JNIEnv *env, jobject obj)
+Java_org_eclipse_angus_mail_mbox_UNIXInbox_touchlock0(JNIEnv *env, jobject obj)
 {
 	(void) touchlock();
 }

@@ -1,9 +1,0 @@
-Manifest-Version: 1.0
-Extension-Name: org.eclipse.angus.mail.dsn
-Specification-Title: org.eclipse.angus.mail.dsn
-Specification-Version: ${mail.spec.version}
-Specification-Vendor: ${project.organization.name}
-Implementation-Title: org.eclipse.angus.mail.dsn
-Implementation-Version: ${mail.version}
-Implementation-Vendor: ${project.organization.name}
-Implementation-Vendor-Id: com.sun

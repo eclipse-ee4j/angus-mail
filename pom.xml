@@ -34,7 +34,7 @@
     <version>2.0.0-SNAPSHOT</version>
     <name>Angus Mail Project</name>
     <description>${project.name}</description>
-    <url>http://eclipse-ee4j.github.io/mail</url>
+    <url>http://eclipse-ee4j.github.io/angus-mail</url>
 
     <scm>
         <connection>scm:git:ssh://git@github.com/eclipse-ee4j/angus-mail.git</connection>
