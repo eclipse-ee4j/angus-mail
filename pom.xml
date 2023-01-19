@@ -94,6 +94,8 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
         <graal.sdk.version>22.3.0</graal.sdk.version>
         <!-- used in jakarta.mail/jakarta.mail.Version -->
         <mail.version>${mail-api.version}</mail.version>
+        <skip9>false</skip9>
+        <skip8>true</skip8>
     </properties>
 
     <developers>
@@ -465,7 +467,12 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                     <execution>
                         <id>default-compile</id>
                         <configuration>
+                            <skipMain>${skip9}</skipMain>
                             <release>9</release>
+                            <excludes>
+                                <!-- This is for some demos -->
+                                <exclude>example/app/internal/**</exclude>
+                            </excludes>
                             <showDeprecation>true</showDeprecation>
                             <showWarnings>true</showWarnings>
                             <!--
@@ -492,16 +499,36 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <release>8</release>
+                            <skipMain>${skip8}</skipMain>
+                            <source>8</source>
+                            <target>8</target>
                             <excludes>
                                 <exclude>module-info.java</exclude>
+                                <exclude>**/nativeimage/**</exclude>
+                                <!-- This is for some demos -->
+                                <exclude>example/app/internal/**</exclude>
                             </excludes>
                         </configuration>
                     </execution>
                     <execution>
                         <id>default-testCompile</id>
                         <configuration>
+                            <skip>${skip9}</skip>
                             <release>9</release>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>test-base-compile</id>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip8}</skip>
+                            <source>8</source>
+                            <target>8</target>
+                            <testExcludes>
+                                <testExclude>module-info.java</testExclude>
+                            </testExcludes>
                         </configuration>
                     </execution>
                 </executions>
@@ -599,6 +626,7 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
+                    <skip>${skip9}</skip>
                     <archive>
                         <manifest>
                             <addDefaultEntries>false</addDefaultEntries>
@@ -657,6 +685,17 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
+        </profile>
+
+        <profile>
+            <id>jdk8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <properties>
+                <skip9>true</skip9>
+                <skip8>false</skip8>
+            </properties>
         </profile>
 
         <!--
