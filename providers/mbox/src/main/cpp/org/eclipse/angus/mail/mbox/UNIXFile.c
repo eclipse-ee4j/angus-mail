@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -21,18 +21,18 @@
 
 extern int _fcntl();
 
-#include "com_sun_mail_mbox_UNIXFile.h"
+#include "org_eclipse_angus_mail_mbox_UNIXFile.h"
 
 static	jfieldID IO_fd_fdID;
 static	int fd_offset;
 
 /*
- * Class:     com_sun_mail_mbox_UNIXFile
+ * Class:     org_eclipse_angus_mail_mbox_UNIXFile
  * Method:    initIDs
  * Signature: (Ljava/lang/Class;Ljava/io/FileDescriptor;)V
  */
 JNIEXPORT void JNICALL
-Java_com_sun_mail_mbox_UNIXFile_initIDs(JNIEnv *env, jclass ufClass,
+Java_org_eclipse_angus_mail_mbox_UNIXFile_initIDs(JNIEnv *env, jclass ufClass,
     jclass fdClass, jobject stdin_obj)
 {
 	IO_fd_fdID = (*env)->GetFieldID(env, fdClass, "fd", "I");
@@ -46,12 +46,12 @@ Java_com_sun_mail_mbox_UNIXFile_initIDs(JNIEnv *env, jclass ufClass,
 }
 
 /*
- * Class:     com_sun_mail_mbox_UNIXFile
+ * Class:     org_eclipse_angus_mail_mbox_UNIXFile
  * Method:    lock0
  * Signature: (Ljava/io/FileDescriptor;Ljava/lang/String;Z)Z
  */
 JNIEXPORT jboolean JNICALL
-Java_com_sun_mail_mbox_UNIXFile_lock0(JNIEnv *env, jclass clazz,
+Java_org_eclipse_angus_mail_mbox_UNIXFile_lock0(JNIEnv *env, jclass clazz,
     jobject fdobj, jstring umode, jboolean block)
 {
 	int fd;
@@ -73,12 +73,12 @@ Java_com_sun_mail_mbox_UNIXFile_lock0(JNIEnv *env, jclass clazz,
 }
 
 /*
- * Class:     com_sun_mail_mbox_UNIXFile
+ * Class:     org_eclipse_angus_mail_mbox_UNIXFile
  * Method:    lastAccessed0
  * Signature: (Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
-Java_com_sun_mail_mbox_UNIXFile_lastAccessed0(JNIEnv *env, jclass clazz,
+Java_org_eclipse_angus_mail_mbox_UNIXFile_lastAccessed0(JNIEnv *env, jclass clazz,
 	jstring uname)
 {
 	const char *name;
