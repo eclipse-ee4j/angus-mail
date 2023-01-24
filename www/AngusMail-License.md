@@ -1,9 +1,9 @@
-Jakarta Mail License
+Angus Mail License
 ====================
 
-Jakarta Mail uses several licenses:
+Angus Mail uses several licenses:
 
--   Most of the Jakarta Mail source code is licensed under the
+-   Most of the Angus Mail source code is licensed under the
     [Eclipse Public License (EPL) v2.0](http://www.eclipse.org/legal/epl-2.0)
     and [GNU General Public License (GPL) v2 with Classpath Exception](
     https://www.gnu.org/software/classpath/license.html);

@@ -461,7 +461,7 @@ implementation that developers may use and ship.
 The implementation 
 includes the core Jakarta Mail packages and IMAP, POP3, and SMTP service providers. 
 The implementation may be downloaded
-<A href="https://eclipse-ee4j.github.io/mail">here</A>.
+<A href="https://eclipse-ee4j.github.io/angus-mail">here</A>.
 </P>
 
 <P>
@@ -584,7 +584,7 @@ providers. However, the architecture of the Jakarta Mail APIs provides
 for being able to easily plug-in third-party service providers. It is
 our hope that third-parties will embrace the Jakarta Mail APIs by writing
 providers for other standard and proprietary protocols.
-See our <A HREF="https://eclipse-ee4j.github.io/mail/docs/ThirdPartyProducts">Third Party Products</A> page
+See our <A HREF="ThirdPartyProducts">Third Party Products</A> page
 for the latest list of such providers.
 </P>
 
@@ -596,11 +596,11 @@ for the latest list of such providers.
 on a local disk.  The Jakarta Mail API download does not include such a provider
 but a provider that supports the Unix mbox format is available in the Jakarta Mail
 source repository that you can build yourself.  See
-<A HREF="https://eclipse-ee4j.github.io/mail/Mbox-Store">this page</A>
+<A HREF="Mbox-Store">this page</A>
 for details.
 In addition, several local store providers are available from third parties
 for different local store formats such as MH and Mbox.
-See our <A HREF="https://eclipse-ee4j.github.io/mail/docs/ThirdPartyProducts">Third Party Products</A> page
+See our <A HREF="ThirdPartyProducts">Third Party Products</A> page
 for the latest list of such providers.
 </P>
 
@@ -619,9 +619,9 @@ provider-specific features.  Note that use of these properties,
 classes, and methods renders a program <b>non-portable</b>; it may
 only work with Oracle's implementation of the Jakarta Mail API.
 See the
-<A HREF="https://eclipse-ee4j.github.io/mail/docs/api//com/sun/mail/imap/package-summary.html">IMAP</A>,
-<A HREF="https://eclipse-ee4j.github.io/mail/docs/api//com/sun/mail/pop3/package-summary.html">POP3</A>, and
-<A HREF="https://eclipse-ee4j.github.io/mail/docs/api//com/sun/mail/smtp/package-summary.html">SMTP</A> package
+<A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/imap/package-summary.html">IMAP</A>,
+<A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/pop3/package-summary.html">POP3</A>, and
+<A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html">SMTP</A> package
 javadocs for details.
 </P>
 
@@ -634,7 +634,7 @@ is completely free and open source and you can include it in your product.
 This release includes IMAP, POP3, and SMTP providers as well. Please do
 read the license and ensure that you understand it.
 The Jakarta Mail license is described
-<A HREF="https://eclipse-ee4j.github.io/mail/License">here</A>.
+<A HREF="AngusMail-License">here</A>.
 </P>
 
 <P>
@@ -645,14 +645,14 @@ implementation?</A>
 <strong>A:</strong> Starting with Jakarta Mail 1.4.2, the source code for the
 Jakarta Mail API
 Reference Implementation is available under the CDDL or GPL open source licenses
-in the <A HREF="https://eclipse-ee4j.github.io/mail">Jakarta Mail project</A>.
+in the <A HREF="https://eclipse-ee4j.github.io/mail-api">Jakarta Mail project</A>.
 </P>
 
 <P>
 <A NAME="y2k">
 <strong>Q:</strong> Is Jakarta Mail Y2K compliant?</A><BR>
 <strong>A:</strong> Yes. Oracle's Jakarta Mail implementation is Option-3 Y2K compliant. Please
-see the <A HREF="https://eclipse-ee4j.github.io/mail/docs/NOTES.txt">NOTES.txt</A>
+see the <A HREF="docs/NOTES.txt">NOTES.txt</A>
 file in the Jakarta Mail package for more information.
 </P>
 
@@ -663,10 +663,10 @@ file in the Jakarta Mail package for more information.
 <BR>
 <strong>A:</strong> In addition to the Jakarta Mail API spec and javadocs
 (available from
-<A HREF="https://eclipse-ee4j.github.io/mail"">our main web page</A>),
+<A HREF="https://eclipse-ee4j.github.io/angus-mail"">our main web page</A>),
 don't forget to check the
-<A HREF="https://eclipse-ee4j.github.io/mail/docs/README.txt">README.txt</A> and
-<A HREF="https://eclipse-ee4j.github.io/mail/docs/NOTES.txt">NOTES.txt</A> files
+<A HREF="docs/README.txt">README.txt</A> and
+<A HREF="docs/NOTES.txt">NOTES.txt</A> files
 for additional important information.
 </P>
 <P>
@@ -674,7 +674,7 @@ You can reach the Jakarta Mail team directly at
 <A HREF="https://accounts.eclipse.org/mailing-list/mail-dev">mail-dev@eclipse.org</A>.
 You can use this address to report bugs.
 Bugs can also be reported using the Issue Tracker at the
-<A HREF="https://eclipse-ee4j.github.io/mail">Jakarta Mail project</A>.
+<A HREF="https://eclipse-ee4j.github.io/mail-api">Jakarta Mail project</A>.
 </P>
 <P>
 The Oracle Technology Network maintains a Jakarta Mail forum, see the
@@ -704,7 +704,7 @@ and edit your CLASSPATH environment variable to include the jakarta.mail.jar fil
 You will also need an implementation of the 
 JavaBeans Activation Framework (see below) unless you're using JDK 1.6
 through JDK 10 (which includes JAF).
-See the <A HREF="https://eclipse-ee4j.github.io/mail/docs/README.txt">README.txt</A> file
+See the <A HREF="docs/README.txt">README.txt</A> file
 for additional details and examples,
 as well as the following <A HREF="#classpath">FAQ entry</A>.
 </P>
@@ -927,7 +927,7 @@ and allows anonymous connections, and
 you're using JDK 1.5 or newer and Jakarta Mail 1.4.5 or newer, you can
 configure a SOCKS proxy on a per-session, per-protocol basis by setting the
 "mail.smtp.socks.host" property as described in the javadocs for the
-<A HREF="https://eclipse-ee4j.github.io/mail/docs/api/com/sun/mail/smtp/package-summary.html">
+<A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html">
 com.sun.mail.smtp package</A>.
 Similar properties exist for the "imap" and "pop3" protocols.
 Authentication for SOCKS servers is supported by the JDK by setting the
@@ -976,7 +976,7 @@ Your server is probably using a test certificate or self-signed
 certificate instead of a certificate signed by a commercial Certificate
 Authority.
 You'll need to install the server's certificate into your trust store.
-The <A HREF="https://eclipse-ee4j.github.io/mail/InstallCert">
+The <A HREF="InstallCert">
 InstallCert</A> program will help.
 A
 <A HREF="http://s-n-ushakov.blogspot.com/2013/11/yet-another-installcert-for-java-now.html">
@@ -1195,7 +1195,7 @@ the bug is in your code or is elsewhere.
 Note that you'll need to configure your Gmail account to
 <A HREF="https://www.google.com/settings/security/lesssecureapps">
 enable less secure apps</A>, or you'll need to use
-<A HREF="https://eclipse-ee4j.github.io/mail/OAuth2">
+<A HREF="OAuth2">
 OAuth2 authentication</A>
 (which is somewhat more complex).
 </P>
@@ -1574,7 +1574,7 @@ SMTP, IMAP, POP3, etc.
 <BR>
 <strong>A:</strong> There are many example programs available for download
 on the
-<A HREF="https://eclipse-ee4j.github.io/mail/">Jakarta Mail project page</A>,
+<A HREF="https://eclipse-ee4j.github.io/angus-mail/">Jakarta Mail project page</A>,
 including simple command line programs illustrating various aspects of
 the Jakarta Mail API, a Swing-based GUI application, a simple servlet-based
 application, and a complete web application using JSP pages and a tag
@@ -2057,7 +2057,7 @@ or receiving secure email.  The architecture of the
 Jakarta Mail APIs allows such support to be easily added later,
 by us or by third parties.
 Please browse our
-<A HREF="https://eclipse-ee4j.github.io/mail/docs/ThirdPartyProducts">Third Party Products</A>
+<A HREF="ThirdPartyProducts">Third Party Products</A>
 page for solutions from other vendors.
 The most popular third party solution is the
 <A HREF="https://www.bouncycastle.org/java.html">Bouncy Castle library</A>.
@@ -2222,7 +2222,7 @@ encoding.  Applications that wish to interoperate with such non-standard
 mailers can use the <code>encodeText</code> method to encode filenames
 before calling the <code>MimeBodyPart</code><code>setFileName</code> method,
 and can use the <code>decodeText</code> method to decode returned filenames.
-See also <A href="encodefilename">this entry</A> below if you need to
+See also <A href="#encodefilename">this entry</A> below if you need to
 encode filenames.
 </P>
 
@@ -2401,11 +2401,11 @@ server that will indicate the real source of the problem.
 <BR>
 <strong>A:</strong> Debugging SSL problems, and in particular certificate problems,
 can be difficult.  The file
-<A HREF="https://eclipse-ee4j.github.io/mail/docs/SSLNOTES.txt">SSLNOTES.txt</A>
-includes some useful information.  Jakarta Mail uses the JDK's JSSE
+<A HREF="docs/SSLNOTES.txt">SSLNOTES.txt</A>
+includes some useful information.  Angus Mail uses the JDK's JSSE
 API to provide SSL support.  You can find information about debugging
 JSSE problems in the
-<A HREF=" /j2se/5.0/docs/guide/security/jsse/JSSERefGuide.html#Debug">
+<A HREF="https://docs.oracle.com/en/java/javase/11/security/java-secure-socket-extension-jsse-reference-guide.html#GUID-31B7E142-B874-46E9-8DD0-4E18EC0EB2CF">
 JSSE Reference Guide</A>.
 </P>
 
@@ -2523,7 +2523,7 @@ attachments.</A><BR>
 <strong>A:</strong> This is due to bugs in the partial fetch implementation of your
 IMAP server.  To workaround this server bug, set the
 "mail.imap.partialfetch" property to "false".
-Refer to <A HREF="https://eclipse-ee4j.github.io/mail/docs/NOTES.txt">NOTES.txt</A> from
+Refer to <A HREF="docs/NOTES.txt">NOTES.txt</A> from
 the Jakarta Mail package for more information.
 </P>
 
@@ -2960,7 +2960,7 @@ authentication information.
 <BR>
 <strong>A:</strong> You need to authenticate to your SMTP server.  The package
 javadocs for the
-<A HREF="https://eclipse-ee4j.github.io/mail/docs/api//com/sun/mail/smtp/package-summary.html">
+<A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html">
 com.sun.mail.smtp package</A> describe several methods to do this.
 The easiest is to replace the call <code>Transport.send(msg);</code> with
 <code>Transport.send(msg, username, password);</code>.
@@ -3138,10 +3138,10 @@ You can enable use of this command by setting the Session property
 This will cause the SMTP protocol provider to issue the STARTTLS
 command after connecting to the server.
 See the file
-<A HREF="https://eclipse-ee4j.github.io/mail/docs/SSLNOTES.txt">SSLNOTES.txt</A>
+<A HREF="docs/SSLNOTES.txt">SSLNOTES.txt</A>
 for additional information.
 Also, the javadocs for the
-<A HREF="https://eclipse-ee4j.github.io/mail/docs/api//com/sun/mail/smtp/package-summary.html">com.sun.mail.smtp</A>
+<A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html">com.sun.mail.smtp</A>
 package has more information on the properties that can be set.
 </P>
 <P>
@@ -3189,7 +3189,7 @@ it very difficult to correlate a "bounced" message with the original message
 that caused the problem.  (Note that this problem is completely independent
 of Jakarta Mail.)
 Jakarta Mail now includes support for parsing Delivery Status Notifications;
-see the <A HREF="https://eclipse-ee4j.github.io/mail/docs/NOTES.txt">NOTES.txt</A>
+see the <A HREF="docs/NOTES.txt">NOTES.txt</A>
 file in the Jakarta Mail package for details.
 </P>
 <P>

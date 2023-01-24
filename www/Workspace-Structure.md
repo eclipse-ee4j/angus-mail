@@ -20,13 +20,13 @@ The main Angus Mail source code module, containing the core of the runtime
 that goes into angus-mail.jar.
 
     core/pom.xml
-    core/src/main/java/com/sun/mail/auth/MD4.java
+    core/src/main/java/org/eclipse/angus/mail/auth/MD4.java
     ...
-    core/src/main/java/com/sun/mail/handlers/handler_base.java
+    core/src/main/java/org/eclipse/angus/mail/handlers/handler_base.java
     ...
-    core/src/main/java/com/sun/mail/util/ASCIIUtility.java
+    core/src/main/java/org/eclipse/angus/mail/util/ASCIIUtility.java
     ...
-    core/src/main/java/com/sun/mail/util/package-info.java
+    core/src/main/java/org/eclipse/angus/mail/util/package-info.java
     core/src/main/java/module-info.java
     core/src/main/resources/META-INF/services/jakarta.mail.util.StreamProvider
 
@@ -141,16 +141,16 @@ moved all the source code here because none of this appears in
 mail.jar.
 
     dsn/pom.xml
-    dsn/src/main/java/com/sun/mail/dsn/DeliveryStatus.java
-    dsn/src/main/java/com/sun/mail/dsn/DispositionNotification.java
-    dsn/src/main/java/com/sun/mail/dsn/MessageHeaders.java
-    dsn/src/main/java/com/sun/mail/dsn/MultipartReport.java
-    dsn/src/main/java/com/sun/mail/dsn/Report.java
-    dsn/src/main/java/com/sun/mail/dsn/message_deliverystatus.java
-    dsn/src/main/java/com/sun/mail/dsn/message_dispositionnotification.java
-    dsn/src/main/java/com/sun/mail/dsn/multipart_report.java
-    dsn/src/main/java/com/sun/mail/dsn/package-info.java
-    dsn/src/main/java/com/sun/mail/dsn/text_rfc822headers.java
+    dsn/src/main/java/org/eclipse/angus/mail/dsn/DeliveryStatus.java
+    dsn/src/main/java/org/eclipse/angus/mail/dsn/DispositionNotification.java
+    dsn/src/main/java/org/eclipse/angus/mail/dsn/MessageHeaders.java
+    dsn/src/main/java/org/eclipse/angus/mail/dsn/MultipartReport.java
+    dsn/src/main/java/org/eclipse/angus/mail/dsn/Report.java
+    dsn/src/main/java/org/eclipse/angus/mail/dsn/message_deliverystatus.java
+    dsn/src/main/java/org/eclipse/angus/mail/dsn/message_dispositionnotification.java
+    dsn/src/main/java/org/eclipse/angus/mail/dsn/multipart_report.java
+    dsn/src/main/java/org/eclipse/angus/mail/dsn/package-info.java
+    dsn/src/main/java/org/eclipse/angus/mail/dsn/text_rfc822headers.java
     dsn/src/main/java/module-info.java
     dsn/src/main/resources/META-INF/MANIFEST.MF
     dsn/src/main/resources/META-INF/mailcap
@@ -162,18 +162,18 @@ upper module; is that too weird?)
 
     providers/mbox/native/pom.xml
     providers/mbox/pom.xml
-    providers/mbox/src/main/cpp/com/sun/mail/mbox/UNIXFile.c
-    providers/mbox/src/main/cpp/com/sun/mail/mbox/UNIXInbox.c
-    providers/mbox/src/main/java/com/sun/mail/mbox/ContentLengthCounter.java
+    providers/mbox/src/main/cpp/org/eclipse/angus/mail/mbox/UNIXFile.c
+    providers/mbox/src/main/cpp/org/eclipse/angus/mail/mbox/UNIXInbox.c
+    providers/mbox/src/main/java/org/eclipse/angus/mail/mbox/ContentLengthCounter.java
     ...
-    providers/mbox/src/main/java/com/sun/mail/remote/POP3RemoteProvider.java
-    providers/mbox/src/main/java/com/sun/mail/remote/POP3RemoteStore.java
+    providers/mbox/src/main/java/org/eclipse/angus/mail/remote/POP3RemoteProvider.java
+    providers/mbox/src/main/java/org/eclipse/angus/mail/remote/POP3RemoteStore.java
     ...
     providers/mbox/src/main/java/module-info.java
     providers/mbox/src/main/resources/META-INF/javamail.providers
     providers/mbox/src/main/resources/META-INF/services/jakarta.mail.Provider
-    providers/mbox/src/test/java/com/sun/mail/mbox/MboxFolderExpungeTest.java
-    providers/mbox/src/test/java/com/sun/mail/mbox/MboxFolderTest.java
+    providers/mbox/src/test/java/org/eclipse/angus/mail/mbox/MboxFolderExpungeTest.java
+    providers/mbox/src/test/java/org/eclipse/angus/mail/mbox/MboxFolderTest.java
 
 A module just for building the javadocs. Putting these rules in the
 parent pom.xml just didn't work so I moved them here.
