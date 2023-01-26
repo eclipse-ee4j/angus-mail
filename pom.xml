@@ -499,7 +499,6 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <skipMain>${skip8}</skipMain>
                             <source>8</source>
                             <target>8</target>
                             <excludes>
