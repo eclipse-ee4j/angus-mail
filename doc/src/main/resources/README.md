@@ -29,6 +29,9 @@ This project is part of [Eclipse Angus project](https://projects.eclipse.org/pro
 
 # <a name="Latest_News"></a>Latest News
 
+## February 08, 2023 - Angus Mail 2.0.2 Final Release ##
+A bug fixing compatibility with package-info in Java SE 8.
+
 ## January 26, 2023 - Angus Mail 2.0.1 Final Release ##
 A bug fix release of 2.0.0 fixing compatibility with Java SE 8.
 

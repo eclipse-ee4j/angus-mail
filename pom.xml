@@ -500,7 +500,7 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <createMissingPackageInfoClass>true</createMissingPackageInfoClass>
+                            <createMissingPackageInfoClass>false</createMissingPackageInfoClass>
                             <source>8</source>
                             <target>8</target>
                             <excludes>
