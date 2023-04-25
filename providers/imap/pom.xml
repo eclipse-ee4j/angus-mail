@@ -61,13 +61,9 @@
                             osgi.service;effective:=active;
                               objectClass="org.eclipse.angus.mail.imap.IMAPProvider",
                             osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.imap.IMAPProvider";
-                              osgi.serviceloader="org.eclipse.angus.mail.imap.IMAPProvider",
+                              osgi.serviceloader="jakarta.mail.Provider",
                             osgi.service;effective:=active;
                               objectClass="org.eclipse.angus.mail.imap.IMAPSSLProvider",
-                            osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.imap.IMAPSSLProvider";
-                              osgi.serviceloader="org.eclipse.angus.mail.imap.IMAPSSLProvider"
                             ]]>
                         </Provide-Capability>
                     </instructions>
