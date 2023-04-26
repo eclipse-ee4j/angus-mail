@@ -111,24 +111,10 @@
                             ]]>
                         </Require-Capability>
                         <Provide-Capability><![CDATA[
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.util.MailStreamProvider",
                             osgi.serviceloader;
                               osgi.serviceloader="jakarta.mail.util.StreamProvider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.imap.IMAPProvider",
                             osgi.serviceloader;
                               osgi.serviceloader="jakarta.mail.Provider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.imap.IMAPSSLProvider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.smtp.SMTPProvider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.smtp.SMTPSSLProvider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.pop3.POP3Provider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.pop3.POP3SSLProvider",
                             ]]>
                         </Provide-Capability>
                     </instructions>

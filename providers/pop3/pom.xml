@@ -58,12 +58,8 @@
                             ]]>
                         </Require-Capability>
                         <Provide-Capability><![CDATA[
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.pop3.POP3Provider",
                             osgi.serviceloader;
                               osgi.serviceloader="jakarta.mail.Provider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.pop3.POP3SSLProvider",
                             ]]>
                         </Provide-Capability>
                     </instructions>
