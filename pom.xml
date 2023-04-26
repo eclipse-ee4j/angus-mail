@@ -467,6 +467,7 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                     <execution>
                         <id>default-compile</id>
                         <configuration>
+                            <createMissingPackageInfoClass>false</createMissingPackageInfoClass>
                             <skipMain>${skip9}</skipMain>
                             <release>9</release>
                             <excludes>
@@ -499,6 +500,7 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                             <goal>compile</goal>
                         </goals>
                         <configuration>
+                            <createMissingPackageInfoClass>false</createMissingPackageInfoClass>
                             <source>8</source>
                             <target>8</target>
                             <excludes>
