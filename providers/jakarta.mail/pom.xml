@@ -188,6 +188,10 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
+                        <Import-Package>
+                            org.glassfish.hk2.osgiresourcelocator;resolution:=optional,
+                            *
+                        </Import-Package>
                         <Require-Capability><![CDATA[
                           osgi.extender;filter:="(&(osgi.extender=osgi.serviceloader.processor)
                             (version>=1.0.0)(!(version>=2.0.0)))";resolution:=optional,
