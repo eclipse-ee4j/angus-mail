@@ -111,41 +111,10 @@
                             ]]>
                         </Require-Capability>
                         <Provide-Capability><![CDATA[
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.util.MailStreamProvider",
                             osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.util.MailStreamProvider";
-                              osgi.serviceloader="org.eclipse.angus.mail.util.MailStreamProvider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.imap.IMAPProvider",
+                              osgi.serviceloader="jakarta.mail.util.StreamProvider",
                             osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.imap.IMAPProvider";
-                              osgi.serviceloader="org.eclipse.angus.mail.imap.IMAPProvider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.imap.IMAPSSLProvider",
-                            osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.imap.IMAPSSLProvider";
-                              osgi.serviceloader="org.eclipse.angus.mail.imap.IMAPSSLProvider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.smtp.SMTPProvider",
-                            osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.smtp.SMTPProvider";
-                              osgi.serviceloader="org.eclipse.angus.mail.smtp.SMTPProvider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.smtp.SMTPSSLProvider",
-                            osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.smtp.SMTPSSLProvider";
-                              osgi.serviceloader="org.eclipse.angus.mail.smtp.SMTPSSLProvider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.pop3.POP3Provider",
-                            osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.pop3.POP3Provider";
-                              osgi.serviceloader="org.eclipse.angus.mail.pop3.POP3Provider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.pop3.POP3SSLProvider",
-                            osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.pop3.POP3SSLProvider";
-                              osgi.serviceloader="org.eclipse.angus.mail.pop3.POP3SSLProvider"
+                              osgi.serviceloader="jakarta.mail.Provider",
                             ]]>
                         </Provide-Capability>
                     </instructions>

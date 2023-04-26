@@ -64,11 +64,8 @@
                             ]]>
                         </Require-Capability>
                         <Provide-Capability><![CDATA[
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.util.MailStreamProvider",
                             osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.util.MailStreamProvider";
-                              osgi.serviceloader="org.eclipse.angus.mail.util.MailStreamProvider"
+                              osgi.serviceloader="jakarta.mail.util.StreamProvider"
                             ]]>
                         </Provide-Capability>
                     </instructions>
