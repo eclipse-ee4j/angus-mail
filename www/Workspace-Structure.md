@@ -35,17 +35,17 @@ sure they do build before shipping them, but they're shipped only as
 source code. Note the embedded README.txt files
 
     demos/client/pom.xml
-    demos/client/src/main/java/ComponentFrame.java
-    demos/client/src/main/java/FolderModel.java
-    demos/client/src/main/java/FolderTreeNode.java
-    demos/client/src/main/java/FolderViewer.java
-    demos/client/src/main/java/MessageViewer.java
-    demos/client/src/main/java/MultipartViewer.java
+    demos/client/src/main/java/example/client/ComponentFrame.java
+    demos/client/src/main/java/example/client/FolderModel.java
+    demos/client/src/main/java/example/client/FolderTreeNode.java
+    demos/client/src/main/java/example/client/FolderViewer.java
+    demos/client/src/main/java/example/client/MessageViewer.java
+    demos/client/src/main/java/example/client/MultipartViewer.java
+    demos/client/src/main/java/example/client/SimpleAuthenticator.java
+    demos/client/src/main/java/example/client/SimpleClient.java
+    demos/client/src/main/java/example/client/StoreTreeNode.java
+    demos/client/src/main/java/example/client/TextViewer.java
     demos/client/src/main/java/README.txt
-    demos/client/src/main/java/SimpleAuthenticator.java
-    demos/client/src/main/java/SimpleClient.java
-    demos/client/src/main/java/StoreTreeNode.java
-    demos/client/src/main/java/TextViewer.java
     demos/client/src/main/java/simple.mailcap
     demos/demo/pom.xml
     demos/demo/src/main/java/README.txt
@@ -84,9 +84,9 @@ source code. Note the embedded README.txt files
     demos/logging/src/main/java/maildemo.properties
     demos/logging/src/main/java/module-info.java
     demos/outlook/pom.xml
-    demos/outlook/src/main/java/MSBodyPart.java
-    demos/outlook/src/main/java/MSMessage.java
-    demos/outlook/src/main/java/MSMultipartDataSource.java
+    demos/outlook/src/main/java/example/outlook/MSBodyPart.java
+    demos/outlook/src/main/java/example/outlook/MSMessage.java
+    demos/outlook/src/main/java/example/outlook/MSMultipartDataSource.java
     demos/outlook/src/main/java/README.txt
     demos/pom.xml
     demos/servlet/pom.xml

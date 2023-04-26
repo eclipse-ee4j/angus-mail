@@ -58,16 +58,8 @@
                             ]]>
                         </Require-Capability>
                         <Provide-Capability><![CDATA[
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.imap.IMAPProvider",
                             osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.imap.IMAPProvider";
-                              osgi.serviceloader="org.eclipse.angus.mail.imap.IMAPProvider",
-                            osgi.service;effective:=active;
-                              objectClass="org.eclipse.angus.mail.imap.IMAPSSLProvider",
-                            osgi.serviceloader;
-                              register:="org.eclipse.angus.mail.imap.IMAPSSLProvider";
-                              osgi.serviceloader="org.eclipse.angus.mail.imap.IMAPSSLProvider"
+                              osgi.serviceloader="jakarta.mail.Provider",
                             ]]>
                         </Provide-Capability>
                     </instructions>

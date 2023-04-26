@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -8,22 +8,23 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import java.awt.*;
-import java.io.*;
-import java.beans.*;
-import jakarta.activation.*;
-import javax.swing.JPanel;
-import javax.swing.JTextArea;
-import javax.swing.JScrollPane;
+package example.client;
 
+import jakarta.activation.CommandObject;
+import jakarta.activation.DataHandler;
+
+import javax.swing.*;
+import java.awt.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
- * A very simple TextViewer Bean for the MIMEType "text/plain"
+ * A very simple client.TextViewer Bean for the MIMEType "text/plain"
  *
  * @author	Christopher Cotton
  */
-
-public class TextViewer extends JPanel implements CommandObject 
+public class TextViewer extends JPanel implements CommandObject
 {
 
     private JTextArea text_area = null;

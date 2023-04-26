@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -8,9 +8,15 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import jakarta.mail.*;
+package example.client;
+
+import jakarta.mail.Address;
+import jakarta.mail.Folder;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+
+import javax.swing.table.AbstractTableModel;
 import java.util.Date;
-import javax.swing.table.AbstractTableModel; 
 
 /**
  * Maps the messages in a Folder to the Swing's Table Model
@@ -18,7 +24,6 @@ import javax.swing.table.AbstractTableModel;
  * @author	Christopher Cotton
  * @author	Bill Shannon
  */
-
 public class FolderModel extends AbstractTableModel {
     
     Folder	folder;

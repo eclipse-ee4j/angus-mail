@@ -11,7 +11,10 @@ for the Eclipse EE4J Angus Mail project:
           ----------------------------
 The following bugs have been fixed in the 2.0.2 release.
 
-83:  package-info.class major version: 53 
+83:  package-info.class major version: 53
+87: jakarta.mail fails to resolve due to required org.glassfish.hk2.osgiresourcelocator dependency
+88: Fix Provide-Capability headers in MANIFEST.MF (required by OSGi service loader).
+89: fix default build without -Poss-release
 
           CHANGES IN THE 2.0.1 RELEASE
           ----------------------------
