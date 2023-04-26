@@ -30,40 +30,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.eclipse.angus</groupId>
     <artifactId>demo</artifactId>
-    <name>Jakarta Mail API demos</name>
-
-    <build>
-        <plugins>
-            <!--
-                Need to disable the maven-bundle-plugin because the
-                new version doesn't like classes in the default package.
-            -->
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>osgi-manifest</id>
-                        <phase>none</phase>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!--
-                Because the maven-jar-plugin depends on the manifest file
-                created by the maven-bundle-plugin, we need to disable it too.
-            -->
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>default-jar</id>
-                        <phase>none</phase>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+    <name>Jakarta Mail API demo</name>
 
     <dependencies>
         <dependency>

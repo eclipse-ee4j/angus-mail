@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -8,13 +8,20 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import java.io.*;
-import jakarta.activation.*;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
+package example.outlook;
+
+import jakarta.activation.FileTypeMap;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeBodyPart;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 /**
- * A special MimeBodyPart used with MSMessage.
+ * A special MimeBodyPart used with outlook.MSMessage.
  *
  * @author John Mani
  * @author Bill Shannon

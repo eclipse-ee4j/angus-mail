@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -8,12 +8,20 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import java.io.*;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
-import jakarta.mail.util.StreamProvider;
+package example.outlook;
+
+import jakarta.activation.DataHandler;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimePartDataSource;
 import jakarta.mail.util.StreamProvider.EncoderTypes;
-import jakarta.activation.*;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * This class models a UUEncoded Message sent from MS Outlook etc. <p>
@@ -28,12 +36,11 @@ import jakarta.activation.*;
  * @author Bill Shannon
  * @see    jakarta.mail.internet.MimeMessage
  */
-
 public class MSMessage extends MimeMessage {
     private String type;
 
     /**
-     * Constructor that converts a MimeMessage object into a MSMessage.
+     * Constructor that converts a MimeMessage object into a outlook.MSMessage.
      * 
      * @exception   MessagingException if the given MimeMessage
      *          is not a non-MIME MS message, or if an
@@ -68,7 +75,7 @@ public class MSMessage extends MimeMessage {
     }
 
     /**
-     * Constructor to create a MSMessage from the given InputStream.
+     * Constructor to create a outlook.MSMessage from the given InputStream.
      */
     public MSMessage(Session session, InputStream is) 
 		throws MessagingException {
