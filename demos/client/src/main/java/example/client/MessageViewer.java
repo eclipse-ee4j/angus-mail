@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -8,19 +8,29 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+package example.client;
+
+import jakarta.activation.CommandInfo;
+import jakarta.activation.CommandObject;
+import jakarta.activation.DataHandler;
+import jakarta.mail.Address;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.Part;
+
+import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
-import jakarta.mail.*;
-import jakarta.activation.*;
-import java.util.Date;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
-import javax.swing.JPanel;
+import java.util.Date;
+
 
 /**
  * @author	Christopher Cotton
  * @author	Bill Shannon
  */
-
 public class MessageViewer extends JPanel implements CommandObject {
     
     Message	displayed = null;
@@ -184,7 +194,7 @@ public class MessageViewer extends JPanel implements CommandObject {
 	}
 	else {
 	    System.out.println( 
-		"MessageViewer - content not a Message object, " + o);
+		"client.MessageViewer - content not a Message object, " + o);
 	    if (o != null){
 		System.out.println(o.getClass().toString());
 	    }

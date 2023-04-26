@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -8,10 +8,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import jakarta.mail.*;
-import java.net.InetAddress;
-import java.awt.*;
+package example.client;
+
+import jakarta.mail.Authenticator;
+import jakarta.mail.PasswordAuthentication;
+
 import javax.swing.*;
+import java.awt.*;
+import java.net.InetAddress;
 
 /**
  * Simple Authenticator for requesting password information.
@@ -19,7 +23,6 @@ import javax.swing.*;
  * @author	Christopher Cotton
  * @author	Bill Shannon
  */
-
 public class SimpleAuthenticator extends Authenticator {
 
     Frame frame;

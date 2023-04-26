@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -8,18 +8,29 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import java.util.*;
-import java.io.*;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
-import jakarta.activation.*;
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import javax.swing.table.*;
-import javax.swing.tree.*;
-import javax.swing.event.*;
+package example.client;
 
+import jakarta.activation.CommandMap;
+import jakarta.activation.MailcapCommandMap;
+import jakarta.mail.Folder;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import jakarta.mail.URLName;
+
+import javax.swing.*;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
+import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.Enumeration;
+import java.util.Vector;
 
 /**
  * Demo app that shows a very simple Mail Client
@@ -50,7 +61,7 @@ public class SimpleClient {
 	}
 
 	if (usage || url.size() == 0) {
-	    System.out.println("Usage: SimpleClient -L url");
+	    System.out.println("Usage: client.SimpleClient -L url");
 	    System.out.println("   where url is protocol://username:password@hostname/");
 	    System.exit(1);
 	}

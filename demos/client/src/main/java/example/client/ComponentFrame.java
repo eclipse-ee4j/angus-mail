@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -8,11 +8,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.JFrame;
-import javax.swing.WindowConstants;
+package example.client;
 
+import javax.swing.*;
+import java.awt.*;
 
 /**
  * this Frame provides a utility class for displaying a single
@@ -20,7 +19,6 @@ import javax.swing.WindowConstants;
  *
  * @author	Christopher Cotton
  */
-
 public class ComponentFrame extends JFrame {
     
     /**

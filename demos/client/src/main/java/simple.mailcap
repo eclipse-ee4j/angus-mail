@@ -3,7 +3,7 @@
 #
 # for our viewers
 #
-message/*;;		x-java-view=MessageViewer
-text/plain;;		x-java-view=TextViewer
-multipart/*;;		x-java-view=MultipartViewer
+message/*;;		x-java-view=example.client.MessageViewer
+text/plain;;		x-java-view=example.client.TextViewer
+multipart/*;;		x-java-view=example.client.MultipartViewer
 

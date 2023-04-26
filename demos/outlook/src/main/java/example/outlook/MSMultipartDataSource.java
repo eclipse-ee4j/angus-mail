@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -8,9 +8,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+package example.outlook;
+
 import java.util.ArrayList;
 import java.util.List;
 
+import example.outlook.MSBodyPart;
 import jakarta.mail.BodyPart;
 import jakarta.mail.MessagingException;
 import jakarta.mail.MultipartDataSource;
@@ -19,20 +22,20 @@ import jakarta.mail.internet.MimePartDataSource;
 import jakarta.mail.util.StreamProvider.EncoderTypes;
 
 /**
- * A special MultipartDataSource used with MSMessage.
+ * A special MultipartDataSource used with outlook.MSMessage.
  *
  * @author John Mani
  * @author Bill Shannon
  */
 public class MSMultipartDataSource extends MimePartDataSource
 				implements MultipartDataSource {
-    //private List<MSBodyPart> parts;
+    //private List<outlook.MSBodyPart> parts;
     private List parts;
 
     public MSMultipartDataSource(MimePart part, byte[] content)
 				throws MessagingException {
 	super(part);
-	//parts = new ArrayList<MSBodyPart>();
+	//parts = new ArrayList<outlook.MSBodyPart>();
 	parts = new ArrayList();
 
 	/*
