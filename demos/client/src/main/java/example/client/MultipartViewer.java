@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -8,21 +8,26 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.beans.*;
-import jakarta.activation.*;
-import jakarta.mail.*;
-import javax.swing.JPanel;
+package example.client;
 
+import jakarta.activation.CommandInfo;
+import jakarta.activation.CommandObject;
+import jakarta.activation.DataHandler;
+import jakarta.mail.BodyPart;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
 
 /**
  * A Viewer Bean for the type multipart/mixed
  *
  * @author	Christopher Cotton
  */
-
 public class MultipartViewer extends JPanel implements CommandObject {
     
     protected DataHandler	dh = null;
