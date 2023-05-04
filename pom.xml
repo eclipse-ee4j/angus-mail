@@ -74,7 +74,7 @@
         <copyright.update>false</copyright.update>
         <spotbugs.skip>true</spotbugs.skip>
         <spotbugs.threshold>High</spotbugs.threshold>
-        <spotbugs.plugin.version>4.7.3.0</spotbugs.plugin.version>
+        <spotbugs.plugin.version>4.7.3.4</spotbugs.plugin.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <angus-mail.javadoc.source>11</angus-mail.javadoc.source>
@@ -87,8 +87,9 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
         <mail.spec.version>2.1</mail.spec.version>
         <mail-api.version>2.1.2</mail-api.version>
         <activation-api.version>2.1.2</activation-api.version>
-        <jsp-api.version>3.0.0</jsp-api.version>
-        <servlet-api.version>5.0.0</servlet-api.version>
+        <jsp-api.version>3.1.1</jsp-api.version>
+        <servlet-api.version>6.0.0</servlet-api.version>
+        <el-api.version>5.0.1</el-api.version>
         <angus.activation.version>2.0.1</angus.activation.version>
         <angus-mail.version>${project.version}</angus-mail.version>
         <graal.sdk.version>22.3.0</graal.sdk.version>
@@ -199,6 +200,11 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                 <groupId>jakarta.servlet.jsp</groupId>
                 <artifactId>jakarta.servlet.jsp-api</artifactId>
                 <version>${jsp-api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>jakarta.el</groupId>
+                <artifactId>jakarta.el-api</artifactId>
+                <version>${el-api.version}</version>
             </dependency>
             <dependency>
                 <groupId>junit</groupId>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -39,7 +39,7 @@ import jakarta.mail.internet.*;
  *
  * @author Max Spivak
  */
-public class JakartaMailServlet extends HttpServlet implements SingleThreadModel {
+public class JakartaMailServlet extends HttpServlet {
     String protocol = "imap";
     String mbox = "INBOX";
 
@@ -76,7 +76,7 @@ public class JakartaMailServlet extends HttpServlet implements SingleThreadModel
 
 	    // create 
 	    MailUserData mud = new MailUserData(url);
-	    ssn.putValue("jakartamailservlet", mud);
+	    ssn.setAttribute("jakartamailservlet", mud);
 	    
 	    try {
 		Properties props = System.getProperties();
@@ -126,7 +126,7 @@ public class JakartaMailServlet extends HttpServlet implements SingleThreadModel
 		out.println("</tr>");
 		// folder name
 		out.print("<tr><td width=\"75%\" bgcolor=\"#ffffff\">");
-		out.print("<a href=\"" + HttpUtils.getRequestURL(req) + "\">" +
+		out.print("<a href=\"" + getRequestURL(req) + "\">" +
 			  "Inbox" + "</a></td><br>");
 		// msg count
 		out.println("<td width=\"25%\" bgcolor=\"#ffffff\">" + 
@@ -142,8 +142,7 @@ public class JakartaMailServlet extends HttpServlet implements SingleThreadModel
 	}
     }
 
-
-    /**
+	/**
      * This method handles the GET requests for the client.
      */
     public void doGet (HttpServletRequest req, HttpServletResponse res)
@@ -307,7 +306,7 @@ public class JakartaMailServlet extends HttpServlet implements SingleThreadModel
 		    out.println("<b>Description:</b> " + s + "<br>");
 		
 		out.println("<a href=\"" +
-			    HttpUtils.getRequestURL(req) + 
+			    getRequestURL(req) +
 			    "?message=" +
 			    msgNum + "&part=" +
 			    partNum + "\">Display Attachment</a>");
@@ -429,10 +428,10 @@ public class JakartaMailServlet extends HttpServlet implements SingleThreadModel
 	// URL's for the commands that are available
 	out.println("<font face=\"Arial,Helvetica\" font size=\"+3\"><b>");
 	out.println("<a href=\"" +
-		    HttpUtils.getRequestURL(req) +
+		    getRequestURL(req) +
 		    "?logout=true\">Logout</a>");
 	out.println("<a href=\"" +
-		    HttpUtils.getRequestURL(req) +
+		    getRequestURL(req) +
 		    "?compose=true\" target=\"compose\">Compose</a>");
 	out.println("</b></font>");
 	out.println("<hr>");
@@ -486,7 +485,7 @@ public class JakartaMailServlet extends HttpServlet implements SingleThreadModel
 		out.print("<td bgcolor=\"ffffff\">");
 		out.println("<font face=\"Arial,Helvetica\">" + 
 			    "<a href=\"" +
-			    HttpUtils.getRequestURL(req) + 
+			    getRequestURL(req) +
 			    "?message=" +
 			    i + "\">" +
 			    ((m.getSubject() != null) ? 
@@ -596,7 +595,7 @@ public class JakartaMailServlet extends HttpServlet implements SingleThreadModel
 	if (ses == null) {
 	    return null;
 	} else {
-	    if ((mud = (MailUserData)ses.getValue("jakartamailservlet")) == null){
+	    if ((mud = (MailUserData)ses.getAttribute("jakartamailservlet")) == null){
 		return null;
 	    }
 	}
@@ -614,6 +613,21 @@ public class JakartaMailServlet extends HttpServlet implements SingleThreadModel
      */
     private static String composeForm = "<HTML><HEAD><TITLE>Jakarta Mail Compose</TITLE></HEAD><BODY BGCOLOR=\"#CCCCFF\"><FORM ACTION=\"/servlet/JakartaMailServlet\" METHOD=\"POST\"><input type=\"hidden\" name=\"send\" value=\"send\"><P ALIGN=\"CENTER\"><B><FONT SIZE=\"4\" FACE=\"Verdana, Arial, Helvetica\">Jakarta Mail Compose Message</FONT></B><P><TABLE BORDER=\"0\" WIDTH=\"100%\"><TR><TD WIDTH=\"16%\" HEIGHT=\"22\">	<P ALIGN=\"RIGHT\"><B><FONT FACE=\"Verdana, Arial, Helvetica\">To:</FONT></B></TD><TD WIDTH=\"84%\" HEIGHT=\"22\"><INPUT TYPE=\"TEXT\" NAME=\"to\" SIZE=\"30\"> <FONT SIZE=\"1\" FACE=\"Verdana, Arial, Helvetica\"> (separate addresses with commas)</FONT></TD></TR><TR><TD WIDTH=\"16%\"><P ALIGN=\"RIGHT\"><B><FONT FACE=\"Verdana, Arial, Helvetica\">CC:</FONT></B></TD><TD WIDTH=\"84%\"><INPUT TYPE=\"TEXT\" NAME=\"cc\" SIZE=\"30\"> <FONT SIZE=\"1\" FACE=\"Verdana, Arial, Helvetica\"> (separate addresses with commas)</FONT></TD></TR><TR><TD WIDTH=\"16%\"><P ALIGN=\"RIGHT\"><B><FONT FACE=\"Verdana, Arial, Helvetica\">Subject:</FONT></B></TD><TD WIDTH=\"84%\"><INPUT TYPE=\"TEXT\" NAME=\"subject\" SIZE=\"55\"></TD></TR><TR><TD WIDTH=\"16%\">&nbsp;</TD><TD WIDTH=\"84%\"><TEXTAREA NAME=\"text\" ROWS=\"15\" COLS=\"53\"></TEXTAREA></TD></TR><TR><TD WIDTH=\"16%\" HEIGHT=\"32\">&nbsp;</TD><TD WIDTH=\"84%\" HEIGHT=\"32\"><INPUT TYPE=\"SUBMIT\" NAME=\"Send\" VALUE=\"Send\"><INPUT TYPE=\"RESET\" NAME=\"Reset\" VALUE=\"Reset\"></TD></TR></TABLE></FORM></BODY></HTML>";
 
+    private String getRequestURL(HttpServletRequest req) {
+        StringBuilder url = new StringBuilder();
+        String scheme = req.getScheme();
+        int port = req.getServerPort();
+        String urlPath = req.getRequestURI();
+        url.append(scheme); // http, https
+        url.append("://");
+        url.append(req.getServerName());
+        if ((scheme.equals("http") && port != 80) || (scheme.equals("https") && port != 443)) {
+            url.append(':');
+            url.append(req.getServerPort());
+        }
+        url.append(urlPath);
+        return url.toString();
+    }
 }
 
 
