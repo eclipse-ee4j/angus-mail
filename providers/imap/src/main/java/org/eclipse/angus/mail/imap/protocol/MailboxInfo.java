@@ -16,150 +16,170 @@
 
 package org.eclipse.angus.mail.imap.protocol;
 
-import java.util.List;
-import java.util.ArrayList;
-
 import jakarta.mail.Flags;
-
-import org.eclipse.angus.mail.iap.*;
 import org.eclipse.angus.mail.iap.ParsingException;
 import org.eclipse.angus.mail.iap.Response;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Information collected when opening a mailbox.
  *
- * @author  John Mani
- * @author  Bill Shannon
+ * @author John Mani
+ * @author Bill Shannon
  */
 
-public class MailboxInfo { 
-    /** The available flags. */
+public class MailboxInfo {
+    /**
+     * The available flags.
+     */
     public Flags availableFlags = null;
-    /** The permanent flags. */
+    /**
+     * The permanent flags.
+     */
     public Flags permanentFlags = null;
-    /** The total number of messages. */
+    /**
+     * The total number of messages.
+     */
     public int total = -1;
-    /** The number of recent messages. */
+    /**
+     * The number of recent messages.
+     */
     public int recent = -1;
-    /** The first unseen message. */
+    /**
+     * The first unseen message.
+     */
     public int first = -1;
-    /** The UIDVALIDITY. */
+    /**
+     * The UIDVALIDITY.
+     */
     public long uidvalidity = -1;
-    /** The next UID value to be assigned. */
+    /**
+     * The next UID value to be assigned.
+     */
     public long uidnext = -1;
-    /** UIDs are not sticky. */
-    public boolean uidNotSticky = false;	// RFC 4315
-    /** The highest MODSEQ value. */
-    public long highestmodseq = -1;	// RFC 4551 - CONDSTORE
-    /** Folder.READ_WRITE or Folder.READ_ONLY, set by IMAPProtocol. */
+    /**
+     * UIDs are not sticky.
+     */
+    public boolean uidNotSticky = false;    // RFC 4315
+    /**
+     * The highest MODSEQ value.
+     */
+    public long highestmodseq = -1;    // RFC 4551 - CONDSTORE
+    /**
+     * Folder.READ_WRITE or Folder.READ_ONLY, set by IMAPProtocol.
+     */
     public int mode;
-    /** VANISHED or FETCH responses received while opening the mailbox. */
+    /**
+     * VANISHED or FETCH responses received while opening the mailbox.
+     */
     public List<IMAPResponse> responses;
 
     /**
      * Collect the information about this mailbox from the
      * responses to a SELECT or EXAMINE.
      *
-     * @param	r	the responses
-     * @exception ParsingException    for errors parsing the responses
+     * @throws ParsingException for errors parsing the responses
+     * @param    r    the responses
      */
     public MailboxInfo(Response[] r) throws ParsingException {
-	for (int i = 0; i < r.length; i++) {
-	    if (r[i] == null || !(r[i] instanceof IMAPResponse))
-		continue;
+        for (int i = 0; i < r.length; i++) {
+            if (r[i] == null || !(r[i] instanceof IMAPResponse))
+                continue;
 
-	    IMAPResponse ir = (IMAPResponse)r[i];
+            IMAPResponse ir = (IMAPResponse) r[i];
 
-	    if (ir.keyEquals("EXISTS")) {
-		total = ir.getNumber();
-		r[i] = null; // remove this response
-	    } else if (ir.keyEquals("RECENT")) {
-		recent = ir.getNumber();
-		r[i] = null; // remove this response
-	    } else if (ir.keyEquals("FLAGS")) {
-		availableFlags = new FLAGS(ir);
-		r[i] = null; // remove this response
-	    } else if (ir.keyEquals("VANISHED")) {
-		if (responses == null)
-		    responses = new ArrayList<>();
-		responses.add(ir);
-		r[i] = null; // remove this response
-	    } else if (ir.keyEquals("FETCH")) {
-		if (responses == null)
-		    responses = new ArrayList<>();
-		responses.add(ir);
-		r[i] = null; // remove this response
-	    } else if (ir.isUnTagged() && ir.isOK()) {
-		/*
-		 * should be one of:
-		 * 	* OK [UNSEEN 12]
-		 * 	* OK [UIDVALIDITY 3857529045]
-		 * 	* OK [PERMANENTFLAGS (\Deleted)]
-		 * 	* OK [UIDNEXT 44]
-		 * 	* OK [HIGHESTMODSEQ 103]
-		 */
-		ir.skipSpaces();
+            if (ir.keyEquals("EXISTS")) {
+                total = ir.getNumber();
+                r[i] = null; // remove this response
+            } else if (ir.keyEquals("RECENT")) {
+                recent = ir.getNumber();
+                r[i] = null; // remove this response
+            } else if (ir.keyEquals("FLAGS")) {
+                availableFlags = new FLAGS(ir);
+                r[i] = null; // remove this response
+            } else if (ir.keyEquals("VANISHED")) {
+                if (responses == null)
+                    responses = new ArrayList<>();
+                responses.add(ir);
+                r[i] = null; // remove this response
+            } else if (ir.keyEquals("FETCH")) {
+                if (responses == null)
+                    responses = new ArrayList<>();
+                responses.add(ir);
+                r[i] = null; // remove this response
+            } else if (ir.isUnTagged() && ir.isOK()) {
+                /*
+                 * should be one of:
+                 * 	* OK [UNSEEN 12]
+                 * 	* OK [UIDVALIDITY 3857529045]
+                 * 	* OK [PERMANENTFLAGS (\Deleted)]
+                 * 	* OK [UIDNEXT 44]
+                 * 	* OK [HIGHESTMODSEQ 103]
+                 */
+                ir.skipSpaces();
 
-		if (ir.readByte() != '[') {	// huh ???
-		    ir.reset();
-		    continue;
-		}
+                if (ir.readByte() != '[') {    // huh ???
+                    ir.reset();
+                    continue;
+                }
 
-		boolean handled = true;
-		String s = ir.readAtom();
-		if (s.equalsIgnoreCase("UNSEEN"))
-		    first = ir.readNumber();
-		else if (s.equalsIgnoreCase("UIDVALIDITY"))
-		    uidvalidity = ir.readLong();
-		else if (s.equalsIgnoreCase("PERMANENTFLAGS"))
-		    permanentFlags = new FLAGS(ir);
-		else if (s.equalsIgnoreCase("UIDNEXT"))
-		    uidnext = ir.readLong();
-		else if (s.equalsIgnoreCase("HIGHESTMODSEQ"))
-		    highestmodseq = ir.readLong();
-		else
-		    handled = false;	// possibly an ALERT
+                boolean handled = true;
+                String s = ir.readAtom();
+                if (s.equalsIgnoreCase("UNSEEN"))
+                    first = ir.readNumber();
+                else if (s.equalsIgnoreCase("UIDVALIDITY"))
+                    uidvalidity = ir.readLong();
+                else if (s.equalsIgnoreCase("PERMANENTFLAGS"))
+                    permanentFlags = new FLAGS(ir);
+                else if (s.equalsIgnoreCase("UIDNEXT"))
+                    uidnext = ir.readLong();
+                else if (s.equalsIgnoreCase("HIGHESTMODSEQ"))
+                    highestmodseq = ir.readLong();
+                else
+                    handled = false;    // possibly an ALERT
 
-		if (handled)
-		    r[i] = null; // remove this response
-		else
-		    ir.reset();	// so ALERT can be read
-	    } else if (ir.isUnTagged() && ir.isNO()) {
-		/*
-		 * should be one of:
-		 * 	* NO [UIDNOTSTICKY]
-		 */
-		ir.skipSpaces();
+                if (handled)
+                    r[i] = null; // remove this response
+                else
+                    ir.reset();    // so ALERT can be read
+            } else if (ir.isUnTagged() && ir.isNO()) {
+                /*
+                 * should be one of:
+                 * 	* NO [UIDNOTSTICKY]
+                 */
+                ir.skipSpaces();
 
-		if (ir.readByte() != '[') {	// huh ???
-		    ir.reset();
-		    continue;
-		}
+                if (ir.readByte() != '[') {    // huh ???
+                    ir.reset();
+                    continue;
+                }
 
-		boolean handled = true;
-		String s = ir.readAtom();
-		if (s.equalsIgnoreCase("UIDNOTSTICKY"))
-		    uidNotSticky = true;
-		else
-		    handled = false;	// possibly an ALERT
+                boolean handled = true;
+                String s = ir.readAtom();
+                if (s.equalsIgnoreCase("UIDNOTSTICKY"))
+                    uidNotSticky = true;
+                else
+                    handled = false;    // possibly an ALERT
 
-		if (handled)
-		    r[i] = null; // remove this response
-		else
-		    ir.reset();	// so ALERT can be read
-	    }
-	}
+                if (handled)
+                    r[i] = null; // remove this response
+                else
+                    ir.reset();    // so ALERT can be read
+            }
+        }
 
-	/*
-	 * The PERMANENTFLAGS response code is optional, and if
-	 * not present implies that all flags in the required FLAGS
-	 * response can be changed permanently.
-	 */
-	if (permanentFlags == null) {
-	    if (availableFlags != null)
-		permanentFlags = new Flags(availableFlags);
-	    else
-		permanentFlags = new Flags();
-	}
+        /*
+         * The PERMANENTFLAGS response code is optional, and if
+         * not present implies that all flags in the required FLAGS
+         * response can be changed permanently.
+         */
+        if (permanentFlags == null) {
+            if (availableFlags != null)
+                permanentFlags = new Flags(availableFlags);
+            else
+                permanentFlags = new Flags();
+        }
     }
 }

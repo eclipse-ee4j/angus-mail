@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -10,7 +10,9 @@
 
 package demo;
 
-import jakarta.servlet.jsp.tagext.*;
+import jakarta.servlet.jsp.tagext.TagData;
+import jakarta.servlet.jsp.tagext.TagExtraInfo;
+import jakarta.servlet.jsp.tagext.VariableInfo;
 
 /**
  * Extra information class to support the scripting variable created by the
@@ -18,16 +20,16 @@ import jakarta.servlet.jsp.tagext.*;
  * of the tag.
  */
 public class ListAttachmentsTEI extends TagExtraInfo {
-    
+
     public ListAttachmentsTEI() {
-	super();
+        super();
     }
-    
+
     public VariableInfo[] getVariableInfo(TagData data) {
-	VariableInfo info = new VariableInfo(data.getId(),"AttachmentInfo",
-	    true, VariableInfo.NESTED);
-	VariableInfo[] varInfo = { info };
-	return varInfo;
+        VariableInfo info = new VariableInfo(data.getId(), "AttachmentInfo",
+                true, VariableInfo.NESTED);
+        VariableInfo[] varInfo = {info};
+        return varInfo;
     }
 }
 

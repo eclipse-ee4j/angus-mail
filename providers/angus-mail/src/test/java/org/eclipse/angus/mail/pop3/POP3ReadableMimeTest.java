@@ -16,22 +16,20 @@
 
 package org.eclipse.angus.mail.pop3;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ByteArrayOutputStream;
-import java.util.Properties;
-
 import jakarta.mail.Folder;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
-import jakarta.mail.Message;
-import jakarta.mail.Part;
-import jakarta.mail.MessagingException;
-
-import org.eclipse.angus.mail.util.ReadableMime;
 import org.eclipse.angus.mail.test.TestServer;
-
+import org.eclipse.angus.mail.util.ReadableMime;
 import org.junit.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -57,15 +55,15 @@ public final class POP3ReadableMimeTest {
             final Properties properties = new Properties();
             properties.setProperty("mail.pop3.host", "localhost");
             properties.setProperty("mail.pop3.port", "" + server.getPort());
-	    if (cached)
-		properties.setProperty("mail.pop3.filecache.enable", "true");
+            if (cached)
+                properties.setProperty("mail.pop3.filecache.enable", "true");
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
             store = session.getStore("pop3");
-	    store.connect("test", "test");
-	    folder = store.getFolder("INBOX");
-	    folder.open(Folder.READ_ONLY);
+            store.connect("test", "test");
+            folder = store.getFolder("INBOX");
+            folder.open(Folder.READ_ONLY);
         } catch (final Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
@@ -73,17 +71,17 @@ public final class POP3ReadableMimeTest {
     }
 
     private static void stopServer() {
-	try {
-	    if (folder != null)
-		folder.close(false);
-	    if (store != null)
-		store.close();
-	} catch (MessagingException ex) {
-	    // ignore it
-	} finally {
-	    if (server != null)
-		server.quit();
-	}
+        try {
+            if (folder != null)
+                folder.close(false);
+            if (store != null)
+                store.close();
+        } catch (MessagingException ex) {
+            // ignore it
+        } finally {
+            if (server != null)
+                server.quit();
+        }
     }
 
     /**
@@ -92,7 +90,7 @@ public final class POP3ReadableMimeTest {
      */
     @Test
     public void testReadableMime() throws Exception {
-	test(false);
+        test(false);
     }
 
     /**
@@ -100,39 +98,40 @@ public final class POP3ReadableMimeTest {
      */
     @Test
     public void testReadableMimeCached() throws Exception {
-	test(true);
+        test(true);
     }
 
     private void test(boolean cached) throws Exception {
-	startServer(cached);
-	try {
-	    Message[] msgs = folder.getMessages();
-	    for (int i = 0; i < msgs.length; i++)
-		verifyData(msgs[i]);
-	} finally {
-	    stopServer();
-	}
-	// no exception is success!
+        startServer(cached);
+        try {
+            Message[] msgs = folder.getMessages();
+            for (int i = 0; i < msgs.length; i++)
+                verifyData(msgs[i]);
+        } finally {
+            stopServer();
+        }
+        // no exception is success!
     }
 
     private void verifyData(Part p) throws MessagingException, IOException {
-	assertTrue("ReadableMime", p instanceof ReadableMime);
-	InputStream is = null;
-	try {
-	    ReadableMime rp = (ReadableMime)p;
-	    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	    p.writeTo(bos);
-	    bos.close();
-	    byte[] buf = bos.toByteArray();
-	    is = rp.getMimeStream();
-	    int i, b;
-	    for (i = 0; (b = is.read()) != -1; i++)
-		assertTrue("message data", b == (buf[i] & 0xff));
-	    assertTrue("data size", i == buf.length);
-	} finally {
-	    try {
-		is.close();
-	    } catch (IOException ex) { }
-	}
+        assertTrue("ReadableMime", p instanceof ReadableMime);
+        InputStream is = null;
+        try {
+            ReadableMime rp = (ReadableMime) p;
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            p.writeTo(bos);
+            bos.close();
+            byte[] buf = bos.toByteArray();
+            is = rp.getMimeStream();
+            int i, b;
+            for (i = 0; (b = is.read()) != -1; i++)
+                assertTrue("message data", b == (buf[i] & 0xff));
+            assertTrue("data size", i == buf.length);
+        } finally {
+            try {
+                is.close();
+            } catch (IOException ex) {
+            }
+        }
     }
 }

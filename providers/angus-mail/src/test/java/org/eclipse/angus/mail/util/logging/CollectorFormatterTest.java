@@ -16,6 +16,12 @@
  */
 package org.eclipse.angus.mail.util.logging;
 
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -25,11 +31,29 @@ import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.logging.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Locale;
+import java.util.Properties;
+import java.util.PropertyResourceBundle;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
-import org.junit.*;
-import static org.junit.Assert.*;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.XMLFormatter;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * The collector formatter tests.
@@ -121,19 +145,19 @@ public class CollectorFormatterTest extends AbstractLogging {
 
     @Test
     public void testEquals() {
-    	//CollectorFormatter must not be swapped with other instances.
-    	//The state is mutated with most method calls and therefore
-    	//This class should maintain identity equals to work correctly.
-    	CollectorFormatter cf = new CollectorFormatter();
-    	assertFalse(cf.equals((Object) null));
-    	assertNotEquals(cf, new CollectorFormatter());
-    	assertTrue(cf.equals(cf));
+        //CollectorFormatter must not be swapped with other instances.
+        //The state is mutated with most method calls and therefore
+        //This class should maintain identity equals to work correctly.
+        CollectorFormatter cf = new CollectorFormatter();
+        assertFalse(cf.equals((Object) null));
+        assertNotEquals(cf, new CollectorFormatter());
+        assertTrue(cf.equals(cf));
     }
 
     @Test
     public void testHashCode() {
-    	CollectorFormatter cf = new CollectorFormatter();
-    	assertEquals(System.identityHashCode(cf), cf.hashCode());
+        CollectorFormatter cf = new CollectorFormatter();
+        assertEquals(System.identityHashCode(cf), cf.hashCode());
     }
 
 
@@ -511,7 +535,7 @@ public class CollectorFormatterTest extends AbstractLogging {
         f.format(r);
 
         String result = f.getTail((Handler) null);
-        
+
         //MessageFormat allows Number or Date instances as date and time.
         //Top level MessageFormat doc show that implementaiton is DateFormat
         //See DateFormat::format(Object,StringBuffer,FieldPosition)
@@ -565,12 +589,12 @@ public class CollectorFormatterTest extends AbstractLogging {
         f.format(r);
 
         String result = f.getTail((Handler) null);
-        
+
         //MessageFormat allows Number or Date instances as date and time.
         //Top level MessageFormat doc show that implementaiton is DateFormat
         //See DateFormat::format(Object,StringBuffer,FieldPosition)
         //This must format as Number to match CollectorFormatter.
-        assertEquals(result, MessageFormat.format("{0,date,short} {0,time}", 
+        assertEquals(result, MessageFormat.format("{0,date,short} {0,time}",
                 min + high));
     }
 
@@ -804,7 +828,7 @@ public class CollectorFormatterTest extends AbstractLogging {
         CollectorFormatter f = new CollectorFormatter("{5", (Formatter) null,
                 (Comparator<LogRecord>) null);
         assertEquals(f.getClass().getName() + '@' +
-                Integer.toHexString(System.identityHashCode(f)),
+                        Integer.toHexString(System.identityHashCode(f)),
                 f.toString());
     }
 
@@ -1060,11 +1084,11 @@ public class CollectorFormatterTest extends AbstractLogging {
     private void testFormatInitNullOrEmpty(String v) throws Exception {
         final String p = CollectorFormatter.class.getName();
         Properties props = new Properties();
-        if(v != null) {
+        if (v != null) {
             props.put(p.concat(".format"), v);
         }
         props.put(p.concat(".formatter"), CompactFormatter.class.getName());
-        props.put(CompactFormatter.class.getName()+ ".format", "%5$s");
+        props.put(CompactFormatter.class.getName() + ".format", "%5$s");
         LogManager manager = LogManager.getLogManager();
         try {
             read(manager, props);

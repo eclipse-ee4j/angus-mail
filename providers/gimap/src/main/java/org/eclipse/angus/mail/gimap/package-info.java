@@ -47,11 +47,11 @@
  * For example:
  * </P>
  * <PRE>
- *     GmailMessage gmsg = (GmailMessage)msg;
- *     System.out.println("Gmail message ID is " + gmsg.getMsgId());
- *     String[] labels = gmsg.getLabels();
- *     for (String s : labels)
- * 	System.out.println("Gmail message label: " + s);
+ * GmailMessage gmsg = (GmailMessage)msg;
+ * System.out.println("Gmail message ID is " + gmsg.getMsgId());
+ * String[] labels = gmsg.getLabels();
+ * for (String s : labels)
+ * System.out.println("Gmail message label: " + s);
  * </PRE>
  * <P>
  * Gmail-specific data may be prefetched using the GmailFolder.FetchProfileItems
@@ -59,9 +59,9 @@
  * For example:
  * </P>
  * <PRE>
- *     FetchProfile fp = new FetchProfile();
- *     fp.add(GmailFolder.FetchProfileItem.MSGID);
- *     folder.fetch(fp);
+ * FetchProfile fp = new FetchProfile();
+ * fp.add(GmailFolder.FetchProfileItem.MSGID);
+ * folder.fetch(fp);
  * </PRE>
  * <P>
  * You can search using Gmail-specific data using the GmailMsgIdTerm,
@@ -69,9 +69,9 @@
  * For example:
  * </P>
  * <PRE>
- *     // find the message with this Gmail unique message ID
- *     long msgid = ...;
- *     Message[] msgs = folder.search(new GmailMsgIdTerm(msgid));
+ * // find the message with this Gmail unique message ID
+ * long msgid = ...;
+ * Message[] msgs = folder.search(new GmailMsgIdTerm(msgid));
  * </PRE>
  * <P>
  * You can access the Gmail extended attributes (returned by XLIST) for a
@@ -79,10 +79,10 @@
  * For example:
  * </P>
  * <PRE>
- *     IMAPFolder ifolder = (IMAPFolder)folder;
- *     String[] attrs = ifolder.getAttributes();
- *     for (String s : attrs)
- * 	System.out.println("Folder attribute: " + s);
+ * IMAPFolder ifolder = (IMAPFolder)folder;
+ * String[] attrs = ifolder.getAttributes();
+ * for (String s : attrs)
+ * System.out.println("Folder attribute: " + s);
  * </PRE>
  * <P>
  * <strong>WARNING:</strong> The APIs unique to this package should be

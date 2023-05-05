@@ -17,19 +17,46 @@
 
 package org.eclipse.angus.mail.util.logging;
 
-import java.io.*;
-import java.lang.reflect.*;
+import jakarta.mail.Authenticator;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Service;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.URLName;
+import jakarta.mail.internet.InternetAddress;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import java.io.Serializable;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.*;
-import jakarta.mail.*;
-import jakarta.mail.internet.InternetAddress;
-import org.junit.*;
-import static org.junit.Assert.*;
+import java.util.logging.ErrorManager;
+import java.util.logging.Filter;
+import java.util.logging.Formatter;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.LogRecord;
+import java.util.logging.LoggingPermission;
+import java.util.logging.SimpleFormatter;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test case for the LogManagerProperties spec.
@@ -196,30 +223,30 @@ public class LogManagerPropertiesTest extends AbstractLogging {
         }
 
         String[] utils = {
-            "java.lang.System",
-            "java.nio.channels.Channels",
-            "java.util.Collections",
-            "jakarta.mail.internet.MimeUtility",
-            "org.junit.Assert"
+                "java.lang.System",
+                "java.nio.channels.Channels",
+                "java.util.Collections",
+                "jakarta.mail.internet.MimeUtility",
+                "org.junit.Assert"
         };
 
         testIsStaticUtilityClass(utils, true);
 
         String[] obj = {
-            "java.lang.Exception",
-            "java.lang.Object",
-            "java.lang.Runtime",
-            "java.io.Serializable"
+                "java.lang.Exception",
+                "java.lang.Object",
+                "java.lang.Runtime",
+                "java.io.Serializable"
         };
         testIsStaticUtilityClass(obj, false);
 
         String[] enumerations = {
-            "java.util.concurrent.TimeUnit"
+                "java.util.concurrent.TimeUnit"
         };
         testIsStaticUtilityClass(enumerations, false);
 
         String[] fail = {
-            "badClassName"
+                "badClassName"
         };
         for (String name : fail) {
             boolean pass;
@@ -1030,9 +1057,9 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             setEpochSecond(r1, 100, 1);
             setEpochSecond(r2, 100, 1);
             Comparable<Object> c1 = (Comparable<Object>)
-                LogManagerProperties.getZonedDateTime(r1);
+                    LogManagerProperties.getZonedDateTime(r1);
             Comparable<Object> c2 = (Comparable<Object>)
-                LogManagerProperties.getZonedDateTime(r2);
+                    LogManagerProperties.getZonedDateTime(r2);
 
             assertEquals(k, c1.getClass());
             assertEquals(k, c2.getClass());
@@ -1050,7 +1077,7 @@ public class LogManagerPropertiesTest extends AbstractLogging {
         }
     }
 
-    @Test(expected=NullPointerException.class)
+    @Test(expected = NullPointerException.class)
     public void testGetZonedDateTimeNull() throws Exception {
         LogManagerProperties.getZonedDateTime((LogRecord) null);
     }

@@ -16,19 +16,18 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import jakarta.mail.event.StoreEvent;
+import jakarta.mail.event.StoreListener;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import jakarta.mail.Session;
-import jakarta.mail.Store;
-import jakarta.mail.event.StoreListener;
-import jakarta.mail.event.StoreEvent;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -52,32 +51,32 @@ public final class IMAPAlertTest {
             properties.setProperty("mail.imap.port", "" + server.getPort());
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
-	    final CountDownLatch latch = new CountDownLatch(1);
+            final CountDownLatch latch = new CountDownLatch(1);
 
             final Store store = session.getStore("imap");
-	    store.addStoreListener(new StoreListener() {
-		@Override
-		public void notification(StoreEvent e) {
-		    String s;
-		    if (e.getMessageType() == StoreEvent.ALERT) {
-			s = "ALERT: ";
-			gotAlert = true;
-			latch.countDown();
-		    } else
-			s = "NOTICE: ";
-		    //System.out.println(s + e.getMessage());
-		}
-	    });
+            store.addStoreListener(new StoreListener() {
+                @Override
+                public void notification(StoreEvent e) {
+                    String s;
+                    if (e.getMessageType() == StoreEvent.ALERT) {
+                        s = "ALERT: ";
+                        gotAlert = true;
+                        latch.countDown();
+                    } else
+                        s = "NOTICE: ";
+                    //System.out.println(s + e.getMessage());
+                }
+            });
             try {
                 store.connect("test", "test");
-		// time for event to be delivered
-		latch.await(5, TimeUnit.SECONDS);
-		assertTrue(gotAlert);
+                // time for event to be delivered
+                latch.await(5, TimeUnit.SECONDS);
+                assertTrue(gotAlert);
 
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
             } finally {
                 store.close();
             }
@@ -95,10 +94,10 @@ public final class IMAPAlertTest {
      * Custom handler.  Returns an alert message at login.
      */
     private static final class IMAPHandlerAlert extends IMAPHandler {
-	@Override
+        @Override
         public void login() throws IOException {
-	    untagged("OK [ALERT] account is over quota");
-	    super.login();
+            untagged("OK [ALERT] account is over quota");
+            super.login();
         }
     }
 }

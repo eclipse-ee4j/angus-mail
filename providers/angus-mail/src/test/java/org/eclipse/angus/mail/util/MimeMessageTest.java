@@ -16,23 +16,6 @@
 
 package org.eclipse.angus.mail.util;
 
-import static jakarta.mail.Message.RecipientType.TO;
-import static jakarta.mail.internet.MimeMessage.RecipientType.NEWSGROUPS;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.Enumeration;
-import java.util.Properties;
-
-import org.eclipse.angus.mail.test.AsciiStringInputStream;
-import org.junit.Test;
-
 import jakarta.activation.DataHandler;
 import jakarta.mail.Address;
 import jakarta.mail.MessagingException;
@@ -41,6 +24,22 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.NewsAddress;
 import jakarta.mail.util.StreamProvider.EncoderTypes;
+import org.eclipse.angus.mail.test.AsciiStringInputStream;
+import org.junit.Test;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Enumeration;
+import java.util.Properties;
+
+import static jakarta.mail.Message.RecipientType.TO;
+import static jakarta.mail.internet.MimeMessage.RecipientType.NEWSGROUPS;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test MimeMessage methods.
@@ -59,12 +58,12 @@ public class MimeMessageTest {
      */
     @Test
     public void testSetRecipientsStringNull() throws Exception {
-	String addr = "joe@example.com";
-	MimeMessage m = new MimeMessage(s);
-	m.setRecipients(TO, addr);
-	assertEquals("To: is set", addr, m.getRecipients(TO)[0].toString());
-	m.setRecipients(TO, (String)null);
-	assertArrayEquals("To: is removed", null, m.getRecipients(TO));
+        String addr = "joe@example.com";
+        MimeMessage m = new MimeMessage(s);
+        m.setRecipients(TO, addr);
+        assertEquals("To: is set", addr, m.getRecipients(TO)[0].toString());
+        m.setRecipients(TO, (String) null);
+        assertArrayEquals("To: is removed", null, m.getRecipients(TO));
     }
 
     /**
@@ -73,12 +72,12 @@ public class MimeMessageTest {
      */
     @Test
     public void testSetRecipientStringNull() throws Exception {
-	String addr = "joe@example.com";
-	MimeMessage m = new MimeMessage(s);
-	m.setRecipient(TO, new InternetAddress(addr));
-	assertEquals("To: is set", addr, m.getRecipients(TO)[0].toString());
-	m.setRecipient(TO, (Address)null);
-	assertArrayEquals("To: is removed", null, m.getRecipients(TO));
+        String addr = "joe@example.com";
+        MimeMessage m = new MimeMessage(s);
+        m.setRecipient(TO, new InternetAddress(addr));
+        assertEquals("To: is set", addr, m.getRecipients(TO)[0].toString());
+        m.setRecipient(TO, (Address) null);
+        assertArrayEquals("To: is removed", null, m.getRecipients(TO));
     }
 
     /**
@@ -116,10 +115,10 @@ public class MimeMessageTest {
      */
     @Test
     public void testSetFromFold() throws Exception {
-	InternetAddress addr = new InternetAddress("joe@bad.com", "Joe\r\nBad");
-	MimeMessage m = new MimeMessage(s);
-	m.setFrom(addr);
-	assertEquals("Joe\r\n Bad <joe@bad.com>", m.getHeader("From", null));
+        InternetAddress addr = new InternetAddress("joe@bad.com", "Joe\r\nBad");
+        MimeMessage m = new MimeMessage(s);
+        m.setFrom(addr);
+        assertEquals("Joe\r\n Bad <joe@bad.com>", m.getHeader("From", null));
     }
 
     /**
@@ -129,10 +128,10 @@ public class MimeMessageTest {
      */
     @Test
     public void testSetSenderFold() throws Exception {
-	InternetAddress addr = new InternetAddress("joe@bad.com", "Joe\r\nBad");
-	MimeMessage m = new MimeMessage(s);
-	m.setSender(addr);
-	assertEquals("Joe\r\n Bad <joe@bad.com>", m.getHeader("Sender", null));
+        InternetAddress addr = new InternetAddress("joe@bad.com", "Joe\r\nBad");
+        MimeMessage m = new MimeMessage(s);
+        m.setSender(addr);
+        assertEquals("Joe\r\n Bad <joe@bad.com>", m.getHeader("Sender", null));
     }
 
     /**
@@ -142,10 +141,10 @@ public class MimeMessageTest {
      */
     @Test
     public void testSetNewsgroupWhitespace() throws Exception {
-	NewsAddress addr = new NewsAddress("alt.\r\nbad");
-	MimeMessage m = new MimeMessage(s);
-	m.setRecipient(NEWSGROUPS, addr);
-	assertEquals("alt.bad", m.getHeader("Newsgroups", null));
+        NewsAddress addr = new NewsAddress("alt.\r\nbad");
+        MimeMessage m = new MimeMessage(s);
+        m.setRecipient(NEWSGROUPS, addr);
+        assertEquals("alt.bad", m.getHeader("Newsgroups", null));
     }
 
     /**
@@ -154,12 +153,12 @@ public class MimeMessageTest {
      */
     @Test
     public void testSetNewsgroupFold() throws Exception {
-	NewsAddress[] longng = NewsAddress.parse(
-	    "alt.loooooooooooooooooooooooooooooooooooooooooooooooooong," +
-	    "alt.verylongggggggggggggggggggggggggggggggggggggggggggggg");
-	MimeMessage m = new MimeMessage(s);
-	m.setRecipients(NEWSGROUPS, longng);
-	assertTrue(m.getHeader("Newsgroups", null).indexOf("\r\n\t") > 0);
+        NewsAddress[] longng = NewsAddress.parse(
+                "alt.loooooooooooooooooooooooooooooooooooooooooooooooooong," +
+                        "alt.verylongggggggggggggggggggggggggggggggggggggggggggggg");
+        MimeMessage m = new MimeMessage(s);
+        m.setRecipients(NEWSGROUPS, longng);
+        assertTrue(m.getHeader("Newsgroups", null).indexOf("\r\n\t") > 0);
     }
 
     /**
@@ -167,12 +166,12 @@ public class MimeMessageTest {
      */
     @Test
     public void testSetGetNewsgroups() throws Exception {
-	NewsAddress[] longng = NewsAddress.parse(
-	    "alt.loooooooooooooooooooooooooooooooooooooooooooooooooong," +
-	    "alt.verylongggggggggggggggggggggggggggggggggggggggggggggg");
-	MimeMessage m = new MimeMessage(s);
-	m.setRecipients(NEWSGROUPS, longng);
-	assertArrayEquals(longng, m.getRecipients(NEWSGROUPS));
+        NewsAddress[] longng = NewsAddress.parse(
+                "alt.loooooooooooooooooooooooooooooooooooooooooooooooooong," +
+                        "alt.verylongggggggggggggggggggggggggggggggggggggggggggggg");
+        MimeMessage m = new MimeMessage(s);
+        m.setRecipients(NEWSGROUPS, longng);
+        assertArrayEquals(longng, m.getRecipients(NEWSGROUPS));
     }
 
     /**
@@ -181,18 +180,18 @@ public class MimeMessageTest {
      */
     @Test
     public void testCopyDataHandler() throws Exception {
-	Session s = Session.getInstance(new Properties());
-	// create a message and extract the DataHandler
-	MimeMessage orig = createMessage(s);
-	DataHandler dh = orig.getDataHandler();
-	// create a new message and use the DataHandler
-	MimeMessage msg = new MimeMessage(s);
-	msg.setDataHandler(dh);
-	// depend on copy constructor streaming the data
-	msg = new MimeMessage(msg);
-	assertEquals("text/x-test", msg.getContentType());
-	assertEquals(EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder(), msg.getEncoding());
-	assertEquals("test message", getString(msg.getInputStream()));
+        Session s = Session.getInstance(new Properties());
+        // create a message and extract the DataHandler
+        MimeMessage orig = createMessage(s);
+        DataHandler dh = orig.getDataHandler();
+        // create a new message and use the DataHandler
+        MimeMessage msg = new MimeMessage(s);
+        msg.setDataHandler(dh);
+        // depend on copy constructor streaming the data
+        msg = new MimeMessage(msg);
+        assertEquals("text/x-test", msg.getContentType());
+        assertEquals(EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder(), msg.getEncoding());
+        assertEquals("test message", getString(msg.getInputStream()));
     }
 
     /**
@@ -201,19 +200,21 @@ public class MimeMessageTest {
      */
     @Test
     public void testSetDataHandler() throws Exception {
-	Session s = Session.getInstance(new Properties());
-	// create a message and extract the DataHandler for a part
-	MimeMessage orig = createMessage(s);
-	final DataHandler odh = orig.getDataHandler();
-	// create a new message and use the DataHandler
-	MimeMessage msg = new MimeMessage(s) {
-		{ dh = odh; }
-	    };
-	// depend on copy constructor streaming the data
-	msg = new MimeMessage(msg);
-	assertEquals("text/x-test", msg.getContentType());
-	assertEquals(EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder(), msg.getEncoding());
-	assertEquals("test message", getString(msg.getInputStream()));
+        Session s = Session.getInstance(new Properties());
+        // create a message and extract the DataHandler for a part
+        MimeMessage orig = createMessage(s);
+        final DataHandler odh = orig.getDataHandler();
+        // create a new message and use the DataHandler
+        MimeMessage msg = new MimeMessage(s) {
+            {
+                dh = odh;
+            }
+        };
+        // depend on copy constructor streaming the data
+        msg = new MimeMessage(msg);
+        assertEquals("text/x-test", msg.getContentType());
+        assertEquals(EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder(), msg.getEncoding());
+        assertEquals("test message", getString(msg.getInputStream()));
     }
 
     /**
@@ -221,35 +222,35 @@ public class MimeMessageTest {
      */
     @Test
     public void testAddressHeaderFolding() throws Exception {
-	Session s = Session.getInstance(new Properties());
-	MimeMessage msg = new MimeMessage(s);
-	InternetAddress[] addrs = InternetAddress.parse(
-	"long-address1@example.com, long-address2@example.com, joe@foobar.com");
-	msg.setReplyTo(addrs);	// use Reply-To because it's a long header name
-	Enumeration<String> e 
-		= msg.getMatchingHeaderLines(new String[] { "Reply-To" });
-	String line = e.nextElement();
-	int npos = line.indexOf("\r");
-	// was the line folded where we expected?
-	assertTrue("Header folded",
-	    npos > 9 && npos <= 77 && npos < line.length());
+        Session s = Session.getInstance(new Properties());
+        MimeMessage msg = new MimeMessage(s);
+        InternetAddress[] addrs = InternetAddress.parse(
+                "long-address1@example.com, long-address2@example.com, joe@foobar.com");
+        msg.setReplyTo(addrs);    // use Reply-To because it's a long header name
+        Enumeration<String> e
+                = msg.getMatchingHeaderLines(new String[]{"Reply-To"});
+        String line = e.nextElement();
+        int npos = line.indexOf("\r");
+        // was the line folded where we expected?
+        assertTrue("Header folded",
+                npos > 9 && npos <= 77 && npos < line.length());
     }
 
     private static MimeMessage createMessage(Session s)
-				throws MessagingException {
+            throws MessagingException {
         String content =
-	    "Mime-Version: 1.0\n" +
-	    "Subject: Example\n" +
-	    "Content-Type: text/x-test\n" +
-	    "Content-Transfer-Encoding: quoted-printable\n" +
-	    "\n" +
-	    "test message\n";
+                "Mime-Version: 1.0\n" +
+                        "Subject: Example\n" +
+                        "Content-Type: text/x-test\n" +
+                        "Content-Transfer-Encoding: quoted-printable\n" +
+                        "\n" +
+                        "test message\n";
 
-	return new MimeMessage(s, new AsciiStringInputStream(content));
+        return new MimeMessage(s, new AsciiStringInputStream(content));
     }
 
     private static String getString(InputStream is) throws IOException {
-	BufferedReader r = new BufferedReader(new InputStreamReader(is));
-	return r.readLine();
+        BufferedReader r = new BufferedReader(new InputStreamReader(is));
+        return r.readLine();
     }
 }

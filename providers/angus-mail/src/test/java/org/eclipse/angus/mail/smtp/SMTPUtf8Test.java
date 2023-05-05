@@ -16,20 +16,18 @@
 
 package org.eclipse.angus.mail.smtp;
 
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
-import jakarta.mail.Session;
-import jakarta.mail.Message;
-import jakarta.mail.Transport;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -44,23 +42,23 @@ public class SMTPUtf8Test {
     @Test
     public void testUtf8UserName() {
         TestServer server = null;
-	final String user = "test\u03b1";
+        final String user = "test\u03b1";
         try {
             server = new TestServer(new SMTPLoginHandler() {
-		@Override
-		public void auth(String line) throws IOException {
-		    username = user;
-		    password = user;
-		    super.auth(line);
-		}
-	    });
+                @Override
+                public void auth(String line) throws IOException {
+                    username = user;
+                    password = user;
+                    super.auth(line);
+                }
+            });
             server.start();
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
             properties.setProperty("mail.smtp.port", "" + server.getPort());
             properties.setProperty("mail.smtp.auth.mechanisms", "LOGIN");
-	    properties.setProperty("mail.mime.allowutf8",  "true");
+            properties.setProperty("mail.mime.allowutf8", "true");
             //properties.setProperty("mail.debug.auth", "true");
             Session session = Session.getInstance(properties);
             //session.setDebug(true);
@@ -68,9 +66,9 @@ public class SMTPUtf8Test {
             Transport t = session.getTransport("smtp");
             try {
                 t.connect(user, user);
-		// success!
-	    } catch (Exception ex) {
-		fail(ex.toString());
+                // success!
+            } catch (Exception ex) {
+                fail(ex.toString());
             } finally {
                 t.close();
             }
@@ -80,7 +78,7 @@ public class SMTPUtf8Test {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
+                server.interrupt();
             }
         }
     }
@@ -91,16 +89,16 @@ public class SMTPUtf8Test {
     @Test
     public void testUtf8UserNameNoAllowUtf8() {
         TestServer server = null;
-	final String user = "test\u03b1";
+        final String user = "test\u03b1";
         try {
             server = new TestServer(new SMTPLoginHandler() {
-		@Override
-		public void auth(String line) throws IOException {
-		    username = user;
-		    password = user;
-		    super.auth(line);
-		}
-	    });
+                @Override
+                public void auth(String line) throws IOException {
+                    username = user;
+                    password = user;
+                    super.auth(line);
+                }
+            });
             server.start();
 
             Properties properties = new Properties();
@@ -114,9 +112,9 @@ public class SMTPUtf8Test {
             Transport t = session.getTransport("smtp");
             try {
                 t.connect(user, user);
-		// success!
-	    } catch (Exception ex) {
-		fail(ex.toString());
+                // success!
+            } catch (Exception ex) {
+                fail(ex.toString());
             } finally {
                 t.close();
             }
@@ -126,7 +124,7 @@ public class SMTPUtf8Test {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
+                server.interrupt();
             }
         }
     }
@@ -137,16 +135,16 @@ public class SMTPUtf8Test {
     @Test
     public void testUtf8UserNamePlain() {
         TestServer server = null;
-	final String user = "test\u03b1";
+        final String user = "test\u03b1";
         try {
             server = new TestServer(new SMTPLoginHandler() {
-		@Override
-		public void auth(String line) throws IOException {
-		    username = user;
-		    password = user;
-		    super.auth(line);
-		}
-	    });
+                @Override
+                public void auth(String line) throws IOException {
+                    username = user;
+                    password = user;
+                    super.auth(line);
+                }
+            });
             server.start();
 
             Properties properties = new Properties();
@@ -160,9 +158,9 @@ public class SMTPUtf8Test {
             Transport t = session.getTransport("smtp");
             try {
                 t.connect(user, user);
-		// success!
-	    } catch (Exception ex) {
-		fail(ex.toString());
+                // success!
+            } catch (Exception ex) {
+                fail(ex.toString());
             } finally {
                 t.close();
             }
@@ -172,14 +170,14 @@ public class SMTPUtf8Test {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
+                server.interrupt();
             }
         }
     }
 
     private static class Envelope {
-	public String from;
-	public String to;
+        public String from;
+        public String to;
     }
 
     /**
@@ -188,63 +186,63 @@ public class SMTPUtf8Test {
     @Test
     public void testUtf8From() {
         TestServer server = null;
-	final String test = "test\u03b1";
-	final String saddr = test + "@" + test + ".com";
-	final Envelope env = new Envelope();
+        final String test = "test\u03b1";
+        final String saddr = test + "@" + test + ".com";
+        final Envelope env = new Envelope();
         try {
             server = new TestServer(new SMTPHandler() {
-		@Override
-		public void ehlo() throws IOException {
-		    println("250-hello");
-		    println("250-SMTPUTF8");
-		    println("250 AUTH PLAIN");
-		}
+                @Override
+                public void ehlo() throws IOException {
+                    println("250-hello");
+                    println("250-SMTPUTF8");
+                    println("250 AUTH PLAIN");
+                }
 
-		@Override
-		public void mail(String line) throws IOException {
-		    StringTokenizer st = new StringTokenizer(line);
-		    st.nextToken();	// skip "MAIL"
-		    env.from = st.nextToken().
-				    replaceFirst("FROM:<(.*)>", "$1");
-		    if (!st.hasMoreTokens() ||
-			    !st.nextToken().equals("SMTPUTF8"))
-			println("500 fail");
-		    else
-			ok();
-		}
+                @Override
+                public void mail(String line) throws IOException {
+                    StringTokenizer st = new StringTokenizer(line);
+                    st.nextToken();    // skip "MAIL"
+                    env.from = st.nextToken().
+                            replaceFirst("FROM:<(.*)>", "$1");
+                    if (!st.hasMoreTokens() ||
+                            !st.nextToken().equals("SMTPUTF8"))
+                        println("500 fail");
+                    else
+                        ok();
+                }
 
-		@Override
-		public void rcpt(String line) throws IOException {
-		    StringTokenizer st = new StringTokenizer(line);
-		    st.nextToken();	// skip "RCPT"
-		    env.to = st.nextToken().
-				    replaceFirst("TO:<(.*)>", "$1");
-		    ok();
-		}
-	    });
+                @Override
+                public void rcpt(String line) throws IOException {
+                    StringTokenizer st = new StringTokenizer(line);
+                    st.nextToken();    // skip "RCPT"
+                    env.to = st.nextToken().
+                            replaceFirst("TO:<(.*)>", "$1");
+                    ok();
+                }
+            });
             server.start();
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
             properties.setProperty("mail.smtp.port", "" + server.getPort());
-	    properties.setProperty("mail.mime.allowutf8",  "true");
+            properties.setProperty("mail.mime.allowutf8", "true");
             //properties.setProperty("mail.debug.auth", "true");
             Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
             Transport t = session.getTransport("smtp");
             try {
-		MimeMessage msg = new MimeMessage(session);
-		InternetAddress addr = new InternetAddress(saddr, test);
-		msg.setFrom(addr);
-		msg.setRecipient(Message.RecipientType.TO, addr);
-		msg.setSubject(test);
-		msg.setText(test + "\n");
+                MimeMessage msg = new MimeMessage(session);
+                InternetAddress addr = new InternetAddress(saddr, test);
+                msg.setFrom(addr);
+                msg.setRecipient(Message.RecipientType.TO, addr);
+                msg.setSubject(test);
+                msg.setText(test + "\n");
                 t.connect("test", "test");
-		t.sendMessage(msg, msg.getAllRecipients());
-	    } catch (Exception ex) {
-	        ex.printStackTrace();
-		fail(ex.toString());
+                t.sendMessage(msg, msg.getAllRecipients());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                fail(ex.toString());
             } finally {
                 t.close();
             }
@@ -254,11 +252,11 @@ public class SMTPUtf8Test {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
+                server.interrupt();
             }
         }
-	// after we're sure the server is done
-	assertEquals(saddr, env.from);
-	assertEquals(saddr, env.to);
+        // after we're sure the server is done
+        assertEquals(saddr, env.from);
+        assertEquals(saddr, env.to);
     }
 }

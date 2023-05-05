@@ -3,7 +3,7 @@ How to Contribute to Angus Mail
 
 If you're interested in contributing fixes, enhancements, etc. to
 Angus Mail, please contact us at [angus-dev@eclipse.org](https://accounts.eclipse.org/mailing-list/angus-dev)
-before you start.  We can give you advice you might need to make it easier to
+before you start. We can give you advice you might need to make it easier to
 contribute, and we can better coordinate contributions with other
 planned or ongoing work on Angus Mail.
 
@@ -22,12 +22,12 @@ and unofficially updated
 [here](http://cr.openjdk.java.net/~alundblad/styleguide/index-v6.html).
 The most important points are summarized below:
 
--   Indentation should be in units of 4 spaces, preferably with every 8
-    spaces replaced with a tab character. (If using vi, set tabstop=8,
-    not 4.)
+- Indentation should be in units of 4 spaces, preferably with every 8
+  spaces replaced with a tab character. (If using vi, set tabstop=8,
+  not 4.)
 
--   Braces should be at the end of the line they apply to, rather than
-    all alone at the beginning of the next line, i.e.,
+- Braces should be at the end of the line they apply to, rather than
+  all alone at the beginning of the next line, i.e.,
 
 ```java
        if (foo instanceof bar) {  
@@ -36,7 +36,7 @@ The most important points are summarized below:
        }
 ```
 
--   Methods should have doc comments of the form:
+- Methods should have doc comments of the form:
 
 ```java
         \/**
@@ -44,21 +44,21 @@ The most important points are summarized below:
          \*/
 ```
 
--   All keywords should have a space after them, before any paren
-    (e.g., "if (", "while (", "for (", etc.)
+- All keywords should have a space after them, before any paren
+  (e.g., "if (", "while (", "for (", etc.)
 
--   The "comment to end of line" characters (//) should be followed by a space.
+- The "comment to end of line" characters (//) should be followed by a space.
 
--   The start of a multiline comment (/\* or /\*\*) should be alone on a line.
+- The start of a multiline comment (/\* or /\*\*) should be alone on a line.
 
--   No space after left paren or before right paren (e.g., "foo(x)",
-    not "foo( x )")
+- No space after left paren or before right paren (e.g., "foo(x)",
+  not "foo( x )")
 
--   There should be no whitespace characters after the last printing
-    characters on a line.
+- There should be no whitespace characters after the last printing
+  characters on a line.
 
--   In method signatures, start with the access-control keyword, then
-    the return-type, i.e.,
+- In method signatures, start with the access-control keyword, then
+  the return-type, i.e.,
 
 ```java
        public int foobar() {
@@ -66,21 +66,21 @@ The most important points are summarized below:
        }
 ```
 
--   When in doubt, copy the style used in existing Angus Mail code.
+- When in doubt, copy the style used in existing Angus Mail code.
 
 * * * * *
 
 If using vi, try the following:
 
-1.  Either set up your EXINIT variable or a $HOME/.exrc file with:
-    <pre>
-    set autoindent
-    set tabstop=8
-    set shiftwidth=4
-    </pre>
-2.  Use Ctrl-t to indent forward one level
-3.  Use Ctrl-d to indent backwards one level
-4.  To indent a range like 10 lines starting at the current line use "10\>\>"
-5.  To indent backwards use "\<\<" instead of "\>\>"
+1. Either set up your EXINIT variable or a $HOME/.exrc file with:
+   <pre>
+   set autoindent
+   set tabstop=8
+   set shiftwidth=4
+   </pre>
+2. Use Ctrl-t to indent forward one level
+3. Use Ctrl-d to indent backwards one level
+4. To indent a range like 10 lines starting at the current line use "10\>\>"
+5. To indent backwards use "\<\<" instead of "\>\>"
 
 Using the actual tab key and spacing over will work, but it slows you down.

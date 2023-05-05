@@ -16,17 +16,17 @@
 
 package org.eclipse.angus.mail.mbox;
 
+import jakarta.mail.Folder;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.Properties;
 
-import jakarta.mail.Session;
-import jakarta.mail.Store;
-import jakarta.mail.Folder;
-
-import org.junit.Test;
-import org.junit.BeforeClass;
-import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -37,12 +37,12 @@ public final class MboxFolderTest {
 
     @BeforeClass
     public static void before() {
-	System.setProperty("mail.mbox.locktype", "none");
+        System.setProperty("mail.mbox.locktype", "none");
     }
 
     @AfterClass
     public static void after() {
-	System.getProperties().remove("mail.mbox.locktype");
+        System.getProperties().remove("mail.mbox.locktype");
     }
 
     /**
@@ -52,37 +52,37 @@ public final class MboxFolderTest {
      */
     @Test
     public void testGarbageAtStartOfFolder() throws Exception {
-	Folder f = null;
-	try {
-	    File temp = File.createTempFile("mbox", ".mbx");
-	    temp.deleteOnExit();
-	    PrintWriter pw = new PrintWriter(temp);
-	    pw.println();
-	    pw.println("From - Tue Aug 23 11:56:51 2011");
-	    pw.println();
-	    pw.println("test");
-	    pw.println();
-	    pw.close();
-	    long size = temp.length();
+        Folder f = null;
+        try {
+            File temp = File.createTempFile("mbox", ".mbx");
+            temp.deleteOnExit();
+            PrintWriter pw = new PrintWriter(temp);
+            pw.println();
+            pw.println("From - Tue Aug 23 11:56:51 2011");
+            pw.println();
+            pw.println("test");
+            pw.println();
+            pw.close();
+            long size = temp.length();
 
-	    Properties properties = new Properties();
-	    Session session = Session.getInstance(properties);
-	    Store store = session.getStore("mbox");
-	    store.connect();
-	    f = store.getFolder(temp.getAbsolutePath());
-	    f.open(Folder.READ_WRITE);
-	    assertEquals(0, f.getMessageCount());
-	    f.close(true);
-	    assertEquals(size, temp.length());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    if (f != null) {
-		f.delete(false);
-		f.getStore().close();
-	    }
-	}
+            Properties properties = new Properties();
+            Session session = Session.getInstance(properties);
+            Store store = session.getStore("mbox");
+            store.connect();
+            f = store.getFolder(temp.getAbsolutePath());
+            f.open(Folder.READ_WRITE);
+            assertEquals(0, f.getMessageCount());
+            f.close(true);
+            assertEquals(size, temp.length());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            if (f != null) {
+                f.delete(false);
+                f.getStore().close();
+            }
+        }
     }
 }

@@ -17,7 +17,6 @@
 
 package org.eclipse.angus.mail.util.logging;
 
-import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogManager;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.text.MessageFormat;
 import java.util.Comparator;
@@ -26,6 +25,8 @@ import java.util.ResourceBundle;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
+
+import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogManager;
 
 /**
  * A LogRecord formatter that takes a sequence of LogRecords and combines them
@@ -115,10 +116,10 @@ public class CollectorFormatter extends Formatter {
     /**
      * Creates the formatter using the LogManager defaults.
      *
-     * @throws SecurityException if a security manager exists and the caller
-     * does not have <code>LoggingPermission("control")</code>.
+     * @throws SecurityException            if a security manager exists and the caller
+     *                                      does not have <code>LoggingPermission("control")</code>.
      * @throws UndeclaredThrowableException if there are problems loading from
-     * the LogManager.
+     *                                      the LogManager.
      */
     public CollectorFormatter() {
         final String p = getClass().getName();
@@ -131,10 +132,10 @@ public class CollectorFormatter extends Formatter {
      * Creates the formatter using the given format.
      *
      * @param format the message format or null to use the LogManager default.
-     * @throws SecurityException if a security manager exists and the caller
-     * does not have <code>LoggingPermission("control")</code>.
+     * @throws SecurityException            if a security manager exists and the caller
+     *                                      does not have <code>LoggingPermission("control")</code>.
      * @throws UndeclaredThrowableException if there are problems loading from
-     * the LogManager.
+     *                                      the LogManager.
      */
     public CollectorFormatter(String format) {
         final String p = getClass().getName();
@@ -147,17 +148,17 @@ public class CollectorFormatter extends Formatter {
      * Creates the formatter using the given values.
      *
      * @param format the format string or null to use the LogManager default.
-     * @param f the formatter used on the collected log record or null to
-     * specify no formatter.
-     * @param c the comparator used to determine which log record to format or
-     * null to specify no comparator.
-     * @throws SecurityException if a security manager exists and the caller
-     * does not have <code>LoggingPermission("control")</code>.
+     * @param f      the formatter used on the collected log record or null to
+     *               specify no formatter.
+     * @param c      the comparator used to determine which log record to format or
+     *               null to specify no comparator.
+     * @throws SecurityException            if a security manager exists and the caller
+     *                                      does not have <code>LoggingPermission("control")</code>.
      * @throws UndeclaredThrowableException if there are problems loading from
-     * the LogManager.
+     *                                      the LogManager.
      */
     public CollectorFormatter(String format, Formatter f,
-            Comparator<? super LogRecord> c) {
+                              Comparator<? super LogRecord> c) {
         final String p = getClass().getName();
         this.fmt = format == null ? initFormat(p) : format;
         this.formatter = f;
@@ -381,6 +382,7 @@ public class CollectorFormatter extends Formatter {
 
     /**
      * Resets all of the collected summary statistics including the LogRecord.
+     *
      * @param min the current min milliseconds.
      */
     private synchronized void reset(final long min) {
@@ -398,9 +400,9 @@ public class CollectorFormatter extends Formatter {
     /**
      * Formats the given record with the head and tail.
      *
-     * @param h the Handler or null.
+     * @param h     the Handler or null.
      * @param reset true if the summary statistics and LogRecord should be reset
-     * back to initial values.
+     *              back to initial values.
      * @return the formatted string.
      * @see #getTail(java.util.logging.Handler)
      */
@@ -462,8 +464,8 @@ public class CollectorFormatter extends Formatter {
          * These arguments are described in the getTail documentation.
          */
         return mf.format(new Object[]{finish(head), finish(msg), finish(tail),
-            c, (c - 1L), t, (c - t), msl, msh, (msh - msl), INIT_TIME, now,
-            (now - INIT_TIME), g});
+                c, (c - 1L), t, (c - t), msl, msh, (msh - msl), INIT_TIME, now,
+                (now - INIT_TIME), g});
     }
 
     /**
@@ -527,7 +529,7 @@ public class CollectorFormatter extends Formatter {
      *
      * @param p the class name prefix.
      * @return the formatter.
-     * @throws NullPointerException if the given argument is null.
+     * @throws NullPointerException         if the given argument is null.
      * @throws UndeclaredThrowableException if the formatter can not be created.
      */
     private Formatter initFormatter(final String p) {
@@ -558,11 +560,11 @@ public class CollectorFormatter extends Formatter {
      *
      * @param p the class name prefix.
      * @return the comparator or null.
-     * @throws IllegalArgumentException if it was specified that the comparator
-     * should be reversed but no initial comparator was specified.
-     * @throws NullPointerException if the given argument is null.
+     * @throws IllegalArgumentException     if it was specified that the comparator
+     *                                      should be reversed but no initial comparator was specified.
+     * @throws NullPointerException         if the given argument is null.
      * @throws UndeclaredThrowableException if the comparator can not be
-     * created.
+     *                                      created.
      */
     @SuppressWarnings("unchecked")
     private Comparator<? super LogRecord> initComparator(final String p) {

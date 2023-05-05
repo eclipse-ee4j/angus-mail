@@ -16,28 +16,29 @@
 
 package org.eclipse.angus.mail.iap;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * An interface for objects that provide data dynamically for use in
  * a literal protocol element.
  *
- * @author  Bill Shannon
+ * @author Bill Shannon
  */
 
 public interface Literal {
     /**
      * Return the size of the data.
      *
-     * @return	the size of the data
+     * @return the size of the data
      */
     public int size();
 
     /**
      * Write the data to the OutputStream.
      *
-     * @param	os	the output stream
-     * @exception	IOException	for I/O errors
+     * @param    os    the output stream
+     * @exception IOException    for I/O errors
      */
     public void writeTo(OutputStream os) throws IOException;
 }

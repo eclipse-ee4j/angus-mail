@@ -16,21 +16,20 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.Flags;
+import jakarta.mail.Folder;
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import jakarta.mail.search.FlagTerm;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
 import java.io.IOException;
 import java.util.Properties;
 
-import jakarta.mail.Folder;
-import jakarta.mail.Session;
-import jakarta.mail.Store;
-import jakarta.mail.Message;
-import jakarta.mail.Flags;
-import jakarta.mail.search.FlagTerm;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.rules.Timeout;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -58,24 +57,24 @@ public final class IMAPMessageNumberOutOfRangeTest {
             //session.setDebug(true);
 
             final Store store = session.getStore("imap");
-	    Folder folder = null;
+            Folder folder = null;
             try {
                 store.connect("test", "test");
                 folder = store.getFolder("INBOX");
                 folder.open(Folder.READ_ONLY);
-		Message msg = folder.getMessage(1);
-		Flags f = msg.getFlags();
-		Message[] msgs = folder.search(
-			    new FlagTerm(new Flags(Flags.Flag.RECENT), true));
-		assertEquals(1, msgs.length);
-		assertEquals(msg, msgs[0]);
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
+                Message msg = folder.getMessage(1);
+                Flags f = msg.getFlags();
+                Message[] msgs = folder.search(
+                        new FlagTerm(new Flags(Flags.Flag.RECENT), true));
+                assertEquals(1, msgs.length);
+                assertEquals(msg, msgs[0]);
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
             } finally {
-		if (folder != null)
-		    folder.close(false);
+                if (folder != null)
+                    folder.close(false);
                 store.close();
             }
         } catch (final Exception e) {
@@ -94,24 +93,24 @@ public final class IMAPMessageNumberOutOfRangeTest {
      */
     private static final class IMAPHandlerBad extends IMAPHandler {
 
-	@Override
+        @Override
         public void examine(String line) throws IOException {
-	    numberOfMessages = 1;
-	    numberOfRecentMessages = 1;
-	    super.examine(line);
-	}
-
-	@Override
-        public void search(String line) throws IOException {
-            untagged("SEARCH 1 2");
-	    ok();
+            numberOfMessages = 1;
+            numberOfRecentMessages = 1;
+            super.examine(line);
         }
 
-	@Override
+        @Override
+        public void search(String line) throws IOException {
+            untagged("SEARCH 1 2");
+            ok();
+        }
+
+        @Override
         public void fetch(String line) throws IOException {
             untagged("1 FETCH (FLAGS (\\Recent))");
             untagged("2 FETCH (FLAGS (\\Deleted))");
-	    ok();
+            ok();
         }
     }
 }

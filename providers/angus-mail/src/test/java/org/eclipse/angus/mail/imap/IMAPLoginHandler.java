@@ -31,7 +31,7 @@ public class IMAPLoginHandler extends IMAPHandler {
     protected String password = "test";
 
     public IMAPLoginHandler() {
-	capabilities += " LOGINDISABLED AUTH=LOGIN";
+        capabilities += " LOGINDISABLED AUTH=LOGIN";
     }
 
     /**
@@ -40,23 +40,23 @@ public class IMAPLoginHandler extends IMAPHandler {
      * @throws IOException unable to read/write to socket
      */
     public void authlogin(String ir) throws IOException {
-	if (ir != null)
-	    bad("AUTHENTICATE LOGIN does not support initial response");
-	cont(base64encode("Username"));
-	String resp = readLine();
-	String u = new String(Base64.getDecoder().decode(
-				    resp.getBytes(StandardCharsets.US_ASCII)),
-				StandardCharsets.UTF_8);
-	cont(base64encode("Password"));
-	resp = readLine();
-	String p = new String(Base64.getDecoder().decode(
-				    resp.getBytes(StandardCharsets.US_ASCII)),
-				StandardCharsets.UTF_8);
-	//System.out.printf("USER: %s, PASSWORD: %s%n", u, p);
-	if (!u.equals(username) || !p.equals(password)) {
-	    no("authentication failed");
-	    return;
-	}
+        if (ir != null)
+            bad("AUTHENTICATE LOGIN does not support initial response");
+        cont(base64encode("Username"));
+        String resp = readLine();
+        String u = new String(Base64.getDecoder().decode(
+                resp.getBytes(StandardCharsets.US_ASCII)),
+                StandardCharsets.UTF_8);
+        cont(base64encode("Password"));
+        resp = readLine();
+        String p = new String(Base64.getDecoder().decode(
+                resp.getBytes(StandardCharsets.US_ASCII)),
+                StandardCharsets.UTF_8);
+        //System.out.printf("USER: %s, PASSWORD: %s%n", u, p);
+        if (!u.equals(username) || !p.equals(password)) {
+            no("authentication failed");
+            return;
+        }
         ok("[CAPABILITY " + capabilities + "]");
     }
 }

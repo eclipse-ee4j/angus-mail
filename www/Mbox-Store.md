@@ -31,11 +31,11 @@ by only a single thread at a time.
 The file locking options are selected by setting the mail.mbox.locktype
 System property:
 
-|Lock Type|Description|
-|---------|-----------|
-|native|This is the default, which requires native code as described above.|
-|java|This uses java.nio.channels.FileLock.|
-|none|No file locking is done|
+| Lock Type | Description                                                         |
+|-----------|---------------------------------------------------------------------|
+| native    | This is the default, which requires native code as described above. |
+| java      | This uses java.nio.channels.FileLock.                               |
+| none      | No file locking is done                                             |
 
 ### Mailbox Names
 

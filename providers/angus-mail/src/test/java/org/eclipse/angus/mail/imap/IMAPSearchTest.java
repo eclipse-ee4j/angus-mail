@@ -16,21 +16,20 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.Folder;
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import jakarta.mail.search.SearchException;
+import jakarta.mail.search.SubjectTerm;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
 import java.io.IOException;
 import java.util.Properties;
 
-import jakarta.mail.Folder;
-import jakarta.mail.Session;
-import jakarta.mail.Store;
-import jakarta.mail.Message;
-import jakarta.mail.search.*;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.rules.Timeout;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
@@ -47,11 +46,11 @@ public final class IMAPSearchTest {
         TestServer server = null;
         try {
             server = new TestServer(new IMAPHandler() {
-		@Override
-		public void search(String line) throws IOException {
-		    bad("WITHIN not supported");
-		}
-	    });
+                @Override
+                public void search(String line) throws IOException {
+                    bad("WITHIN not supported");
+                }
+            });
             server.start();
 
             final Properties properties = new Properties();
@@ -62,22 +61,22 @@ public final class IMAPSearchTest {
             //session.setDebug(true);
 
             final Store store = session.getStore("imap");
-	    Folder folder = null;
+            Folder folder = null;
             try {
                 store.connect("test", "test");
                 folder = store.getFolder("INBOX");
                 folder.open(Folder.READ_ONLY);
-		Message[] msgs = folder.search(new YoungerTerm(1));
-		fail("search didn't fail");
-	    } catch (SearchException ex) {
-		// success!
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
+                Message[] msgs = folder.search(new YoungerTerm(1));
+                fail("search didn't fail");
+            } catch (SearchException ex) {
+                // success!
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
             } finally {
-		if (folder != null)
-		    folder.close(false);
+                if (folder != null)
+                    folder.close(false);
                 store.close();
             }
         } catch (final Exception e) {
@@ -101,14 +100,14 @@ public final class IMAPSearchTest {
         TestServer server = null;
         try {
             server = new TestServer(new IMAPUtf8Handler() {
-		@Override
-		public void search(String line) throws IOException {
-		    if (line.contains("CHARSET"))
-			bad("CHARSET not supported");
-		    else
-			ok();
-		}
-	    });
+                @Override
+                public void search(String line) throws IOException {
+                    if (line.contains("CHARSET"))
+                        bad("CHARSET not supported");
+                    else
+                        ok();
+                }
+            });
             server.start();
 
             final Properties properties = new Properties();
@@ -118,19 +117,19 @@ public final class IMAPSearchTest {
             //session.setDebug(true);
 
             final Store store = session.getStore("imap");
-	    Folder folder = null;
+            Folder folder = null;
             try {
                 store.connect("test", "test");
                 folder = store.getFolder("INBOX");
                 folder.open(Folder.READ_ONLY);
-		Message[] msgs = folder.search(new SubjectTerm("\u2019"));
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
+                Message[] msgs = folder.search(new SubjectTerm("\u2019"));
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
             } finally {
-		if (folder != null)
-		    folder.close(false);
+                if (folder != null)
+                    folder.close(false);
                 store.close();
             }
         } catch (final Exception e) {
@@ -147,11 +146,15 @@ public final class IMAPSearchTest {
      * An IMAPHandler that enables UTF-8 support.
      */
     private static class IMAPUtf8Handler extends IMAPHandler {
-	{{ capabilities += " ENABLE UTF8=ACCEPT"; }}
+        {
+            {
+                capabilities += " ENABLE UTF8=ACCEPT";
+            }
+        }
 
-	@Override
-	public void enable(String line) throws IOException {
-	    ok();
-	}
+        @Override
+        public void enable(String line) throws IOException {
+            ok();
+        }
     }
 }

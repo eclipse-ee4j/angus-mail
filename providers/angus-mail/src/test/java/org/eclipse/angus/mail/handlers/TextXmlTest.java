@@ -19,17 +19,14 @@ package org.eclipse.angus.mail.handlers;
 import jakarta.activation.ActivationDataFlavor;
 import jakarta.activation.DataContentHandler;
 import jakarta.activation.DataSource;
+import jakarta.mail.util.ByteArrayDataSource;
+import org.junit.Test;
 
+import javax.xml.transform.stream.StreamSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
-import javax.xml.transform.stream.StreamSource;
-
-import jakarta.mail.util.ByteArrayDataSource;
-
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -50,78 +47,79 @@ public class TextXmlTest {
     // test InputStream to String
     @Test
     public void testStreamToStringTextXml() throws Exception {
-	testStreamToString("text/xml");
+        testStreamToString("text/xml");
     }
 
     // test InputStream to String
     @Test
     public void testStreamToStringApplicationXml() throws Exception {
-	testStreamToString("application/xml");
+        testStreamToString("application/xml");
     }
 
     private static void testStreamToString(String mimeType) throws Exception {
-	DataContentHandler dch = new text_xml();
-	ActivationDataFlavor df = new ActivationDataFlavor(String.class, mimeType, "XML");
-	DataSource ds = new ByteArrayDataSource(xmlBytes, mimeType);
-	Object content = dch.getContent(ds);
-	assertEquals(String.class, content.getClass());
-	assertEquals(xml, (String)content);
-	content = dch.getTransferData(df, ds);
-	assertEquals(String.class, content.getClass());
-	assertEquals(xml, (String)content);
+        DataContentHandler dch = new text_xml();
+        ActivationDataFlavor df = new ActivationDataFlavor(String.class, mimeType, "XML");
+        DataSource ds = new ByteArrayDataSource(xmlBytes, mimeType);
+        Object content = dch.getContent(ds);
+        assertEquals(String.class, content.getClass());
+        assertEquals(xml, (String) content);
+        content = dch.getTransferData(df, ds);
+        assertEquals(String.class, content.getClass());
+        assertEquals(xml, (String) content);
     }
 
     // test InputStream to StreamSource
     @Test
     public void testStreamToSource() throws Exception {
-	DataContentHandler dch = new text_xml();
-	ActivationDataFlavor df = new ActivationDataFlavor(StreamSource.class,
-						    "text/xml", "XML stream");
-	DataSource ds = new ByteArrayDataSource(xmlBytes, "text/xml");
-	Object content = dch.getTransferData(df, ds);
-	assertEquals(StreamSource.class, content.getClass());
-	String sc = streamToString(((StreamSource)content).getInputStream());
-	assertEquals(xml, sc);
+        DataContentHandler dch = new text_xml();
+        ActivationDataFlavor df = new ActivationDataFlavor(StreamSource.class,
+                "text/xml", "XML stream");
+        DataSource ds = new ByteArrayDataSource(xmlBytes, "text/xml");
+        Object content = dch.getTransferData(df, ds);
+        assertEquals(StreamSource.class, content.getClass());
+        String sc = streamToString(((StreamSource) content).getInputStream());
+        assertEquals(xml, sc);
     }
 
     // test String to OutputStream
     @Test
     public void testStringToStream() throws Exception {
-	DataContentHandler dch = new text_xml();
-	ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	dch.writeTo(xml, "text/xml", bos);
-	String sc = new String(bos.toByteArray(), "us-ascii");
-	assertEquals(xml, sc);
+        DataContentHandler dch = new text_xml();
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        dch.writeTo(xml, "text/xml", bos);
+        String sc = new String(bos.toByteArray(), "us-ascii");
+        assertEquals(xml, sc);
     }
 
     // test StreamSource to OutputStream
     @Test
     public void testSourceToStream() throws Exception {
-	DataContentHandler dch = new text_xml();
-	ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	StreamSource ss = new StreamSource(new ByteArrayInputStream(xmlBytes));
-	dch.writeTo(ss, "text/xml", bos);
-	String sc = new String(bos.toByteArray(), "us-ascii");
-	// transformer adds an <?xml> header, so can't check for exact match
-	assertTrue(sc.indexOf(xml.trim()) >= 0);
+        DataContentHandler dch = new text_xml();
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        StreamSource ss = new StreamSource(new ByteArrayInputStream(xmlBytes));
+        dch.writeTo(ss, "text/xml", bos);
+        String sc = new String(bos.toByteArray(), "us-ascii");
+        // transformer adds an <?xml> header, so can't check for exact match
+        assertTrue(sc.indexOf(xml.trim()) >= 0);
     }
 
     /**
      * Read a stream into a String.
      */
     private static String streamToString(InputStream is) {
-	try {
-	    StringBuilder sb = new StringBuilder();
-	    int c;
-	    while ((c = is.read()) > 0)
-		sb.append((char)c);
-	    return sb.toString();
-	} catch (IOException ex) {
-	    return "";
-	} finally {
-	    try {
-		is.close();
-	    } catch (IOException cex) { }
-	}
+        try {
+            StringBuilder sb = new StringBuilder();
+            int c;
+            while ((c = is.read()) > 0)
+                sb.append((char) c);
+            return sb.toString();
+        } catch (IOException ex) {
+            return "";
+        } finally {
+            try {
+                is.close();
+            } catch (IOException cex) {
+            }
+        }
     }
 }

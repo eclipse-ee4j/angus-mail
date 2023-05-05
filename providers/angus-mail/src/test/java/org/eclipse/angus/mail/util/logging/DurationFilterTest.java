@@ -16,13 +16,28 @@
  */
 package org.eclipse.angus.mail.util.logging;
 
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Properties;
-import java.util.logging.*;
-import org.junit.*;
-import static org.junit.Assert.*;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Filter;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test case for the DurationFilter spec.

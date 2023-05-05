@@ -16,11 +16,11 @@
 
 package org.eclipse.angus.mail.smtp;
 
-import org.eclipse.angus.mail.test.TestServer;
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.internet.MimeMessage;
+import org.eclipse.angus.mail.test.TestServer;
 import org.junit.Test;
 
 import java.io.IOException;

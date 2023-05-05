@@ -70,12 +70,13 @@ public final class SortTerm {
     public static final SortTerm TO = new SortTerm("TO");
 
     private String term;
+
     private SortTerm(String term) {
-	this.term = term;
+        this.term = term;
     }
 
     @Override
     public String toString() {
-	return term;
+        return term;
     }
 }

@@ -16,22 +16,21 @@
 
 package org.eclipse.angus.mail.mbox;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Properties;
-import java.util.Date;
-
-import jakarta.mail.Session;
-import jakarta.mail.Store;
+import jakarta.mail.Flags;
 import jakarta.mail.Folder;
 import jakarta.mail.Message;
-import jakarta.mail.Flags;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
 import jakarta.mail.internet.MimeMessage;
-
-import org.junit.Test;
-import org.junit.BeforeClass;
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import java.io.File;
+import java.util.Date;
+import java.util.Properties;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -42,275 +41,275 @@ public final class MboxFolderExpungeTest {
 
     @BeforeClass
     public static void before() {
-	System.setProperty("mail.mbox.locktype", "none");
+        System.setProperty("mail.mbox.locktype", "none");
     }
 
     @AfterClass
     public static void after() {
-	System.getProperties().remove("mail.mbox.locktype");
+        System.getProperties().remove("mail.mbox.locktype");
     }
 
     @Test
     public void testRemoveFirst() throws Exception {
-	Folder f = createTestFolder();
-	try {
-	    f.open(Folder.READ_WRITE);
-	    Message m = f.getMessage(1);
-	    m.setFlag(Flags.Flag.DELETED, true);
-	    f.expunge();
-	    m = f.getMessage(1);
-	    assertEquals("2", ((String)m.getContent()).trim());
-	    m.setFlag(Flags.Flag.DELETED, true);
-	    m = f.getMessage(2);
-	    assertEquals("3", ((String)m.getContent()).trim());
-	    f.expunge();
-	    m = f.getMessage(1);
-	    assertEquals("3", ((String)m.getContent()).trim());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    f.close(false);
-	    f.delete(false);
-	    f.getStore().close();
-	}
+        Folder f = createTestFolder();
+        try {
+            f.open(Folder.READ_WRITE);
+            Message m = f.getMessage(1);
+            m.setFlag(Flags.Flag.DELETED, true);
+            f.expunge();
+            m = f.getMessage(1);
+            assertEquals("2", ((String) m.getContent()).trim());
+            m.setFlag(Flags.Flag.DELETED, true);
+            m = f.getMessage(2);
+            assertEquals("3", ((String) m.getContent()).trim());
+            f.expunge();
+            m = f.getMessage(1);
+            assertEquals("3", ((String) m.getContent()).trim());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            f.close(false);
+            f.delete(false);
+            f.getStore().close();
+        }
     }
 
     @Test
     public void testRemoveMiddle() throws Exception {
-	Folder f = createTestFolder();
-	try {
-	    f.open(Folder.READ_WRITE);
-	    Message m = f.getMessage(2);
-	    m.setFlag(Flags.Flag.DELETED, true);
-	    f.expunge();
-	    m = f.getMessage(1);
-	    assertEquals("1", ((String)m.getContent()).trim());
-	    m = f.getMessage(2);
-	    assertEquals("3", ((String)m.getContent()).trim());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    f.close(false);
-	    f.delete(false);
-	    f.getStore().close();
-	}
+        Folder f = createTestFolder();
+        try {
+            f.open(Folder.READ_WRITE);
+            Message m = f.getMessage(2);
+            m.setFlag(Flags.Flag.DELETED, true);
+            f.expunge();
+            m = f.getMessage(1);
+            assertEquals("1", ((String) m.getContent()).trim());
+            m = f.getMessage(2);
+            assertEquals("3", ((String) m.getContent()).trim());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            f.close(false);
+            f.delete(false);
+            f.getStore().close();
+        }
     }
 
     @Test
     public void testRemoveLast() throws Exception {
-	Folder f = createTestFolder();
-	try {
-	    f.open(Folder.READ_WRITE);
-	    Message m = f.getMessage(3);
-	    m.setFlag(Flags.Flag.DELETED, true);
-	    f.expunge();
-	    m = f.getMessage(1);
-	    assertEquals("1", ((String)m.getContent()).trim());
-	    m = f.getMessage(2);
-	    assertEquals("2", ((String)m.getContent()).trim());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    f.close(false);
-	    f.delete(false);
-	    f.getStore().close();
-	}
+        Folder f = createTestFolder();
+        try {
+            f.open(Folder.READ_WRITE);
+            Message m = f.getMessage(3);
+            m.setFlag(Flags.Flag.DELETED, true);
+            f.expunge();
+            m = f.getMessage(1);
+            assertEquals("1", ((String) m.getContent()).trim());
+            m = f.getMessage(2);
+            assertEquals("2", ((String) m.getContent()).trim());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            f.close(false);
+            f.delete(false);
+            f.getStore().close();
+        }
     }
 
     @Test
     public void testRemoveFirstClose() throws Exception {
-	Folder f = createTestFolder();
-	try {
-	    f.open(Folder.READ_WRITE);
-	    Message m = f.getMessage(1);
-	    m.setFlag(Flags.Flag.DELETED, true);
-	    f.close(true);
-	    f.open(Folder.READ_WRITE);
-	    m = f.getMessage(1);
-	    assertEquals("2", ((String)m.getContent()).trim());
-	    m.setFlag(Flags.Flag.DELETED, true);
-	    m = f.getMessage(2);
-	    assertEquals("3", ((String)m.getContent()).trim());
-	    f.close(true);
-	    f.open(Folder.READ_WRITE);
-	    m = f.getMessage(1);
-	    assertEquals("3", ((String)m.getContent()).trim());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    f.close(false);
-	    f.delete(false);
-	    f.getStore().close();
-	}
+        Folder f = createTestFolder();
+        try {
+            f.open(Folder.READ_WRITE);
+            Message m = f.getMessage(1);
+            m.setFlag(Flags.Flag.DELETED, true);
+            f.close(true);
+            f.open(Folder.READ_WRITE);
+            m = f.getMessage(1);
+            assertEquals("2", ((String) m.getContent()).trim());
+            m.setFlag(Flags.Flag.DELETED, true);
+            m = f.getMessage(2);
+            assertEquals("3", ((String) m.getContent()).trim());
+            f.close(true);
+            f.open(Folder.READ_WRITE);
+            m = f.getMessage(1);
+            assertEquals("3", ((String) m.getContent()).trim());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            f.close(false);
+            f.delete(false);
+            f.getStore().close();
+        }
     }
 
     @Test
     public void testRemoveMiddleClose() throws Exception {
-	Folder f = createTestFolder();
-	try {
-	    f.open(Folder.READ_WRITE);
-	    Message m = f.getMessage(2);
-	    m.setFlag(Flags.Flag.DELETED, true);
-	    f.close(true);
-	    f.open(Folder.READ_WRITE);
-	    m = f.getMessage(1);
-	    assertEquals("1", ((String)m.getContent()).trim());
-	    m = f.getMessage(2);
-	    assertEquals("3", ((String)m.getContent()).trim());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    f.close(false);
-	    f.delete(false);
-	    f.getStore().close();
-	}
+        Folder f = createTestFolder();
+        try {
+            f.open(Folder.READ_WRITE);
+            Message m = f.getMessage(2);
+            m.setFlag(Flags.Flag.DELETED, true);
+            f.close(true);
+            f.open(Folder.READ_WRITE);
+            m = f.getMessage(1);
+            assertEquals("1", ((String) m.getContent()).trim());
+            m = f.getMessage(2);
+            assertEquals("3", ((String) m.getContent()).trim());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            f.close(false);
+            f.delete(false);
+            f.getStore().close();
+        }
     }
 
     @Test
     public void testRemoveLastClose() throws Exception {
-	Folder f = createTestFolder();
-	try {
-	    f.open(Folder.READ_WRITE);
-	    Message m = f.getMessage(3);
-	    m.setFlag(Flags.Flag.DELETED, true);
-	    f.close(true);
-	    f.open(Folder.READ_WRITE);
-	    m = f.getMessage(1);
-	    assertEquals("1", ((String)m.getContent()).trim());
-	    m = f.getMessage(2);
-	    assertEquals("2", ((String)m.getContent()).trim());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    f.close(false);
-	    f.delete(false);
-	    f.getStore().close();
-	}
+        Folder f = createTestFolder();
+        try {
+            f.open(Folder.READ_WRITE);
+            Message m = f.getMessage(3);
+            m.setFlag(Flags.Flag.DELETED, true);
+            f.close(true);
+            f.open(Folder.READ_WRITE);
+            m = f.getMessage(1);
+            assertEquals("1", ((String) m.getContent()).trim());
+            m = f.getMessage(2);
+            assertEquals("2", ((String) m.getContent()).trim());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            f.close(false);
+            f.delete(false);
+            f.getStore().close();
+        }
     }
 
     @Test
     public void testRemoveFirstMessages() throws Exception {
-	Folder f = createTestFolder();
-	try {
-	    f.open(Folder.READ_WRITE);
-	    Message[] msgs = f.getMessages(1, 3);
-	    msgs[0].setFlag(Flags.Flag.DELETED, true);
-	    f.expunge();
-	    assertEquals("2", ((String)msgs[1].getContent()).trim());
-	    assertEquals("3", ((String)msgs[2].getContent()).trim());
-	    msgs[1].setFlag(Flags.Flag.DELETED, true);
-	    f.expunge();
-	    assertEquals("3", ((String)msgs[2].getContent()).trim());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    f.close(false);
-	    f.delete(false);
-	    f.getStore().close();
-	}
+        Folder f = createTestFolder();
+        try {
+            f.open(Folder.READ_WRITE);
+            Message[] msgs = f.getMessages(1, 3);
+            msgs[0].setFlag(Flags.Flag.DELETED, true);
+            f.expunge();
+            assertEquals("2", ((String) msgs[1].getContent()).trim());
+            assertEquals("3", ((String) msgs[2].getContent()).trim());
+            msgs[1].setFlag(Flags.Flag.DELETED, true);
+            f.expunge();
+            assertEquals("3", ((String) msgs[2].getContent()).trim());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            f.close(false);
+            f.delete(false);
+            f.getStore().close();
+        }
     }
 
     @Test
     public void testRemoveMiddleMessages() throws Exception {
-	Folder f = createTestFolder();
-	try {
-	    f.open(Folder.READ_WRITE);
-	    Message[] msgs = f.getMessages(1, 3);
-	    msgs[1].setFlag(Flags.Flag.DELETED, true);
-	    f.expunge();
-	    assertEquals("1", ((String)msgs[0].getContent()).trim());
-	    assertEquals("3", ((String)msgs[2].getContent()).trim());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    f.close(false);
-	    f.delete(false);
-	    f.getStore().close();
-	}
+        Folder f = createTestFolder();
+        try {
+            f.open(Folder.READ_WRITE);
+            Message[] msgs = f.getMessages(1, 3);
+            msgs[1].setFlag(Flags.Flag.DELETED, true);
+            f.expunge();
+            assertEquals("1", ((String) msgs[0].getContent()).trim());
+            assertEquals("3", ((String) msgs[2].getContent()).trim());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            f.close(false);
+            f.delete(false);
+            f.getStore().close();
+        }
     }
 
     @Test
     public void testRemoveLastMessages() throws Exception {
-	Folder f = createTestFolder();
-	try {
-	    f.open(Folder.READ_WRITE);
-	    Message[] msgs = f.getMessages(1, 3);
-	    msgs[2].setFlag(Flags.Flag.DELETED, true);
-	    f.expunge();
-	    assertEquals("1", ((String)msgs[0].getContent()).trim());
-	    assertEquals("2", ((String)msgs[1].getContent()).trim());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    f.close(false);
-	    f.delete(false);
-	    f.getStore().close();
-	}
+        Folder f = createTestFolder();
+        try {
+            f.open(Folder.READ_WRITE);
+            Message[] msgs = f.getMessages(1, 3);
+            msgs[2].setFlag(Flags.Flag.DELETED, true);
+            f.expunge();
+            assertEquals("1", ((String) msgs[0].getContent()).trim());
+            assertEquals("2", ((String) msgs[1].getContent()).trim());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            f.close(false);
+            f.delete(false);
+            f.getStore().close();
+        }
     }
 
     @Test
     public void testNewMessagesAfterExpunge() throws Exception {
-	Folder f = createTestFolder();
-	try {
-	    f.open(Folder.READ_WRITE);
-	    Message[] msgs = f.getMessages(1, 3);
-	    msgs[0].setFlag(Flags.Flag.DELETED, true);
-	    f.expunge();
-	    f.appendMessages(new Message[] { createMessage(null, 4) });
-	    assertEquals(3, f.getMessageCount());
-	    Message m = f.getMessage(3);
-	    assertEquals("4", ((String)m.getContent()).trim());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    f.close(false);
-	    f.delete(false);
-	    f.getStore().close();
-	}
+        Folder f = createTestFolder();
+        try {
+            f.open(Folder.READ_WRITE);
+            Message[] msgs = f.getMessages(1, 3);
+            msgs[0].setFlag(Flags.Flag.DELETED, true);
+            f.expunge();
+            f.appendMessages(new Message[]{createMessage(null, 4)});
+            assertEquals(3, f.getMessageCount());
+            Message m = f.getMessage(3);
+            assertEquals("4", ((String) m.getContent()).trim());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            f.close(false);
+            f.delete(false);
+            f.getStore().close();
+        }
     }
 
     @Test
     public void testNewMessagesAfterClose() throws Exception {
-	Folder f = createTestFolder();
-	try {
-	    f.open(Folder.READ_WRITE);
-	    Message[] msgs = f.getMessages(1, 3);
-	    msgs[0].setFlag(Flags.Flag.DELETED, true);
-	    f.close(true);
-	    f.appendMessages(new Message[] { createMessage(null, 4) });
-	    f.open(Folder.READ_WRITE);
-	    assertEquals(3, f.getMessageCount());
-	    Message m = f.getMessage(3);
-	    assertEquals("4", ((String)m.getContent()).trim());
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	} finally {
-	    f.close(false);
-	    f.delete(false);
-	    f.getStore().close();
-	}
+        Folder f = createTestFolder();
+        try {
+            f.open(Folder.READ_WRITE);
+            Message[] msgs = f.getMessages(1, 3);
+            msgs[0].setFlag(Flags.Flag.DELETED, true);
+            f.close(true);
+            f.appendMessages(new Message[]{createMessage(null, 4)});
+            f.open(Folder.READ_WRITE);
+            assertEquals(3, f.getMessageCount());
+            Message m = f.getMessage(3);
+            assertEquals("4", ((String) m.getContent()).trim());
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        } finally {
+            f.close(false);
+            f.delete(false);
+            f.getStore().close();
+        }
     }
 
     /**
@@ -318,45 +317,45 @@ public final class MboxFolderExpungeTest {
      * with 3 messages.
      */
     private Folder createTestFolder() {
-	Properties properties = new Properties();
-	Session session = Session.getInstance(properties);
-	//session.setDebug(true);
+        Properties properties = new Properties();
+        Session session = Session.getInstance(properties);
+        //session.setDebug(true);
 
-	Folder folder = null;
-	try {
-	    Store store = session.getStore("mbox");
-	    File temp = File.createTempFile("mbox", ".mbx");
-	    temp.deleteOnExit();
-	    store.connect();
-	    folder = store.getFolder(temp.getAbsolutePath());
-	    folder.create(Folder.HOLDS_MESSAGES);
-	    Message[] msgs = new Message[3];
-	    for (int i = 0; i < 3; i++)
-		msgs[i] = createMessage(session, i + 1);
-	    folder.appendMessages(msgs);
-	} catch (Exception ex) {
-	    System.out.println(ex);
-	    //ex.printStackTrace();
-	    fail(ex.toString());
-	}
-	return folder;
+        Folder folder = null;
+        try {
+            Store store = session.getStore("mbox");
+            File temp = File.createTempFile("mbox", ".mbx");
+            temp.deleteOnExit();
+            store.connect();
+            folder = store.getFolder(temp.getAbsolutePath());
+            folder.create(Folder.HOLDS_MESSAGES);
+            Message[] msgs = new Message[3];
+            for (int i = 0; i < 3; i++)
+                msgs[i] = createMessage(session, i + 1);
+            folder.appendMessages(msgs);
+        } catch (Exception ex) {
+            System.out.println(ex);
+            //ex.printStackTrace();
+            fail(ex.toString());
+        }
+        return folder;
     }
 
     /**
      * Create a test message.
      */
     private Message createMessage(Session session, int msgno)
-				throws MessagingException {
-	MimeMessage msg = new MimeMessage(session);
-	msg.setFrom("test@example.com");
-	msg.setSentDate(new Date());
-	String subject = "test ";
-	// ensure each message is a different length
-	for (int i = 0; i < msgno; i++)
-	    subject += "test ";
-	msg.setSubject(subject + msgno);
-	msg.setText(msgno + "\n");
-	msg.saveChanges();
-	return msg;
+            throws MessagingException {
+        MimeMessage msg = new MimeMessage(session);
+        msg.setFrom("test@example.com");
+        msg.setSentDate(new Date());
+        String subject = "test ";
+        // ensure each message is a different length
+        for (int i = 0; i < msgno; i++)
+            subject += "test ";
+        msg.setSubject(subject + msgno);
+        msg.setText(msgno + "\n");
+        msg.saveChanges();
+        return msg;
     }
 }

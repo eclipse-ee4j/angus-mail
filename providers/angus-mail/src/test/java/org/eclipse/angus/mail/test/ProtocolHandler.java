@@ -16,19 +16,18 @@
 
 package org.eclipse.angus.mail.test;
 
-import java.io.InputStream;
+import javax.net.ssl.SSLException;
 import java.io.BufferedInputStream;
-import java.io.PushbackInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.PushbackInputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
-import java.util.logging.Logger;
 import java.util.logging.Level;
-import javax.net.ssl.SSLException;
+import java.util.logging.Logger;
 
 /**
  * Handle protocol connection.
@@ -40,32 +39,42 @@ import javax.net.ssl.SSLException;
  */
 public abstract class ProtocolHandler implements Runnable, Cloneable {
 
-    /** Logger for this class. */
+    /**
+     * Logger for this class.
+     */
     protected final Logger LOGGER = Logger.getLogger(this.getClass().getName());
 
-    /** Client socket. */
+    /**
+     * Client socket.
+     */
     protected Socket clientSocket;
 
-    /** Quit? */
+    /**
+     * Quit?
+     */
     protected boolean quit;
 
-    /** Writer to socket. */
+    /**
+     * Writer to socket.
+     */
     protected PrintWriter writer;
 
-    /** Input from socket. */
+    /**
+     * Input from socket.
+     */
     protected InputStream in;
 
     /**
      * Sets the client socket.
      *
-     * @param clientSocket	the client socket
+     * @param clientSocket the client socket
      */
     public final void setClientSocket(final Socket clientSocket)
-				throws IOException {
+            throws IOException {
         this.clientSocket = clientSocket;
-	writer = new PrintWriter(new OutputStreamWriter(
-		    clientSocket.getOutputStream(), StandardCharsets.UTF_8));
-	in = new BufferedInputStream(clientSocket.getInputStream());
+        writer = new PrintWriter(new OutputStreamWriter(
+                clientSocket.getOutputStream(), StandardCharsets.UTF_8));
+        in = new BufferedInputStream(clientSocket.getInputStream());
     }
 
     /**
@@ -91,30 +100,30 @@ public abstract class ProtocolHandler implements Runnable, Cloneable {
         int offset = 0;
         int c;
 
-	while ((c = in.read()) != -1) {
-	    if (c == '\n') {
-		break;
-	    } else if (c == '\r') {
-		int c2 = in.read();
-		if ((c2 != '\n') && (c2 != -1)) {
-		    if (!(in instanceof PushbackInputStream))
-			this.in = new PushbackInputStream(in);
-		    ((PushbackInputStream)in).unread(c2);
-		}
-		break;
-	    } else {
-		if (--room < 0) {
-		    byte[] nbuf = new byte[offset + 128];
-		    room = nbuf.length - offset - 1;
-		    System.arraycopy(buf, 0, nbuf, 0, offset);
-		    buf = nbuf;
-		}
-		buf[offset++] = (byte)c;
-	    }
-	}
-	if ((c == -1) && (offset == 0))
-	    return null;
-	return new String(buf, 0, offset, StandardCharsets.UTF_8);
+        while ((c = in.read()) != -1) {
+            if (c == '\n') {
+                break;
+            } else if (c == '\r') {
+                int c2 = in.read();
+                if ((c2 != '\n') && (c2 != -1)) {
+                    if (!(in instanceof PushbackInputStream))
+                        this.in = new PushbackInputStream(in);
+                    ((PushbackInputStream) in).unread(c2);
+                }
+                break;
+            } else {
+                if (--room < 0) {
+                    byte[] nbuf = new byte[offset + 128];
+                    room = nbuf.length - offset - 1;
+                    System.arraycopy(buf, 0, nbuf, 0, offset);
+                    buf = nbuf;
+                }
+                buf[offset++] = (byte) c;
+            }
+        }
+        if ((c == -1) && (offset == 0))
+            return null;
+        return new String(buf, 0, offset, StandardCharsets.UTF_8);
     }
 
     /**
@@ -131,16 +140,16 @@ public abstract class ProtocolHandler implements Runnable, Cloneable {
             }
 
             //clientSocket.close();
-	} catch (SocketException sex) {
-	    // ignore it, often get "connection reset" when client closes
-	} catch (SSLException sex) {
-	    // ignore it, often occurs when testing SSL
+        } catch (SocketException sex) {
+            // ignore it, often get "connection reset" when client closes
+        } catch (SSLException sex) {
+            // ignore it, often occurs when testing SSL
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error", e);
         } finally {
             try {
-		if (clientSocket != null)
-		    clientSocket.close();
+                if (clientSocket != null)
+                    clientSocket.close();
             } catch (final IOException ioe) {
                 LOGGER.log(Level.SEVERE, "Error", ioe);
             }
@@ -155,7 +164,7 @@ public abstract class ProtocolHandler implements Runnable, Cloneable {
         try {
             if (clientSocket != null && !clientSocket.isClosed()) {
                 clientSocket.close();
-		clientSocket = null;
+                clientSocket = null;
             }
         } catch (final IOException e) {
             LOGGER.log(Level.SEVERE, "Error", e);

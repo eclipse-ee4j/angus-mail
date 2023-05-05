@@ -16,14 +16,15 @@
 
 package org.eclipse.angus.mail.pop3;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * A temporary file used to cache POP3 messages.
  */
 class TempFile {
 
-    private File file;	// the temp file name
+    private File file;    // the temp file name
     private WritableSharedFile sf;
 
     /**
@@ -31,37 +32,37 @@ class TempFile {
      * The file will be deleted when the JVM exits.
      */
     public TempFile(File dir) throws IOException {
-	file = File.createTempFile("pop3.", ".mbox", dir);
-	// XXX - need JDK 6 to set permissions on the file to owner-only
-	file.deleteOnExit();
-	sf = new WritableSharedFile(file);
+        file = File.createTempFile("pop3.", ".mbox", dir);
+        // XXX - need JDK 6 to set permissions on the file to owner-only
+        file.deleteOnExit();
+        sf = new WritableSharedFile(file);
     }
 
     /**
      * Return a stream for appending to the temp file.
      */
     public AppendStream getAppendStream() throws IOException {
-	return sf.getAppendStream();
+        return sf.getAppendStream();
     }
 
     /**
      * Close and remove this temp file.
      */
     public void close() {
-	try {
-	    sf.close();
-	} catch (IOException ex) {
-	    // ignore it
-	}
-	file.delete();
+        try {
+            sf.close();
+        } catch (IOException ex) {
+            // ignore it
+        }
+        file.delete();
     }
 
     @Override
     protected void finalize() throws Throwable {
-	try {
-	    close();
-	} finally {
-	    super.finalize();
-	}
+        try {
+            close();
+        } finally {
+            super.finalize();
+        }
     }
 }

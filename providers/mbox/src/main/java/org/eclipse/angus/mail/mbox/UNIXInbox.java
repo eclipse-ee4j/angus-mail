@@ -16,7 +16,9 @@
 
 package org.eclipse.angus.mail.mbox;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 
 public class UNIXInbox extends UNIXFolder implements InboxFile {
     private final String user;
@@ -29,95 +31,97 @@ public class UNIXInbox extends UNIXFolder implements InboxFile {
      */
 
     public UNIXInbox(String user, String name) {
-	super(name);
-	this.user = user;
-	if (user == null)
-	    throw new NullPointerException("user name is null in UNIXInbox");
+        super(name);
+        this.user = user;
+        if (user == null)
+            throw new NullPointerException("user name is null in UNIXInbox");
     }
 
     public boolean lock(String mode) {
-	if (lockType == NATIVE) {
-	    if (!loaded)
-		return false;
-	    if (!maillock(user, 5))
-		return false;
-	}
-	if (!super.lock(mode)) {
-	    if (loaded)
-		mailunlock();
-	    return false;
-	}
-	return true;
+        if (lockType == NATIVE) {
+            if (!loaded)
+                return false;
+            if (!maillock(user, 5))
+                return false;
+        }
+        if (!super.lock(mode)) {
+            if (loaded)
+                mailunlock();
+            return false;
+        }
+        return true;
     }
 
-    public void unlock() { 
-	super.unlock();
-	if (loaded)
-	    mailunlock();
+    public void unlock() {
+        super.unlock();
+        if (loaded)
+            mailunlock();
     }
 
     public void touchlock() {
-	if (loaded)
-	    touchlock0();
+        if (loaded)
+            touchlock0();
     }
 
     private transient RandomAccessFile lockfile; // the user's ~/.Maillock file
-    private transient String lockfileName;	// its name
+    private transient String lockfileName;    // its name
 
     public boolean openLock(String mode) {
-	if (mode.equals("r"))
-	    return true;
-	if (lockfileName == null) {
-	    String home = System.getProperty("user.home");
-	    lockfileName = home + File.separator + ".Maillock";
-	}
-	try {
-	    lockfile = new RandomAccessFile(lockfileName, mode);
-	    boolean ret;
-	    switch (lockType) {
-	    case NONE:
-		ret = true;
-		break;
-	    case NATIVE:
-	    default:
-		ret = UNIXFile.lock(lockfile.getFD(), mode);
-		break;
-	    case JAVA:
-		ret = lockfile.getChannel().
-		    tryLock(0L, Long.MAX_VALUE, !mode.equals("rw")) != null;
-		break;
-	    }
-	    if (!ret)
-		closeLock();
-	    return ret;
-	} catch (IOException ex) {
-	}
-	return false;
+        if (mode.equals("r"))
+            return true;
+        if (lockfileName == null) {
+            String home = System.getProperty("user.home");
+            lockfileName = home + File.separator + ".Maillock";
+        }
+        try {
+            lockfile = new RandomAccessFile(lockfileName, mode);
+            boolean ret;
+            switch (lockType) {
+                case NONE:
+                    ret = true;
+                    break;
+                case NATIVE:
+                default:
+                    ret = UNIXFile.lock(lockfile.getFD(), mode);
+                    break;
+                case JAVA:
+                    ret = lockfile.getChannel().
+                            tryLock(0L, Long.MAX_VALUE, !mode.equals("rw")) != null;
+                    break;
+            }
+            if (!ret)
+                closeLock();
+            return ret;
+        } catch (IOException ex) {
+        }
+        return false;
     }
 
     public void closeLock() {
-	if (lockfile == null)
-	    return;
-	try {
-	    lockfile.close();
-	} catch (IOException ex) {
-	} finally {
-	    lockfile = null;
-	}
+        if (lockfile == null)
+            return;
+        try {
+            lockfile.close();
+        } catch (IOException ex) {
+        } finally {
+            lockfile = null;
+        }
     }
 
     public boolean equals(Object o) {
-	if (!(o instanceof UNIXInbox))
-	    return false;
-	UNIXInbox other = (UNIXInbox)o;
-	return user.equals(other.user) && super.equals(other);
+        if (!(o instanceof UNIXInbox))
+            return false;
+        UNIXInbox other = (UNIXInbox) o;
+        return user.equals(other.user) && super.equals(other);
     }
 
     public int hashCode() {
-	return super.hashCode() + user.hashCode();
+        return super.hashCode() + user.hashCode();
     }
 
     private native boolean maillock(String user, int retryCount);
+
     private native void mailunlock();
+
     private native void touchlock0();
 }

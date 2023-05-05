@@ -16,14 +16,14 @@
 
 package org.eclipse.angus.mail.smtp;
 
-import java.util.Properties;
-
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
-
-import org.junit.Test;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.Timeout;
+
+import java.util.Properties;
+
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -54,22 +54,22 @@ public final class SMTPCloseTest {
             final Transport t = session.getTransport("smtp");
             try {
                 t.connect();
-	    } catch (Exception ex) {
-		// expect an exception when connect times out
+            } catch (Exception ex) {
+                // expect an exception when connect times out
             } finally {
                 t.close();
             }
-	    // give the server thread a chance to detect the close
-	    for (int i = 0; i < 10 && !server.eof(); i++)
-		Thread.sleep(100);
-	    assertTrue("socket closed", server.eof());
+            // give the server thread a chance to detect the close
+            for (int i = 0; i < 10 && !server.eof(); i++)
+                Thread.sleep(100);
+            assertTrue("socket closed", server.eof());
         } catch (final Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
+                server.interrupt();
             }
         }
     }

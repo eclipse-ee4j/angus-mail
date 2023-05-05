@@ -16,16 +16,15 @@
 
 package org.eclipse.angus.mail.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.Properties;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Properties;
 
 /**
  * the Bad Character Shift table index use inconsistency between

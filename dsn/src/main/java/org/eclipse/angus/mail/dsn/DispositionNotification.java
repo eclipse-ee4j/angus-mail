@@ -16,32 +16,31 @@
 
 package org.eclipse.angus.mail.dsn;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.InternetHeaders;
+import jakarta.mail.util.LineOutputStream;
+import jakarta.mail.util.StreamProvider;
+import org.eclipse.angus.mail.util.MailLogger;
+import org.eclipse.angus.mail.util.PropUtil;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Enumeration;
 
-import org.eclipse.angus.mail.util.MailLogger;
-import org.eclipse.angus.mail.util.PropUtil;
-
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.InternetHeaders;
-import jakarta.mail.util.LineOutputStream;
-import jakarta.mail.util.StreamProvider;
-
 /**
  * A message/disposition-notification message content, as defined in
  * <A HREF="http://www.ietf.org/rfc/rfc3798.txt" TARGET="_top">RFC 3798</A>.
  *
- * @since	JavaMail 1.4.2
+ * @since JavaMail 1.4.2
  */
 public class DispositionNotification extends Report {
 
     private static MailLogger logger = new MailLogger(
-	DeliveryStatus.class,
-	"DEBUG DSN",
-	PropUtil.getBooleanSystemProperty("mail.dsn.debug", false),
-	System.out);
+            DeliveryStatus.class,
+            "DEBUG DSN",
+            PropUtil.getBooleanSystemProperty("mail.dsn.debug", false),
+            System.out);
 
     /**
      * The disposition notification content fields.
@@ -51,26 +50,26 @@ public class DispositionNotification extends Report {
     /**
      * Construct a disposition notification with no content.
      *
-     * @exception	MessagingException for failures
+     * @exception MessagingException for failures
      */
     public DispositionNotification() throws MessagingException {
-	super("disposition-notification");
-	notifications = new InternetHeaders();
+        super("disposition-notification");
+        notifications = new InternetHeaders();
     }
 
     /**
      * Construct a disposition notification by parsing the
      * supplied input stream.
      *
-     * @param	is	the input stream
-     * @exception	IOException for I/O errors reading the stream
-     * @exception	MessagingException for other failures
+     * @param    is    the input stream
+     * @exception IOException for I/O errors reading the stream
+     * @exception MessagingException for other failures
      */
     public DispositionNotification(InputStream is)
-				throws MessagingException, IOException {
-	super("disposition-notification");
-	notifications = new InternetHeaders(is);
-	logger.fine("got MDN notification content");
+            throws MessagingException, IOException {
+        super("disposition-notification");
+        notifications = new InternetHeaders(is);
+        logger.fine("got MDN notification content");
     }
 
     /**
@@ -80,57 +79,57 @@ public class DispositionNotification extends Report {
      *
      * <pre>
      *    disposition-notification-content =
-     *		[ reporting-ua-field CRLF ]
-     *		[ mdn-gateway-field CRLF ]
-     *		[ original-recipient-field CRLF ]
-     *		final-recipient-field CRLF
-     *		[ original-message-id-field CRLF ]
-     *		disposition-field CRLF
-     *		*( failure-field CRLF )
-     *		*( error-field CRLF )
-     *		*( warning-field CRLF )
-     *		*( extension-field CRLF )
+     * 		[ reporting-ua-field CRLF ]
+     * 		[ mdn-gateway-field CRLF ]
+     * 		[ original-recipient-field CRLF ]
+     * 		final-recipient-field CRLF
+     * 		[ original-message-id-field CRLF ]
+     * 		disposition-field CRLF
+     * 		*( failure-field CRLF )
+     * 		*( error-field CRLF )
+     * 		*( warning-field CRLF )
+     * 		*( extension-field CRLF )
      * </pre>
      *
-     * @return	the DSN fields
+     * @return the DSN fields
      */
     // XXX - could parse each of these fields
     public InternetHeaders getNotifications() {
-	return notifications;
+        return notifications;
     }
 
     /**
      * Set the disposition notification fields in the
      * disposition notification.
      *
-     * @param	notifications	the DSN fields
+     * @param    notifications    the DSN fields
      */
     public void setNotifications(InternetHeaders notifications) {
-	this.notifications = notifications;
+        this.notifications = notifications;
     }
 
     public void writeTo(OutputStream os) throws IOException {
-	// see if we already have a LOS
-	LineOutputStream los = null;
-	if (os instanceof LineOutputStream) {
-	    los = (LineOutputStream) os;
-	} else {
-	    los = StreamProvider.provider().outputLineStream(os, false);
-	}
+        // see if we already have a LOS
+        LineOutputStream los = null;
+        if (os instanceof LineOutputStream) {
+            los = (LineOutputStream) os;
+        } else {
+            los = StreamProvider.provider().outputLineStream(os, false);
+        }
 
-	writeInternetHeaders(notifications, los);
-	los.writeln();
+        writeInternetHeaders(notifications, los);
+        los.writeln();
     }
 
     private static void writeInternetHeaders(InternetHeaders h,
-				LineOutputStream los) throws IOException {
-	Enumeration<String> e = h.getAllHeaderLines();
-	while (e.hasMoreElements())
-	    los.writeln(e.nextElement());
+                                             LineOutputStream los) throws IOException {
+        Enumeration<String> e = h.getAllHeaderLines();
+        while (e.hasMoreElements())
+            los.writeln(e.nextElement());
     }
 
     public String toString() {
-	return "DispositionNotification: Reporting-UA=" +
-	    notifications.getHeader("Reporting-UA", null);
+        return "DispositionNotification: Reporting-UA=" +
+                notifications.getHeader("Reporting-UA", null);
     }
 }

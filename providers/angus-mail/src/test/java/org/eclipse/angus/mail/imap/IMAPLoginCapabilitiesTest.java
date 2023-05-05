@@ -16,19 +16,17 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.Session;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
 import java.io.IOException;
 import java.util.Properties;
 
-import jakarta.mail.Session;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.rules.Timeout;
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test that capabilities are updated after login.
@@ -37,7 +35,7 @@ public final class IMAPLoginCapabilitiesTest {
 
     private static final String NEWCAP = "NEWCAP";
 
-    private static final int TIMEOUT = 1000;	// 1 second
+    private static final int TIMEOUT = 1000;    // 1 second
 
     // timeout the test in case of deadlock
     @Rule
@@ -49,14 +47,14 @@ public final class IMAPLoginCapabilitiesTest {
      */
     @Test
     public void testUntaggedCapabilityAfterLogin() {
-	test(new IMAPHandler() {
-			@Override
-			public void login() throws IOException {
-			    untagged("CAPABILITY " + capabilities +
-								" " + NEWCAP);
-			    ok("LOGIN completed");
-			}
-		    });
+        test(new IMAPHandler() {
+            @Override
+            public void login() throws IOException {
+                untagged("CAPABILITY " + capabilities +
+                        " " + NEWCAP);
+                ok("LOGIN completed");
+            }
+        });
     }
 
     /**
@@ -65,14 +63,14 @@ public final class IMAPLoginCapabilitiesTest {
      */
     @Test
     public void testMultipleUntaggedCapabilityAfterLogin() {
-	test(new IMAPHandler() {
-			@Override
-			public void login() throws IOException {
-			    untagged("CAPABILITY " + capabilities);
-			    untagged("CAPABILITY " + NEWCAP);
-			    ok("LOGIN completed");
-			}
-		    });
+        test(new IMAPHandler() {
+            @Override
+            public void login() throws IOException {
+                untagged("CAPABILITY " + capabilities);
+                untagged("CAPABILITY " + NEWCAP);
+                ok("LOGIN completed");
+            }
+        });
     }
 
     /**
@@ -80,44 +78,49 @@ public final class IMAPLoginCapabilitiesTest {
      */
     @Test
     public void testUntaggedCapabilityAfterAuthenticate() {
-	test(new IMAPHandler() {
-			{{ capabilities += " AUTH=PLAIN"; }}
-			@Override
-			public void authplain(String ir) throws IOException {
-			    untagged("CAPABILITY " + capabilities +
-								" " + NEWCAP);
-			    ok("AUTHENTICATE completed");
-			}
-		    });
+        test(new IMAPHandler() {
+            {
+                {
+                    capabilities += " AUTH=PLAIN";
+                }
+            }
+
+            @Override
+            public void authplain(String ir) throws IOException {
+                untagged("CAPABILITY " + capabilities +
+                        " " + NEWCAP);
+                ok("AUTHENTICATE completed");
+            }
+        });
     }
 
     private void test(IMAPHandler handler) {
-	TestServer server = null;
-	try {
-	    server = new TestServer(handler);
-	    server.start();
+        TestServer server = null;
+        try {
+            server = new TestServer(handler);
+            server.start();
 
-	    final Properties properties = new Properties();
-	    properties.setProperty("mail.imap.host", "localhost");
-	    properties.setProperty("mail.imap.port", "" + server.getPort());
-	    //properties.setProperty("mail.debug.auth", "true");
-	    final Session session = Session.getInstance(properties);
-	    //session.setDebug(true);
+            final Properties properties = new Properties();
+            properties.setProperty("mail.imap.host", "localhost");
+            properties.setProperty("mail.imap.port", "" + server.getPort());
+            //properties.setProperty("mail.debug.auth", "true");
+            final Session session = Session.getInstance(properties);
+            //session.setDebug(true);
 
-	    final IMAPStore store = (IMAPStore)session.getStore("imap");
-	    try {
-		store.connect("test", "test");
-		assertTrue(store.hasCapability(NEWCAP));
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
-	    } finally {
-		store.close();
-	    }
-	} catch (final Exception e) {
-	    e.printStackTrace();
-	    fail(e.getMessage());
+            final IMAPStore store = (IMAPStore) session.getStore("imap");
+            try {
+                store.connect("test", "test");
+                assertTrue(store.hasCapability(NEWCAP));
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
+            } finally {
+                store.close();
+            }
+        } catch (final Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
         } finally {
             if (server != null) {
                 server.quit();

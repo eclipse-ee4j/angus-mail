@@ -37,7 +37,7 @@ public abstract class handler_base implements DataContentHandler {
      * Return an array of ActivationDataFlavors that we support.
      * Usually there will be only one.
      *
-     * @return	array of ActivationDataFlavors that we support
+     * @return array of ActivationDataFlavors that we support
      */
     protected abstract ActivationDataFlavor[] getDataFlavors();
 
@@ -45,14 +45,14 @@ public abstract class handler_base implements DataContentHandler {
      * Given the flavor that matched, return the appropriate type of object.
      * Usually there's only one flavor so just call getContent.
      *
-     * @param	aFlavor	the ActivationDataFlavor
-     * @param	ds	DataSource containing the data
-     * @return	the object
-     * @exception	IOException	for errors reading the data
+     * @param    aFlavor    the ActivationDataFlavor
+     * @param    ds    DataSource containing the data
+     * @return the object
+     * @exception IOException    for errors reading the data
      */
     protected Object getData(ActivationDataFlavor aFlavor, DataSource ds)
-				throws IOException {
-	return getContent(ds);
+            throws IOException {
+        return getContent(ds);
     }
 
     /**
@@ -62,32 +62,32 @@ public abstract class handler_base implements DataContentHandler {
      */
     @Override
     public ActivationDataFlavor[] getTransferDataFlavors() {
-	ActivationDataFlavor[] adf = getDataFlavors();
-	if (adf.length == 1)	// the common case
-	    return new ActivationDataFlavor[] { adf[0] };
-	ActivationDataFlavor[] df = new ActivationDataFlavor[adf.length];
-	System.arraycopy(adf, 0, df, 0, adf.length);
-	return df;
+        ActivationDataFlavor[] adf = getDataFlavors();
+        if (adf.length == 1)    // the common case
+            return new ActivationDataFlavor[]{adf[0]};
+        ActivationDataFlavor[] df = new ActivationDataFlavor[adf.length];
+        System.arraycopy(adf, 0, df, 0, adf.length);
+        return df;
     }
 
     /**
      * Return the Transfer Data of type ActivationDataFlavor from InputStream.
      *
-     * @param	df	The ActivationDataFlavor
-     * @param	ds	The DataSource corresponding to the data
-     * @return	the object
-     * @exception	IOException	for errors reading the data
+     * @param    df    The ActivationDataFlavor
+     * @param    ds    The DataSource corresponding to the data
+     * @return the object
+     * @exception IOException    for errors reading the data
      */
     @Override
     public Object getTransferData(ActivationDataFlavor df, DataSource ds)
-			throws IOException {
-	ActivationDataFlavor[] adf = getDataFlavors();
-	for (int i = 0; i < adf.length; i++) {
-	    // use ActivationDataFlavor.equals, which properly
-	    // ignores Content-Type parameters in comparison
-	    if (adf[i].equals(df))
-		return getData(adf[i], ds);
-	}
-	return null;
+            throws IOException {
+        ActivationDataFlavor[] adf = getDataFlavors();
+        for (int i = 0; i < adf.length; i++) {
+            // use ActivationDataFlavor.equals, which properly
+            // ignores Content-Type parameters in comparison
+            if (adf[i].equals(df))
+                return getData(adf[i], ds);
+        }
+        return null;
     }
 }

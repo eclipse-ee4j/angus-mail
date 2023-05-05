@@ -16,53 +16,55 @@
 
 package org.eclipse.angus.mail.smtp;
 
-import java.io.*;
 import org.eclipse.angus.mail.util.CRLFOutputStream;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * In addition to converting lines into the canonical format,
  * i.e., terminating lines with the CRLF sequence, escapes the "."
  * by adding another "." to any "." that appears in the beginning
  * of a line.  See RFC821 section 4.5.2.
- * 
+ *
  * @author Max Spivak
  * @see CRLFOutputStream
  */
 public class SMTPOutputStream extends CRLFOutputStream {
     public SMTPOutputStream(OutputStream os) {
-	super(os);
+        super(os);
     }
 
     @Override
     public void write(int b) throws IOException {
-	// if that last character was a newline, and the current
-	// character is ".", we always write out an extra ".".
-	if ((lastb == '\n' || lastb == '\r' || lastb == -1) && b == '.') {
-	    out.write('.');
-	}
-	
-	super.write(b);
+        // if that last character was a newline, and the current
+        // character is ".", we always write out an extra ".".
+        if ((lastb == '\n' || lastb == '\r' || lastb == -1) && b == '.') {
+            out.write('.');
+        }
+
+        super.write(b);
     }
 
-    /* 
+    /*
      * This method has been added to improve performance.
      */
     @Override
     public void write(byte b[], int off, int len) throws IOException {
-	int lastc = (lastb == -1) ? '\n' : lastb;
-	int start = off;
-	
-	len += off;
-	for (int i = off; i < len; i++) {
-	    if ((lastc == '\n' || lastc == '\r') && b[i] == '.') {
-		super.write(b, start, i - start);
-		out.write('.');
-		start = i;
-	    }
-	    lastc = b[i];
-	}
-	if ((len - start) > 0)
-	    super.write(b, start, len - start);
+        int lastc = (lastb == -1) ? '\n' : lastb;
+        int start = off;
+
+        len += off;
+        for (int i = off; i < len; i++) {
+            if ((lastc == '\n' || lastc == '\r') && b[i] == '.') {
+                super.write(b, start, i - start);
+                out.write('.');
+                start = i;
+            }
+            lastc = b[i];
+        }
+        if ((len - start) > 0)
+            super.write(b, start, len - start);
     }
 
     /**
@@ -79,17 +81,17 @@ public class SMTPOutputStream extends CRLFOutputStream {
      */
     @Override
     public void flush() {
-	// do nothing
+        // do nothing
     }
 
     /**
      * Ensure we're at the beginning of a line.
      * Write CRLF if not.
      *
-     * @exception	IOException	if the write fails
+     * @exception IOException    if the write fails
      */
     public void ensureAtBOL() throws IOException {
-	if (!atBOL)
-	    super.writeln();
+        if (!atBOL)
+            super.writeln();
     }
 }

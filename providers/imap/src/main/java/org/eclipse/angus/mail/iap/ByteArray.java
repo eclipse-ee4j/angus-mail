@@ -22,104 +22,104 @@ import java.io.ByteArrayInputStream;
  * A simple wrapper around a byte array, with a start position and
  * count of bytes.
  *
- * @author  John Mani
+ * @author John Mani
  */
 
 public class ByteArray {
     private byte[] bytes; // the byte array
-    private int start;	  // start position
-    private int count;	  // count of bytes
+    private int start;      // start position
+    private int count;      // count of bytes
 
     /**
      * Constructor
      *
-     * @param	b	the byte array to wrap
-     * @param	start	start position in byte array
-     * @param	count	number of bytes in byte array
+     * @param    b    the byte array to wrap
+     * @param    start    start position in byte array
+     * @param    count    number of bytes in byte array
      */
     public ByteArray(byte[] b, int start, int count) {
-	bytes = b;
-	this.start = start;
-	this.count = count;
+        bytes = b;
+        this.start = start;
+        this.count = count;
     }
 
     /**
      * Constructor that creates a byte array of the specified size.
      *
-     * @param	size	the size of the ByteArray
-     * @since	JavaMail 1.4.1
+     * @param    size    the size of the ByteArray
+     * @since JavaMail 1.4.1
      */
     public ByteArray(int size) {
-	this(new byte[size], 0, size);
+        this(new byte[size], 0, size);
     }
 
     /**
      * Returns the internal byte array. Note that this is a live
      * reference to the actual data, not a copy.
      *
-     * @return	the wrapped byte array
+     * @return the wrapped byte array
      */
     public byte[] getBytes() {
-	return bytes;
+        return bytes;
     }
 
     /**
      * Returns a new byte array that is a copy of the data.
      *
-     * @return	a new byte array with the bytes from start for count
+     * @return a new byte array with the bytes from start for count
      */
     public byte[] getNewBytes() {
-	byte[] b = new byte[count];
-	System.arraycopy(bytes, start, b, 0, count);
-	return b;
+        byte[] b = new byte[count];
+        System.arraycopy(bytes, start, b, 0, count);
+        return b;
     }
 
     /**
      * Returns the start position
      *
-     * @return	the start position
+     * @return the start position
      */
     public int getStart() {
-	return start;
+        return start;
     }
 
     /**
      * Returns the count of bytes
      *
-     * @return	the number of bytes
+     * @return the number of bytes
      */
     public int getCount() {
-	return count;
+        return count;
     }
 
     /**
      * Set the count of bytes.
      *
-     * @param	count	the number of bytes
-     * @since	JavaMail 1.4.1
+     * @param    count    the number of bytes
+     * @since JavaMail 1.4.1
      */
     public void setCount(int count) {
-	this.count = count;
+        this.count = count;
     }
 
     /**
      * Returns a ByteArrayInputStream.
      *
-     * @return	the ByteArrayInputStream
+     * @return the ByteArrayInputStream
      */
     public ByteArrayInputStream toByteArrayInputStream() {
-	return new ByteArrayInputStream(bytes, start, count);
+        return new ByteArrayInputStream(bytes, start, count);
     }
 
     /**
      * Grow the byte array by incr bytes.
      *
-     * @param	incr	how much to grow
-     * @since	JavaMail 1.4.1
+     * @param    incr    how much to grow
+     * @since JavaMail 1.4.1
      */
     public void grow(int incr) {
-	byte[] nbuf = new byte[bytes.length + incr];
-	System.arraycopy(bytes, 0, nbuf, 0, bytes.length);
-	bytes = nbuf;
+        byte[] nbuf = new byte[bytes.length + incr];
+        System.arraycopy(bytes, 0, nbuf, 0, bytes.length);
+        bytes = nbuf;
     }
 }

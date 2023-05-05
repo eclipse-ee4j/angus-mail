@@ -17,8 +17,10 @@
 
 package org.eclipse.angus.mail.util.logging;
 
+import java.util.logging.Filter;
+import java.util.logging.LogRecord;
+
 import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogManager;
-import java.util.logging.*;
 
 /**
  * A filter used to limit log records based on a maximum generation rate.
@@ -60,7 +62,6 @@ import java.util.logging.*;
  *  org.eclipse.angus.mail.util.logging.DurationFilter.duration = PT6M
  * }
  * </pre>
- *
  *
  * @author Jason Mehrens
  * @since JavaMail 1.5.5
@@ -104,9 +105,9 @@ public class DurationFilter implements Filter {
      * Creates the filter using the given properties. Default values are used if
      * any of the given values are outside the allowed range.
      *
-     * @param records the number of records per duration.
+     * @param records  the number of records per duration.
      * @param duration the number of milliseconds to suppress log records from
-     * being published.
+     *                 being published.
      */
     public DurationFilter(final long records, final long duration) {
         this.records = checkRecords(records);
@@ -235,7 +236,7 @@ public class DurationFilter implements Filter {
      *
      * @return a copy of this filter.
      * @throws CloneNotSupportedException if this filter is not allowed to be
-     * cloned.
+     *                                    cloned.
      */
     @Override
     protected DurationFilter clone() throws CloneNotSupportedException {
@@ -249,7 +250,7 @@ public class DurationFilter implements Filter {
     /**
      * Checks if this filter is not saturated or bellow a maximum rate.
      *
-     * @param limit the number of records allowed to be under the rate.
+     * @param limit  the number of records allowed to be under the rate.
      * @param millis the current time in milliseconds.
      * @return true if not saturated or bellow the rate.
      */
@@ -366,10 +367,10 @@ public class DurationFilter implements Filter {
      * encoded as an ISO ISO-8601 duration format.
      *
      * @param suffix the suffix property.
-     * @param value the value of the property.
+     * @param value  the value of the property.
      * @return true if the entry is a time entry.
      * @throws IndexOutOfBoundsException if value is empty.
-     * @throws NullPointerException if either argument is null.
+     * @throws NullPointerException      if either argument is null.
      */
     private boolean isTimeEntry(final String suffix, final String value) {
         return (value.charAt(0) == 'P' || value.charAt(0) == 'p')
@@ -381,7 +382,7 @@ public class DurationFilter implements Filter {
      *
      * @param value the expression or value.
      * @return an array of long tokens, never empty.
-     * @throws NullPointerException if the given value is null.
+     * @throws NullPointerException  if the given value is null.
      * @throws NumberFormatException if the expression is invalid.
      */
     private static String[] tokenizeLongs(final String value) {

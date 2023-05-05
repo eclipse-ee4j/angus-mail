@@ -16,20 +16,28 @@
 
 package org.eclipse.angus.mail.gimap;
 
-import jakarta.mail.*;
-
-import org.eclipse.angus.mail.iap.*;
-import org.eclipse.angus.mail.imap.*;
-import org.eclipse.angus.mail.imap.protocol.*;
-import org.eclipse.angus.mail.gimap.protocol.*;
+import jakarta.mail.FetchProfile;
+import jakarta.mail.FolderClosedException;
+import jakarta.mail.Message;
+import jakarta.mail.MessageRemovedException;
+import jakarta.mail.MessagingException;
 import org.eclipse.angus.mail.gimap.protocol.GmailProtocol;
+import org.eclipse.angus.mail.iap.ConnectionException;
+import org.eclipse.angus.mail.iap.ProtocolException;
+import org.eclipse.angus.mail.imap.IMAPFolder;
+import org.eclipse.angus.mail.imap.IMAPMessage;
+import org.eclipse.angus.mail.imap.IMAPStore;
+import org.eclipse.angus.mail.imap.Utility;
+import org.eclipse.angus.mail.imap.protocol.IMAPProtocol;
+import org.eclipse.angus.mail.imap.protocol.ListInfo;
+import org.eclipse.angus.mail.imap.protocol.MessageSet;
 
 /**
  * A Gmail folder.  Defines new FetchProfile items and
  * uses GmailMessage to store additional Gmail message attributes.
  *
- * @since JavaMail 1.4.6
  * @author Bill Shannon
+ * @since JavaMail 1.4.6
  */
 
 public class GmailFolder extends IMAPFolder {
@@ -41,168 +49,168 @@ public class GmailFolder extends IMAPFolder {
      * @see FetchProfile
      */
     public static class FetchProfileItem extends FetchProfile.Item {
-	protected FetchProfileItem(String name) {
-	    super(name);
-	}
+        protected FetchProfileItem(String name) {
+            super(name);
+        }
 
-	/**
-	 * MSGID is a fetch profile item that can be included in a
-	 * <code>FetchProfile</code> during a fetch request to a Folder.
-	 * This item indicates that the Gmail unique message ID for messages
-	 * in the specified range are desired to be prefetched. <p>
-	 * 
-	 * An example of how a client uses this is below:
-	 * <blockquote><pre>
-	 *
-	 * 	FetchProfile fp = new FetchProfile();
-	 *	fp.add(GmailFolder.FetchProfileItem.MSGID);
-	 *	folder.fetch(msgs, fp);
-	 *
-	 * </pre></blockquote>
-	 */ 
-	public static final FetchProfileItem MSGID = 
-		new FetchProfileItem("X-GM-MSGID");
+        /**
+         * MSGID is a fetch profile item that can be included in a
+         * <code>FetchProfile</code> during a fetch request to a Folder.
+         * This item indicates that the Gmail unique message ID for messages
+         * in the specified range are desired to be prefetched. <p>
+         *
+         * An example of how a client uses this is below:
+         * <blockquote><pre>
+         *
+         * 	FetchProfile fp = new FetchProfile();
+         * 	fp.add(GmailFolder.FetchProfileItem.MSGID);
+         * 	folder.fetch(msgs, fp);
+         *
+         * </pre></blockquote>
+         */
+        public static final FetchProfileItem MSGID =
+                new FetchProfileItem("X-GM-MSGID");
 
-	/**
-	 * THRID is a fetch profile item that can be included in a
-	 * <code>FetchProfile</code> during a fetch request to a Folder.
-	 * This item indicates that the Gmail unique thread ID for messages
-	 * in the specified range are desired to be prefetched. <p>
-	 * 
-	 * An example of how a client uses this is below:
-	 * <blockquote><pre>
-	 *
-	 * 	FetchProfile fp = new FetchProfile();
-	 *	fp.add(GmailFolder.FetchProfileItem.THRID);
-	 *	folder.fetch(msgs, fp);
-	 *
-	 * </pre></blockquote>
-	 */ 
-	public static final FetchProfileItem THRID = 
-		new FetchProfileItem("X-GM-THRID");
+        /**
+         * THRID is a fetch profile item that can be included in a
+         * <code>FetchProfile</code> during a fetch request to a Folder.
+         * This item indicates that the Gmail unique thread ID for messages
+         * in the specified range are desired to be prefetched. <p>
+         *
+         * An example of how a client uses this is below:
+         * <blockquote><pre>
+         *
+         * 	FetchProfile fp = new FetchProfile();
+         * 	fp.add(GmailFolder.FetchProfileItem.THRID);
+         * 	folder.fetch(msgs, fp);
+         *
+         * </pre></blockquote>
+         */
+        public static final FetchProfileItem THRID =
+                new FetchProfileItem("X-GM-THRID");
 
-	/**
-	 * LABELS is a fetch profile item that can be included in a
-	 * <code>FetchProfile</code> during a fetch request to a Folder.
-	 * This item indicates that the Gmail labels for messages
-	 * in the specified range are desired to be prefetched. <p>
-	 * 
-	 * An example of how a client uses this is below:
-	 * <blockquote><pre>
-	 *
-	 * 	FetchProfile fp = new FetchProfile();
-	 *	fp.add(GmailFolder.FetchProfileItem.LABELS);
-	 *	folder.fetch(msgs, fp);
-	 *
-	 * </pre></blockquote>
-	 */ 
-	public static final FetchProfileItem LABELS = 
-		new FetchProfileItem("X-GM-LABELS");
+        /**
+         * LABELS is a fetch profile item that can be included in a
+         * <code>FetchProfile</code> during a fetch request to a Folder.
+         * This item indicates that the Gmail labels for messages
+         * in the specified range are desired to be prefetched. <p>
+         *
+         * An example of how a client uses this is below:
+         * <blockquote><pre>
+         *
+         * 	FetchProfile fp = new FetchProfile();
+         * 	fp.add(GmailFolder.FetchProfileItem.LABELS);
+         * 	folder.fetch(msgs, fp);
+         *
+         * </pre></blockquote>
+         */
+        public static final FetchProfileItem LABELS =
+                new FetchProfileItem("X-GM-LABELS");
     }
 
     /**
      * Set the specified labels for the given array of messages.
      *
-     * @param	msgs	the messages
-     * @param	labels	the labels to add or remove
-     * @param	set	true to add, false to remove
-     * @exception	MessagingException	for failures
-     * @since	JavaMail 1.5.5
+     * @param    msgs    the messages
+     * @param    labels    the labels to add or remove
+     * @param    set    true to add, false to remove
+     * @exception MessagingException    for failures
+     * @since JavaMail 1.5.5
      */
     public synchronized void setLabels(Message[] msgs,
-				String[] labels, boolean set)
-				throws MessagingException {
-	checkOpened();
+                                       String[] labels, boolean set)
+            throws MessagingException {
+        checkOpened();
 
-	if (msgs.length == 0) // boundary condition
-	    return;
+        if (msgs.length == 0) // boundary condition
+            return;
 
-	synchronized(messageCacheLock) {
-	    try {
-		IMAPProtocol ip = getProtocol();
-		assert ip instanceof GmailProtocol;
-		GmailProtocol p = (GmailProtocol)ip;
-		MessageSet[] ms = Utility.toMessageSetSorted(msgs, null);
-		if (ms == null)
-		    throw new MessageRemovedException(
-					"Messages have been removed");
-		p.storeLabels(ms, labels, set);
-	    } catch (ConnectionException cex) {
-		throw new FolderClosedException(this, cex.getMessage());
-	    } catch (ProtocolException pex) {
-		throw new MessagingException(pex.getMessage(), pex);
-	    }
-	}
+        synchronized (messageCacheLock) {
+            try {
+                IMAPProtocol ip = getProtocol();
+                assert ip instanceof GmailProtocol;
+                GmailProtocol p = (GmailProtocol) ip;
+                MessageSet[] ms = Utility.toMessageSetSorted(msgs, null);
+                if (ms == null)
+                    throw new MessageRemovedException(
+                            "Messages have been removed");
+                p.storeLabels(ms, labels, set);
+            } catch (ConnectionException cex) {
+                throw new FolderClosedException(this, cex.getMessage());
+            } catch (ProtocolException pex) {
+                throw new MessagingException(pex.getMessage(), pex);
+            }
+        }
     }
 
     /**
      * Set the specified labels for the given range of message numbers.
      *
-     * @param	start	first message number
-     * @param	end	last message number
-     * @param	labels	the labels to add or remove
-     * @param	set	true to add, false to remove
-     * @exception	MessagingException	for failures
-     * @since	JavaMail 1.5.5
+     * @param    start    first message number
+     * @param    end    last message number
+     * @param    labels    the labels to add or remove
+     * @param    set    true to add, false to remove
+     * @exception MessagingException    for failures
+     * @since JavaMail 1.5.5
      */
     public synchronized void setLabels(int start, int end,
-				String[] labels, boolean set)
-				throws MessagingException {
-	checkOpened();
-	Message[] msgs = new Message[end - start + 1];
-	int i = 0;
-	for (int n = start; n <= end; n++)
-	    msgs[i++] = getMessage(n);
-	setLabels(msgs, labels, set);
+                                       String[] labels, boolean set)
+            throws MessagingException {
+        checkOpened();
+        Message[] msgs = new Message[end - start + 1];
+        int i = 0;
+        for (int n = start; n <= end; n++)
+            msgs[i++] = getMessage(n);
+        setLabels(msgs, labels, set);
     }
 
     /**
      * Set the specified labels for the given array of message numbers.
      *
-     * @param	msgnums	the message numbers
-     * @param	labels	the labels to add or remove
-     * @param	set	true to add, false to remove
-     * @exception	MessagingException	for failures
-     * @since	JavaMail 1.5.5
+     * @param    msgnums    the message numbers
+     * @param    labels    the labels to add or remove
+     * @param    set    true to add, false to remove
+     * @exception MessagingException    for failures
+     * @since JavaMail 1.5.5
      */
     public synchronized void setLabels(int[] msgnums,
-				String[] labels, boolean set)
-				throws MessagingException {
-	checkOpened();
-	Message[] msgs = new Message[msgnums.length];
-	for (int i = 0; i < msgnums.length; i++)
-	    msgs[i] = getMessage(msgnums[i]);
-	setLabels(msgs, labels, set);
+                                       String[] labels, boolean set)
+            throws MessagingException {
+        checkOpened();
+        Message[] msgs = new Message[msgnums.length];
+        for (int i = 0; i < msgnums.length; i++)
+            msgs[i] = getMessage(msgnums[i]);
+        setLabels(msgs, labels, set);
     }
 
     /**
      * Constructor used to create a possibly non-existent folder.
      *
-     * @param fullName	fullname of this folder
-     * @param separator the default separator character for this 
-     *			folder's namespace
-     * @param store	the Store
+     * @param fullName    fullname of this folder
+     * @param separator   the default separator character for this
+     *                    folder's namespace
+     * @param store       the Store
      * @param isNamespace does this name represent a namespace?
      */
     protected GmailFolder(String fullName, char separator, IMAPStore store,
-				Boolean isNamespace) {
-	super(fullName, separator, store, isNamespace);
+                          Boolean isNamespace) {
+        super(fullName, separator, store, isNamespace);
     }
 
     /**
      * Constructor used to create an existing folder.
      *
-     * @param	li	the ListInfo for this folder
-     * @param	store	the store containing this folder
+     * @param    li    the ListInfo for this folder
+     * @param    store    the store containing this folder
      */
     protected GmailFolder(ListInfo li, IMAPStore store) {
-	super(li, store);
+        super(li, store);
     }
 
     /**
      * Create a new IMAPMessage object to represent the given message number.
      */
     protected IMAPMessage newIMAPMessage(int msgnum) {
-	return new GmailMessage(this, msgnum);
+        return new GmailMessage(this, msgnum);
     }
 }

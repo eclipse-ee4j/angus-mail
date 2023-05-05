@@ -34,6 +34,7 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -96,8 +97,8 @@ abstract class AbstractLogging {
      * Reinitialize the logging properties using the given properties.
      *
      * @param manager the log manager.
-     * @param props the properties.
-     * @throws IOException if there is a problem.
+     * @param props   the properties.
+     * @throws IOException          if there is a problem.
      * @throws NullPointerException if either argument is null.
      */
     final void read(LogManager manager, Properties props) throws IOException {
@@ -112,7 +113,7 @@ abstract class AbstractLogging {
      * 1970-01-01T00:00:00Z. Any nanosecond information is set to zero. This
      * method is used to support JDK8 when running on JDK9 or newer.
      *
-     * @param record the log record to adjust.
+     * @param record     the log record to adjust.
      * @param epochMilli the time in milliseconds from epoch.
      * @throws NullPointerException if the given record is null.
      */
@@ -125,15 +126,15 @@ abstract class AbstractLogging {
      * Sets the log record time using the seconds and nanoseconds of the epoch
      * from 1970-01-01T00:00:00Z.
      *
-     * @param record the log record.
-     * @param epochSecond the seconds.
+     * @param record         the log record.
+     * @param epochSecond    the seconds.
      * @param nanoAdjustment the nano seconds.
      * @throws ClassNotFoundException if running on pre JDK 8.
-     * @throws NoSuchMethodException if running on JDK 8.
-     * @throws Exception if there is a problem.
+     * @throws NoSuchMethodException  if running on JDK 8.
+     * @throws Exception              if there is a problem.
      */
     static void setEpochSecond(final LogRecord record, final long epochSecond,
-            final long nanoAdjustment) throws Exception {
+                               final long nanoAdjustment) throws Exception {
         final Class<?> k = Class.forName("java.time.Instant");
         Method instant = k.getMethod("ofEpochSecond", long.class, long.class);
         Method set = LogRecord.class.getMethod("setInstant", k);
@@ -171,7 +172,7 @@ abstract class AbstractLogging {
     /**
      * Fails if any declared types are outside of the logging-mailhandler.jar.
      *
-     * @param k the type to check for dependencies.
+     * @param k           the type to check for dependencies.
      * @param includeSpec if true this includes official JakartaMail spec classes.
      * @throws Exception if there is a problem.
      */
@@ -345,7 +346,7 @@ abstract class AbstractLogging {
      *
      * @param delay the number of milliseconds that have to elapse.
      * @throws IllegalArgumentException if the given delay is zero or less.
-     * @throws InterruptedException if the current thread is interrupted.
+     * @throws InterruptedException     if the current thread is interrupted.
      */
     @SuppressWarnings("SleepWhileInLoop")
     static void tickMilli(long delay) throws InterruptedException {

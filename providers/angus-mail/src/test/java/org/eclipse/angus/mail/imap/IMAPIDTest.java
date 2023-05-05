@@ -16,18 +16,17 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.Session;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
 import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
-import java.util.Map;
 
-import jakarta.mail.Session;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.rules.Timeout;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -54,16 +53,16 @@ public final class IMAPIDTest {
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
-            final IMAPStore store = (IMAPStore)session.getStore("imap");
+            final IMAPStore store = (IMAPStore) session.getStore("imap");
             try {
                 store.connect("test", "test");
-		Map<String,String> id = store.id(null);
-		assertEquals("true", id.get("test"));
+                Map<String, String> id = store.id(null);
+                assertEquals("true", id.get("test"));
 
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		ex.printStackTrace();
-		fail(ex.toString());
+            } catch (Exception ex) {
+                System.out.println(ex);
+                ex.printStackTrace();
+                fail(ex.toString());
             } finally {
                 store.close();
             }
@@ -82,14 +81,14 @@ public final class IMAPIDTest {
      */
     private static final class IMAPHandlerID extends IMAPHandler {
 
-	@Override
+        @Override
         public void id(String line) throws IOException {
-	    StringTokenizer st = new StringTokenizer(line);
-	    String tag = st.nextToken();
-	    String cmd = st.nextToken();
-	    String arg = st.nextToken();
-	    untagged("ID (\"test\" \"" + arg.equals("NIL") + "\")");
-	    ok();
-	}
+            StringTokenizer st = new StringTokenizer(line);
+            String tag = st.nextToken();
+            String cmd = st.nextToken();
+            String arg = st.nextToken();
+            untagged("ID (\"test\" \"" + arg.equals("NIL") + "\")");
+            ok();
+        }
     }
 }

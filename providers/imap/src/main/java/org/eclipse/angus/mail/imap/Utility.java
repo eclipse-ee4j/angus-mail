@@ -16,178 +16,179 @@
 
 package org.eclipse.angus.mail.imap;
 
-import java.util.Arrays;
-import java.util.Comparator;
-
-import jakarta.mail.*;
-
+import jakarta.mail.Message;
 import org.eclipse.angus.mail.imap.protocol.MessageSet;
 import org.eclipse.angus.mail.imap.protocol.UIDSet;
+
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 /**
  * Holder for some static utility methods.
  *
- * @author  John Mani
- * @author  Bill Shannon
+ * @author John Mani
+ * @author Bill Shannon
  */
 
 public final class Utility {
 
     // Cannot be initialized
-    private Utility() { }
+    private Utility() {
+    }
 
     /**
      * Run thru the given array of messages, apply the given
-     * Condition on each message and generate sets of contiguous 
-     * sequence-numbers for the successful messages. If a message 
+     * Condition on each message and generate sets of contiguous
+     * sequence-numbers for the successful messages. If a message
      * in the given array is found to be expunged, it is ignored.
      *
      * ASSERT: Since this method uses and returns message sequence
      * numbers, you should use this method only when holding the
      * messageCacheLock.
      *
-     * @param	msgs	the messages
-     * @param	cond	the condition to check
-     * @return		the MessageSet array
+     * @param    msgs    the messages
+     * @param    cond    the condition to check
+     * @return the MessageSet array
      */
     public static MessageSet[] toMessageSet(Message[] msgs, Condition cond) {
-	List<MessageSet> v = new ArrayList<>(1);
-	int current, next;
+        List<MessageSet> v = new ArrayList<>(1);
+        int current, next;
 
-	IMAPMessage msg;
-	for (int i = 0; i < msgs.length; i++) {
-	    msg = (IMAPMessage)msgs[i];
-	    if (msg.isExpunged()) // expunged message, skip it
-		continue;
+        IMAPMessage msg;
+        for (int i = 0; i < msgs.length; i++) {
+            msg = (IMAPMessage) msgs[i];
+            if (msg.isExpunged()) // expunged message, skip it
+                continue;
 
-	    current = msg.getSequenceNumber();
-	    // Apply the condition. If it fails, skip it.
-	    if ((cond != null) && !cond.test(msg))
-		continue;
-	    
-	    MessageSet set = new MessageSet();
-	    set.start = current;
+            current = msg.getSequenceNumber();
+            // Apply the condition. If it fails, skip it.
+            if ((cond != null) && !cond.test(msg))
+                continue;
 
-	    // Look for contiguous sequence numbers
-	    for (++i; i < msgs.length; i++) {
-		// get next message
-		msg = (IMAPMessage)msgs[i];
+            MessageSet set = new MessageSet();
+            set.start = current;
 
-		if (msg.isExpunged()) // expunged message, skip it
-		    continue;
-		next = msg.getSequenceNumber();
+            // Look for contiguous sequence numbers
+            for (++i; i < msgs.length; i++) {
+                // get next message
+                msg = (IMAPMessage) msgs[i];
 
-		// Does this message match our condition ?
-		if ((cond != null) && !cond.test(msg))
-		    continue;
-		
-		if (next == current+1)
-		    current = next;
-		else { // break in sequence
-		    // We need to reexamine this message at the top of
-		    // the outer loop, so decrement 'i' to cancel the
-		    // outer loop's autoincrement 
-		    i--;
-		    break;
-		}
-	    }
-	    set.end = current;
-	    v.add(set);
-	}
-	
-	if (v.isEmpty()) // No valid messages
-	    return null;
-	else {
-	    return v.toArray(new MessageSet[v.size()]);
-	}
+                if (msg.isExpunged()) // expunged message, skip it
+                    continue;
+                next = msg.getSequenceNumber();
+
+                // Does this message match our condition ?
+                if ((cond != null) && !cond.test(msg))
+                    continue;
+
+                if (next == current + 1)
+                    current = next;
+                else { // break in sequence
+                    // We need to reexamine this message at the top of
+                    // the outer loop, so decrement 'i' to cancel the
+                    // outer loop's autoincrement
+                    i--;
+                    break;
+                }
+            }
+            set.end = current;
+            v.add(set);
+        }
+
+        if (v.isEmpty()) // No valid messages
+            return null;
+        else {
+            return v.toArray(new MessageSet[v.size()]);
+        }
     }
+
     /**
      * Sort (a copy of) the given array of messages and then
      * run thru the sorted array of messages, apply the given
-     * Condition on each message and generate sets of contiguous 
-     * sequence-numbers for the successful messages. If a message 
+     * Condition on each message and generate sets of contiguous
+     * sequence-numbers for the successful messages. If a message
      * in the given array is found to be expunged, it is ignored.
      *
      * ASSERT: Since this method uses and returns message sequence
      * numbers, you should use this method only when holding the
      * messageCacheLock.
      *
-     * @param	msgs	the messages
-     * @param	cond	the condition to check
-     * @return		the MessageSet array
+     * @param    msgs    the messages
+     * @param    cond    the condition to check
+     * @return the MessageSet array
      * @since JavaMail 1.5.4
      */
     public static MessageSet[] toMessageSetSorted(Message[] msgs,
-							    Condition cond) {
-	/*
-	 * XXX - This is quick and dirty.  A more efficient strategy would be
-	 * to generate an array of message numbers by applying the condition
-	 * (with zero indicating the message doesn't satisfy the condition),
-	 * sort it, and then convert it to a MessageSet skipping all the zeroes.
-	 */
-	msgs = msgs.clone();
-	Arrays.sort(msgs,
-	    new Comparator<Message>() {
-		@Override
-		public int compare(Message msg1, Message msg2) {
-		    return msg1.getMessageNumber() - msg2.getMessageNumber();
-		}
-	    });
-	return toMessageSet(msgs, cond);
+                                                  Condition cond) {
+        /*
+         * XXX - This is quick and dirty.  A more efficient strategy would be
+         * to generate an array of message numbers by applying the condition
+         * (with zero indicating the message doesn't satisfy the condition),
+         * sort it, and then convert it to a MessageSet skipping all the zeroes.
+         */
+        msgs = msgs.clone();
+        Arrays.sort(msgs,
+                new Comparator<Message>() {
+                    @Override
+                    public int compare(Message msg1, Message msg2) {
+                        return msg1.getMessageNumber() - msg2.getMessageNumber();
+                    }
+                });
+        return toMessageSet(msgs, cond);
     }
 
     /**
      * Return UIDSets for the messages.  Note that the UIDs
      * must have already been fetched for the messages.
      *
-     * @param	msgs	the messages
-     * @return		the UIDSet array
+     * @param    msgs    the messages
+     * @return the UIDSet array
      */
     public static UIDSet[] toUIDSet(Message[] msgs) {
-	List<UIDSet> v = new ArrayList<>(1);
-	long current, next;
+        List<UIDSet> v = new ArrayList<>(1);
+        long current, next;
 
-	IMAPMessage msg;
-	for (int i = 0; i < msgs.length; i++) {
-	    msg = (IMAPMessage)msgs[i];
-	    if (msg.isExpunged()) // expunged message, skip it
-		continue;
+        IMAPMessage msg;
+        for (int i = 0; i < msgs.length; i++) {
+            msg = (IMAPMessage) msgs[i];
+            if (msg.isExpunged()) // expunged message, skip it
+                continue;
 
-	    current = msg.getUID();
- 
-	    UIDSet set = new UIDSet();
-	    set.start = current;
+            current = msg.getUID();
 
-	    // Look for contiguous UIDs
-	    for (++i; i < msgs.length; i++) {
-		// get next message
-		msg = (IMAPMessage)msgs[i];
+            UIDSet set = new UIDSet();
+            set.start = current;
 
-		if (msg.isExpunged()) // expunged message, skip it
-		    continue;
-		next = msg.getUID();
+            // Look for contiguous UIDs
+            for (++i; i < msgs.length; i++) {
+                // get next message
+                msg = (IMAPMessage) msgs[i];
 
-		if (next == current+1)
-		    current = next;
-		else { // break in sequence
-		    // We need to reexamine this message at the top of
-		    // the outer loop, so decrement 'i' to cancel the
-		    // outer loop's autoincrement 
-		    i--;
-		    break;
-		}
-	    }
-	    set.end = current;
-	    v.add(set);
-	}
+                if (msg.isExpunged()) // expunged message, skip it
+                    continue;
+                next = msg.getUID();
 
-	if (v.isEmpty()) // No valid messages
-	    return null;
-	else {
-	    return v.toArray(new UIDSet[v.size()]);
-	}
+                if (next == current + 1)
+                    current = next;
+                else { // break in sequence
+                    // We need to reexamine this message at the top of
+                    // the outer loop, so decrement 'i' to cancel the
+                    // outer loop's autoincrement
+                    i--;
+                    break;
+                }
+            }
+            set.end = current;
+            v.add(set);
+        }
+
+        if (v.isEmpty()) // No valid messages
+            return null;
+        else {
+            return v.toArray(new UIDSet[v.size()]);
+        }
     }
 
     /**
@@ -196,19 +197,19 @@ public final class Utility {
      * is not included in the public javadocs, thus "hiding"
      * this method.
      *
-     * @param	rd	the ResyncData
-     * @return		the UIDSet array
-     * @since	JavaMail 1.5.1
+     * @param    rd    the ResyncData
+     * @return the UIDSet array
+     * @since JavaMail 1.5.1
      */
     public static UIDSet[] getResyncUIDSet(ResyncData rd) {
-	return rd.getUIDSet();
+        return rd.getUIDSet();
     }
 
     /**
-     * This interface defines the test to be executed in 
-     * <code>toMessageSet()</code>. 
+     * This interface defines the test to be executed in
+     * <code>toMessageSet()</code>.
      */
     public static interface Condition {
-	public boolean test(IMAPMessage message);
+        public boolean test(IMAPMessage message);
     }
 }

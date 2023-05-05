@@ -16,13 +16,13 @@
 
 package org.eclipse.angus.mail.imap;
 
+import org.eclipse.angus.mail.test.ProtocolHandler;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
-
-import org.eclipse.angus.mail.test.ProtocolHandler;
 
 /**
  * Handle IMAP connection.
@@ -31,19 +31,29 @@ import org.eclipse.angus.mail.test.ProtocolHandler;
  */
 public class IMAPHandler extends ProtocolHandler {
 
-    /** Current line. */
+    /**
+     * Current line.
+     */
     private String currentLine;
 
-    /** Tag for current command */
+    /**
+     * Tag for current command
+     */
     protected String tag;
 
-    /** IMAP capabilities supported */
+    /**
+     * IMAP capabilities supported
+     */
     protected String capabilities = "IMAP4REV1 IDLE ID";
 
-    /** Number of messages */
+    /**
+     * Number of messages
+     */
     protected int numberOfMessages = 0;
 
-    /** Number of recent messages */
+    /**
+     * Number of recent messages
+     */
     protected int numberOfRecentMessages = 0;
 
     /**
@@ -64,7 +74,7 @@ public class IMAPHandler extends ProtocolHandler {
      */
     public void println(final String str) throws IOException {
         writer.print(str);
-	writer.print("\r\n");
+        writer.print("\r\n");
         writer.flush();
     }
 
@@ -75,7 +85,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void tagged(final String resp) throws IOException {
-	println(tag + " " + resp);
+        println(tag + " " + resp);
     }
 
     /**
@@ -85,7 +95,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void untagged(final String resp) throws IOException {
-	println("* " + resp);
+        println("* " + resp);
     }
 
     /**
@@ -94,7 +104,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void ok() throws IOException {
-	tagged("OK");
+        tagged("OK");
     }
 
     /**
@@ -104,7 +114,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void ok(final String msg) throws IOException {
-	tagged("OK " + (msg != null ? msg : ""));
+        tagged("OK " + (msg != null ? msg : ""));
     }
 
     /**
@@ -114,7 +124,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void no(final String msg) throws IOException {
-	tagged("NO " + (msg != null ? msg : ""));
+        tagged("NO " + (msg != null ? msg : ""));
     }
 
     /**
@@ -124,7 +134,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void bad(final String msg) throws IOException {
-	tagged("BAD " + (msg != null ? msg : ""));
+        tagged("BAD " + (msg != null ? msg : ""));
     }
 
     /**
@@ -134,8 +144,8 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void bye(final String msg) throws IOException {
-	untagged("BYE " + (msg != null ? msg : ""));
-	exit();
+        untagged("BYE " + (msg != null ? msg : ""));
+        exit();
     }
 
     /**
@@ -144,7 +154,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void cont() throws IOException {
-	println("+ please continue");
+        println("+ please continue");
     }
 
     /**
@@ -153,7 +163,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void cont(String msg) throws IOException {
-	println("+ " + (msg != null ? msg : ""));
+        println("+ " + (msg != null ? msg : ""));
     }
 
     /**
@@ -166,26 +176,26 @@ public class IMAPHandler extends ProtocolHandler {
         currentLine = super.readLine();
 
         if (currentLine == null) {
-	    // probably just EOF because the socket was closed
+            // probably just EOF because the socket was closed
             //LOGGER.severe("Current line is null!");
             exit();
             return;
         }
 
         StringTokenizer ct = new StringTokenizer(currentLine, " ");
-	if (!ct.hasMoreTokens()) {
+        if (!ct.hasMoreTokens()) {
             LOGGER.log(Level.SEVERE, "ERROR no command tag: {0}",
-							escape(currentLine));
+                    escape(currentLine));
             bad("no command tag");
-	    return;
-	}
-	tag = ct.nextToken();
-	if (!ct.hasMoreTokens()) {
+            return;
+        }
+        tag = ct.nextToken();
+        if (!ct.hasMoreTokens()) {
             LOGGER.log(Level.SEVERE, "ERROR no command: {0}",
-							escape(currentLine));
+                    escape(currentLine));
             bad("no command");
-	    return;
-	}
+            return;
+        }
         final String commandName = ct.nextToken().toUpperCase();
         if (commandName == null) {
             LOGGER.severe("Command name is empty!");
@@ -196,10 +206,10 @@ public class IMAPHandler extends ProtocolHandler {
         if (commandName.equals("LOGIN")) {
             login();
         } else if (commandName.equals("AUTHENTICATE")) {
-	    String mech = ct.nextToken().toUpperCase();
-	    String ir = null;
-	    if (ct.hasMoreTokens())
-	    	ir = ct.nextToken();
+            String mech = ct.nextToken().toUpperCase();
+            String ir = null;
+            if (ct.hasMoreTokens())
+                ir = ct.nextToken();
             authenticate(mech, ir);
         } else if (commandName.equals("CAPABILITY")) {
             capability();
@@ -226,18 +236,18 @@ public class IMAPHandler extends ProtocolHandler {
         } else if (commandName.equals("LOGOUT")) {
             logout();
         } else if (commandName.equals("UID")) {
-	    String subcommandName = ct.nextToken().toUpperCase();
-	    if (subcommandName.equals("FETCH")) {
-		uidfetch(currentLine);
-	    } else if (subcommandName.equals("STORE")) {
-		uidstore(currentLine);
-	    } else {
-		LOGGER.log(Level.SEVERE, "ERROR UID command unknown: {0}",
-								subcommandName);
-		bad("unknown UID command");
-	    }
+            String subcommandName = ct.nextToken().toUpperCase();
+            if (subcommandName.equals("FETCH")) {
+                uidfetch(currentLine);
+            } else if (subcommandName.equals("STORE")) {
+                uidstore(currentLine);
+            } else {
+                LOGGER.log(Level.SEVERE, "ERROR UID command unknown: {0}",
+                        subcommandName);
+                bad("unknown UID command");
+            }
         } else if (commandName.equals("ID")) {
-	    id(currentLine);
+            id(currentLine);
         } else if (commandName.equals("ENABLE")) {
             enable(currentLine);
         } else if (commandName.equals("CREATE")) {
@@ -250,7 +260,7 @@ public class IMAPHandler extends ProtocolHandler {
             namespace();
         } else {
             LOGGER.log(Level.SEVERE, "ERROR command unknown: {0}",
-							escape(currentLine));
+                    escape(currentLine));
             bad("unknown command");
         }
     }
@@ -270,12 +280,12 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void authenticate(String mech, String ir) throws IOException {
-	if (mech.equals("LOGIN"))
-	    authlogin(ir);
-	else if (mech.equals("PLAIN"))
-	    authplain(ir);
-	else
-	    bad("AUTHENTICATE not supported");
+        if (mech.equals("LOGIN"))
+            authlogin(ir);
+        else if (mech.equals("PLAIN"))
+            authplain(ir);
+        else
+            bad("AUTHENTICATE not supported");
     }
 
     /**
@@ -284,12 +294,12 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void authlogin(String ir) throws IOException {
-	if (ir != null)
-	    bad("AUTHENTICATE LOGIN does not support initial response");
-	cont(base64encode("Username"));
-	String username = readLine();
-	cont(base64encode("Password"));
-	String password = readLine();
+        if (ir != null)
+            bad("AUTHENTICATE LOGIN does not support initial response");
+        cont(base64encode("Username"));
+        String username = readLine();
+        cont(base64encode("Password"));
+        String password = readLine();
         ok("[CAPABILITY " + capabilities + "]");
     }
 
@@ -299,10 +309,10 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void authplain(String ir) throws IOException {
-	if (ir == null) {
-	    cont("");
-	    String resp = readLine();
-	}
+        if (ir == null) {
+            cont("");
+            String resp = readLine();
+        }
         ok("[CAPABILITY " + capabilities + "]");
     }
 
@@ -312,7 +322,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void capability() throws IOException {
-	untagged("CAPABILITY " + capabilities);
+        untagged("CAPABILITY " + capabilities);
         ok();
     }
 
@@ -322,8 +332,8 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void select(String line) throws IOException {
-	untagged(numberOfMessages + " EXISTS");
-	untagged(numberOfRecentMessages + " RECENT");
+        untagged(numberOfMessages + " EXISTS");
+        untagged(numberOfRecentMessages + " RECENT");
         ok();
     }
 
@@ -333,8 +343,8 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void examine(String line) throws IOException {
-	untagged(numberOfMessages + " EXISTS");
-	untagged(numberOfRecentMessages + " RECENT");
+        untagged(numberOfMessages + " EXISTS");
+        untagged(numberOfRecentMessages + " RECENT");
         ok();
     }
 
@@ -354,8 +364,8 @@ public class IMAPHandler extends ProtocolHandler {
      */
     public void idle() throws IOException {
         cont();
-	idleWait();
-	ok();
+        idleWait();
+        ok();
     }
 
     @Override
@@ -365,7 +375,7 @@ public class IMAPHandler extends ProtocolHandler {
             LOGGER.severe("Current line is null!");
             exit();
         }
-	return currentLine;
+        return currentLine;
     }
 
     protected void idleWait() throws IOException {
@@ -384,7 +394,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void fetch(String line) throws IOException {
-        ok();	// XXX
+        ok();    // XXX
     }
 
     /**
@@ -393,7 +403,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void store(String line) throws IOException {
-        ok();	// XXX
+        ok();    // XXX
     }
 
     /**
@@ -402,8 +412,8 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void search(String line) throws IOException {
-	untagged("SEARCH");
-        ok();	// XXX
+        untagged("SEARCH");
+        ok();    // XXX
     }
 
     /**
@@ -412,7 +422,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void uidfetch(String line) throws IOException {
-        ok();	// XXX
+        ok();    // XXX
     }
 
     /**
@@ -421,7 +431,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void uidstore(String line) throws IOException {
-        ok();	// XXX
+        ok();    // XXX
     }
 
     /**
@@ -430,12 +440,12 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void append(String line) throws IOException {
-	int left = line.lastIndexOf('{');
-	int right = line.indexOf('}', left);
-	int bytes = Integer.parseInt(line.substring(left + 1, right));
-	cont("waiting for message");
-	collectMessage(bytes);
-        ok();	// XXX
+        int left = line.lastIndexOf('{');
+        int right = line.indexOf('}', left);
+        int bytes = Integer.parseInt(line.substring(left + 1, right));
+        cont("waiting for message");
+        collectMessage(bytes);
+        ok();    // XXX
     }
 
     /**
@@ -444,7 +454,7 @@ public class IMAPHandler extends ProtocolHandler {
      * @throws IOException unable to read/write to socket
      */
     public void id(String line) throws IOException {
-	untagged("ID NIL");
+        untagged("ID NIL");
         ok();
     }
 
@@ -497,24 +507,24 @@ public class IMAPHandler extends ProtocolHandler {
      * Collect "bytes" worth of data for the message being appended.
      */
     protected void collectMessage(int bytes) throws IOException {
-	readLiteral(bytes);	// read the data and throw it away
-	super.readLine();	// data followed by a newline
+        readLiteral(bytes);    // read the data and throw it away
+        super.readLine();    // data followed by a newline
     }
 
     /**
      * Read a literal of "bytes" bytes and return it as a UTF-8 string.
      */
     protected String readLiteral(int bytes) throws IOException {
-	println("+");
-	byte[] data = new byte[bytes];
-	int len = data.length;
-	int off = 0;
-	int n;
-	while (len > 0 && (n = in.read(data, off, len)) > 0) {
-	    off += n;
-	    len -= n;
-	}
-	return new String(data, StandardCharsets.UTF_8);
+        println("+");
+        byte[] data = new byte[bytes];
+        int len = data.length;
+        int off = 0;
+        int n;
+        while (len > 0 && (n = in.read(data, off, len)) > 0) {
+            off += n;
+            len -= n;
+        }
+        return new String(data, StandardCharsets.UTF_8);
     }
 
     /**
@@ -549,8 +559,8 @@ public class IMAPHandler extends ProtocolHandler {
      * Base64 encode the string.
      */
     protected String base64encode(String s) throws IOException {
-	return new String(Base64.getEncoder().encode(s.getBytes("US-ASCII")),
-			"US-ASCII");
+        return new String(Base64.getEncoder().encode(s.getBytes("US-ASCII")),
+                "US-ASCII");
     }
 
     /**
@@ -558,27 +568,27 @@ public class IMAPHandler extends ProtocolHandler {
      * limiting total length to about 100 characters.
      */
     private String escape(String s) {
-	StringBuilder sb = new StringBuilder();
-	for (int i = 0; i < s.length(); i++) {
-	    if (sb.length() >= 100) {
-		sb.append("...");
-		break;
-	    }
-	    char c = s.charAt(i);
-	    if (c < ' ' || c == '\177') {
-		if (c == '\r')
-		    sb.append("\\r");
-		else if (c == '\n')
-		    sb.append("\\n");
-		else if (c == '\t')
-		    sb.append("\\t");
-		else
-		    sb.append('\\').append(String.format("%03o", (int)c));
-	    } else if (c >= '\200') {
-		    sb.append("\\u").append(String.format("%04x", (int)c));
-	    } else
-		sb.append(c);
-	}
-	return sb.toString();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            if (sb.length() >= 100) {
+                sb.append("...");
+                break;
+            }
+            char c = s.charAt(i);
+            if (c < ' ' || c == '\177') {
+                if (c == '\r')
+                    sb.append("\\r");
+                else if (c == '\n')
+                    sb.append("\\n");
+                else if (c == '\t')
+                    sb.append("\\t");
+                else
+                    sb.append('\\').append(String.format("%03o", (int) c));
+            } else if (c >= '\200') {
+                sb.append("\\u").append(String.format("%04x", (int) c));
+            } else
+                sb.append(c);
+        }
+        return sb.toString();
     }
 }

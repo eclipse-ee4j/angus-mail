@@ -16,10 +16,13 @@
 
 package org.eclipse.angus.mail.dsn;
 
-import java.io.*;
-//import java.util.Properties;
-import jakarta.activation.*;
-import jakarta.mail.*;
+import jakarta.activation.ActivationDataFlavor;
+import jakarta.activation.DataContentHandler;
+import jakarta.activation.DataSource;
+import jakarta.mail.MessagingException;
+
+import java.io.IOException;
+import java.io.OutputStream;
 //import jakarta.mail.internet.*;
 
 
@@ -28,14 +31,14 @@ import jakarta.mail.*;
  * Applications should not use this class directly, it's used indirectly
  * through the JavaBeans Activation Framework.
  *
- * @since	JavaMail 1.4.2
+ * @since JavaMail 1.4.2
  */
 public class message_dispositionnotification implements DataContentHandler {
 
     ActivationDataFlavor ourDataFlavor = new ActivationDataFlavor(
-	DispositionNotification.class,
-	"message/disposition-notification",
-	"Disposition Notification");
+            DispositionNotification.class,
+            "message/disposition-notification",
+            "Disposition Notification");
 
     /**
      * Creates a default {@code message_dispositionnotification}.
@@ -45,33 +48,35 @@ public class message_dispositionnotification implements DataContentHandler {
 
     /**
      * return the ActivationDataFlavors for this <code>DataContentHandler</code>
+     *
      * @return The ActivationDataFlavors.
      */
     public ActivationDataFlavor[] getTransferDataFlavors() {
-	return new ActivationDataFlavor[] { ourDataFlavor };
+        return new ActivationDataFlavor[]{ourDataFlavor};
     }
 
     /**
      * return the Transfer Data of type ActivationDataFlavor from InputStream
+     *
      * @param df The ActivationDataFlavor.
      * @param ds The DataSource corresponding to the data.
      * @return a Message object
      */
     public Object getTransferData(ActivationDataFlavor df, DataSource ds)
-				throws IOException {
-	// make sure we can handle this ActivationDataFlavor
-	if (ourDataFlavor.equals(df))
-	    return getContent(ds);
-	else
-	    return null;
+            throws IOException {
+        // make sure we can handle this ActivationDataFlavor
+        if (ourDataFlavor.equals(df))
+            return getContent(ds);
+        else
+            return null;
     }
 
     /**
      * Return the content.
      */
     public Object getContent(DataSource ds) throws IOException {
-	// create a new DispositionNotification
-	try {
+        // create a new DispositionNotification
+        try {
 	    /*
 	    Session session;
 	    if (ds instanceof MessageAware) {
@@ -87,25 +92,26 @@ public class message_dispositionnotification implements DataContentHandler {
 	    }
 	    return new DispositionNotification(session, ds.getInputStream());
 	    */
-	    return new DispositionNotification(ds.getInputStream());
-	} catch (MessagingException me) {
-	    throw new IOException(
-		    "Exception creating DispositionNotification in " +
-		    "message/disposition-notification DataContentHandler: " +
-		    me.toString());
-	}
+            return new DispositionNotification(ds.getInputStream());
+        } catch (MessagingException me) {
+            throw new IOException(
+                    "Exception creating DispositionNotification in " +
+                            "message/disposition-notification DataContentHandler: " +
+                            me.toString());
+        }
     }
 
     /**
+     *
      */
     public void writeTo(Object obj, String mimeType, OutputStream os)
-			throws IOException {
-	// if it's a DispositionNotification, we know how to write that out
-	if (obj instanceof DispositionNotification) {
-	    DispositionNotification dn = (DispositionNotification)obj;
-	    dn.writeTo(os);
-	} else {
-	    throw new IOException("unsupported object");
-	}
+            throws IOException {
+        // if it's a DispositionNotification, we know how to write that out
+        if (obj instanceof DispositionNotification) {
+            DispositionNotification dn = (DispositionNotification) obj;
+            dn.writeTo(os);
+        } else {
+            throw new IOException("unsupported object");
+        }
     }
 }

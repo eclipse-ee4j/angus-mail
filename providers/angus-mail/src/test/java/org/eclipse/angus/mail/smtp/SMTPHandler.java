@@ -16,13 +16,16 @@
 
 package org.eclipse.angus.mail.smtp;
 
-import java.io.*;
-import java.util.StringTokenizer;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.logging.Level;
-
 import org.eclipse.angus.mail.test.ProtocolHandler;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.logging.Level;
 
 /**
  * Handle connection.
@@ -31,20 +34,25 @@ import org.eclipse.angus.mail.test.ProtocolHandler;
  */
 public class SMTPHandler extends ProtocolHandler {
 
-    /** Current line. */
+    /**
+     * Current line.
+     */
     private String currentLine;
 
-    /** A message being accumulated. */
+    /**
+     * A message being accumulated.
+     */
     private ByteArrayOutputStream messageStream;
 
-    /** SMTP extensions supported. */
+    /**
+     * SMTP extensions supported.
+     */
     protected Set<String> extensions = new HashSet<String>();
 
     /**
      * Send greetings.
      *
-     * @throws IOException
-     *             unable to write to socket
+     * @throws IOException unable to write to socket
      */
     @Override
     public void sendGreetings() throws IOException {
@@ -54,22 +62,19 @@ public class SMTPHandler extends ProtocolHandler {
     /**
      * Send String to socket.
      *
-     * @param str
-     *            String to send
-     * @throws IOException
-     *             unable to write to socket
+     * @param str String to send
+     * @throws IOException unable to write to socket
      */
     public void println(final String str) throws IOException {
         writer.print(str);
-	writer.print("\r\n");
+        writer.print("\r\n");
         writer.flush();
     }
 
     /**
      * Handle command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     @Override
     public void handleCommand() throws IOException {
@@ -116,18 +121,17 @@ public class SMTPHandler extends ProtocolHandler {
         currentLine = super.readLine();
 
         if (currentLine == null) {
-	    // XXX - often happens when shutting down
+            // XXX - often happens when shutting down
             //LOGGER.severe("Current line is null!");
             exit();
         }
-	return currentLine;
+        return currentLine;
     }
 
     /**
      * HELO command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void helo() throws IOException {
         println("220 Ok");
@@ -136,62 +140,57 @@ public class SMTPHandler extends ProtocolHandler {
     /**
      * EHLO command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void ehlo() throws IOException {
         println("250-hello");
-	for (String ext : extensions)
-	    println("250-" + ext);
-        println("250 AUTH PLAIN");	// PLAIN is simplest to fake
+        for (String ext : extensions)
+            println("250-" + ext);
+        println("250 AUTH PLAIN");    // PLAIN is simplest to fake
     }
 
     /**
      * MAIL command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void mail(String line) throws IOException {
-	ok();
+        ok();
     }
 
     /**
      * RCPT command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void rcpt(String line) throws IOException {
-	ok();
+        ok();
     }
 
     /**
      * DATA command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void data() throws IOException {
         println("354 go ahead");
-	readMessage();
-	ok();
+        readMessage();
+        ok();
     }
 
     /**
      * BDAT command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void bdat(String line) throws IOException {
         StringTokenizer st = new StringTokenizer(line, " ");
         String commandName = st.nextToken();
-	int bytes = Integer.parseInt(st.nextToken());
-	boolean last = st.hasMoreTokens() &&
-			st.nextToken().equalsIgnoreCase("LAST");
-	readBdatMessage(bytes, last);
-	ok();
+        int bytes = Integer.parseInt(st.nextToken());
+        boolean last = st.hasMoreTokens() &&
+                st.nextToken().equalsIgnoreCase("LAST");
+        readBdatMessage(bytes, last);
+        ok();
     }
 
     /**
@@ -204,19 +203,19 @@ public class SMTPHandler extends ProtocolHandler {
      * Consume the message and save it.
      */
     protected void readMessage() throws IOException {
-	ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	PrintWriter pw = new PrintWriter(new OutputStreamWriter(bos, "utf-8"));
-	String line;
-	while ((line = super.readLine()) != null) {
-	    if (line.equals("."))
-		break;
-	    if (line.startsWith("."))
-		line = line.substring(1);
-	    pw.print(line);
-	    pw.print("\r\n");
-	}
-	pw.close();
-	setMessage(bos.toByteArray());
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        PrintWriter pw = new PrintWriter(new OutputStreamWriter(bos, "utf-8"));
+        String line;
+        while ((line = super.readLine()) != null) {
+            if (line.equals("."))
+                break;
+            if (line.startsWith("."))
+                line = line.substring(1);
+            pw.print(line);
+            pw.print("\r\n");
+        }
+        pw.close();
+        setMessage(bos.toByteArray());
     }
 
     /**
@@ -224,28 +223,27 @@ public class SMTPHandler extends ProtocolHandler {
      * Save the entire message when the last chunk is received.
      */
     protected void readBdatMessage(int bytes, boolean last) throws IOException {
-	byte[] data = new byte[bytes];
-	int len = data.length;
-	int off = 0;
-	int n;
-	while (len > 0 && (n = in.read(data, off, len)) > 0) {
-	    off += n;
-	    len -= n;
-	}
-	if (messageStream == null)
-	    messageStream = new ByteArrayOutputStream();
-	messageStream.write(data);
-	if (last) {
-	    setMessage(messageStream.toByteArray());
-	    messageStream = null;
-	}
+        byte[] data = new byte[bytes];
+        int len = data.length;
+        int off = 0;
+        int n;
+        while (len > 0 && (n = in.read(data, off, len)) > 0) {
+            off += n;
+            len -= n;
+        }
+        if (messageStream == null)
+            messageStream = new ByteArrayOutputStream();
+        messageStream.write(data);
+        if (last) {
+            setMessage(messageStream.toByteArray());
+            messageStream = null;
+        }
     }
 
     /**
      * NOOP command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void noop() throws IOException {
         ok();
@@ -254,8 +252,7 @@ public class SMTPHandler extends ProtocolHandler {
     /**
      * RSET command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void rset() throws IOException {
         ok();
@@ -264,8 +261,7 @@ public class SMTPHandler extends ProtocolHandler {
     /**
      * QUIT command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void quit() throws IOException {
         println("221 BYE");
@@ -275,14 +271,13 @@ public class SMTPHandler extends ProtocolHandler {
     /**
      * AUTH command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void auth(String line) throws IOException {
         println("235 Authorized");
     }
 
     protected void ok() throws IOException {
-	println("250 OK");
+        println("250 OK");
     }
 }

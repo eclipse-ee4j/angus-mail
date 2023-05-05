@@ -29,45 +29,45 @@ public class ProtocolException extends Exception {
      * Constructs a ProtocolException with no detail message.
      */
     public ProtocolException() {
-	super();
+        super();
     }
 
     /**
      * Constructs a ProtocolException with the specified detail message.
      *
-     * @param message		the detail message
+     * @param message the detail message
      */
     public ProtocolException(String message) {
-	super(message);
+        super(message);
     }
 
     /**
      * Constructs a ProtocolException with the specified detail message
      * and cause.
      *
-     * @param message		the detail message
-     * @param cause		the cause
+     * @param message the detail message
+     * @param cause   the cause
      */
     public ProtocolException(String message, Throwable cause) {
-	super(message, cause);
+        super(message, cause);
     }
 
     /**
      * Constructs a ProtocolException with the specified Response object.
      *
-     * @param	r	the Response
+     * @param    r    the Response
      */
     public ProtocolException(Response r) {
-	super(r.toString());
-	response = r;
+        super(r.toString());
+        response = r;
     }
 
     /**
      * Return the offending Response object.
      *
-     * @return	the Response object
+     * @return the Response object
      */
     public Response getResponse() {
-	return response;
+        return response;
     }
 }

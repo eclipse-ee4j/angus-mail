@@ -16,20 +16,6 @@
 
 package org.eclipse.angus.mail.util;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.Properties;
-
-import org.eclipse.angus.mail.test.AsciiStringInputStream;
-import org.junit.Test;
-
 import jakarta.activation.DataHandler;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
@@ -37,17 +23,30 @@ import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.util.StreamProvider.EncoderTypes;
+import org.eclipse.angus.mail.test.AsciiStringInputStream;
+import org.junit.Test;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Properties;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test the MimeBodyPart class.
  */
 public class MimeBodyPartTest {
- 
-    private static String[] languages = new String[] {
-	    "language1", "language2", "language3", "language4", "language5",
-	    "language6", "language7", "language8", "language9", "language10",
-	    "language11", "language12", "language13", "language14", "language15"
-	};
+
+    private static String[] languages = new String[]{
+            "language1", "language2", "language3", "language4", "language5",
+            "language6", "language7", "language8", "language9", "language10",
+            "language11", "language12", "language13", "language14", "language15"
+    };
 
     /**
      * Test that the Content-Language header is properly folded
@@ -55,13 +54,13 @@ public class MimeBodyPartTest {
      */
     @Test
     public void testContentLanguageFold() throws Exception {
-	MimeBodyPart mbp = new MimeBodyPart();
-	mbp.setContentLanguage(languages);
-	String header = mbp.getHeader("Content-Language", ",");
-	assertTrue(header.indexOf("\r\n") > 0);
+        MimeBodyPart mbp = new MimeBodyPart();
+        mbp.setContentLanguage(languages);
+        String header = mbp.getHeader("Content-Language", ",");
+        assertTrue(header.indexOf("\r\n") > 0);
 
-	String[] langs = mbp.getContentLanguage();
-	assertArrayEquals(languages, langs);
+        String[] langs = mbp.getContentLanguage();
+        assertArrayEquals(languages, langs);
     }
 
     /**
@@ -70,26 +69,26 @@ public class MimeBodyPartTest {
      */
     @Test
     public void testCopyDataHandler() throws Exception {
-	Session s = Session.getInstance(new Properties());
-	// create a message and extract the DataHandler for a part
-	MimeMessage orig = createMessage(s);
-	MimeMultipart omp = (MimeMultipart)orig.getContent();
-	MimeBodyPart obp = (MimeBodyPart)omp.getBodyPart(0);
-	DataHandler dh = obp.getDataHandler();
-	// create a new message and use the DataHandler
-	MimeMessage msg = new MimeMessage(s);
-	MimeMultipart mp = new MimeMultipart();
-	MimeBodyPart mbp = new MimeBodyPart();
-	mbp.setDataHandler(dh);
-	mp.addBodyPart(mbp);
-	msg.setContent(mp);
-	// depend on copy constructor streaming the data
-	msg = new MimeMessage(msg);
-	mp = (MimeMultipart)msg.getContent();
-	mbp = (MimeBodyPart)mp.getBodyPart(0);
-	assertEquals("text/x-test", mbp.getContentType());
-	assertEquals(EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder(), mbp.getEncoding());
-	assertEquals("test part", getString(mbp.getInputStream()));
+        Session s = Session.getInstance(new Properties());
+        // create a message and extract the DataHandler for a part
+        MimeMessage orig = createMessage(s);
+        MimeMultipart omp = (MimeMultipart) orig.getContent();
+        MimeBodyPart obp = (MimeBodyPart) omp.getBodyPart(0);
+        DataHandler dh = obp.getDataHandler();
+        // create a new message and use the DataHandler
+        MimeMessage msg = new MimeMessage(s);
+        MimeMultipart mp = new MimeMultipart();
+        MimeBodyPart mbp = new MimeBodyPart();
+        mbp.setDataHandler(dh);
+        mp.addBodyPart(mbp);
+        msg.setContent(mp);
+        // depend on copy constructor streaming the data
+        msg = new MimeMessage(msg);
+        mp = (MimeMultipart) msg.getContent();
+        mbp = (MimeBodyPart) mp.getBodyPart(0);
+        assertEquals("text/x-test", mbp.getContentType());
+        assertEquals(EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder(), mbp.getEncoding());
+        assertEquals("test part", getString(mbp.getInputStream()));
     }
 
     /**
@@ -98,27 +97,29 @@ public class MimeBodyPartTest {
      */
     @Test
     public void testSetDataHandler() throws Exception {
-	Session s = Session.getInstance(new Properties());
-	// create a message and extract the DataHandler for a part
-	MimeMessage orig = createMessage(s);
-	MimeMultipart omp = (MimeMultipart)orig.getContent();
-	MimeBodyPart obp = (MimeBodyPart)omp.getBodyPart(0);
-	final DataHandler odh = obp.getDataHandler();
-	// create a new message and use the DataHandler
-	MimeMessage msg = new MimeMessage(s);
-	MimeMultipart mp = new MimeMultipart();
-	MimeBodyPart mbp = new MimeBodyPart() {
-		{ dh = odh; }
-	    };
-	mp.addBodyPart(mbp);
-	msg.setContent(mp);
-	// depend on copy constructor streaming the data
-	msg = new MimeMessage(msg);
-	mp = (MimeMultipart)msg.getContent();
-	mbp = (MimeBodyPart)mp.getBodyPart(0);
-	assertEquals("text/x-test", mbp.getContentType());
-	assertEquals(EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder(), mbp.getEncoding());
-	assertEquals("test part", getString(mbp.getInputStream()));
+        Session s = Session.getInstance(new Properties());
+        // create a message and extract the DataHandler for a part
+        MimeMessage orig = createMessage(s);
+        MimeMultipart omp = (MimeMultipart) orig.getContent();
+        MimeBodyPart obp = (MimeBodyPart) omp.getBodyPart(0);
+        final DataHandler odh = obp.getDataHandler();
+        // create a new message and use the DataHandler
+        MimeMessage msg = new MimeMessage(s);
+        MimeMultipart mp = new MimeMultipart();
+        MimeBodyPart mbp = new MimeBodyPart() {
+            {
+                dh = odh;
+            }
+        };
+        mp.addBodyPart(mbp);
+        msg.setContent(mp);
+        // depend on copy constructor streaming the data
+        msg = new MimeMessage(msg);
+        mp = (MimeMultipart) msg.getContent();
+        mbp = (MimeBodyPart) mp.getBodyPart(0);
+        assertEquals("text/x-test", mbp.getContentType());
+        assertEquals(EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder(), mbp.getEncoding());
+        assertEquals("test part", getString(mbp.getInputStream()));
     }
 
     /**
@@ -128,26 +129,26 @@ public class MimeBodyPartTest {
      */
     @Test
     public void testEncodingCopiedDataHandler() throws Exception {
-	String part = 
-	    "Content-Type: application/x-test\n" +
-	    "\n" +
-	    "\u0001\u0002\u0003" +
-	    "\n";
-	MimeBodyPart mbp = new MimeBodyPart(new AsciiStringInputStream(part));
-	MimeBodyPart mbp2 = new MimeBodyPart() {
-	    @Override
-	    public void setDataHandler(DataHandler dh)
-						throws MessagingException {
-		super.setDataHandler(dh);
-		updateHeaders();
-	    }
-	};
-	mbp2.setDataHandler(mbp.getDataHandler());
-	assertEquals(EncoderTypes.BASE_64.getEncoder(), mbp2.getEncoding());
-	// ensure the data is correct by reading the first byte
-	InputStream in = mbp2.getInputStream();
-	assertEquals(1, in.read());
-	in.close();
+        String part =
+                "Content-Type: application/x-test\n" +
+                        "\n" +
+                        "\u0001\u0002\u0003" +
+                        "\n";
+        MimeBodyPart mbp = new MimeBodyPart(new AsciiStringInputStream(part));
+        MimeBodyPart mbp2 = new MimeBodyPart() {
+            @Override
+            public void setDataHandler(DataHandler dh)
+                    throws MessagingException {
+                super.setDataHandler(dh);
+                updateHeaders();
+            }
+        };
+        mbp2.setDataHandler(mbp.getDataHandler());
+        assertEquals(EncoderTypes.BASE_64.getEncoder(), mbp2.getEncoding());
+        // ensure the data is correct by reading the first byte
+        InputStream in = mbp2.getInputStream();
+        assertEquals(1, in.read());
+        in.close();
     }
 
     /**
@@ -156,14 +157,14 @@ public class MimeBodyPartTest {
      */
     @Test
     public void testIsMimeTypeBadParameter() throws Exception {
-	String part = 
-	    "Content-Type: application/x-test; type=a/b\n" +
-	    "\n" +
-	    "\n";
-	MimeBodyPart mbp = new MimeBodyPart(new AsciiStringInputStream(part));
-	assertTrue("complete MIME type", mbp.isMimeType("application/x-test"));
-	assertTrue("pattern MIME type", mbp.isMimeType("application/*"));
-	assertFalse("wrong MIME type", mbp.isMimeType("application/test"));
+        String part =
+                "Content-Type: application/x-test; type=a/b\n" +
+                        "\n" +
+                        "\n";
+        MimeBodyPart mbp = new MimeBodyPart(new AsciiStringInputStream(part));
+        assertTrue("complete MIME type", mbp.isMimeType("application/x-test"));
+        assertTrue("pattern MIME type", mbp.isMimeType("application/*"));
+        assertFalse("wrong MIME type", mbp.isMimeType("application/test"));
     }
 
     /**
@@ -172,39 +173,39 @@ public class MimeBodyPartTest {
      */
     @Test
     public void testEmptyContentTransferEncoding() throws Exception {
-	String part = 
-	    "Content-Type: text/plain; charset=\"us-ascii\"\n" +
-	    "Content-Transfer-Encoding: \n" +
-	    "\n" +
-	    "test" +
-	    "\n";
-	MimeBodyPart mbp = new MimeBodyPart(new AsciiStringInputStream(part));
-	assertEquals("empty C-T-E value", null, mbp.getEncoding());
-	assertEquals("empty C-T-E data", "test\n", mbp.getContent());
+        String part =
+                "Content-Type: text/plain; charset=\"us-ascii\"\n" +
+                        "Content-Transfer-Encoding: \n" +
+                        "\n" +
+                        "test" +
+                        "\n";
+        MimeBodyPart mbp = new MimeBodyPart(new AsciiStringInputStream(part));
+        assertEquals("empty C-T-E value", null, mbp.getEncoding());
+        assertEquals("empty C-T-E data", "test\n", mbp.getContent());
     }
 
 
     private static MimeMessage createMessage(Session s)
-				throws MessagingException {
+            throws MessagingException {
         String content =
-	    "Mime-Version: 1.0\n" +
-	    "Subject: Example\n" +
-	    "Content-Type: multipart/mixed; boundary=\"-\"\n" +
-	    "\n" +
-	    "preamble\n" +
-	    "---\n" +
-	    "Content-Type: text/x-test\n" +
-	    "Content-Transfer-Encoding: quoted-printable\n" +
-	    "\n" +
-	    "test part\n" +
-	    "\n" +
-	    "-----\n";
+                "Mime-Version: 1.0\n" +
+                        "Subject: Example\n" +
+                        "Content-Type: multipart/mixed; boundary=\"-\"\n" +
+                        "\n" +
+                        "preamble\n" +
+                        "---\n" +
+                        "Content-Type: text/x-test\n" +
+                        "Content-Transfer-Encoding: quoted-printable\n" +
+                        "\n" +
+                        "test part\n" +
+                        "\n" +
+                        "-----\n";
 
-	return new MimeMessage(s, new AsciiStringInputStream(content));
+        return new MimeMessage(s, new AsciiStringInputStream(content));
     }
 
     private static String getString(InputStream is) throws IOException {
-	BufferedReader r = new BufferedReader(new InputStreamReader(is));
-	return r.readLine();
+        BufferedReader r = new BufferedReader(new InputStreamReader(is));
+        return r.readLine();
     }
 }

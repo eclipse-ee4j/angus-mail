@@ -18,10 +18,10 @@ package org.eclipse.angus.mail.imap.protocol;
 
 import org.eclipse.angus.mail.iap.ParsingException;
 import org.eclipse.angus.mail.iap.Response;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import org.junit.Test;
 
 /**
  * @author tkrammer
@@ -29,42 +29,42 @@ import org.junit.Test;
 public class StratoImapBugfixTest {
     @Test
     public void testValidStatusResponseLeadingSpaces() throws Exception {
-	final Response response =
-		new Response("STATUS \"  Sent Items  \" (UIDNEXT 1)");
-	final Status status = new Status(response);
+        final Response response =
+                new Response("STATUS \"  Sent Items  \" (UIDNEXT 1)");
+        final Status status = new Status(response);
 
-	assertEquals("  Sent Items  ", status.mbox);
-	assertEquals(1, status.uidnext);
+        assertEquals("  Sent Items  ", status.mbox);
+        assertEquals(1, status.uidnext);
     }
 
     @Test
     public void testValidStatusResponse() throws Exception {
-	final Response response =
-		new Response("STATUS \"Sent Items\" (UIDNEXT 1)");
-	final Status status = new Status(response);
+        final Response response =
+                new Response("STATUS \"Sent Items\" (UIDNEXT 1)");
+        final Status status = new Status(response);
 
-	assertEquals("Sent Items", status.mbox);
-	assertEquals(1, status.uidnext);
+        assertEquals("Sent Items", status.mbox);
+        assertEquals(1, status.uidnext);
     }
 
     @Test
     public void testInvalidStatusResponse() throws Exception {
-	Response response = new Response("STATUS Sent Items (UIDNEXT 1)");
-	final Status status = new Status(response);
+        Response response = new Response("STATUS Sent Items (UIDNEXT 1)");
+        final Status status = new Status(response);
 
-	assertEquals("Sent Items", status.mbox);
-	assertEquals(1, status.uidnext);
+        assertEquals("Sent Items", status.mbox);
+        assertEquals(1, status.uidnext);
     }
 
     @Test
     public void testMissingBracket() throws Exception {
-	final Response response =
-		new Response("STATUS \"Sent Items\" UIDNEXT 1)");
+        final Response response =
+                new Response("STATUS \"Sent Items\" UIDNEXT 1)");
 
-	try {
-	    new Status(response);
-	    fail("Must throw exception");
-	} catch(ParsingException e) {
-	}
+        try {
+            new Status(response);
+            fail("Must throw exception");
+        } catch (ParsingException e) {
+        }
     }
 }

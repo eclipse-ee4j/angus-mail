@@ -22,16 +22,14 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.internet.MimeMessage;
-
-import java.io.IOException;
-import java.util.Properties;
-
-import org.eclipse.angus.mail.test.TestServer;
 import jakarta.mail.util.ByteArrayDataSource;
-
+import org.eclipse.angus.mail.test.TestServer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
+
+import java.io.IOException;
+import java.util.Properties;
 
 import static org.junit.Assert.fail;
 
@@ -44,22 +42,23 @@ public final class SMTPWriteTimeoutTest {
     @Rule
     public Timeout deadlockTimeout = Timeout.seconds(10);
 
-    private static final int TIMEOUT = 200;	// write timeout, in millis
+    private static final int TIMEOUT = 200;    // write timeout, in millis
 
     @Test
     public void test() throws Exception {
         TestServer server = null;
         try {
-	    SMTPHandler handler = new SMTPHandler() {
-		@Override
-		public void readMessage() throws IOException {
-		    try {
-			// delay long enough to cause timeout
-			Thread.sleep(5 * TIMEOUT);
-		    } catch (Exception ex) { }
-		    super.readMessage();
-		}
-	    };
+            SMTPHandler handler = new SMTPHandler() {
+                @Override
+                public void readMessage() throws IOException {
+                    try {
+                        // delay long enough to cause timeout
+                        Thread.sleep(5 * TIMEOUT);
+                    } catch (Exception ex) {
+                    }
+                    super.readMessage();
+                }
+            };
             server = new TestServer(handler);
             server.start();
             Thread.sleep(1000);
@@ -73,18 +72,18 @@ public final class SMTPWriteTimeoutTest {
 
             final Transport t = session.getTransport("smtp");
             try {
-		MimeMessage msg = new MimeMessage(session);
-		msg.setRecipients(Message.RecipientType.TO, "joe@example.com");
-		msg.setSubject("test");
-		byte[] bytes = new byte[16*1024*1024];
-		msg.setDataHandler(
-		    new DataHandler(new ByteArrayDataSource(bytes,
-				    "application/octet-stream")));
+                MimeMessage msg = new MimeMessage(session);
+                msg.setRecipients(Message.RecipientType.TO, "joe@example.com");
+                msg.setSubject("test");
+                byte[] bytes = new byte[16 * 1024 * 1024];
+                msg.setDataHandler(
+                        new DataHandler(new ByteArrayDataSource(bytes,
+                                "application/octet-stream")));
                 t.connect();
-		t.sendMessage(msg, msg.getAllRecipients());
-		fail("No exception");
-	    } catch (MessagingException ex) {
-		// expect an exception from sendMessage
+                t.sendMessage(msg, msg.getAllRecipients());
+                fail("No exception");
+            } catch (MessagingException ex) {
+                // expect an exception from sendMessage
             } finally {
                 t.close();
             }
@@ -94,9 +93,9 @@ public final class SMTPWriteTimeoutTest {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
-		// wait long enough for handler to exit
-		Thread.sleep(2 * TIMEOUT);
+                server.interrupt();
+                // wait long enough for handler to exit
+                Thread.sleep(2 * TIMEOUT);
             }
         }
     }

@@ -16,7 +16,9 @@
 
 package org.eclipse.angus.mail.imap.protocol;
 
-import java.io.*;
+import java.io.CharArrayWriter;
+import java.io.IOException;
+import java.io.Writer;
 
 
 /**
@@ -71,7 +73,7 @@ import java.io.*;
  *
  * This class will do the correct Encoding for the IMAP mailboxes.
  *
- * @author	Christopher Cotton
+ * @author Christopher Cotton
  */
 
 public class BASE64MailboxEncoder {
@@ -79,152 +81,152 @@ public class BASE64MailboxEncoder {
     protected int bufsize = 0;
     protected boolean started = false;
     protected Writer out = null;
-    
+
 
     public static String encode(String original) {
-	BASE64MailboxEncoder base64stream = null;
-	char origchars[] = original.toCharArray();
-	int length = origchars.length;
-	boolean changedString = false;
-	CharArrayWriter writer = new CharArrayWriter(length);
-	
-	// loop over all the chars
-	for(int index = 0; index < length; index++) {
-	    char current = origchars[index];
+        BASE64MailboxEncoder base64stream = null;
+        char origchars[] = original.toCharArray();
+        int length = origchars.length;
+        boolean changedString = false;
+        CharArrayWriter writer = new CharArrayWriter(length);
 
-	    // octets in the range 0x20-0x25,0x27-0x7e are themselves
-	    // 0x26 "&" is represented as "&-"
-	    if (current >= 0x20 && current <= 0x7e) {
-		if (base64stream != null) {
-		    base64stream.flush();
-		}
-		
-		if (current == '&') {
-		    changedString = true;
-		    writer.write('&');
-		    writer.write('-');
-		} else {
-		    writer.write(current);
-		}
-	    } else {
+        // loop over all the chars
+        for (int index = 0; index < length; index++) {
+            char current = origchars[index];
 
-		// use a B64MailboxEncoder to write out the other bytes
-		// as a modified BASE64.  The stream will write out
-		// the beginning '&' and the ending '-' which is part
-		// of every encoding.
+            // octets in the range 0x20-0x25,0x27-0x7e are themselves
+            // 0x26 "&" is represented as "&-"
+            if (current >= 0x20 && current <= 0x7e) {
+                if (base64stream != null) {
+                    base64stream.flush();
+                }
 
-		if (base64stream == null) {
-		    base64stream = new BASE64MailboxEncoder(writer);
-		    changedString = true;
-		}
-		
-		base64stream.write(current);
-	    }
-	}
+                if (current == '&') {
+                    changedString = true;
+                    writer.write('&');
+                    writer.write('-');
+                } else {
+                    writer.write(current);
+                }
+            } else {
+
+                // use a B64MailboxEncoder to write out the other bytes
+                // as a modified BASE64.  The stream will write out
+                // the beginning '&' and the ending '-' which is part
+                // of every encoding.
+
+                if (base64stream == null) {
+                    base64stream = new BASE64MailboxEncoder(writer);
+                    changedString = true;
+                }
+
+                base64stream.write(current);
+            }
+        }
 
 
-	if (base64stream != null) {
-	    base64stream.flush();
-	}
+        if (base64stream != null) {
+            base64stream.flush();
+        }
 
-	if (changedString) {
-	    return writer.toString();
-	} else {
-	    return original;
-	}
+        if (changedString) {
+            return writer.toString();
+        } else {
+            return original;
+        }
     }
 
 
     /**
      * Create a BASE64 encoder
      *
-     * @param	what	where to write the encoded name
+     * @param    what    where to write the encoded name
      */
     public BASE64MailboxEncoder(Writer what) {
-	out = what;
+        out = what;
     }
 
     public void write(int c) {
-	try {
-	    // write out the initial character if this is the first time
-	    if (!started) {
-		started = true;
-		out.write('&');
-	    }
-	
-	    // we write each character as a 2 byte unicode character
-	    buffer[bufsize++] = (byte) (c >> 8);
-	    buffer[bufsize++] = (byte) (c & 0xff);
+        try {
+            // write out the initial character if this is the first time
+            if (!started) {
+                started = true;
+                out.write('&');
+            }
 
-	    if (bufsize >= 3) {
-		encode();
-		bufsize -= 3;
-	    }
-	} catch (IOException e) {
-	    //e.printStackTrace();
-	}
+            // we write each character as a 2 byte unicode character
+            buffer[bufsize++] = (byte) (c >> 8);
+            buffer[bufsize++] = (byte) (c & 0xff);
+
+            if (bufsize >= 3) {
+                encode();
+                bufsize -= 3;
+            }
+        } catch (IOException e) {
+            //e.printStackTrace();
+        }
     }
-    
+
 
     public void flush() {
-	try {
-	    // flush any bytes we have
-	    if (bufsize > 0) {
-		encode();
-		bufsize = 0;
-	    }
+        try {
+            // flush any bytes we have
+            if (bufsize > 0) {
+                encode();
+                bufsize = 0;
+            }
 
-	    // write the terminating character of the encoding
-	    if (started) {
-		out.write('-');
-		started = false;
-	    }
-	} catch (IOException e) {
-	    //e.printStackTrace();
-	}
+            // write the terminating character of the encoding
+            if (started) {
+                out.write('-');
+                started = false;
+            }
+        } catch (IOException e) {
+            //e.printStackTrace();
+        }
     }
 
 
     protected void encode() throws IOException {
-	byte a, b, c;
-	if (bufsize == 1) {
-	    a = buffer[0];
-	    b = 0;
-	    c = 0;
-	    out.write(pem_array[(a >>> 2) & 0x3F]);
-	    out.write(pem_array[((a << 4) & 0x30) + ((b >>> 4) & 0xf)]);
-		// no padding characters are written
-	} else if (bufsize == 2) {
-	    a = buffer[0];
-	    b = buffer[1];
-	    c = 0;
-	    out.write(pem_array[(a >>> 2) & 0x3F]);
-	    out.write(pem_array[((a << 4) & 0x30) + ((b >>> 4) & 0xf)]);
-	    out.write(pem_array[((b << 2) & 0x3c) + ((c >>> 6) & 0x3)]);
-		// no padding characters are written
-	} else {
-	    a = buffer[0];
-	    b = buffer[1];
-	    c = buffer[2];
-	    out.write(pem_array[(a >>> 2) & 0x3F]);
-	    out.write(pem_array[((a << 4) & 0x30) + ((b >>> 4) & 0xf)]);
-	    out.write(pem_array[((b << 2) & 0x3c) + ((c >>> 6) & 0x3)]);
-	    out.write(pem_array[c & 0x3F]);
+        byte a, b, c;
+        if (bufsize == 1) {
+            a = buffer[0];
+            b = 0;
+            c = 0;
+            out.write(pem_array[(a >>> 2) & 0x3F]);
+            out.write(pem_array[((a << 4) & 0x30) + ((b >>> 4) & 0xf)]);
+            // no padding characters are written
+        } else if (bufsize == 2) {
+            a = buffer[0];
+            b = buffer[1];
+            c = 0;
+            out.write(pem_array[(a >>> 2) & 0x3F]);
+            out.write(pem_array[((a << 4) & 0x30) + ((b >>> 4) & 0xf)]);
+            out.write(pem_array[((b << 2) & 0x3c) + ((c >>> 6) & 0x3)]);
+            // no padding characters are written
+        } else {
+            a = buffer[0];
+            b = buffer[1];
+            c = buffer[2];
+            out.write(pem_array[(a >>> 2) & 0x3F]);
+            out.write(pem_array[((a << 4) & 0x30) + ((b >>> 4) & 0xf)]);
+            out.write(pem_array[((b << 2) & 0x3c) + ((c >>> 6) & 0x3)]);
+            out.write(pem_array[c & 0x3F]);
 
-	    // copy back the extra byte
-	    if (bufsize == 4)
-		buffer[0] = buffer[3];
+            // copy back the extra byte
+            if (bufsize == 4)
+                buffer[0] = buffer[3];
         }
     }
 
     private final static char pem_array[] = {
-	'A','B','C','D','E','F','G','H', // 0
-	'I','J','K','L','M','N','O','P', // 1
-	'Q','R','S','T','U','V','W','X', // 2
-	'Y','Z','a','b','c','d','e','f', // 3
-	'g','h','i','j','k','l','m','n', // 4
-	'o','p','q','r','s','t','u','v', // 5
-	'w','x','y','z','0','1','2','3', // 6
-	'4','5','6','7','8','9','+',','  // 7
+            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', // 0
+            'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', // 1
+            'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', // 2
+            'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', // 3
+            'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', // 4
+            'o', 'p', 'q', 'r', 's', 't', 'u', 'v', // 5
+            'w', 'x', 'y', 'z', '0', '1', '2', '3', // 6
+            '4', '5', '6', '7', '8', '9', '+', ','  // 7
     };
 }

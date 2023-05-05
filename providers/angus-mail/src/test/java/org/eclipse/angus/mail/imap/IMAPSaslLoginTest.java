@@ -16,15 +16,14 @@
 
 package org.eclipse.angus.mail.imap;
 
-import java.util.Properties;
-
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
-import jakarta.mail.MessagingException;
-
 import org.eclipse.angus.mail.test.TestServer;
-
 import org.junit.Test;
+
+import java.util.Properties;
+
 import static org.junit.Assert.fail;
 
 /**
@@ -37,41 +36,41 @@ public final class IMAPSaslLoginTest {
      */
     @Test
     public void testSaslLogin() {
-	TestServer server = null;
-	try {
-	    IMAPHandler handler = new IMAPSaslHandler();
-	    server = new TestServer(handler);
-	    server.start();
+        TestServer server = null;
+        try {
+            IMAPHandler handler = new IMAPSaslHandler();
+            server = new TestServer(handler);
+            server.start();
 
-	    Properties properties = new Properties();
-	    properties.setProperty("mail.imap.host", "localhost");
-	    properties.setProperty("mail.imap.port", "" + server.getPort());
-	    properties.setProperty("mail.imap.sasl.enable", "true");
-	    properties.setProperty("mail.imap.sasl.mechanisms", "DIGEST-MD5");
-	    Session session = Session.getInstance(properties);
-	    //session.setDebug(true);
+            Properties properties = new Properties();
+            properties.setProperty("mail.imap.host", "localhost");
+            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.sasl.enable", "true");
+            properties.setProperty("mail.imap.sasl.mechanisms", "DIGEST-MD5");
+            Session session = Session.getInstance(properties);
+            //session.setDebug(true);
 
-	    Store store = session.getStore("imap");
-	    try {
-		store.connect("test", "test");
-		// success!
-	    } catch (MessagingException mex) {
-		fail("login failed");
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
-	    } finally {
-		store.close();
-	    }
+            Store store = session.getStore("imap");
+            try {
+                store.connect("test", "test");
+                // success!
+            } catch (MessagingException mex) {
+                fail("login failed");
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
+            } finally {
+                store.close();
+            }
 
-	} catch (Exception e) {
-	    e.printStackTrace();
-	    fail(e.getMessage());
-	} finally {
-	    if (server != null) {
-		server.quit();
-	    }
-	}
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
     }
 }

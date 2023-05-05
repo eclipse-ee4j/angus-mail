@@ -23,18 +23,21 @@ public interface FileInterface {
     /**
      * Gets the name of the file. This method does not include the
      * directory.
+     *
      * @return the file name.
      */
     public String getName();
 
     /**
      * Gets the path of the file.
+     *
      * @return the file path.
      */
     public String getPath();
 
     /**
      * Gets the absolute path of the file.
+     *
      * @return the absolute file path.
      */
     public String getAbsolutePath();
@@ -48,6 +51,7 @@ public interface FileInterface {
 
     /**
      * Gets the name of the parent directory.
+     *
      * @return the parent directory, or null if one is not found.
      */
     public String getParent();
@@ -58,25 +62,25 @@ public interface FileInterface {
     public boolean exists();
 
     /**
-     * Returns a boolean indicating whether or not a writable file 
-     * exists. 
+     * Returns a boolean indicating whether or not a writable file
+     * exists.
      */
     public boolean canWrite();
 
     /**
-     * Returns a boolean indicating whether or not a readable file 
+     * Returns a boolean indicating whether or not a readable file
      * exists.
      */
     public boolean canRead();
 
     /**
-     * Returns a boolean indicating whether or not a normal file 
+     * Returns a boolean indicating whether or not a normal file
      * exists.
      */
     public boolean isFile();
 
     /**
-     * Returns a boolean indicating whether or not a directory file 
+     * Returns a boolean indicating whether or not a directory file
      * exists.
      */
     public boolean isDirectory();
@@ -94,7 +98,7 @@ public interface FileInterface {
     public long lastModified();
 
     /**
-     * Returns the length of the file. 
+     * Returns the length of the file.
      */
     public long length();
 
@@ -106,14 +110,15 @@ public interface FileInterface {
     public boolean mkdir();
 
     /**
-     * Renames a file and returns a boolean indicating whether 
+     * Renames a file and returns a boolean indicating whether
      * or not this method was successful.
+     *
      * @param dest the new file name
      */
     public boolean renameTo(File dest);
 
     /**
-     * Creates all directories in this path.  This method 
+     * Creates all directories in this path.  This method
      * returns true if the target (deepest) directory was created,
      * false if the target directory was not created (e.g., if it
      * existed previously).
@@ -122,13 +127,15 @@ public interface FileInterface {
 
     /**
      * Lists the files in a directory. Works only on directories.
+     *
      * @return an array of file names.  This list will include all
      * files in the directory except the equivalent of "." and ".." .
      */
     public String[] list();
 
     /**
-     * Uses the specified filter to list files in a directory. 
+     * Uses the specified filter to list files in a directory.
+     *
      * @param filter the filter used to select file names
      * @return the filter selected files in this directory.
      * @see FilenameFilter

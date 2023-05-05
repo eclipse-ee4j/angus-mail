@@ -162,7 +162,7 @@
  * how the string is interpreted.  For example, use
  * </P>
  * <PRE>
- * 	props.put("mail.smtp.port", "888");
+ * props.put("mail.smtp.port", "888");
  * </PRE>
  * <P>
  * to set the <CODE>mail.smtp.port</CODE> property, which is of type int.

@@ -16,7 +16,9 @@
  */
 package org.eclipse.angus.mail.util.logging;
 
-import java.util.*;
+import java.util.Date;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.LogRecord;
 
 /**
@@ -79,8 +81,8 @@ public class CompactFormatter extends java.util.logging.Formatter {
      * Creates an instance with the given format pattern.
      *
      * @param format the {@linkplain java.util.Formatter pattern} or null to use
-     * the LogManager default. The arguments are described in the
-     * {@linkplain #format(java.util.logging.LogRecord) format} method.
+     *               the LogManager default. The arguments are described in the
+     *               {@linkplain #format(java.util.logging.LogRecord) format} method.
      */
     public CompactFormatter(final String format) {
         String p = getClass().getName();
@@ -221,22 +223,22 @@ public class CompactFormatter extends java.util.logging.Formatter {
         String thrown = formatThrown(record);
         String err = formatError(record);
         Object[] params = {
-            formatZonedDateTime(record),
-            formatSource(record),
-            formatLoggerName(record),
-            formatLevel(record),
-            msg,
-            thrown,
-            new Alternate(msg, thrown),
-            new Alternate(thrown, msg),
-            record.getSequenceNumber(),
-            formatThreadID(record),
-            err,
-            new Alternate(msg, err),
-            new Alternate(err, msg),
-            formatBackTrace(record),
-            record.getResourceBundleName(),
-            record.getMessage()};
+                formatZonedDateTime(record),
+                formatSource(record),
+                formatLoggerName(record),
+                formatLevel(record),
+                msg,
+                thrown,
+                new Alternate(msg, thrown),
+                new Alternate(thrown, msg),
+                record.getSequenceNumber(),
+                formatThreadID(record),
+                err,
+                new Alternate(msg, err),
+                new Alternate(err, msg),
+                formatBackTrace(record),
+                record.getResourceBundleName(),
+                record.getMessage()};
 
         if (l == null) { //BUG ID 6282094
             return String.format(fmt, params);
@@ -426,7 +428,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
                         break;
                     } else {
                         if (trace.length == 0) {
-                           trace = ste;
+                            trace = ste;
                         }
                     }
 
@@ -636,7 +638,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
      * parameter array.
      *
      * @param msg the message.
-     * @param t the throwable cause chain to search or null.
+     * @param t   the throwable cause chain to search or null.
      * @return the modified message string.
      */
     private static String replaceClassName(String msg, Throwable t) {
@@ -661,7 +663,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
      * parameter array.
      *
      * @param msg the message or null.
-     * @param p the parameter array or null.
+     * @param p   the parameter array or null.
      * @return the modified message string.
      */
     private static String replaceClassName(String msg, Object[] p) {
@@ -706,7 +708,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
             int sign = -1;
             int dot = -1;
             for (int c, prev = dot; cursor < name.length();
-                    cursor += Character.charCount(c)) {
+                 cursor += Character.charCount(c)) {
                 c = name.codePointAt(cursor);
                 if (!Character.isJavaIdentifierPart(c)) {
                     if (c == ((int) '.')) {
@@ -778,7 +780,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
         /**
          * Creates an alternate output.
          *
-         * @param left the left side or null.
+         * @param left  the left side or null.
          * @param right the right side or null.
          */
         Alternate(final String left, final String right) {
@@ -788,7 +790,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
 
         @SuppressWarnings("override") //JDK-6954234
         public void formatTo(java.util.Formatter formatter, int flags,
-                int width, int precision) {
+                             int width, int precision) {
 
             String l = left;
             String r = right;
@@ -845,7 +847,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
         /**
          * Counts the number code points with an upper bound.
          *
-         * @param s the string to count, never null.
+         * @param s     the string to count, never null.
          * @param limit the max number of code points needed.
          * @return the number of code points, never greater than the limit.
          */
@@ -853,7 +855,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
             //assert limit >= 0 : limit;
             final int len = s.length();
             if ((len - limit) >= limit) {
-               return limit;
+                return limit;
             }
             return Math.min(s.codePointCount(0, len), limit);
         }
@@ -861,8 +863,8 @@ public class CompactFormatter extends java.util.logging.Formatter {
         /**
          * Pad the given input string.
          *
-         * @param flags the formatter flags.
-         * @param s the string to pad.
+         * @param flags   the formatter flags.
+         * @param s       the string to pad.
          * @param padding the number of spaces to add.
          * @return the padded string.
          */

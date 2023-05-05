@@ -27,28 +27,28 @@ public class AsciiStringInputStream extends InputStream {
     private int position;
 
     public AsciiStringInputStream(String input) {
-	this(input, true);
+        this(input, true);
     }
 
     public AsciiStringInputStream(String input, boolean strict) {
-	if (strict) {
-	    for (int i = 0; i < input.length(); i++) {
-		if (input.charAt(i) > 0x7F) {
-		    throw new IllegalArgumentException("Not an ASCII string");
-		}
-	    }
-	}
+        if (strict) {
+            for (int i = 0; i < input.length(); i++) {
+                if (input.charAt(i) > 0x7F) {
+                    throw new IllegalArgumentException("Not an ASCII string");
+                }
+            }
+        }
 
-	this.input = input;
+        this.input = input;
     }
 
     @Override
     public int read() {
-	if (position < input.length()) {
-	    return input.charAt(position++) & 0xFF;
-	} else {
-	    return -1;
-	}
+        if (position < input.length()) {
+            return input.charAt(position++) & 0xFF;
+        } else {
+            return -1;
+        }
     }
 
 }

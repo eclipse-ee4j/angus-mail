@@ -24,7 +24,7 @@ on:
 
 jobs:
   build:
-    name: Test on JDK ${{ matrix.java_version }} 
+    name: Test on JDK ${{ matrix.java_version }}
     runs-on: ubuntu-latest
 
     strategy:
@@ -32,13 +32,13 @@ jobs:
         java_version: [ 8, 11, 17 ]
 
     steps:
-    - name: Checkout for build
-      uses: actions/checkout@v3
-    - name: Set up JDK
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'zulu'
-        java-version: ${{ matrix.java_version }}
-        cache: maven
-    - name: Verify
-      run: mvn -B -U -C -V clean verify org.glassfish.copyright:glassfish-copyright-maven-plugin:check -Poss-release,staging,build-only -Dgpg.skip=true -Dcopyright.ignoreyear=true -Denforcer.skip
+      - name: Checkout for build
+        uses: actions/checkout@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: ${{ matrix.java_version }}
+          cache: maven
+      - name: Verify
+        run: mvn -B -U -C -V clean verify org.glassfish.copyright:glassfish-copyright-maven-plugin:check -Poss-release,staging,build-only -Dgpg.skip=true -Dcopyright.ignoreyear=true -Denforcer.skip

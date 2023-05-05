@@ -16,7 +16,9 @@
 
 package org.eclipse.angus.mail.util;
 
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -24,27 +26,27 @@ import static org.junit.Assert.assertTrue;
  * "mail.mime.encodeparameters" set to "false".
  */
 public class NoEncodeFileNameNoEncodeParametersTest extends NoEncodeFileNameTest {
- 
+
     @BeforeClass
     public static void before() {
-	System.out.println("NoEncodeFileNameNoEncodeParameters");
-	System.setProperty("mail.mime.charset", "utf-8");
-	System.setProperty("mail.mime.encodeparameters", "false");
-	// assume mail.mime.encodefilename defaults to false
-	System.clearProperty("mail.mime.encodefilename");
+        System.out.println("NoEncodeFileNameNoEncodeParameters");
+        System.setProperty("mail.mime.charset", "utf-8");
+        System.setProperty("mail.mime.encodeparameters", "false");
+        // assume mail.mime.encodefilename defaults to false
+        System.clearProperty("mail.mime.encodefilename");
     }
 
     @Test
     public void test() throws Exception {
         MimeBodyPartPublicUpdateHeaders mbp = new MimeBodyPartPublicUpdateHeaders();
-	mbp.setText("test");
-	mbp.setFileName(fileName);
-	mbp.updateHeaders();
-	String h = mbp.getHeader("Content-Type", "");
-	assertTrue(h.contains("name="));
-	assertTrue(h.contains(fileName));
-	h = mbp.getHeader("Content-Disposition", "");
-	assertTrue(h.contains("filename="));
-	assertTrue(h.contains(fileName));
+        mbp.setText("test");
+        mbp.setFileName(fileName);
+        mbp.updateHeaders();
+        String h = mbp.getHeader("Content-Type", "");
+        assertTrue(h.contains("name="));
+        assertTrue(h.contains(fileName));
+        h = mbp.getHeader("Content-Disposition", "");
+        assertTrue(h.contains("filename="));
+        assertTrue(h.contains(fileName));
     }
 }

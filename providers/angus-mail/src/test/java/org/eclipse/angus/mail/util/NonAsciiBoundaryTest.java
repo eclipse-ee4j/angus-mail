@@ -16,54 +16,53 @@
 
 package org.eclipse.angus.mail.util;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Properties;
-
-import org.eclipse.angus.mail.test.AsciiStringInputStream;
-import org.junit.Test;
-
 import jakarta.mail.BodyPart;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import org.eclipse.angus.mail.test.AsciiStringInputStream;
+import org.junit.Test;
+
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test that non-ASCII boundary strings are handled reasonably,
  * even though, strictly speaking, the MIME spec doesn't allow them.
  */
 public class NonAsciiBoundaryTest {
- 
+
     private static Session s = Session.getInstance(new Properties());
 
     @Test
     public void test() throws Exception {
         MimeMessage m = createMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	assertEquals(2, mp.getCount());
-	BodyPart bp = mp.getBodyPart(0);
-	assertEquals("first part\n", bp.getContent());
-	bp = mp.getBodyPart(1);
-	assertEquals("second part\n", bp.getContent());
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        assertEquals(2, mp.getCount());
+        BodyPart bp = mp.getBodyPart(0);
+        assertEquals("first part\n", bp.getContent());
+        bp = mp.getBodyPart(1);
+        assertEquals("second part\n", bp.getContent());
     }
 
     private static MimeMessage createMessage() throws MessagingException {
         String content =
-	    "Mime-Version: 1.0\n" +
-	    "Subject: Example\n" +
-	    "Content-Type: multipart/mixed; boundary=\"\u00A9\"\n" +
-	    "\n" +
-	    "--\u00A9\n" +
-	    "\n" +
-	    "first part\n" +
-	    "\n" +
-	    "--\u00A9\n" +
-	    "\n" +
-	    "second part\n" +
-	    "\n" +
-	    "--\u00A9--\n";
+                "Mime-Version: 1.0\n" +
+                        "Subject: Example\n" +
+                        "Content-Type: multipart/mixed; boundary=\"\u00A9\"\n" +
+                        "\n" +
+                        "--\u00A9\n" +
+                        "\n" +
+                        "first part\n" +
+                        "\n" +
+                        "--\u00A9\n" +
+                        "\n" +
+                        "second part\n" +
+                        "\n" +
+                        "--\u00A9--\n";
 
-	return new MimeMessage(s, new AsciiStringInputStream(content, false));
+        return new MimeMessage(s, new AsciiStringInputStream(content, false));
     }
 }

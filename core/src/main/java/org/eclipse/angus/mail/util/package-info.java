@@ -32,14 +32,14 @@
  * <TH>Logging Level</TH>
  * <TH>Purpose</TH>
  * </TR>
- * 
+ *
  * <TR>
  * <TD>org.eclipse.angus.mail.util.socket</TD>
  * <TD>FINER</TD>
  * <TD>Debugging output related to creating sockets</TD>
  * </TR>
  * </TABLE>
- * 
+ *
  * <P>
  * <strong>WARNING:</strong> The APIs in this package should be
  * considered <strong>EXPERIMENTAL</strong>.  They may be changed in the

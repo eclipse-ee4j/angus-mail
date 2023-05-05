@@ -16,36 +16,35 @@
 
 package org.eclipse.angus.mail.util;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Enumeration;
-
+import jakarta.mail.Header;
+import jakarta.mail.internet.InternetHeaders;
 import org.eclipse.angus.mail.test.AsciiStringInputStream;
 import org.junit.Test;
 
-import jakarta.mail.Header;
-import jakarta.mail.internet.InternetHeaders;
+import java.util.Enumeration;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test the InternetHeaders class.
  */
 public class InternetHeadersTest {
- 
+
     private static final String initialWhitespaceHeader =
-						" \r\nSubject: test\r\n\r\n";
+            " \r\nSubject: test\r\n\r\n";
     private static final String initialContinuationHeader =
-						" Subject: test\r\n\r\n";
+            " Subject: test\r\n\r\n";
 
     /**
      * Test that a continuation line is handled properly.
      */
     @Test
     public void testContinuationLine() throws Exception {
-	String header = "Subject: a\r\n b\r\n\r\n";
-	InternetHeaders ih = new InternetHeaders(
-		new AsciiStringInputStream(header));
-	assertEquals(1, ih.getHeader("Subject").length);
-	assertEquals("a\r\n b", ih.getHeader("Subject")[0]);
+        String header = "Subject: a\r\n b\r\n\r\n";
+        InternetHeaders ih = new InternetHeaders(
+                new AsciiStringInputStream(header));
+        assertEquals(1, ih.getHeader("Subject").length);
+        assertEquals("a\r\n b", ih.getHeader("Subject")[0]);
     }
 
     /**
@@ -53,9 +52,9 @@ public class InternetHeadersTest {
      */
     @Test
     public void testInitialWhitespaceLineConstructor() throws Exception {
-	InternetHeaders ih = new InternetHeaders(
-		new AsciiStringInputStream(initialWhitespaceHeader));
-	testInitialWhitespaceLine(ih);
+        InternetHeaders ih = new InternetHeaders(
+                new AsciiStringInputStream(initialWhitespaceHeader));
+        testInitialWhitespaceLine(ih);
     }
 
     /**
@@ -63,21 +62,21 @@ public class InternetHeadersTest {
      */
     @Test
     public void testInitialWhitespaceLineLoad() throws Exception {
-	InternetHeaders ih = new InternetHeaders();
-	ih.load(new AsciiStringInputStream(initialWhitespaceHeader));
-	testInitialWhitespaceLine(ih);
+        InternetHeaders ih = new InternetHeaders();
+        ih.load(new AsciiStringInputStream(initialWhitespaceHeader));
+        testInitialWhitespaceLine(ih);
     }
 
     private void testInitialWhitespaceLine(InternetHeaders ih)
-				throws Exception {
-	assertEquals(1, ih.getHeader("Subject").length);
-	assertEquals("test", ih.getHeader("Subject")[0]);
-	Enumeration<Header> e = ih.getAllHeaders();
-	while (e.hasMoreElements()) {
-	    Header h = e.nextElement();
-	    assertEquals("Subject", h.getName());
-	    assertEquals("test", h.getValue());
-	}
+            throws Exception {
+        assertEquals(1, ih.getHeader("Subject").length);
+        assertEquals("test", ih.getHeader("Subject")[0]);
+        Enumeration<Header> e = ih.getAllHeaders();
+        while (e.hasMoreElements()) {
+            Header h = e.nextElement();
+            assertEquals("Subject", h.getName());
+            assertEquals("test", h.getValue());
+        }
     }
 
     /**
@@ -85,9 +84,9 @@ public class InternetHeadersTest {
      */
     @Test
     public void testInitialContinuationLineConstructor() throws Exception {
-	InternetHeaders ih = new InternetHeaders(
-		new AsciiStringInputStream(initialContinuationHeader));
-	testInitialContinuationLine(ih);
+        InternetHeaders ih = new InternetHeaders(
+                new AsciiStringInputStream(initialContinuationHeader));
+        testInitialContinuationLine(ih);
     }
 
     /**
@@ -95,20 +94,20 @@ public class InternetHeadersTest {
      */
     @Test
     public void testInitialContinuationLineLoad() throws Exception {
-	InternetHeaders ih = new InternetHeaders();
-	ih.load(new AsciiStringInputStream(initialContinuationHeader));
-	testInitialContinuationLine(ih);
+        InternetHeaders ih = new InternetHeaders();
+        ih.load(new AsciiStringInputStream(initialContinuationHeader));
+        testInitialContinuationLine(ih);
     }
 
     private void testInitialContinuationLine(InternetHeaders ih)
-				throws Exception {
-	assertEquals(1, ih.getHeader("Subject").length);
-	assertEquals("test", ih.getHeader("Subject")[0]);
-	Enumeration<Header> e = ih.getAllHeaders();
-	while (e.hasMoreElements()) {
-	    Header h = e.nextElement();
-	    assertEquals("Subject", h.getName());
-	    assertEquals("test", h.getValue());
-	}
+            throws Exception {
+        assertEquals(1, ih.getHeader("Subject").length);
+        assertEquals("test", ih.getHeader("Subject")[0]);
+        Enumeration<Header> e = ih.getAllHeaders();
+        while (e.hasMoreElements()) {
+            Header h = e.nextElement();
+            assertEquals("Subject", h.getName());
+            assertEquals("test", h.getValue());
+        }
     }
 }

@@ -16,18 +16,17 @@
 
 package org.eclipse.angus.mail.imap.protocol;
 
-import org.eclipse.angus.mail.iap.*;
 import org.eclipse.angus.mail.iap.ParsingException;
 
 /**
  * An RFC822SIZE FETCH item.
  *
- * @author  John Mani
+ * @author John Mani
  */
 
 public class RFC822SIZE implements Item {
-    
-    static final char[] name = {'R','F','C','8','2','2','.','S','I','Z','E'};
+
+    static final char[] name = {'R', 'F', 'C', '8', '2', '2', '.', 'S', 'I', 'Z', 'E'};
     public int msgno;
 
     public long size;
@@ -35,12 +34,12 @@ public class RFC822SIZE implements Item {
     /**
      * Constructor.
      *
-     * @param	r	the FetchResponse
-     * @exception ParsingException    for parsing failures
+     * @throws ParsingException for parsing failures
+     * @param    r    the FetchResponse
      */
     public RFC822SIZE(FetchResponse r) throws ParsingException {
-	msgno = r.getNumber();
-	r.skipSpaces();
-	size = r.readLong();		
+        msgno = r.getNumber();
+        r.skipSpaces();
+        size = r.readLong();
     }
 }

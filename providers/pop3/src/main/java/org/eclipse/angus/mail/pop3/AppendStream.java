@@ -34,34 +34,34 @@ class AppendStream extends OutputStream {
     private long end;
 
     public AppendStream(WritableSharedFile tf) throws IOException {
-	this.tf = tf;
-	raf = tf.getWritableFile();
-	start = raf.length();
-	raf.seek(start);
+        this.tf = tf;
+        raf = tf.getWritableFile();
+        start = raf.length();
+        raf.seek(start);
     }
 
     @Override
     public void write(int b) throws IOException {
-	raf.write(b);
+        raf.write(b);
     }
 
     @Override
     public void write(byte[] b) throws IOException {
-	raf.write(b);
+        raf.write(b);
     }
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
-	raf.write(b, off, len);
+        raf.write(b, off, len);
     }
 
     @Override
     public synchronized void close() throws IOException {
-	end = tf.updateLength();
-	raf = null;	// no more writing allowed
+        end = tf.updateLength();
+        raf = null;    // no more writing allowed
     }
 
     public synchronized InputStream getInputStream() throws IOException {
-	return tf.newStream(start, end);
+        return tf.newStream(start, end);
     }
 }

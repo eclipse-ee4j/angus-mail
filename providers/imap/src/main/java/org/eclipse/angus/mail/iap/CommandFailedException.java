@@ -28,22 +28,24 @@ public class CommandFailedException extends ProtocolException {
      * Constructs an CommandFailedException with no detail message.
      */
     public CommandFailedException() {
-	super();
+        super();
     }
 
     /**
      * Constructs an CommandFailedException with the specified detail message.
-     * @param s		the detail message
+     *
+     * @param s the detail message
      */
     public CommandFailedException(String s) {
-	super(s);
+        super(s);
     }
 
     /**
      * Constructs an CommandFailedException with the specified Response.
-     * @param r		the Response.
+     *
+     * @param r the Response.
      */
     public CommandFailedException(Response r) {
-	super(r);
+        super(r);
     }
 }

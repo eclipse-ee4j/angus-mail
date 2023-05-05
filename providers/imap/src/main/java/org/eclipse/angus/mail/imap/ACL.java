@@ -33,40 +33,40 @@ public class ACL implements Cloneable {
     /**
      * Construct an ACL entry for the given identifier and with no rights.
      *
-     * @param	name	the identifier name
+     * @param    name    the identifier name
      */
     public ACL(String name) {
-	this.name = name;
-	this.rights = new Rights();
+        this.name = name;
+        this.rights = new Rights();
     }
 
     /**
      * Construct an ACL entry for the given identifier with the given rights.
      *
-     * @param	name	the identifier name
-     * @param	rights	the rights
+     * @param    name    the identifier name
+     * @param    rights    the rights
      */
     public ACL(String name, Rights rights) {
-	this.name = name;
-	this.rights = rights;
+        this.name = name;
+        this.rights = rights;
     }
 
     /**
      * Get the identifier name for this ACL entry.
      *
-     * @return	the identifier name
+     * @return the identifier name
      */
     public String getName() {
-	return name;
+        return name;
     }
 
     /**
      * Set the rights associated with this ACL entry.
      *
-     * @param	rights	the rights
+     * @param    rights    the rights
      */
     public void setRights(Rights rights) {
-	this.rights = rights;
+        this.rights = rights;
     }
 
     /**
@@ -74,10 +74,10 @@ public class ACL implements Cloneable {
      * Returns the actual Rights object referenced by this ACL;
      * modifications to the Rights object will effect this ACL.
      *
-     * @return	the rights
+     * @return the rights
      */
     public Rights getRights() {
-	return rights;
+        return rights;
     }
 
     /**
@@ -85,8 +85,8 @@ public class ACL implements Cloneable {
      */
     @Override
     public Object clone() throws CloneNotSupportedException {
-	ACL acl = (ACL)super.clone();
-	acl.rights = (Rights)this.rights.clone();
-	return acl;
+        ACL acl = (ACL) super.clone();
+        acl.rights = (Rights) this.rights.clone();
+        return acl;
     }
 }

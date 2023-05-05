@@ -16,9 +16,11 @@
 
 package org.eclipse.angus.mail.smtp;
 
-import java.io.*;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+
+import java.io.InputStream;
 
 /**
  * This class is a specialization of the MimeMessage class that allows
@@ -31,34 +33,46 @@ import jakarta.mail.internet.*;
  * documentation for further information on the SMTP protocol provider. <p>
  *
  * @author Bill Shannon
- * @see	jakarta.mail.internet.MimeMessage
+ * @see    jakarta.mail.internet.MimeMessage
  */
 
 public class SMTPMessage extends MimeMessage {
 
-    /** Never notify of delivery status */
+    /**
+     * Never notify of delivery status
+     */
     public static final int NOTIFY_NEVER = -1;
-    /** Notify of delivery success */
+    /**
+     * Notify of delivery success
+     */
     public static final int NOTIFY_SUCCESS = 1;
-    /** Notify of delivery failure */
+    /**
+     * Notify of delivery failure
+     */
     public static final int NOTIFY_FAILURE = 2;
-    /** Notify of delivery delay */
+    /**
+     * Notify of delivery delay
+     */
     public static final int NOTIFY_DELAY = 4;
 
-    /** Return full message with delivery status notification */
+    /**
+     * Return full message with delivery status notification
+     */
     public static final int RETURN_FULL = 1;
-    /** Return only message headers with delivery status notification */
+    /**
+     * Return only message headers with delivery status notification
+     */
     public static final int RETURN_HDRS = 2;
 
-    private static final String[] returnOptionString = { null, "FULL", "HDRS" };
+    private static final String[] returnOptionString = {null, "FULL", "HDRS"};
 
     private String envelopeFrom; // the string to use in the MAIL FROM: command
     private int notifyOptions = 0;
     private int returnOption = 0;
     private boolean sendPartial = false;
     private boolean allow8bitMIME = false;
-    private String submitter = null;	// RFC 2554 AUTH=submitter
-    private String extension = null;	// extensions to use with MAIL command
+    private String submitter = null;    // RFC 2554 AUTH=submitter
+    private String extension = null;    // extensions to use with MAIL command
 
     /**
      * Default constructor. An empty message object is created.
@@ -66,10 +80,10 @@ public class SMTPMessage extends MimeMessage {
      * object. The <code>flags</code> field is set to an empty Flags
      * object. The <code>modified</code> flag is set to true.
      *
-     * @param	session	the Session
+     * @param    session    the Session
      */
     public SMTPMessage(Session session) {
-	super(session);
+        super(session);
     }
 
     /**
@@ -78,13 +92,13 @@ public class SMTPMessage extends MimeMessage {
      * at the end of the data for the message. Note that the input stream
      * parse is done within this constructor itself.
      *
-     * @param session	Session object for this message
-     * @param is	the message input stream
-     * @exception	MessagingException for failures
+     * @param session Session object for this message
+     * @param is      the message input stream
+     * @exception MessagingException for failures
      */
-    public SMTPMessage(Session session, InputStream is) 
-			throws MessagingException {
-	super(session, is);
+    public SMTPMessage(Session session, InputStream is)
+            throws MessagingException {
+        super(session, is);
     }
 
     /**
@@ -95,11 +109,11 @@ public class SMTPMessage extends MimeMessage {
      * Note: The current implementation is rather inefficient, copying
      * the data more times than strictly necessary.
      *
-     * @param	source	the message to copy content from
-     * @exception	MessagingException for failures
+     * @param    source    the message to copy content from
+     * @exception MessagingException for failures
      */
     public SMTPMessage(MimeMessage source) throws MessagingException {
-	super(source);
+        super(source);
     }
 
     /**
@@ -111,19 +125,19 @@ public class SMTPMessage extends MimeMessage {
      *
      * If set, overrides the <code>mail.smtp.from</code> property.
      *
-     * @param	from	the envelope From address
+     * @param    from    the envelope From address
      */
     public void setEnvelopeFrom(String from) {
-	envelopeFrom = from;
+        envelopeFrom = from;
     }
 
     /**
      * Return the envelope From address.
      *
-     * @return	the envelope From address, or null if not set
+     * @return the envelope From address, or null if not set
      */
     public String getEnvelopeFrom() {
-	return envelopeFrom;
+        return envelopeFrom;
     }
 
     /**
@@ -136,21 +150,21 @@ public class SMTPMessage extends MimeMessage {
      *
      * If set, overrides the <code>mail.smtp.dsn.notify</code> property.
      *
-     * @param	options	notification options
+     * @param    options    notification options
      */
     public void setNotifyOptions(int options) {
-	if (options < -1 || options >= 8)
-	    throw new IllegalArgumentException("Bad return option");
-	notifyOptions = options;
+        if (options < -1 || options >= 8)
+            throw new IllegalArgumentException("Bad return option");
+        notifyOptions = options;
     }
 
     /**
      * Get notification options.  Returns zero if no options set.
      *
-     * @return	notification options
+     * @return notification options
      */
     public int getNotifyOptions() {
-	return notifyOptions;
+        return notifyOptions;
     }
 
     /**
@@ -158,24 +172,24 @@ public class SMTPMessage extends MimeMessage {
      * Returns null if no options set.
      */
     String getDSNNotify() {
-	if (notifyOptions == 0)
-	    return null;
-	if (notifyOptions == NOTIFY_NEVER)
-	    return "NEVER";
-	StringBuilder sb = new StringBuilder();
-	if ((notifyOptions & NOTIFY_SUCCESS) != 0)
-	    sb.append("SUCCESS");
-	if ((notifyOptions & NOTIFY_FAILURE) != 0) {
-	    if (sb.length() != 0)
-		sb.append(',');
-	    sb.append("FAILURE");
-	}
-	if ((notifyOptions & NOTIFY_DELAY) != 0) {
-	    if (sb.length() != 0)
-		sb.append(',');
-	    sb.append("DELAY");
-	}
-	return sb.toString();
+        if (notifyOptions == 0)
+            return null;
+        if (notifyOptions == NOTIFY_NEVER)
+            return "NEVER";
+        StringBuilder sb = new StringBuilder();
+        if ((notifyOptions & NOTIFY_SUCCESS) != 0)
+            sb.append("SUCCESS");
+        if ((notifyOptions & NOTIFY_FAILURE) != 0) {
+            if (sb.length() != 0)
+                sb.append(',');
+            sb.append("FAILURE");
+        }
+        if ((notifyOptions & NOTIFY_DELAY) != 0) {
+            if (sb.length() != 0)
+                sb.append(',');
+            sb.append("DELAY");
+        }
+        return sb.toString();
     }
 
     /**
@@ -186,21 +200,21 @@ public class SMTPMessage extends MimeMessage {
      *
      * If set, overrides the <code>mail.smtp.dsn.ret</code> property.
      *
-     * @param	option	return option
+     * @param    option    return option
      */
     public void setReturnOption(int option) {
-	if (option < 0 || option > RETURN_HDRS)
-	    throw new IllegalArgumentException("Bad return option");
-	returnOption = option;
+        if (option < 0 || option > RETURN_HDRS)
+            throw new IllegalArgumentException("Bad return option");
+        returnOption = option;
     }
 
     /**
      * Return return option.  Returns zero if no option set.
      *
-     * @return	return option
+     * @return return option
      */
     public int getReturnOption() {
-	return returnOption;
+        return returnOption;
     }
 
     /**
@@ -208,7 +222,7 @@ public class SMTPMessage extends MimeMessage {
      * Returns null if no option set.
      */
     String getDSNRet() {
-	return returnOptionString[returnOption];
+        return returnOptionString[returnOption];
     }
 
     /**
@@ -219,19 +233,19 @@ public class SMTPMessage extends MimeMessage {
      *
      * If true, overrides the <code>mail.smtp.allow8bitmime</code> property.
      *
-     * @param	allow	allow 8-bit flag
+     * @param    allow    allow 8-bit flag
      */
     public void setAllow8bitMIME(boolean allow) {
-	allow8bitMIME = allow;
+        allow8bitMIME = allow;
     }
 
     /**
      * Is use of the 8BITMIME extension is allowed?
      *
-     * @return	allow 8-bit flag
+     * @return allow 8-bit flag
      */
     public boolean getAllow8bitMIME() {
-	return allow8bitMIME;
+        return allow8bitMIME;
     }
 
     /**
@@ -243,29 +257,29 @@ public class SMTPMessage extends MimeMessage {
      *
      * If true, overrides the <code>mail.smtp.sendpartial</code> property.
      *
-     * @param partial	send partial flag
+     * @param partial send partial flag
      */
     public void setSendPartial(boolean partial) {
-	sendPartial = partial;
+        sendPartial = partial;
     }
 
     /**
      * Send message if some addresses are invalid?
      *
-     * @return	send partial flag
+     * @return send partial flag
      */
     public boolean getSendPartial() {
-	return sendPartial;
+        return sendPartial;
     }
 
     /**
      * Gets the submitter to be used for the RFC 2554 AUTH= value
      * in the MAIL FROM command.
      *
-     * @return	the name of the submitter.
+     * @return the name of the submitter.
      */
     public String getSubmitter() {
-	return submitter;
+        return submitter;
     }
 
     /**
@@ -276,21 +290,20 @@ public class SMTPMessage extends MimeMessage {
      * <A HREF="http://www.ietf.org/rfc/rfc2554.txt">RFC 2554</A>
      * for details.
      *
-     * @param	submitter	the name of the submitter
+     * @param    submitter    the name of the submitter
      */
     public void setSubmitter(String submitter) {
-	this.submitter = submitter;
+        this.submitter = submitter;
     }
 
     /**
      * Gets the extension string to use with the MAIL command.
      *
-     * @return	the extension string
-     *
-     * @since	JavaMail 1.3.2
+     * @return the extension string
+     * @since JavaMail 1.3.2
      */
     public String getMailExtension() {
-	return extension;
+        return extension;
     }
 
     /**
@@ -312,10 +325,10 @@ public class SMTPMessage extends MimeMessage {
      *    smtpMsg.setMailExtension("BY=60;R");
      * </pre></blockquote>
      *
-     * @param	extension	the extension string
-     * @since	JavaMail 1.3.2
+     * @param    extension    the extension string
+     * @since JavaMail 1.3.2
      */
     public void setMailExtension(String extension) {
-	this.extension = extension;
+        this.extension = extension;
     }
 }

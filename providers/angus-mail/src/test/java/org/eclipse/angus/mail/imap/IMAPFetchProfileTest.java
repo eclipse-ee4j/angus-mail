@@ -16,26 +16,24 @@
 
 package org.eclipse.angus.mail.imap;
 
-import java.io.IOException;
-import java.util.Properties;
-import java.util.Set;
-import java.util.HashSet;
-
+import jakarta.mail.FetchProfile;
 import jakarta.mail.Folder;
-import jakarta.mail.Session;
-import jakarta.mail.Store;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
-import jakarta.mail.FetchProfile;
-
+import jakarta.mail.Session;
+import jakarta.mail.Store;
 import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.Timeout;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
+
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -49,96 +47,96 @@ public final class IMAPFetchProfileTest {
 
     private static final String RDATE = "23-Jun-2004 06:26:26 -0700";
     private static final String ENVELOPE =
-	"(\"Wed, 23 Jun 2004 18:56:42 +0530\" \"test\" " +
-	"((\"Jakarta Mail\" NIL \"testuser\" \"example.com\")) " +
-	"((\"Jakarta Mail\" NIL \"testuser\" \"example.com\")) " +
-	"((\"Jakarta Mail\" NIL \"testuser\" \"example.com\")) " +
-	"((NIL NIL \"testuser\" \"example.com\")) NIL NIL NIL " +
-	"\"<40D98512.9040803@example.com>\")";
+            "(\"Wed, 23 Jun 2004 18:56:42 +0530\" \"test\" " +
+                    "((\"Jakarta Mail\" NIL \"testuser\" \"example.com\")) " +
+                    "((\"Jakarta Mail\" NIL \"testuser\" \"example.com\")) " +
+                    "((\"Jakarta Mail\" NIL \"testuser\" \"example.com\")) " +
+                    "((NIL NIL \"testuser\" \"example.com\")) NIL NIL NIL " +
+                    "\"<40D98512.9040803@example.com>\")";
 
     public static interface IMAPTest {
-	public void test(Folder folder, IMAPHandlerFetch handler)
-				    throws MessagingException;
+        public void test(Folder folder, IMAPHandlerFetch handler)
+                throws MessagingException;
     }
 
     @Test
     public void testINTERNALDATEFetch() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void test(Folder folder, IMAPHandlerFetch handler)
-				    throws MessagingException {
-		    FetchProfile fp = new FetchProfile();
-		    fp.add(IMAPFolder.FetchProfileItem.INTERNALDATE);
-		    Message m = folder.getMessage(1);
-		    folder.fetch(new Message[] { m }, fp);
-		    assertTrue(handler.saw("INTERNALDATE"));
-		    handler.reset();
-		    assertTrue(m.getReceivedDate() != null);
-		    assertFalse(handler.saw("INTERNALDATE"));
-		}
-	    },
-	    new IMAPHandlerFetch() {
-		@Override
-		public void fetch(String line) throws IOException {
-		    if (line.indexOf("INTERNALDATE") >= 0)
-			saw.add("INTERNALDATE");
-		    untagged("1 FETCH (INTERNALDATE \"" + RDATE + "\")");
-		    ok();
-		}
-	    });
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void test(Folder folder, IMAPHandlerFetch handler)
+                            throws MessagingException {
+                        FetchProfile fp = new FetchProfile();
+                        fp.add(IMAPFolder.FetchProfileItem.INTERNALDATE);
+                        Message m = folder.getMessage(1);
+                        folder.fetch(new Message[]{m}, fp);
+                        assertTrue(handler.saw("INTERNALDATE"));
+                        handler.reset();
+                        assertTrue(m.getReceivedDate() != null);
+                        assertFalse(handler.saw("INTERNALDATE"));
+                    }
+                },
+                new IMAPHandlerFetch() {
+                    @Override
+                    public void fetch(String line) throws IOException {
+                        if (line.indexOf("INTERNALDATE") >= 0)
+                            saw.add("INTERNALDATE");
+                        untagged("1 FETCH (INTERNALDATE \"" + RDATE + "\")");
+                        ok();
+                    }
+                });
     }
 
     @Test
     public void testINTERNALDATEFetchEnvelope() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void test(Folder folder, IMAPHandlerFetch handler)
-				    throws MessagingException {
-		    FetchProfile fp = new FetchProfile();
-		    fp.add(FetchProfile.Item.ENVELOPE);
-		    Message m = folder.getMessage(1);
-		    folder.fetch(new Message[] { m }, fp);
-		    assertTrue(handler.saw("INTERNALDATE"));
-		    handler.reset();
-		    assertTrue(m.getReceivedDate() != null);
-		    assertFalse(handler.saw("INTERNALDATE"));
-		}
-	    },
-	    new IMAPHandlerFetch() {
-		@Override
-		public void fetch(String line) throws IOException {
-		    if (line.indexOf("INTERNALDATE") >= 0)
-			saw.add("INTERNALDATE");
-		    untagged("1 FETCH (INTERNALDATE \"" + RDATE + "\")");
-		    ok();
-		}
-	    });
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void test(Folder folder, IMAPHandlerFetch handler)
+                            throws MessagingException {
+                        FetchProfile fp = new FetchProfile();
+                        fp.add(FetchProfile.Item.ENVELOPE);
+                        Message m = folder.getMessage(1);
+                        folder.fetch(new Message[]{m}, fp);
+                        assertTrue(handler.saw("INTERNALDATE"));
+                        handler.reset();
+                        assertTrue(m.getReceivedDate() != null);
+                        assertFalse(handler.saw("INTERNALDATE"));
+                    }
+                },
+                new IMAPHandlerFetch() {
+                    @Override
+                    public void fetch(String line) throws IOException {
+                        if (line.indexOf("INTERNALDATE") >= 0)
+                            saw.add("INTERNALDATE");
+                        untagged("1 FETCH (INTERNALDATE \"" + RDATE + "\")");
+                        ok();
+                    }
+                });
     }
 
     @Test
     public void testINTERNALDATENoFetch() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void test(Folder folder, IMAPHandlerFetch handler)
-				    throws MessagingException {
-		    Message m = folder.getMessage(1);
-		    assertTrue(m.getReceivedDate() != null);
-		    assertTrue(handler.saw("INTERNALDATE"));
-		}
-	    },
-	    new IMAPHandlerFetch() {
-		@Override
-		public void fetch(String line) throws IOException {
-		    if (line.indexOf("INTERNALDATE") >= 0)
-			saw.add("INTERNALDATE");
-		    untagged("1 FETCH (ENVELOPE " + ENVELOPE +
-			" INTERNALDATE \"" + RDATE + "\" RFC822.SIZE 0)");
-		    ok();
-		}
-	    });
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void test(Folder folder, IMAPHandlerFetch handler)
+                            throws MessagingException {
+                        Message m = folder.getMessage(1);
+                        assertTrue(m.getReceivedDate() != null);
+                        assertTrue(handler.saw("INTERNALDATE"));
+                    }
+                },
+                new IMAPHandlerFetch() {
+                    @Override
+                    public void fetch(String line) throws IOException {
+                        if (line.indexOf("INTERNALDATE") >= 0)
+                            saw.add("INTERNALDATE");
+                        untagged("1 FETCH (ENVELOPE " + ENVELOPE +
+                                " INTERNALDATE \"" + RDATE + "\" RFC822.SIZE 0)");
+                        ok();
+                    }
+                });
     }
 
     public void testWithHandler(IMAPTest test, IMAPHandlerFetch handler) {
@@ -154,19 +152,19 @@ public final class IMAPFetchProfileTest {
             //session.setDebug(true);
 
             final Store store = session.getStore("imap");
-	    Folder folder = null;
+            Folder folder = null;
             try {
                 store.connect("test", "test");
                 folder = store.getFolder("INBOX");
                 folder.open(Folder.READ_WRITE);
-		test.test(folder, handler);
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
+                test.test(folder, handler);
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
             } finally {
-		if (folder != null)
-		    folder.close(false);
+                if (folder != null)
+                    folder.close(false);
                 store.close();
             }
         } catch (final Exception e) {
@@ -183,21 +181,21 @@ public final class IMAPFetchProfileTest {
      * Custom handler.
      */
     private static class IMAPHandlerFetch extends IMAPHandler {
-	// must be static because handler is cloned for each connection
-	protected static Set<String> saw = new HashSet<>();
+        // must be static because handler is cloned for each connection
+        protected static Set<String> saw = new HashSet<>();
 
-	@Override
+        @Override
         public void select(String line) throws IOException {
-	    numberOfMessages = 1;
-	    super.select(line);
-	}
+            numberOfMessages = 1;
+            super.select(line);
+        }
 
-	public boolean saw(String item) {
-	    return saw.contains(item);
-	}
+        public boolean saw(String item) {
+            return saw.contains(item);
+        }
 
-	public void reset() {
-	    saw.clear();
-	}
+        public void reset() {
+            saw.clear();
+        }
     }
 }

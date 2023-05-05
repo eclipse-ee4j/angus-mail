@@ -20,6 +20,6 @@ package org.eclipse.angus.mail.pop3;
  * Result of POP3 STAT command.
  */
 class Status {
-    int total = 0;		// number of messages in the mailbox
-    int size = 0;		// size of the mailbox
+    int total = 0;        // number of messages in the mailbox
+    int size = 0;        // size of the mailbox
 };

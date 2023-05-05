@@ -16,21 +16,21 @@
 
 package org.eclipse.angus.mail.imap.protocol;
 
-import java.io.ByteArrayInputStream;
-import org.eclipse.angus.mail.iap.*;
 import org.eclipse.angus.mail.iap.ByteArray;
 import org.eclipse.angus.mail.iap.ParsingException;
+
+import java.io.ByteArrayInputStream;
 
 /**
  * The RFC822 response data item.
  *
- * @author  John Mani
- * @author  Bill Shannon
+ * @author John Mani
+ * @author Bill Shannon
  */
 
 public class RFC822DATA implements Item {
-   
-    static final char[] name = {'R','F','C','8','2','2'};
+
+    static final char[] name = {'R', 'F', 'C', '8', '2', '2'};
     private final int msgno;
     private final ByteArray data;
     private final boolean isHeader;
@@ -38,40 +38,40 @@ public class RFC822DATA implements Item {
     /**
      * Constructor, header flag is false.
      *
-     * @param	r	the FetchResponse
-     * @exception ParsingException    for parsing failures
+     * @throws ParsingException for parsing failures
+     * @param    r    the FetchResponse
      */
     public RFC822DATA(FetchResponse r) throws ParsingException {
-	this(r, false);
+        this(r, false);
     }
 
     /**
      * Constructor, specifying header flag.
      *
-     * @param	r	the FetchResponse
-     * @param	isHeader	just header information?
-     * @exception	ParsingException	for parsing failures
+     * @param    r    the FetchResponse
+     * @param    isHeader    just header information?
+     * @exception ParsingException    for parsing failures
      */
     public RFC822DATA(FetchResponse r, boolean isHeader)
-				throws ParsingException {
-	this.isHeader = isHeader;
-	msgno = r.getNumber();
-	r.skipSpaces();
-	data = r.readByteArray();
+            throws ParsingException {
+        this.isHeader = isHeader;
+        msgno = r.getNumber();
+        r.skipSpaces();
+        data = r.readByteArray();
     }
 
     public ByteArray getByteArray() {
-	return data;
+        return data;
     }
 
     public ByteArrayInputStream getByteArrayInputStream() {
-	if (data != null)
-	    return data.toByteArrayInputStream();
-	else
-	    return null;
+        if (data != null)
+            return data.toByteArrayInputStream();
+        else
+            return null;
     }
 
     public boolean isHeader() {
-	return isHeader;
+        return isHeader;
     }
 }

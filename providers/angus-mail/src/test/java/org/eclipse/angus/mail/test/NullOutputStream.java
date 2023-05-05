@@ -16,7 +16,8 @@
 
 package org.eclipse.angus.mail.test;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * An OutputStream that throws away all data written to it.

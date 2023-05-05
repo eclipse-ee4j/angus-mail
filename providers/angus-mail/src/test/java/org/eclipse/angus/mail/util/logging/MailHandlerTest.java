@@ -17,24 +17,91 @@
 
 package org.eclipse.angus.mail.util.logging;
 
-import java.io.*;
+import jakarta.activation.FileTypeMap;
+import jakarta.activation.MimetypesFileTypeMap;
+import jakarta.activation.UnsupportedDataTypeException;
+import jakarta.mail.Address;
+import jakarta.mail.Authenticator;
+import jakarta.mail.BodyPart;
+import jakarta.mail.Message;
+import jakarta.mail.MessageContext;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.Part;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.SendFailedException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.ContentType;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.internet.MimePart;
+import jakarta.mail.internet.MimeUtility;
+import jakarta.mail.util.StreamProvider.EncoderTypes;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.*;
-import java.util.*;
-import java.util.logging.*;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.URLConnection;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Properties;
+import java.util.Random;
+import java.util.ResourceBundle;
+import java.util.UUID;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.ErrorManager;
+import java.util.logging.Filter;
 import java.util.logging.Formatter;
-import jakarta.activation.*;
-import jakarta.mail.*;
-import jakarta.mail.Authenticator;
-import jakarta.mail.PasswordAuthentication;
-import jakarta.mail.internet.*;
-import jakarta.mail.util.StreamProvider.EncoderTypes;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.LoggingPermission;
+import java.util.logging.MemoryHandler;
+import java.util.logging.SimpleFormatter;
+import java.util.logging.XMLFormatter;
 
-import org.junit.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test case for the MailHandler spec.
@@ -183,8 +250,7 @@ public class MailHandlerTest extends AbstractLogging {
     }
 
     static void securityDebugPrint(Throwable se) {
-        @SuppressWarnings("UseOfSystemOutOrSystemErr")
-        final PrintStream err = System.err;
+        @SuppressWarnings("UseOfSystemOutOrSystemErr") final PrintStream err = System.err;
         err.println("Suppressed security exception to allow access:");
         se.printStackTrace(err);
     }
@@ -430,7 +496,7 @@ public class MailHandlerTest extends AbstractLogging {
         boolean result = false;
         boolean expect = true;
         if (record == null || record.getLevel().intValue() < lvl.intValue()
-        		|| Level.OFF.intValue() == lvl.intValue()) {
+                || Level.OFF.intValue() == lvl.intValue()) {
             expect = false;
         }
 
@@ -453,69 +519,69 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testDeclaredClasses() throws Exception {
-    	//MailHandler init will pin all classes that it may use.
-    	//Check that classes are pinned in static fields or
-    	//that there is a field that is designed to hold a declared type.
-    	//This includes public properties of the Handler class too.
+        //MailHandler init will pin all classes that it may use.
+        //Check that classes are pinned in static fields or
+        //that there is a field that is designed to hold a declared type.
+        //This includes public properties of the Handler class too.
         for (Class<?> k : MailHandler.class.getDeclaredClasses()) {
-    		boolean found = false;
+            boolean found = false;
 
-    		//Has a getter method matching type.
-        	for (Method m : Handler.class.getDeclaredMethods()) {
-        		if (!Modifier.isPublic(m.getModifiers())) {
-        			continue;
-        		}
+            //Has a getter method matching type.
+            for (Method m : Handler.class.getDeclaredMethods()) {
+                if (!Modifier.isPublic(m.getModifiers())) {
+                    continue;
+                }
 
-        		if (m.getReturnType().isAssignableFrom(k)) {
-        			found = true;
-        			break;
-        		}
-        	}
+                if (m.getReturnType().isAssignableFrom(k)) {
+                    found = true;
+                    break;
+                }
+            }
 
-        	if (found) {
-        		continue;
-        	}
+            if (found) {
+                continue;
+            }
 
-    		//Has a field that holds the type.
-        	for (Field f : MailHandler.class.getDeclaredFields()) {
-        		Class<?> t = f.getType();
-        		if (t == Object.class) {
-        			continue;
-        		}
+            //Has a field that holds the type.
+            for (Field f : MailHandler.class.getDeclaredFields()) {
+                Class<?> t = f.getType();
+                if (t == Object.class) {
+                    continue;
+                }
 
-        		if (t.isAssignableFrom(k)) {
-        			//Check for static field holding declared class.
-        			if (Modifier.isStatic(f.getModifiers())
-        					&& Modifier.isFinal(f.getModifiers())) {
-        				f.setAccessible(true);
-        				Object o = f.get((Object) null);
-        				if (o == null || o.getClass() != k) {
-        					continue;
-        				}
-        			}
+                if (t.isAssignableFrom(k)) {
+                    //Check for static field holding declared class.
+                    if (Modifier.isStatic(f.getModifiers())
+                            && Modifier.isFinal(f.getModifiers())) {
+                        f.setAccessible(true);
+                        Object o = f.get((Object) null);
+                        if (o == null || o.getClass() != k) {
+                            continue;
+                        }
+                    }
 
-        			found = true;
-        			break;
-        		}
+                    found = true;
+                    break;
+                }
 
-        		//Instance arrays can hold declared classes.
-        		//Static array checking is not implemented at
-        		//this time.
-        		if (!Modifier.isStatic(f.getModifiers())) {
-	        		while (t.isArray()) {
-	        			t = t.getComponentType();
-	        		}
+                //Instance arrays can hold declared classes.
+                //Static array checking is not implemented at
+                //this time.
+                if (!Modifier.isStatic(f.getModifiers())) {
+                    while (t.isArray()) {
+                        t = t.getComponentType();
+                    }
 
-	        		if (t != Object.class && t.isAssignableFrom(k)) {
-	        			found = true;
-	        			break;
-	        		}
-        		}
-        	}
+                    if (t != Object.class && t.isAssignableFrom(k)) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
 
-        	if (!found) {
-    			fail(k.toString());
-    		}
+            if (!found) {
+                fail(k.toString());
+            }
         }
     }
 
@@ -547,24 +613,24 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testEquals() {
-    	MailHandler h = new MailHandler();
-    	assertFalse(h.equals((Object) null));
-    	assertNotEquals(h, new MailHandler());
-    	assertTrue(h.equals(h));
+        MailHandler h = new MailHandler();
+        assertFalse(h.equals((Object) null));
+        assertNotEquals(h, new MailHandler());
+        assertTrue(h.equals(h));
     }
 
     @Test
     public void testHashCode() {
-    	CompactFormatter cf = new CompactFormatter();
-    	assertEquals(System.identityHashCode(cf), cf.hashCode());
+        CompactFormatter cf = new CompactFormatter();
+        assertEquals(System.identityHashCode(cf), cf.hashCode());
     }
 
     @Test
     public void testToString() {
-    	MailHandler h = new MailHandler();
-    	String s = h.toString();
-    	assertTrue(s, s.startsWith(MailHandler.class.getName()));
-    	assertTrue(s, s.endsWith(Integer.toHexString(h.hashCode())));
+        MailHandler h = new MailHandler();
+        String s = h.toString();
+        assertTrue(s, s.startsWith(MailHandler.class.getName()));
+        assertTrue(s, s.endsWith(Integer.toHexString(h.hashCode())));
     }
 
     @Test
@@ -696,13 +762,13 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testPublishNull() {
-    	MailHandler instance = new MailHandler();
-    	InternalErrorManager em = new InternalErrorManager();
-    	instance.setErrorManager(em);
-    	instance.setLevel(Level.ALL);
-    	instance.publish((LogRecord) null);
-    	instance.close();
-    	for (Throwable t : em.exceptions) {
+        MailHandler instance = new MailHandler();
+        InternalErrorManager em = new InternalErrorManager();
+        instance.setErrorManager(em);
+        instance.setLevel(Level.ALL);
+        instance.publish((LogRecord) null);
+        instance.close();
+        for (Throwable t : em.exceptions) {
             dump(t);
         }
         assertTrue(em.exceptions.isEmpty());
@@ -711,17 +777,17 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testPublishNullAsTrue() {
-    	MailHandler instance = new MailHandler() {
-    		public boolean isLoggable(LogRecord r) {
-    			return true;
-    		}
-    	};
-    	InternalErrorManager em = new InternalErrorManager();
-    	instance.setErrorManager(em);
-    	instance.setLevel(Level.ALL);
-    	instance.publish((LogRecord) null);
-    	instance.close();
-    	assertEquals(true, em.exceptions.get(0) instanceof NullPointerException);
+        MailHandler instance = new MailHandler() {
+            public boolean isLoggable(LogRecord r) {
+                return true;
+            }
+        };
+        InternalErrorManager em = new InternalErrorManager();
+        instance.setErrorManager(em);
+        instance.setLevel(Level.ALL);
+        instance.publish((LogRecord) null);
+        instance.close();
+        assertEquals(true, em.exceptions.get(0) instanceof NullPointerException);
         assertEquals(1, em.exceptions.size());
     }
 
@@ -1052,7 +1118,7 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testSingleSortComparator() {
-    	MailHandler instance = new MailHandler(createInitProperties(""));
+        MailHandler instance = new MailHandler(createInitProperties(""));
         instance.setComparator(new SequenceComparator());
         instance.setErrorManager(new InternalErrorManager());
         try {
@@ -1075,7 +1141,7 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testSingleSortViolateContract() {
-    	MailHandler instance = new MailHandler(createInitProperties(""));
+        MailHandler instance = new MailHandler(createInitProperties(""));
         instance.setComparator(new GreaterComparator());
         instance.setErrorManager(new InternalErrorManager());
         try {
@@ -1090,11 +1156,11 @@ public class MailHandlerTest extends AbstractLogging {
             if (isConnectOrTimeout(t)) {
                 continue;
             } else if (t.getClass() == IllegalArgumentException.class
-            		&& t.getMessage().contains(instance.getComparator()
-            				.getClass().getName())) {
+                    && t.getMessage().contains(instance.getComparator()
+                    .getClass().getName())) {
                 seenError = true; //See Arrays.sort(T[], Comparator<? super T>)
                 continue; //expect.
-            }else {
+            } else {
                 dump(t);
                 fail(t.toString());
             }
@@ -1204,31 +1270,31 @@ public class MailHandlerTest extends AbstractLogging {
         MailHandler instance = createHandlerWithRecords();
         instance.setFormatter(new SimpleFormatter());
         instance.setAttachmentFormatters(new Formatter[]{
-            new EmptyFormatter(), new SimpleFormatter(), new SimpleFormatter()});
+                new EmptyFormatter(), new SimpleFormatter(), new SimpleFormatter()});
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
         instance.setFormatter(new SimpleFormatter());
         instance.setAttachmentFormatters(new Formatter[]{
-            new SimpleFormatter(), new EmptyFormatter(), new SimpleFormatter()});
+                new SimpleFormatter(), new EmptyFormatter(), new SimpleFormatter()});
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
         instance.setFormatter(new SimpleFormatter());
         instance.setAttachmentFormatters(new Formatter[]{
-            new SimpleFormatter(), new SimpleFormatter(), new EmptyFormatter()});
+                new SimpleFormatter(), new SimpleFormatter(), new EmptyFormatter()});
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
         instance.setFormatter(new EmptyFormatter());
         instance.setAttachmentFormatters(new Formatter[]{
-            new SimpleFormatter(), new SimpleFormatter(), new SimpleFormatter()});
+                new SimpleFormatter(), new SimpleFormatter(), new SimpleFormatter()});
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
         instance.setFormatter(new EmptyFormatter());
         instance.setAttachmentFormatters(new Formatter[]{
-            new SimpleFormatter(), new EmptyFormatter(), new SimpleFormatter()});
+                new SimpleFormatter(), new EmptyFormatter(), new SimpleFormatter()});
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
@@ -1386,7 +1452,7 @@ public class MailHandlerTest extends AbstractLogging {
                 SimpleFormatter.class.getName() + ", " + SimpleFormatter.class.getName());
         props.put(p.concat(".attachment.filters"),
                 ErrorFilter.class.getName() + "," + ErrorFilter.class.getName()
-                + "," + ErrorFilter.class.getName());
+                        + "," + ErrorFilter.class.getName());
         props.put(p.concat(".attachment.names"), "att.txt, next.txt, extra.txt");
         final LogManager manager = LogManager.getLogManager();
         try {
@@ -1646,7 +1712,7 @@ public class MailHandlerTest extends AbstractLogging {
         if (clear) {
             h.setAttachmentFilters(one, two,
                     new Filter() {
-			@Override
+                        @Override
                         public boolean isLoggable(LogRecord record) {
                             h.setAttachmentFormatters(new SimpleFormatter(),
                                     new SimpleFormatter());
@@ -1770,35 +1836,35 @@ public class MailHandlerTest extends AbstractLogging {
 
             @Override
             public String getTail(Handler h) {
-            	assert h instanceof MailHandler : h;
-            	pushTest((MailHandler) h);
+                assert h instanceof MailHandler : h;
+                pushTest((MailHandler) h);
                 return super.getTail(h);
             }
 
             private void pushTest(MailHandler h) {
-            	try {
-            		h.setPushLevel(Level.ALL);
-            		fail("Push level mutable during push");
-            	} catch(IllegalStateException expect) {
-            	}
+                try {
+                    h.setPushLevel(Level.ALL);
+                    fail("Push level mutable during push");
+                } catch (IllegalStateException expect) {
+                }
 
-            	try {
-            		h.setPushFilter((Filter) null);
-            		fail("Push filter mutable during push");
-            	} catch(IllegalStateException expect) {
-            	}
+                try {
+                    h.setPushFilter((Filter) null);
+                    fail("Push filter mutable during push");
+                } catch (IllegalStateException expect) {
+                }
 
-            	try {
-            		h.setPushFilter(new ErrorFilter());
-            		fail("Push filter mutable during push");
-            	} catch(IllegalStateException expect) {
-            	}
+                try {
+                    h.setPushFilter(new ErrorFilter());
+                    fail("Push filter mutable during push");
+                } catch (IllegalStateException expect) {
+                }
 
-	            try {
-	                h.push();
-	            } catch (Throwable T) {
-	                fail(T.toString());
-	            }
+                try {
+                    h.push();
+                } catch (Throwable T) {
+                    fail(T.toString());
+                }
             }
         };
 
@@ -1830,39 +1896,39 @@ public class MailHandlerTest extends AbstractLogging {
 
             @Override
             public String getHead(Handler h) {
-            	assert h instanceof MailHandler : h;
-        		nameTest((MailHandler) h);
+                assert h instanceof MailHandler : h;
+                nameTest((MailHandler) h);
                 return super.getHead(h);
             }
 
             @Override
             public String getTail(Handler h) {
-            	assert h instanceof MailHandler : h;
-            	nameTest((MailHandler) h);
+                assert h instanceof MailHandler : h;
+                nameTest((MailHandler) h);
                 return super.getTail(h);
             }
 
             private void nameTest(MailHandler h) {
-	            Formatter[] f = h.getAttachmentNames();
-	            try {
-	                h.setAttachmentNames(f);
-	                fail("Mutable formatter");
-	            } catch (IllegalStateException pass) {
-	            } catch (Throwable T) {
-	                fail(T.toString());
-	            }
+                Formatter[] f = h.getAttachmentNames();
+                try {
+                    h.setAttachmentNames(f);
+                    fail("Mutable formatter");
+                } catch (IllegalStateException pass) {
+                } catch (Throwable T) {
+                    fail(T.toString());
+                }
 
-	            try {
-	            	String[] names = new String[f.length];
-	            	for (int i = 0; i < names.length; ++i) {
-	            		names[i] = f[i].toString();
-	            	}
-	                h.setAttachmentNames(names);
-	                fail("Mutable names");
-	            } catch (IllegalStateException pass) {
-	            } catch (Throwable T) {
-	                fail(T.toString());
-	            }
+                try {
+                    String[] names = new String[f.length];
+                    for (int i = 0; i < names.length; ++i) {
+                        names[i] = f[i].toString();
+                    }
+                    h.setAttachmentNames(names);
+                    fail("Mutable names");
+                } catch (IllegalStateException pass) {
+                } catch (Throwable T) {
+                    fail(T.toString());
+                }
 
             }
         };
@@ -2162,8 +2228,7 @@ public class MailHandlerTest extends AbstractLogging {
 
     private void testLinkageErrorWithStack(String method) throws IOException {
         PrintStream ls = new LinkageErrorStream();
-        @SuppressWarnings("UseOfSystemOutOrSystemErr")
-        final PrintStream err = System.err;
+        @SuppressWarnings("UseOfSystemOutOrSystemErr") final PrintStream err = System.err;
         try {
             System.setErr(new LinkageErrorStream());
             boolean linkageErrorEscapes = false;
@@ -2211,8 +2276,7 @@ public class MailHandlerTest extends AbstractLogging {
 
     private void testLinkageErrorEmptyStack(String method) throws IOException {
         PrintStream ls = new LinkageErrorStream(new StackTraceElement[0]);
-        @SuppressWarnings("UseOfSystemOutOrSystemErr")
-        final PrintStream err = System.err;
+        @SuppressWarnings("UseOfSystemOutOrSystemErr") final PrintStream err = System.err;
         final Thread.UncaughtExceptionHandler ueh
                 = Thread.currentThread().getUncaughtExceptionHandler();
         try {
@@ -2706,10 +2770,12 @@ public class MailHandlerTest extends AbstractLogging {
 
         synchronized (instance) {
             assertNull(instance.contentTypeOf(new SimpleFormatter()));
-            assertNull(instance.contentTypeOf(new SimpleFormatter(){}));
+            assertNull(instance.contentTypeOf(new SimpleFormatter() {
+            }));
 
             assertEquals("application/xml", instance.contentTypeOf(new XMLFormatter()));
-            assertEquals("application/xml", instance.contentTypeOf(new XMLFormatter(){}));
+            assertEquals("application/xml", instance.contentTypeOf(new XMLFormatter() {
+            }));
         }
 
         /**
@@ -2741,7 +2807,8 @@ public class MailHandlerTest extends AbstractLogging {
 
         synchronized (instance) {
             assertEquals("text/html", instance.contentTypeOf(new UnsupportedHTML()));
-            assertEquals("text/html", instance.contentTypeOf(new UnsupportedHTML(){}));
+            assertEquals("text/html", instance.contentTypeOf(new UnsupportedHTML() {
+            }));
         }
 
         instance.close();
@@ -3250,11 +3317,11 @@ public class MailHandlerTest extends AbstractLogging {
         target.setFilter(new LocaleFilter(Locale.JAPANESE, true));
         target.setPushLevel(Level.OFF);
         target.setAttachmentFormatters(new Formatter[]{
-            new SimpleFormatter(), new SimpleFormatter(), new SimpleFormatter()});
+                new SimpleFormatter(), new SimpleFormatter(), new SimpleFormatter()});
         target.setAttachmentFilters(new Filter[]{
-            new LocaleFilter(Locale.ENGLISH, false),
-            new LocaleFilter(Locale.GERMAN, false),
-            new LocaleFilter(Locale.FRANCE, false)}); //just the language.
+                new LocaleFilter(Locale.ENGLISH, false),
+                new LocaleFilter(Locale.GERMAN, false),
+                new LocaleFilter(Locale.FRANCE, false)}); //just the language.
 
         assertEquals(3, target.getAttachmentFormatters().length);
         assertEquals(3, target.getAttachmentFilters().length);
@@ -3396,7 +3463,7 @@ public class MailHandlerTest extends AbstractLogging {
      * Find a writable directory that is in the class path.
      *
      * @return a File directory.
-     * @throws IOException if there is a problem.
+     * @throws IOException           if there is a problem.
      * @throws FileNotFoundException if there are no directories in class path.
      */
     @SuppressWarnings("ThrowableInitCause")
@@ -3559,6 +3626,7 @@ public class MailHandlerTest extends AbstractLogging {
             instance.close();
         }
     }
+
     private static final int LOW_CAPACITY = 1000;
     private static final int MAX_CAPACITY = 1 << 18;
     private static final int NUM_RUNS = LOW_CAPACITY + 42;
@@ -3810,7 +3878,6 @@ public class MailHandlerTest extends AbstractLogging {
     }
 
 
-
     private void testDefaultRecipient(Properties addresses) throws Exception {
 
         class DefaultRecipient extends MessageErrorManager {
@@ -3858,11 +3925,11 @@ public class MailHandlerTest extends AbstractLogging {
             }
 
             private void checkAddress(Address[] expect, Address[] found) {
-            	if (expect == null) {
-            		assertNull(found);
-            	} else {
-            		assertArrayEquals(expect, found);
-            	}
+                if (expect == null) {
+                    assertNull(found);
+                } else {
+                    assertArrayEquals(expect, found);
+                }
             }
 
             private List<Address> asList(Address... a) {
@@ -3907,22 +3974,22 @@ public class MailHandlerTest extends AbstractLogging {
         instance.close();
         InternalErrorManager em = internalErrorManagerFrom(instance);
         for (Exception exception : em.exceptions) {
-        	if (exception instanceof MessagingException) {
-        		if (exception instanceof AddressException
-        				|| exception.getCause() instanceof AddressException) {
-        			continue;
-        		}
+            if (exception instanceof MessagingException) {
+                if (exception instanceof AddressException
+                        || exception.getCause() instanceof AddressException) {
+                    continue;
+                }
 
-        		if (exception.getMessage().contains("From")) {
-        			continue;
-        		}
+                if (exception.getMessage().contains("From")) {
+                    continue;
+                }
 
-        		if (exception.getMessage().contains("No recipient addresses")) {
-        			continue;
-        		}
-        	}
-        	dump(exception);
-        	fail(exception.toString());
+                if (exception.getMessage().contains("No recipient addresses")) {
+                    continue;
+                }
+            }
+            dump(exception);
+            fail(exception.toString());
         }
         assertFalse(em.exceptions.isEmpty());
     }
@@ -4165,7 +4232,7 @@ public class MailHandlerTest extends AbstractLogging {
         }
 
         try {
-            instance.setAttachmentNames(new String[] {"foo.txt", ""});
+            instance.setAttachmentNames(new String[]{"foo.txt", ""});
             fail("Empty name was allowed.");
         } catch (IllegalArgumentException pass) {
         } catch (RuntimeException re) {
@@ -4760,7 +4827,7 @@ public class MailHandlerTest extends AbstractLogging {
         props.put("mail.from", saddr);
         props.put("mail.sender", sender);
         props.put("mail.reply.to", reply);
-        props.put("mail.mime.allowutf8",  "true");
+        props.put("mail.mime.allowutf8", "true");
         MailHandler instance = new MailHandler(props);
         instance.setEncoding("UTF-8");
         instance.setFormatter(new SimpleFormatter());
@@ -4790,7 +4857,7 @@ public class MailHandlerTest extends AbstractLogging {
             }
 
             private String toString(Address o) {
-                return ((InternetAddress)o).toUnicodeString();
+                return ((InternetAddress) o).toUnicodeString();
             }
         });
         instance.publish(new LogRecord(Level.SEVERE, sender));
@@ -4889,8 +4956,7 @@ public class MailHandlerTest extends AbstractLogging {
     private void testReportErrorLinkageWithStack(PrintStream ps) throws Exception {
         MailHandler instance = new MailHandler(createInitProperties(""));
 
-        @SuppressWarnings("UseOfSystemOutOrSystemErr")
-        final PrintStream err = System.err;
+        @SuppressWarnings("UseOfSystemOutOrSystemErr") final PrintStream err = System.err;
         System.setErr(ps);
         try {
             try {
@@ -4927,7 +4993,7 @@ public class MailHandlerTest extends AbstractLogging {
     public void testReportErrorLinkageShortStack() throws Throwable {
         testReportErrorLinkageEmptyStack(
                 new LinkageErrorStream(new StackTraceElement[]{
-                    new StackTraceElement("", "", "", -1)}));
+                        new StackTraceElement("", "", "", -1)}));
     }
 
     @Test
@@ -4940,14 +5006,13 @@ public class MailHandlerTest extends AbstractLogging {
     public void testReportErrorRuntimeShortStack() throws Throwable {
         testReportErrorLinkageEmptyStack(
                 new RuntimeErrorStream(new StackTraceElement[]{
-                    new StackTraceElement("", "", "", -1)}));
+                        new StackTraceElement("", "", "", -1)}));
     }
 
     private void testReportErrorLinkageEmptyStack(PrintStream ps) throws Throwable {
         MailHandler instance = new MailHandler(createInitProperties(""));
 
-        @SuppressWarnings("UseOfSystemOutOrSystemErr")
-        final PrintStream err = System.err;
+        @SuppressWarnings("UseOfSystemOutOrSystemErr") final PrintStream err = System.err;
         System.setErr(ps);
         try {
             try {
@@ -5573,31 +5638,31 @@ public class MailHandlerTest extends AbstractLogging {
 
         props.put(p.concat(".attachment.formatters"),
                 SimpleFormatter.class.getName() + ", "
-                + InternFilterFormatter.class.getName() + ", "
-                + InternFormatter.class.getName() + ", "
-                + XMLFormatter.class.getName() + ", "
-                + InternFormatter.class.getName() + ", "
-                + SimpleFormatter.class.getName() + ", "
-                + SimpleFormatter.class.getName());
+                        + InternFilterFormatter.class.getName() + ", "
+                        + InternFormatter.class.getName() + ", "
+                        + XMLFormatter.class.getName() + ", "
+                        + InternFormatter.class.getName() + ", "
+                        + SimpleFormatter.class.getName() + ", "
+                        + SimpleFormatter.class.getName());
 
         props.put(p.concat(".attachment.filters"),
                 null + ", "
-                + InternFilterFormatter.class.getName() + ", "
-                + InternFilterFormatter.class.getName() + ", "
-                + InternFilter.class.getName() + ", "
-                + InternFilter.class.getName() + ", "
-                + InternBadSubFilter.class.getName() + ", "
-                + InternBadFilter.class.getName());
+                        + InternFilterFormatter.class.getName() + ", "
+                        + InternFilterFormatter.class.getName() + ", "
+                        + InternFilter.class.getName() + ", "
+                        + InternFilter.class.getName() + ", "
+                        + InternBadSubFilter.class.getName() + ", "
+                        + InternBadFilter.class.getName());
 
         final String txt = "Intern test";
         props.put(p.concat(".attachment.names"),
                 txt + ", "
-                + InternFilterFormatter.class.getName() + ", "
-                + InternFilterFormatter.class.getName() + ", "
-                + txt + ", "
-                + InternFormatter.class.getName() + ", "
-                + InternFilterFormatterComparator.class.getName() + ", "
-                + InternFilterFormatterComparator.class.getName());
+                        + InternFilterFormatter.class.getName() + ", "
+                        + InternFilterFormatter.class.getName() + ", "
+                        + txt + ", "
+                        + InternFormatter.class.getName() + ", "
+                        + InternFilterFormatterComparator.class.getName() + ", "
+                        + InternFilterFormatterComparator.class.getName());
         props.put(p.concat(".subject"), txt);
 
         MailHandler instance = testIntern(p, props);
@@ -5659,15 +5724,15 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testInternNonDiscriminating() throws Exception {
-    	assertNull(System.getSecurityManager());
+        assertNull(System.getSecurityManager());
         final String p = MailHandler.class.getName();
         Properties props = createInitProperties(p);
         props.put(p.concat(".attachment.formatters"),
-        		InternFormatter.class.getName()  + ", "
-        		+ NonDiscriminatingFormatter1.class.getName() + ", "
-                + NonDiscriminatingFormatter2.class.getName() + ", "
-                + NonDiscriminatingFormatter3.class.getName()
-                );
+                InternFormatter.class.getName() + ", "
+                        + NonDiscriminatingFormatter1.class.getName() + ", "
+                        + NonDiscriminatingFormatter2.class.getName() + ", "
+                        + NonDiscriminatingFormatter3.class.getName()
+        );
         MailHandler instance = testIntern(p, props);
         instance.close();
 
@@ -5812,7 +5877,7 @@ public class MailHandlerTest extends AbstractLogging {
             Properties props = createInitProperties(p);
             props.put(p.concat(".subject"), p.concat(" test"));
             props.put(p.concat(".attachment.formatters"),
-            		XMLFormatter.class.getName() + ", " + SimpleFormatter.class.getName());
+                    XMLFormatter.class.getName() + ", " + SimpleFormatter.class.getName());
             props.put(p.concat(".attachment.names"), XMLFormatter.class.getName() + ", simple.txt");
             props.put(p.concat(".errorManager"), InternalErrorManager.class.getName());
             props.put(p.concat(".verify"), "limited");
@@ -6323,9 +6388,9 @@ public class MailHandlerTest extends AbstractLogging {
 
         props.put(p.concat(".attachment.formatters"),
                 SimpleFormatter.class.getName() + ", "
-                + SimpleFormatter.class.getName() + ", "
-                + SimpleFormatter.class.getName() + ", "
-                + SimpleFormatter.class.getName());
+                        + SimpleFormatter.class.getName() + ", "
+                        + SimpleFormatter.class.getName() + ", "
+                        + SimpleFormatter.class.getName());
         props.put(p.concat(".attachment.names"), "a.txt, b.txt, c.txt, d.txt");
         props.put(p.concat(".attachment.filters"), "null, "
                 + ThrowFilter.class.getName());
@@ -6459,8 +6524,8 @@ public class MailHandlerTest extends AbstractLogging {
             try {
                 em = internalErrorManagerFrom(target);
                 for (Exception exception : em.exceptions) {
-                	if (!(exception instanceof NullPointerException)) {
-                		dump(exception);
+                    if (!(exception instanceof NullPointerException)) {
+                        dump(exception);
                     }
                 }
                 assertEquals(1, target.getAttachmentFormatters().length);
@@ -6494,8 +6559,7 @@ public class MailHandlerTest extends AbstractLogging {
                 read(manager, props);
                 ByteArrayOutputStream oldErrors = new ByteArrayOutputStream();
                 PrintStream newErr = new PrintStream(oldErrors, false, encoding);
-                @SuppressWarnings("UseOfSystemOutOrSystemErr")
-                final PrintStream err = System.err;
+                @SuppressWarnings("UseOfSystemOutOrSystemErr") final PrintStream err = System.err;
                 System.setErr(newErr);
                 try {
                     final MailHandler target = new MailHandler();
@@ -6544,8 +6608,7 @@ public class MailHandlerTest extends AbstractLogging {
                 read(manager, props);
                 ByteArrayOutputStream oldErrors = new ByteArrayOutputStream();
                 PrintStream newErr = new PrintStream(oldErrors, false, encoding);
-                @SuppressWarnings("UseOfSystemOutOrSystemErr")
-                final PrintStream err = System.err;
+                @SuppressWarnings("UseOfSystemOutOrSystemErr") final PrintStream err = System.err;
                 System.setErr(newErr);
                 try {
                     final MailHandler target = new MailHandler();
@@ -6751,8 +6814,7 @@ public class MailHandlerTest extends AbstractLogging {
                 read(manager, props);
                 ByteArrayOutputStream oldErrors = new ByteArrayOutputStream();
                 PrintStream newErr = new PrintStream(oldErrors, false, encoding);
-                @SuppressWarnings("UseOfSystemOutOrSystemErr")
-                final PrintStream err = System.err;
+                @SuppressWarnings("UseOfSystemOutOrSystemErr") final PrintStream err = System.err;
                 System.setErr(newErr);
                 try {
                     final MailHandler target = new MailHandler();
@@ -7028,7 +7090,7 @@ public class MailHandlerTest extends AbstractLogging {
     }
 
     private void initGoodTest(Class<? extends MailHandler> type,
-            Class<?>[] types, Object[] params) throws Exception {
+                              Class<?>[] types, Object[] params) throws Exception {
 
         final String p = type.getName();
         Properties props = createInitProperties(p);
@@ -7046,12 +7108,12 @@ public class MailHandlerTest extends AbstractLogging {
 
         props.put(p.concat(".attachment.filters"),
                 "null, " + ThrowFilter.class.getName() + ", "
-                + ThrowFilter.class.getName());
+                        + ThrowFilter.class.getName());
 
         props.put(p.concat(".attachment.formatters"),
                 SimpleFormatter.class.getName() + ", "
-                + XMLFormatter.class.getName() + ", "
-                + SimpleFormatter.class.getName());
+                        + XMLFormatter.class.getName() + ", "
+                        + SimpleFormatter.class.getName());
 
         props.put(p.concat(".attachment.names"), "msg.txt, "
                 + SimpleFormatter.class.getName() + ", error.txt");
@@ -7127,7 +7189,7 @@ public class MailHandlerTest extends AbstractLogging {
 
     @SuppressWarnings("UseOfSystemOutOrSystemErr")
     private void initBadTest(Class<? extends MailHandler> type,
-            Class<?>[] types, Object[] params) throws Exception {
+                             Class<?>[] types, Object[] params) throws Exception {
         final String encoding = System.getProperty("file.encoding", "8859_1");
         final PrintStream err = System.err;
         ByteArrayOutputStream oldErrors = new ByteArrayOutputStream();
@@ -7151,8 +7213,8 @@ public class MailHandlerTest extends AbstractLogging {
 
         props.put(p.concat(".attachment.formatters"),
                 "InvalidAttachFormatter0, "
-                + ThrowComparator.class.getName() + ", "
-                + XMLFormatter.class.getName());
+                        + ThrowComparator.class.getName() + ", "
+                        + XMLFormatter.class.getName());
 
         props.put(p.concat(".attachment.names"), "msg.txt, "
                 + ThrowComparator.class.getName() + ", "
@@ -7236,7 +7298,7 @@ public class MailHandlerTest extends AbstractLogging {
         if (t instanceof MessagingException) {
             Throwable cause = t.getCause();
             if (cause == null) { //GNU JavaMail doesn't support 1.4 chaining.
-               cause = ((MessagingException) t).getNextException();
+                cause = ((MessagingException) t).getNextException();
             }
             return isConnectOrTimeout(cause);
         } else if (isInstanceof(t, "org.eclipse.angus.mail.util.SocketConnectException")) {
@@ -7250,13 +7312,13 @@ public class MailHandlerTest extends AbstractLogging {
 
     private static boolean isInstanceof(Object o, String s) {
         if (s == null) {
-           throw new NullPointerException();
+            throw new NullPointerException();
         }
 
         if (o != null) {
             for (Class<?> k = o.getClass(); k != null; k = k.getSuperclass()) {
                 if (s.equals(k.getClass().getName())) {
-                   return true;
+                    return true;
                 }
             }
         }
@@ -7297,14 +7359,14 @@ public class MailHandlerTest extends AbstractLogging {
             InetAddress a = InetAddress.getByName(host);
             throw new AssertionError(toFailString(host, a));
         } catch (UnknownHostException expect) {
-           return host;
+            return host;
         }
     }
 
     private static String toFailString(String host, InetAddress a) {
         return host + "=" + a.getHostName()
-                    + "(" + a.getCanonicalHostName()
-                    + ")[" + a.getHostAddress() + "]";
+                + "(" + a.getCanonicalHostName()
+                + ")[" + a.getHostAddress() + "]";
     }
 
     /**
@@ -7552,18 +7614,20 @@ public class MailHandlerTest extends AbstractLogging {
         public int compare(LogRecord o1, LogRecord o2) {
             return o1.toString().compareTo(o2.toString());
         }
-    };
+    }
+
+    ;
 
     public static class GreaterComparator
-    		implements Comparator<LogRecord>, Serializable {
+            implements Comparator<LogRecord>, Serializable {
 
-    	private static final long serialVersionUID = 1L;
+        private static final long serialVersionUID = 1L;
 
-		@SuppressWarnings("override") //JDK-6954234
-		public int compare(LogRecord o1, LogRecord o2) {
-		    return 1;
-		}
-	}
+        @SuppressWarnings("override") //JDK-6954234
+        public int compare(LogRecord o1, LogRecord o2) {
+            return 1;
+        }
+    }
 
     public static class SequenceComparator
             implements Comparator<LogRecord>, Serializable {
@@ -8139,20 +8203,20 @@ public class MailHandlerTest extends AbstractLogging {
     public static class NonDiscriminatingFormatter1 extends Formatter {
 
 
-		@Override //breaks with subclass
-		public boolean equals(Object obj) {
-			return obj instanceof NonDiscriminatingFormatter1;
-		}
+        @Override //breaks with subclass
+        public boolean equals(Object obj) {
+            return obj instanceof NonDiscriminatingFormatter1;
+        }
 
-		@Override
-		public int hashCode() { //Align on same bucket.
-			return 31 * InternFormatter.class.hashCode();
-		}
+        @Override
+        public int hashCode() { //Align on same bucket.
+            return 31 * InternFormatter.class.hashCode();
+        }
 
-		@Override
-		public String format(LogRecord record) {
-			return "";
-		}
+        @Override
+        public String format(LogRecord record) {
+            return "";
+        }
 
     }
 
@@ -8431,7 +8495,7 @@ public class MailHandlerTest extends AbstractLogging {
     }
 
     private static class CountingUncaughtExceptionHandler
-                                implements Thread.UncaughtExceptionHandler {
+            implements Thread.UncaughtExceptionHandler {
 
         int count;
 
@@ -8523,8 +8587,8 @@ public class MailHandlerTest extends AbstractLogging {
         @Override
         public void error(String msg, Exception ex, int code) {
             try {
-            	Properties p = createInitProperties("");
-            	p.setProperty("mail.from", "foo@bar.com");
+                Properties p = createInitProperties("");
+                p.setProperty("mail.from", "foo@bar.com");
                 Session session = Session.getInstance(p);
                 session.setDebug(true);
                 Message m = new MimeMessage(session);
@@ -8535,9 +8599,9 @@ public class MailHandlerTest extends AbstractLogging {
                 m.writeTo(new ByteArrayOutputStream(1024));
                 Transport.send(m);
             } catch (Exception e) {
-            	if(!isConnectOrTimeout(e)) {
-            		dump(e);
-            		fail(e.toString());
+                if (!isConnectOrTimeout(e)) {
+                    dump(e);
+                    fail(e.toString());
                 }
             }
         }

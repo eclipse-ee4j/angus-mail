@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -10,12 +10,16 @@
 
 package demo;
 
-import java.util.*;
-import java.net.*;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
-import jakarta.servlet.jsp.*;
-import jakarta.servlet.jsp.tagext.*;
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.servlet.jsp.JspException;
+import jakarta.servlet.jsp.tagext.BodyTagSupport;
+
+import java.net.InetAddress;
+import java.util.Properties;
 
 /**
  * Custom tag for sending messages.
@@ -32,89 +36,89 @@ public class SendTag extends BodyTagSupport {
      * host attribute setter method.
      */
     public void setHost(String host) {
-	this.host = host;
+        this.host = host;
     }
-    
+
     /**
      * recipient attribute setter method.
      */
     public void setRecipients(String recipients) {
-	this.recipients = recipients;
+        this.recipients = recipients;
     }
 
     /**
      * sender attribute setter method.
      */
     public void setSender(String sender) {
-	this.sender = sender;
+        this.sender = sender;
     }
 
     /**
      * cc attribute setter method.
      */
     public void setCc(String cc) {
-	this.cc = cc;
+        this.cc = cc;
     }
 
     /**
      * subject attribute setter method.
      */
     public void setSubject(String subject) {
-	this.subject = subject;
+        this.subject = subject;
     }
 
     /**
      * Method for processing the end of the tag.
      */
     public int doEndTag() throws JspException {
-	Properties props = System.getProperties();
-	
-	try {
-	    if (host != null)
-		props.put("mail.smtp.host", host);
-	    else if (props.getProperty("mail.smtp.host") == null)
-		props.put("mail.smtp.host", InetAddress.getLocalHost().
-		    getHostName());
-	} catch (Exception ex) {
-	    throw new JspException(ex.getMessage());
-	}
-	Session session = Session.getDefaultInstance(props, null);
-		
-	Message msg = new MimeMessage(session);
-	InternetAddress[] toAddrs = null, ccAddrs = null;
+        Properties props = System.getProperties();
 
-	try {
-	    if (recipients != null) {
-		toAddrs = InternetAddress.parse(recipients, false);
-		msg.setRecipients(Message.RecipientType.TO, toAddrs);
-	    } else
-		throw new JspException("No recipient address specified");
+        try {
+            if (host != null)
+                props.put("mail.smtp.host", host);
+            else if (props.getProperty("mail.smtp.host") == null)
+                props.put("mail.smtp.host", InetAddress.getLocalHost().
+                        getHostName());
+        } catch (Exception ex) {
+            throw new JspException(ex.getMessage());
+        }
+        Session session = Session.getDefaultInstance(props, null);
 
-	    if (sender != null)
-		msg.setFrom(new InternetAddress(sender));
-	    else
-		throw new JspException("No sender address specified");
+        Message msg = new MimeMessage(session);
+        InternetAddress[] toAddrs = null, ccAddrs = null;
 
-	    if (cc != null) {
-		ccAddrs = InternetAddress.parse(cc, false);
-		msg.setRecipients(Message.RecipientType.CC, ccAddrs);
-	    }
+        try {
+            if (recipients != null) {
+                toAddrs = InternetAddress.parse(recipients, false);
+                msg.setRecipients(Message.RecipientType.TO, toAddrs);
+            } else
+                throw new JspException("No recipient address specified");
 
-	    if (subject != null)
-		msg.setSubject(subject);
+            if (sender != null)
+                msg.setFrom(new InternetAddress(sender));
+            else
+                throw new JspException("No sender address specified");
 
-	    if ((body = getBodyContent().getString()) != null)
-		msg.setText(body);
-	    else
-		msg.setText("");
+            if (cc != null) {
+                ccAddrs = InternetAddress.parse(cc, false);
+                msg.setRecipients(Message.RecipientType.CC, ccAddrs);
+            }
 
-	    Transport.send(msg);
-	
-	} catch (Exception ex) {
-	    throw new JspException(ex.getMessage());
-	}
+            if (subject != null)
+                msg.setSubject(subject);
 
-	return(EVAL_PAGE);
-   }
+            if ((body = getBodyContent().getString()) != null)
+                msg.setText(body);
+            else
+                msg.setText("");
+
+            Transport.send(msg);
+
+        } catch (Exception ex) {
+            throw new JspException(ex.getMessage());
+        }
+
+        return (EVAL_PAGE);
+    }
 }
 

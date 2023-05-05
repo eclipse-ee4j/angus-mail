@@ -16,17 +16,28 @@
 
 package org.eclipse.angus.mail.mbox;
 
-import java.io.*;
-import java.util.StringTokenizer;
-
+import jakarta.activation.DataHandler;
+import jakarta.mail.Address;
+import jakarta.mail.Flags;
+import jakarta.mail.MessageRemovedException;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.event.MessageChangedEvent;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetHeaders;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimePartDataSource;
 import org.eclipse.angus.mail.util.LineInputStream;
 
-import java.util.Date;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.text.SimpleDateFormat;
-import jakarta.activation.*;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
-import jakarta.mail.event.MessageChangedEvent;
+import java.util.Date;
+import java.util.StringTokenizer;
 
 /**
  * This class represents an RFC822 style email message that resides in a file.
@@ -48,30 +59,33 @@ public class MboxMessage extends MimeMessage {
     Date rcvDate;
     int lineCount = -1;
     private static OutputStream nullOutputStream = new OutputStream() {
-	public void write(int b) { }
-	public void write(byte[] b, int off, int len) { }
+        public void write(int b) {
+        }
+
+        public void write(byte[] b, int off, int len) {
+        }
     };
 
     /**
      * Construct an MboxMessage from the InputStream.
      */
     public MboxMessage(Session session, InputStream is)
-				throws MessagingException, IOException {
-	super(session);
-	BufferedInputStream bis;
-	if (is instanceof BufferedInputStream)
-	    bis = (BufferedInputStream)is;
-	else
-	    bis = new BufferedInputStream(is);
-	LineInputStream dis = new LineInputStream(bis);
-	bis.mark(1024);
-	String line = dis.readLine();
-	if (line != null && line.startsWith("From "))
-	    this.unix_from = line;
-	else
-	    bis.reset();
-	parse(bis);
-	saved = true;
+            throws MessagingException, IOException {
+        super(session);
+        BufferedInputStream bis;
+        if (is instanceof BufferedInputStream)
+            bis = (BufferedInputStream) is;
+        else
+            bis = new BufferedInputStream(is);
+        LineInputStream dis = new LineInputStream(bis);
+        bis.mark(1024);
+        String line = dis.readLine();
+        if (line != null && line.startsWith("From "))
+            this.unix_from = line;
+        else
+            bis.reset();
+        parse(bis);
+        saved = true;
     }
 
     /**
@@ -79,179 +93,177 @@ public class MboxMessage extends MimeMessage {
      * and content from an InputStream.
      */
     public MboxMessage(MboxFolder folder, InternetHeaders hdrs, InputStream is,
-				int msgno, String unix_from, boolean writable)
-				throws MessagingException {
-	super(folder, hdrs, null, msgno);
-	setFlagsFromHeaders();
-	origFlags = getFlags();
-	this.unix_from = unix_from;
-	this.writable = writable;
-	this.contentStream = is;
+                       int msgno, String unix_from, boolean writable)
+            throws MessagingException {
+        super(folder, hdrs, null, msgno);
+        setFlagsFromHeaders();
+        origFlags = getFlags();
+        this.unix_from = unix_from;
+        this.writable = writable;
+        this.contentStream = is;
     }
 
     /**
      * Returns the "From" attribute. The "From" attribute contains
-     * the identity of the person(s) who wished this message to 
+     * the identity of the person(s) who wished this message to
      * be sent. <p>
-     * 
+     *
      * If our superclass doesn't have a value, we return the address
      * from the UNIX From line.
      *
-     * @return          array of Address objects
-     * @exception       MessagingException
+     * @return array of Address objects
      */
     public Address[] getFrom() throws MessagingException {
-	Address[] ret = super.getFrom();
-	if (ret == null) {
-	    InternetAddress ia = getUnixFrom();
-	    if (ia != null)
-		ret = new InternetAddress[] { ia };
-	}
-	return ret;
+        Address[] ret = super.getFrom();
+        if (ret == null) {
+            InternetAddress ia = getUnixFrom();
+            if (ia != null)
+                ret = new InternetAddress[]{ia};
+        }
+        return ret;
     }
 
     /**
      * Returns the address from the UNIX "From" line.
      *
-     * @return          UNIX From address
-     * @exception       MessagingException
+     * @return UNIX From address
      */
     public synchronized InternetAddress getUnixFrom()
-				throws MessagingException {
-	if (unix_from_user == null && unix_from != null) {
-	    int i;
-	    // find the space after the address, before the date
-	    i = unix_from.indexOf(' ', 5);
-	    if (i > 5) {
-		try {
-		    unix_from_user =
-			new InternetAddress(unix_from.substring(5, i));
-		} catch (AddressException e) {
-		    // ignore it
-		}
-	    }
-	}
-	return unix_from_user != null ?
-		(InternetAddress)unix_from_user.clone() : null;
+            throws MessagingException {
+        if (unix_from_user == null && unix_from != null) {
+            int i;
+            // find the space after the address, before the date
+            i = unix_from.indexOf(' ', 5);
+            if (i > 5) {
+                try {
+                    unix_from_user =
+                            new InternetAddress(unix_from.substring(5, i));
+                } catch (AddressException e) {
+                    // ignore it
+                }
+            }
+        }
+        return unix_from_user != null ?
+                (InternetAddress) unix_from_user.clone() : null;
     }
 
     private String getUnixFromLine() {
-	if (unix_from != null)
-	    return unix_from;
-	String from = "unknown";
-	try {
-	    Address[] froma = getFrom();
-	    if (froma != null && froma.length > 0 &&
-		    froma[0] instanceof InternetAddress)
-		from = ((InternetAddress)froma[0]).getAddress();
-	} catch (MessagingException ex) { }
-	Date d = null;
-	try {
-	    d = getSentDate();
-	} catch (MessagingException ex) {
-	    // ignore
-	}
-	if (d == null)
-	    d = new Date();
-	// From shannon Mon Jun 10 12:06:52 2002
-	SimpleDateFormat fmt = new SimpleDateFormat("EEE LLL dd HH:mm:ss yyyy");
-	return "From " + from + " " + fmt.format(d);
+        if (unix_from != null)
+            return unix_from;
+        String from = "unknown";
+        try {
+            Address[] froma = getFrom();
+            if (froma != null && froma.length > 0 &&
+                    froma[0] instanceof InternetAddress)
+                from = ((InternetAddress) froma[0]).getAddress();
+        } catch (MessagingException ex) {
+        }
+        Date d = null;
+        try {
+            d = getSentDate();
+        } catch (MessagingException ex) {
+            // ignore
+        }
+        if (d == null)
+            d = new Date();
+        // From shannon Mon Jun 10 12:06:52 2002
+        SimpleDateFormat fmt = new SimpleDateFormat("EEE LLL dd HH:mm:ss yyyy");
+        return "From " + from + " " + fmt.format(d);
     }
 
     /**
      * Get the date this message was received, from the UNIX From line.
      *
-     * @return          the date this message was received
-     * @exception       MessagingException
+     * @return the date this message was received
      */
-    @SuppressWarnings("deprecation")	// for Date constructor
+    @SuppressWarnings("deprecation")    // for Date constructor
     public Date getReceivedDate() throws MessagingException {
-	if (rcvDate == null && unix_from != null) {
-	    int i;
-	    // find the space after the address, before the date
-	    i = unix_from.indexOf(' ', 5);
-	    if (i > 5) {
-		try {
-		    rcvDate = new Date(unix_from.substring(i));
-		} catch (IllegalArgumentException iae) {
-		    // ignore it
-		}
-	    }
-	}
-	return rcvDate == null ? null : new Date(rcvDate.getTime());
+        if (rcvDate == null && unix_from != null) {
+            int i;
+            // find the space after the address, before the date
+            i = unix_from.indexOf(' ', 5);
+            if (i > 5) {
+                try {
+                    rcvDate = new Date(unix_from.substring(i));
+                } catch (IllegalArgumentException iae) {
+                    // ignore it
+                }
+            }
+        }
+        return rcvDate == null ? null : new Date(rcvDate.getTime());
     }
 
     /**
      * Return the number of lines for the content of this message.
      * Return -1 if this number cannot be determined. <p>
      *
-     * Note that this number may not be an exact measure of the 
-     * content length and may or may not account for any transfer 
+     * Note that this number may not be an exact measure of the
+     * content length and may or may not account for any transfer
      * encoding of the content. <p>
      *
      * This implementation returns -1.
      *
-     * @return          number of lines in the content.
-     * @exception	MessagingException
-     */  
+     * @return number of lines in the content.
+     * @exception MessagingException
+     */
     public int getLineCount() throws MessagingException {
-	if (lineCount < 0 && isMimeType("text/plain")) {
-	    LineCounter lc = null;
-	    // writeTo will set the SEEN flag, remember the original state
-	    boolean seen = isSet(Flags.Flag.SEEN);
-	    try {
-		lc = new LineCounter(nullOutputStream);
-		getDataHandler().writeTo(lc);
-		lineCount = lc.getLineCount();
-	    } catch (IOException ex) {
-		// ignore it, can't happen
-	    } finally {
-		try {
-		    if (lc != null)
-			lc.close();
-		} catch (IOException ex) {
-		    // can't happen
-		}
-	    }
-	    if (!seen)
-		setFlag(Flags.Flag.SEEN, false);
-	}
-	return lineCount;
-     }
+        if (lineCount < 0 && isMimeType("text/plain")) {
+            LineCounter lc = null;
+            // writeTo will set the SEEN flag, remember the original state
+            boolean seen = isSet(Flags.Flag.SEEN);
+            try {
+                lc = new LineCounter(nullOutputStream);
+                getDataHandler().writeTo(lc);
+                lineCount = lc.getLineCount();
+            } catch (IOException ex) {
+                // ignore it, can't happen
+            } finally {
+                try {
+                    if (lc != null)
+                        lc.close();
+                } catch (IOException ex) {
+                    // can't happen
+                }
+            }
+            if (!seen)
+                setFlag(Flags.Flag.SEEN, false);
+        }
+        return lineCount;
+    }
 
     /**
      * Set the specified flags on this message to the specified value.
      *
-     * @param newFlags	the flags to be set
-     * @param set	the value to be set
+     * @param newFlags the flags to be set
+     * @param set      the value to be set
      */
     public void setFlags(Flags newFlags, boolean set)
-				throws MessagingException {
-	Flags oldFlags = (Flags)flags.clone();
-	super.setFlags(newFlags, set);
-	if (!flags.equals(oldFlags)) {
-	    setHeadersFromFlags(this);
-	    if (folder != null)
-		((MboxFolder)folder).notifyMessageChangedListeners(
-				MessageChangedEvent.FLAGS_CHANGED, this);
-	}
+            throws MessagingException {
+        Flags oldFlags = (Flags) flags.clone();
+        super.setFlags(newFlags, set);
+        if (!flags.equals(oldFlags)) {
+            setHeadersFromFlags(this);
+            if (folder != null)
+                ((MboxFolder) folder).notifyMessageChangedListeners(
+                        MessageChangedEvent.FLAGS_CHANGED, this);
+        }
     }
 
     /**
      * Return the content type, mapping from SunV3 types to MIME types
      * as necessary.
      */
-    public String getContentType()  throws MessagingException {
-	String ct = super.getContentType();
-	if (ct.indexOf('/') < 0)
-	    ct = SunV3BodyPart.MimeV3Map.toMime(ct);
-	return ct;
+    public String getContentType() throws MessagingException {
+        String ct = super.getContentType();
+        if (ct.indexOf('/') < 0)
+            ct = SunV3BodyPart.MimeV3Map.toMime(ct);
+        return ct;
     }
 
     /**
      * Produce the raw bytes of the content. This method is used during
      * parsing, to create a DataHandler object for the content. Subclasses
-     * that can provide a separate input stream for just the message 
+     * that can provide a separate input stream for just the message
      * content might want to override this method. <p>
      *
      * This implementation just returns a ByteArrayInputStream constructed
@@ -260,49 +272,49 @@ public class MboxMessage extends MimeMessage {
      * @see #content
      */
     protected InputStream getContentStream() throws MessagingException {
-	if (folder != null)
-	    ((MboxFolder)folder).checkOpen();
-	if (isExpunged())
-	    throw new MessageRemovedException("mbox message expunged");
-	if (!isSet(Flags.Flag.SEEN))
-	    setFlag(Flags.Flag.SEEN, true);
-	return super.getContentStream();
+        if (folder != null)
+            ((MboxFolder) folder).checkOpen();
+        if (isExpunged())
+            throw new MessageRemovedException("mbox message expunged");
+        if (!isSet(Flags.Flag.SEEN))
+            setFlag(Flags.Flag.SEEN, true);
+        return super.getContentStream();
     }
 
-    /**                                                            
+    /**
      * Return a DataHandler for this Message's content.
      * If this is a SunV3 multipart message, handle it specially.
      *
-     * @exception	MessagingException
+     * @exception MessagingException
      */
-    public synchronized DataHandler getDataHandler() 
-		throws MessagingException {
-	if (dh == null) {
-	    // XXX - Following is a kludge to avoid having to register
-	    // the "multipart/x-sun-attachment" data type with the JAF.
-	    String ct = getContentType();
-	    if (ct.equalsIgnoreCase("multipart/x-sun-attachment"))
-		dh = new DataHandler(
-		    new SunV3Multipart(new MimePartDataSource(this)), ct);
-	    else
-		return super.getDataHandler();	// will set "dh"
-	}
-	return dh;
+    public synchronized DataHandler getDataHandler()
+            throws MessagingException {
+        if (dh == null) {
+            // XXX - Following is a kludge to avoid having to register
+            // the "multipart/x-sun-attachment" data type with the JAF.
+            String ct = getContentType();
+            if (ct.equalsIgnoreCase("multipart/x-sun-attachment"))
+                dh = new DataHandler(
+                        new SunV3Multipart(new MimePartDataSource(this)), ct);
+            else
+                return super.getDataHandler();    // will set "dh"
+        }
+        return dh;
     }
 
     // here only to allow package private access from MboxFolder
     protected void setMessageNumber(int msgno) {
-	super.setMessageNumber(msgno);
+        super.setMessageNumber(msgno);
     }
 
     // here to synchronize access to expunged field
     public synchronized boolean isExpunged() {
-	return super.isExpunged();
+        return super.isExpunged();
     }
 
     // here to synchronize and to allow access from MboxFolder
     protected synchronized void setExpunged(boolean expunged) {
-	super.setExpunged(expunged);
+        super.setExpunged(expunged);
     }
 
     // XXX - We assume that only body parts that are part of a SunV3
@@ -326,145 +338,145 @@ public class MboxMessage extends MimeMessage {
      * "X-Keywords: userflag1 userflag2"
      */
     private synchronized void setFlagsFromHeaders() {
-	flags = new Flags(Flags.Flag.RECENT);
-	try {
-	    String s = getHeader("Status", null);
-	    if (s != null) {
-		if (s.indexOf('R') >= 0)
-		    flags.add(Flags.Flag.SEEN);
-		if (s.indexOf('O') >= 0)
-		    flags.remove(Flags.Flag.RECENT);
-	    }
-	    s = getHeader("X-Dt-Delete-Time", null);	// set by dtmail
-	    if (s != null)
-		flags.add(Flags.Flag.DELETED);
-	    s = getHeader("X-Status", null);		// set by IMAP server
-	    if (s != null) {
-		if (s.indexOf('D') >= 0)
-		    flags.add(Flags.Flag.DELETED);
-		if (s.indexOf('F') >= 0)
-		    flags.add(Flags.Flag.FLAGGED);
-		if (s.indexOf('A') >= 0)
-		    flags.add(Flags.Flag.ANSWERED);
-		if (s.indexOf('T') >= 0)
-		    flags.add(Flags.Flag.DRAFT);
-	    }
-	    s = getHeader("X-Keywords", null);		// set by IMAP server
-	    if (s != null) {
-		StringTokenizer st = new StringTokenizer(s);
-		while (st.hasMoreTokens())
-		    flags.add(st.nextToken());
-	    }
-	} catch (MessagingException e) {
-	    // ignore it
-	}
+        flags = new Flags(Flags.Flag.RECENT);
+        try {
+            String s = getHeader("Status", null);
+            if (s != null) {
+                if (s.indexOf('R') >= 0)
+                    flags.add(Flags.Flag.SEEN);
+                if (s.indexOf('O') >= 0)
+                    flags.remove(Flags.Flag.RECENT);
+            }
+            s = getHeader("X-Dt-Delete-Time", null);    // set by dtmail
+            if (s != null)
+                flags.add(Flags.Flag.DELETED);
+            s = getHeader("X-Status", null);        // set by IMAP server
+            if (s != null) {
+                if (s.indexOf('D') >= 0)
+                    flags.add(Flags.Flag.DELETED);
+                if (s.indexOf('F') >= 0)
+                    flags.add(Flags.Flag.FLAGGED);
+                if (s.indexOf('A') >= 0)
+                    flags.add(Flags.Flag.ANSWERED);
+                if (s.indexOf('T') >= 0)
+                    flags.add(Flags.Flag.DRAFT);
+            }
+            s = getHeader("X-Keywords", null);        // set by IMAP server
+            if (s != null) {
+                StringTokenizer st = new StringTokenizer(s);
+                while (st.hasMoreTokens())
+                    flags.add(st.nextToken());
+            }
+        } catch (MessagingException e) {
+            // ignore it
+        }
     }
 
     /**
      * Set the various header fields that represent the message flags.
      */
     static void setHeadersFromFlags(MimeMessage msg) {
-	try {
-	    Flags flags = msg.getFlags();
-	    StringBuilder status = new StringBuilder();
-	    if (flags.contains(Flags.Flag.SEEN))
-		status.append('R');
-	    if (!flags.contains(Flags.Flag.RECENT))
-		status.append('O');
-	    if (status.length() > 0)
-		msg.setHeader("Status", status.toString());
-	    else
-		msg.removeHeader("Status");
+        try {
+            Flags flags = msg.getFlags();
+            StringBuilder status = new StringBuilder();
+            if (flags.contains(Flags.Flag.SEEN))
+                status.append('R');
+            if (!flags.contains(Flags.Flag.RECENT))
+                status.append('O');
+            if (status.length() > 0)
+                msg.setHeader("Status", status.toString());
+            else
+                msg.removeHeader("Status");
 
-	    boolean sims = false;
-	    String s = msg.getHeader("X-Status", null);
-	    // is it a SIMS 2.0 format X-Status header?
-	    sims = s != null && s.length() == 4 && s.indexOf('$') >= 0;
-	    status.setLength(0);
-	    if (flags.contains(Flags.Flag.DELETED))
-		status.append('D');
-	    else if (sims)
-		status.append('$');
-	    if (flags.contains(Flags.Flag.FLAGGED))
-		status.append('F');
-	    else if (sims)
-		status.append('$');
-	    if (flags.contains(Flags.Flag.ANSWERED))
-		status.append('A');
-	    else if (sims)
-		status.append('$');
-	    if (flags.contains(Flags.Flag.DRAFT))
-		status.append('T');
-	    else if (sims)
-		status.append('$');
-	    if (status.length() > 0)
-		msg.setHeader("X-Status", status.toString());
-	    else
-		msg.removeHeader("X-Status");
+            boolean sims = false;
+            String s = msg.getHeader("X-Status", null);
+            // is it a SIMS 2.0 format X-Status header?
+            sims = s != null && s.length() == 4 && s.indexOf('$') >= 0;
+            status.setLength(0);
+            if (flags.contains(Flags.Flag.DELETED))
+                status.append('D');
+            else if (sims)
+                status.append('$');
+            if (flags.contains(Flags.Flag.FLAGGED))
+                status.append('F');
+            else if (sims)
+                status.append('$');
+            if (flags.contains(Flags.Flag.ANSWERED))
+                status.append('A');
+            else if (sims)
+                status.append('$');
+            if (flags.contains(Flags.Flag.DRAFT))
+                status.append('T');
+            else if (sims)
+                status.append('$');
+            if (status.length() > 0)
+                msg.setHeader("X-Status", status.toString());
+            else
+                msg.removeHeader("X-Status");
 
-	    String[] userFlags = flags.getUserFlags();
-	    if (userFlags.length > 0) {
-		status.setLength(0);
-		for (int i = 0; i < userFlags.length; i++)
-		    status.append(userFlags[i]).append(' ');
-		status.setLength(status.length() - 1);	// smash trailing space
-		msg.setHeader("X-Keywords", status.toString());
-	    }
-	    if (flags.contains(Flags.Flag.DELETED)) {
-		s = msg.getHeader("X-Dt-Delete-Time", null);
-		if (s == null)
-		    // XXX - should be time
-		    msg.setHeader("X-Dt-Delete-Time", "1");
-	    }
-	} catch (MessagingException e) {
-	    // ignore it
-	}
+            String[] userFlags = flags.getUserFlags();
+            if (userFlags.length > 0) {
+                status.setLength(0);
+                for (int i = 0; i < userFlags.length; i++)
+                    status.append(userFlags[i]).append(' ');
+                status.setLength(status.length() - 1);    // smash trailing space
+                msg.setHeader("X-Keywords", status.toString());
+            }
+            if (flags.contains(Flags.Flag.DELETED)) {
+                s = msg.getHeader("X-Dt-Delete-Time", null);
+                if (s == null)
+                    // XXX - should be time
+                    msg.setHeader("X-Dt-Delete-Time", "1");
+            }
+        } catch (MessagingException e) {
+            // ignore it
+        }
     }
 
     protected void updateHeaders() throws MessagingException {
-	super.updateHeaders();
-	setHeadersFromFlags(this);
+        super.updateHeaders();
+        setHeadersFromFlags(this);
     }
 
     /**
      * Save any changes made to this message.
      */
     public void saveChanges() throws MessagingException {
-	if (folder != null)
-	    ((MboxFolder)folder).checkOpen();
-	if (isExpunged())
-	    throw new MessageRemovedException("mbox message expunged");
-	if (!writable)
-	    throw new MessagingException("Message is read-only");
+        if (folder != null)
+            ((MboxFolder) folder).checkOpen();
+        if (isExpunged())
+            throw new MessageRemovedException("mbox message expunged");
+        if (!writable)
+            throw new MessagingException("Message is read-only");
 
-	super.saveChanges();
+        super.saveChanges();
 
-	try {
-	    /*
-	     * Count the size of the body, in order to set the Content-Length
-	     * header.  (Should we only do this to update an existing
-	     * Content-Length header?)
-	     * XXX - We could cache the content bytes here, for use later
-	     * in writeTo.
-	     */
-	    ContentLengthCounter cos = new ContentLengthCounter();
-	    OutputStream os = new NewlineOutputStream(cos);
-	    super.writeTo(os);
-	    os.flush();
-	    setHeader("Content-Length", String.valueOf(cos.getSize()));
-	    // setContentSize((int)cos.getSize());
-	} catch (MessagingException e) {
-	    throw e;
-	} catch (Exception e) {
-	    throw new MessagingException("unexpected exception " + e);
-	}
+        try {
+            /*
+             * Count the size of the body, in order to set the Content-Length
+             * header.  (Should we only do this to update an existing
+             * Content-Length header?)
+             * XXX - We could cache the content bytes here, for use later
+             * in writeTo.
+             */
+            ContentLengthCounter cos = new ContentLengthCounter();
+            OutputStream os = new NewlineOutputStream(cos);
+            super.writeTo(os);
+            os.flush();
+            setHeader("Content-Length", String.valueOf(cos.getSize()));
+            // setContentSize((int)cos.getSize());
+        } catch (MessagingException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new MessagingException("unexpected exception " + e);
+        }
     }
 
     /**
      * Expose modified flag to MboxFolder.
      */
     boolean isModified() {
-	return modified;
+        return modified;
     }
 
     /**
@@ -472,38 +484,38 @@ public class MboxMessage extends MimeMessage {
      * XXX - ultimately implement "ignore headers" here?
      */
     public void writeToFile(OutputStream os) throws IOException {
-	try {
-	    if (getHeader("Content-Length") == null) {
-		/*
-		 * Count the size of the body, in order to set the
-		 * Content-Length header.
-		 */
-		ContentLengthCounter cos = new ContentLengthCounter();
-		OutputStream oos = new NewlineOutputStream(cos);
-		super.writeTo(oos, null);
-		oos.flush();
-		setHeader("Content-Length", String.valueOf(cos.getSize()));
-		// setContentSize((int)cos.getSize());
-	    }
+        try {
+            if (getHeader("Content-Length") == null) {
+                /*
+                 * Count the size of the body, in order to set the
+                 * Content-Length header.
+                 */
+                ContentLengthCounter cos = new ContentLengthCounter();
+                OutputStream oos = new NewlineOutputStream(cos);
+                super.writeTo(oos, null);
+                oos.flush();
+                setHeader("Content-Length", String.valueOf(cos.getSize()));
+                // setContentSize((int)cos.getSize());
+            }
 
-	    os = new NewlineOutputStream(os, true);
-	    PrintStream pos = new PrintStream(os, false, "iso-8859-1");
+            os = new NewlineOutputStream(os, true);
+            PrintStream pos = new PrintStream(os, false, "iso-8859-1");
 
-	    pos.println(getUnixFromLine());
-	    super.writeTo(pos, null);
-	    pos.flush();
-	} catch (MessagingException e) {
-	    throw new IOException("unexpected exception " + e);
-	}
+            pos.println(getUnixFromLine());
+            super.writeTo(pos, null);
+            pos.flush();
+        } catch (MessagingException e) {
+            throw new IOException("unexpected exception " + e);
+        }
     }
 
     public void writeTo(OutputStream os, String[] ignoreList)
-				throws IOException, MessagingException {
-	// set the SEEN flag now, which will normally be set by
-	// getContentStream, so it will show up in our headers
-	if (!isSet(Flags.Flag.SEEN))
-	    setFlag(Flags.Flag.SEEN, true);
-	super.writeTo(os, ignoreList);
+            throws IOException, MessagingException {
+        // set the SEEN flag now, which will normally be set by
+        // getContentStream, so it will show up in our headers
+        if (!isSet(Flags.Flag.SEEN))
+            setFlag(Flags.Flag.SEEN, true);
+        super.writeTo(os, ignoreList);
     }
 
     /**
@@ -511,12 +523,12 @@ public class MboxMessage extends MimeMessage {
      * and message hasn't been expunged.
      */
     public String[] getHeader(String name)
-			throws MessagingException {
-	if (folder != null)
-	    ((MboxFolder)folder).checkOpen();
-	if (isExpunged())
-	    throw new MessageRemovedException("mbox message expunged");
-	return super.getHeader(name);
+            throws MessagingException {
+        if (folder != null)
+            ((MboxFolder) folder).checkOpen();
+        if (isExpunged())
+            throw new MessageRemovedException("mbox message expunged");
+        return super.getHeader(name);
     }
 
     /**
@@ -524,11 +536,11 @@ public class MboxMessage extends MimeMessage {
      * and message hasn't been expunged.
      */
     public String getHeader(String name, String delimiter)
-				throws MessagingException {
-	if (folder != null)
-	    ((MboxFolder)folder).checkOpen();
-	if (isExpunged())
-	    throw new MessageRemovedException("mbox message expunged");
-	return super.getHeader(name, delimiter);
+            throws MessagingException {
+        if (folder != null)
+            ((MboxFolder) folder).checkOpen();
+        if (isExpunged())
+            throw new MessageRemovedException("mbox message expunged");
+        return super.getHeader(name, delimiter);
     }
 }

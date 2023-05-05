@@ -16,18 +16,17 @@
 
 package org.eclipse.angus.mail.pop3;
 
+import jakarta.mail.Folder;
+import jakarta.mail.FolderClosedException;
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.util.Properties;
 
-import jakarta.mail.Folder;
-import jakarta.mail.Session;
-import jakarta.mail.Store;
-import jakarta.mail.Message;
-import jakarta.mail.FolderClosedException;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
@@ -46,49 +45,49 @@ public final class POP3FolderClosedExceptionTest {
      */
     @Test
     public void testFolderClosedExceptionBody() {
-	TestServer server = null;
-	try {
-	    final POP3Handler handler = new POP3HandlerTimeoutBody();
-	    server = new TestServer(handler);
-	    server.start();
-	    Thread.sleep(1000);
+        TestServer server = null;
+        try {
+            final POP3Handler handler = new POP3HandlerTimeoutBody();
+            server = new TestServer(handler);
+            server.start();
+            Thread.sleep(1000);
 
-	    final Properties properties = new Properties();
-	    properties.setProperty("mail.pop3.host", "localhost");
-	    properties.setProperty("mail.pop3.port", "" + server.getPort());
-	    final Session session = Session.getInstance(properties);
-	    //session.setDebug(true);
+            final Properties properties = new Properties();
+            properties.setProperty("mail.pop3.host", "localhost");
+            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            final Session session = Session.getInstance(properties);
+            //session.setDebug(true);
 
-	    final Store store = session.getStore("pop3");
-	    try {
-		store.connect("test", "test");
-		final Folder folder = store.getFolder("INBOX");
-		folder.open(Folder.READ_ONLY);
-		Message msg = folder.getMessage(1);
-		try {
-		    msg.getContent();
-		} catch (IOException ioex) {
-		    // expected
-		    // first attempt detects error return from server
-		}
-		// second attempt detects closed connection from server
-		msg.getContent();
+            final Store store = session.getStore("pop3");
+            try {
+                store.connect("test", "test");
+                final Folder folder = store.getFolder("INBOX");
+                folder.open(Folder.READ_ONLY);
+                Message msg = folder.getMessage(1);
+                try {
+                    msg.getContent();
+                } catch (IOException ioex) {
+                    // expected
+                    // first attempt detects error return from server
+                }
+                // second attempt detects closed connection from server
+                msg.getContent();
 
-		// Check
-		assertFalse(folder.isOpen());
-	    } catch (FolderClosedException ex) {
-		// success!
-	    } finally {
-		store.close();
-	    }
-	} catch (final Exception e) {
-	    e.printStackTrace();
-	    fail(e.getMessage());
-	} finally {
-	    if (server != null) {
-		server.quit();
-	    }
-	}
+                // Check
+                assertFalse(folder.isOpen());
+            } catch (FolderClosedException ex) {
+                // success!
+            } finally {
+                store.close();
+            }
+        } catch (final Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
     }
 
     /**
@@ -97,19 +96,19 @@ public final class POP3FolderClosedExceptionTest {
      */
     private static final class POP3HandlerTimeoutBody extends POP3Handler {
 
-	private boolean first = true;
+        private boolean first = true;
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void retr(String arg) throws IOException {
-	    if (first) {
-		println("-ERR Server timeout");
-		first = false;
-	    } else
-		exit();
-	}
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void retr(String arg) throws IOException {
+            if (first) {
+                println("-ERR Server timeout");
+                first = false;
+            } else
+                exit();
+        }
     }
 
     /**
@@ -118,42 +117,42 @@ public final class POP3FolderClosedExceptionTest {
      */
     @Test
     public void testFolderClosedExceptionHeaders() {
-	TestServer server = null;
-	try {
-	    final POP3Handler handler = new POP3HandlerTimeoutHeader();
-	    server = new TestServer(handler);
-	    server.start();
-	    Thread.sleep(1000);
+        TestServer server = null;
+        try {
+            final POP3Handler handler = new POP3HandlerTimeoutHeader();
+            server = new TestServer(handler);
+            server.start();
+            Thread.sleep(1000);
 
-	    final Properties properties = new Properties();
-	    properties.setProperty("mail.pop3.host", "localhost");
-	    properties.setProperty("mail.pop3.port", "" + server.getPort());
-	    final Session session = Session.getInstance(properties);
-	    //session.setDebug(true);
+            final Properties properties = new Properties();
+            properties.setProperty("mail.pop3.host", "localhost");
+            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            final Session session = Session.getInstance(properties);
+            //session.setDebug(true);
 
-	    final Store store = session.getStore("pop3");
-	    try {
-		store.connect("test", "test");
-		final Folder folder = store.getFolder("INBOX");
-		folder.open(Folder.READ_ONLY);
-		Message msg = folder.getMessage(1);
-		msg.getSubject();
+            final Store store = session.getStore("pop3");
+            try {
+                store.connect("test", "test");
+                final Folder folder = store.getFolder("INBOX");
+                folder.open(Folder.READ_ONLY);
+                Message msg = folder.getMessage(1);
+                msg.getSubject();
 
-		// Check
-		assertFalse(folder.isOpen());
-	    } catch (FolderClosedException ex) {
-		// success!
-	    } finally {
-		store.close();
-	    }
-	} catch (final Exception e) {
-	    e.printStackTrace();
-	    fail(e.getMessage());
-	} finally {
-	    if (server != null) {
-		server.quit();
-	    }
-	}
+                // Check
+                assertFalse(folder.isOpen());
+            } catch (FolderClosedException ex) {
+                // success!
+            } finally {
+                store.close();
+            }
+        } catch (final Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
     }
 
     /**
@@ -161,13 +160,13 @@ public final class POP3FolderClosedExceptionTest {
      */
     private static final class POP3HandlerTimeoutHeader extends POP3Handler {
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void top(String arg) throws IOException {
-	    println("-ERR Server timeout");
-	    exit();
-	}
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void top(String arg) throws IOException {
+            println("-ERR Server timeout");
+            exit();
+        }
     }
 }

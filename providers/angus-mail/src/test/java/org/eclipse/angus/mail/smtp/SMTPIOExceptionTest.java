@@ -16,24 +16,22 @@
 
 package org.eclipse.angus.mail.smtp;
 
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.event.ConnectionAdapter;
+import jakarta.mail.event.ConnectionEvent;
+import jakarta.mail.internet.MimeMessage;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
-import jakarta.mail.Session;
-import jakarta.mail.Transport;
-import jakarta.mail.Message;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.event.ConnectionAdapter;
-import jakarta.mail.event.ConnectionEvent;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.rules.Timeout;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -47,23 +45,24 @@ public final class SMTPIOExceptionTest {
 
     private boolean closed = false;
 
-    private static final int TIMEOUT = 200;	// I/O timeout, in millis
+    private static final int TIMEOUT = 200;    // I/O timeout, in millis
 
     @Test
     public void test() throws Exception {
         TestServer server = null;
-	final CountDownLatch closedLatch = new CountDownLatch(1);
+        final CountDownLatch closedLatch = new CountDownLatch(1);
         try {
-	    SMTPHandler handler = new SMTPHandler() {
-		@Override
-		public void rcpt(String line) throws IOException {
-		    try {
-			// delay long enough to cause timeout
-			Thread.sleep(2 * TIMEOUT);
-		    } catch (Exception ex) { }
-		    super.rcpt(line);
-		}
-	    };
+            SMTPHandler handler = new SMTPHandler() {
+                @Override
+                public void rcpt(String line) throws IOException {
+                    try {
+                        // delay long enough to cause timeout
+                        Thread.sleep(2 * TIMEOUT);
+                    } catch (Exception ex) {
+                    }
+                    super.rcpt(line);
+                }
+            };
             server = new TestServer(handler);
             server.start();
 
@@ -75,30 +74,30 @@ public final class SMTPIOExceptionTest {
             //session.setDebug(true);
 
             final Transport t = session.getTransport("smtp");
-	    /*
-	     * Use a listener to detect the connection being closed
-	     * because if we called isConnected() and the connection
-	     * wasn't already closed, it will issue a command that
-	     * might detect that the connection was closed, even
-	     * though it wasn't closed already.
-	     */
-	    t.addConnectionListener(new ConnectionAdapter() {
-		@Override
-		public void closed(ConnectionEvent e) {
-		    closedLatch.countDown();
-		}
-	    });
+            /*
+             * Use a listener to detect the connection being closed
+             * because if we called isConnected() and the connection
+             * wasn't already closed, it will issue a command that
+             * might detect that the connection was closed, even
+             * though it wasn't closed already.
+             */
+            t.addConnectionListener(new ConnectionAdapter() {
+                @Override
+                public void closed(ConnectionEvent e) {
+                    closedLatch.countDown();
+                }
+            });
             try {
-		MimeMessage msg = new MimeMessage(session);
-		msg.setRecipients(Message.RecipientType.TO, "joe@example.com");
-		msg.setSubject("test");
-		msg.setText("test");
+                MimeMessage msg = new MimeMessage(session);
+                msg.setRecipients(Message.RecipientType.TO, "joe@example.com");
+                msg.setSubject("test");
+                msg.setText("test");
                 t.connect();
-		t.sendMessage(msg, msg.getAllRecipients());
-	    } catch (MessagingException ex) {
-		// expect an exception from sendMessage
-		closedLatch.await();	// wait for the listener to run
-		// if we get here, the listener was called - SUCCESS
+                t.sendMessage(msg, msg.getAllRecipients());
+            } catch (MessagingException ex) {
+                // expect an exception from sendMessage
+                closedLatch.await();    // wait for the listener to run
+                // if we get here, the listener was called - SUCCESS
             } finally {
                 t.close();
             }
@@ -108,9 +107,9 @@ public final class SMTPIOExceptionTest {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
-		// wait for handler to exit
-		server.join();
+                server.interrupt();
+                // wait for handler to exit
+                server.join();
             }
         }
     }

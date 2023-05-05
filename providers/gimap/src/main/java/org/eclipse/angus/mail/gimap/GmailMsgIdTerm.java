@@ -21,8 +21,8 @@ import jakarta.mail.Message;
 /**
  * This class implements searching for the Gmail message ID.
  *
- * @since JavaMail 1.4.6
  * @author Bill Shannon
+ * @since JavaMail 1.4.6
  */
 
 public final class GmailMsgIdTerm extends LongTerm {
@@ -32,42 +32,42 @@ public final class GmailMsgIdTerm extends LongTerm {
     /**
      * Constructor.
      *
-     * @param msgId  the message ID
+     * @param msgId the message ID
      */
     public GmailMsgIdTerm(long msgId) {
-	super(msgId);
+        super(msgId);
     }
 
     /**
      * The match method.
      *
-     * @param msg	the Message number is matched with this Message
-     * @return		true if the match succeeds, otherwise false
+     * @param msg the Message number is matched with this Message
+     * @return true if the match succeeds, otherwise false
      */
     public boolean match(Message msg) {
-	long msgId;
+        long msgId;
 
-	try {
-	    if (msg instanceof GmailMessage)
-		msgId = ((GmailMessage)msg).getMsgId();
-	    else
-		return false;
-	} catch (Exception e) {
-	    return false;
-	}
+        try {
+            if (msg instanceof GmailMessage)
+                msgId = ((GmailMessage) msg).getMsgId();
+            else
+                return false;
+        } catch (Exception e) {
+            return false;
+        }
 
-	return super.match(msgId);
+        return super.match(msgId);
     }
 
     /**
      * Equality comparison.
      *
-     * @param	obj	the object to compare with
-     * @return		true if equal
+     * @param    obj    the object to compare with
+     * @return true if equal
      */
     public boolean equals(Object obj) {
-	if (!(obj instanceof GmailMsgIdTerm))
-	    return false;
-	return super.equals(obj);
+        if (!(obj instanceof GmailMsgIdTerm))
+            return false;
+        return super.equals(obj);
     }
 }

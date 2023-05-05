@@ -17,11 +17,12 @@
 package org.eclipse.angus.mail.util;
 
 import jakarta.mail.Session;
+import org.junit.Test;
+
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -34,58 +35,58 @@ public class PropUtilTest {
 
     @Test
     public void testInt() throws Exception {
-	Properties props = new Properties();
-	props.setProperty("test", "2");
-	assertEquals(PropUtil.getIntProperty(props, "test", 1), 2);
+        Properties props = new Properties();
+        props.setProperty("test", "2");
+        assertEquals(PropUtil.getIntProperty(props, "test", 1), 2);
     }
 
     @Test
     public void testIntDef() throws Exception {
-	Properties props = new Properties();
-	assertEquals(PropUtil.getIntProperty(props, "test", 1), 1);
+        Properties props = new Properties();
+        assertEquals(PropUtil.getIntProperty(props, "test", 1), 1);
     }
 
     @Test
     public void testIntDefProp() throws Exception {
-	Properties defprops = new Properties();
-	defprops.setProperty("test", "2");
-	Properties props = new Properties(defprops);
-	assertEquals(PropUtil.getIntProperty(props, "test", 1), 2);
+        Properties defprops = new Properties();
+        defprops.setProperty("test", "2");
+        Properties props = new Properties(defprops);
+        assertEquals(PropUtil.getIntProperty(props, "test", 1), 2);
     }
 
     @Test
     public void testInteger() throws Exception {
-	Properties props = new Properties();
-	props.put("test", 2);
-	assertEquals(PropUtil.getIntProperty(props, "test", 1), 2);
+        Properties props = new Properties();
+        props.put("test", 2);
+        assertEquals(PropUtil.getIntProperty(props, "test", 1), 2);
     }
 
     @Test
     public void testBool() throws Exception {
-	Properties props = new Properties();
-	props.setProperty("test", "true");
-	assertTrue(PropUtil.getBooleanProperty(props, "test", false));
+        Properties props = new Properties();
+        props.setProperty("test", "true");
+        assertTrue(PropUtil.getBooleanProperty(props, "test", false));
     }
 
     @Test
     public void testBoolDef() throws Exception {
-	Properties props = new Properties();
-	assertTrue(PropUtil.getBooleanProperty(props, "test", true));
+        Properties props = new Properties();
+        assertTrue(PropUtil.getBooleanProperty(props, "test", true));
     }
 
     @Test
     public void testBoolDefProp() throws Exception {
-	Properties defprops = new Properties();
-	defprops.setProperty("test", "true");
-	Properties props = new Properties(defprops);
-	assertTrue(PropUtil.getBooleanProperty(props, "test", false));
+        Properties defprops = new Properties();
+        defprops.setProperty("test", "true");
+        Properties props = new Properties(defprops);
+        assertTrue(PropUtil.getBooleanProperty(props, "test", false));
     }
 
     @Test
     public void testBoolean() throws Exception {
-	Properties props = new Properties();
-	props.put("test", true);
-	assertTrue(PropUtil.getBooleanProperty(props, "test", false));
+        Properties props = new Properties();
+        props.put("test", true);
+        assertTrue(PropUtil.getBooleanProperty(props, "test", false));
     }
 
 
@@ -94,73 +95,73 @@ public class PropUtilTest {
     @Test
     @SuppressWarnings("deprecation")
     public void testSessionInt() throws Exception {
-	Properties props = new Properties();
-	props.setProperty("test", "2");
-	Session sess = Session.getInstance(props, null);
-	assertEquals(PropUtil.getIntSessionProperty(sess, "test", 1), 2);
+        Properties props = new Properties();
+        props.setProperty("test", "2");
+        Session sess = Session.getInstance(props, null);
+        assertEquals(PropUtil.getIntSessionProperty(sess, "test", 1), 2);
     }
 
     @Test
     @SuppressWarnings("deprecation")
     public void testSessionIntDef() throws Exception {
-	Properties props = new Properties();
-	Session sess = Session.getInstance(props, null);
-	assertEquals(PropUtil.getIntSessionProperty(sess, "test", 1), 1);
+        Properties props = new Properties();
+        Session sess = Session.getInstance(props, null);
+        assertEquals(PropUtil.getIntSessionProperty(sess, "test", 1), 1);
     }
 
     @Test
     @SuppressWarnings("deprecation")
     public void testSessionIntDefProp() throws Exception {
-	Properties defprops = new Properties();
-	defprops.setProperty("test", "2");
-	Properties props = new Properties(defprops);
-	Session sess = Session.getInstance(props, null);
-	assertEquals(PropUtil.getIntSessionProperty(sess, "test", 1), 2);
+        Properties defprops = new Properties();
+        defprops.setProperty("test", "2");
+        Properties props = new Properties(defprops);
+        Session sess = Session.getInstance(props, null);
+        assertEquals(PropUtil.getIntSessionProperty(sess, "test", 1), 2);
     }
 
     @Test
     @SuppressWarnings("deprecation")
     public void testSessionInteger() throws Exception {
-	Properties props = new Properties();
-	props.put("test", 2);
-	Session sess = Session.getInstance(props, null);
-	assertEquals(PropUtil.getIntSessionProperty(sess, "test", 1), 2);
+        Properties props = new Properties();
+        props.put("test", 2);
+        Session sess = Session.getInstance(props, null);
+        assertEquals(PropUtil.getIntSessionProperty(sess, "test", 1), 2);
     }
 
     @Test
     @SuppressWarnings("deprecation")
     public void testSessionBool() throws Exception {
-	Properties props = new Properties();
-	props.setProperty("test", "true");
-	Session sess = Session.getInstance(props, null);
-	assertTrue(PropUtil.getBooleanSessionProperty(sess, "test", false));
+        Properties props = new Properties();
+        props.setProperty("test", "true");
+        Session sess = Session.getInstance(props, null);
+        assertTrue(PropUtil.getBooleanSessionProperty(sess, "test", false));
     }
 
     @Test
     @SuppressWarnings("deprecation")
     public void testSessionBoolDef() throws Exception {
-	Properties props = new Properties();
-	Session sess = Session.getInstance(props, null);
-	assertTrue(PropUtil.getBooleanSessionProperty(sess, "test", true));
+        Properties props = new Properties();
+        Session sess = Session.getInstance(props, null);
+        assertTrue(PropUtil.getBooleanSessionProperty(sess, "test", true));
     }
 
     @Test
     @SuppressWarnings("deprecation")
     public void testSessionBoolDefProp() throws Exception {
-	Properties defprops = new Properties();
-	defprops.setProperty("test", "true");
-	Properties props = new Properties(defprops);
-	Session sess = Session.getInstance(props, null);
-	assertTrue(PropUtil.getBooleanSessionProperty(sess, "test", false));
+        Properties defprops = new Properties();
+        defprops.setProperty("test", "true");
+        Properties props = new Properties(defprops);
+        Session sess = Session.getInstance(props, null);
+        assertTrue(PropUtil.getBooleanSessionProperty(sess, "test", false));
     }
 
     @Test
     @SuppressWarnings("deprecation")
     public void testSessionBoolean() throws Exception {
-	Properties props = new Properties();
-	props.put("test", true);
-	Session sess = Session.getInstance(props, null);
-	assertTrue(PropUtil.getBooleanSessionProperty(sess, "test", false));
+        Properties props = new Properties();
+        props.put("test", true);
+        Session sess = Session.getInstance(props, null);
+        assertTrue(PropUtil.getBooleanSessionProperty(sess, "test", false));
     }
 
 
@@ -168,19 +169,19 @@ public class PropUtilTest {
 
     @Test
     public void testSystemBool() throws Exception {
-	System.setProperty("test", "true");
-	assertTrue(PropUtil.getBooleanSystemProperty("test", false));
+        System.setProperty("test", "true");
+        assertTrue(PropUtil.getBooleanSystemProperty("test", false));
     }
 
     @Test
     public void testSystemBoolDef() throws Exception {
-	assertTrue(PropUtil.getBooleanSystemProperty("testnotset", true));
+        assertTrue(PropUtil.getBooleanSystemProperty("testnotset", true));
     }
 
     @Test
     public void testSystemBoolean() throws Exception {
-	System.getProperties().put("testboolean", true);
-	assertTrue(PropUtil.getBooleanSystemProperty("testboolean", false));
+        System.getProperties().put("testboolean", true);
+        assertTrue(PropUtil.getBooleanSystemProperty("testboolean", false));
     }
 
     @Test

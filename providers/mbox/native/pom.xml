@@ -31,7 +31,7 @@
     <groupId>org.eclipse.angus</groupId>
     <artifactId>libmbox</artifactId>
     <packaging>so</packaging>
-    <name>Angus Mail  mbox native library</name>
+    <name>Angus Mail mbox native library</name>
     <description>Jakarta Mail API mbox native library</description>
 
     <properties>

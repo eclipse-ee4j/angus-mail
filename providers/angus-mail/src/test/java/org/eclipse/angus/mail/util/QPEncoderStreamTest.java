@@ -16,9 +16,9 @@
 
 package org.eclipse.angus.mail.util;
 
-import java.io.ByteArrayOutputStream;
-
 import org.junit.Test;
+
+import java.io.ByteArrayOutputStream;
 
 import static org.junit.Assert.assertEquals;
 
@@ -34,11 +34,11 @@ public class QPEncoderStreamTest {
      */
     @Test
     public void testTrailingSpace() throws Exception {
-	ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	QPEncoderStream qs = new QPEncoderStream(bos);
-	qs.write("test ".getBytes("us-ascii"));
-	qs.flush();
-	String result = new String(bos.toByteArray(), "us-ascii");
-	assertEquals("test=20", result);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        QPEncoderStream qs = new QPEncoderStream(bos);
+        qs.write("test ".getBytes("us-ascii"));
+        qs.flush();
+        String result = new String(bos.toByteArray(), "us-ascii");
+        assertEquals("test=20", result);
     }
 }

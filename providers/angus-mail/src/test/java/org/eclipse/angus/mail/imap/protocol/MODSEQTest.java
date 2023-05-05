@@ -16,8 +16,9 @@
 
 package org.eclipse.angus.mail.imap.protocol;
 
-import static org.junit.Assert.assertEquals;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test the MODSEQ class.
@@ -28,12 +29,12 @@ public class MODSEQTest {
      */
     @Test
     public void testAll() throws Exception {
-	IMAPResponse response = new IMAPResponse(
-	    "* 1 FETCH (MODSEQ (624140003))");
-	FetchResponse fr = new FetchResponse(response);
-	MODSEQ m = fr.getItem(MODSEQ.class);
-	assertEquals(1, m.seqnum);
-	assertEquals(624140003, m.modseq);
+        IMAPResponse response = new IMAPResponse(
+                "* 1 FETCH (MODSEQ (624140003))");
+        FetchResponse fr = new FetchResponse(response);
+        MODSEQ m = fr.getItem(MODSEQ.class);
+        assertEquals(1, m.seqnum);
+        assertEquals(624140003, m.modseq);
     }
 
     /**
@@ -41,11 +42,11 @@ public class MODSEQTest {
      */
     @Test
     public void testSpaces() throws Exception {
-	IMAPResponse response = new IMAPResponse(
-	    "* 1 FETCH ( MODSEQ ( 624140003 ) )");
-	FetchResponse fr = new FetchResponse(response);
-	MODSEQ m = fr.getItem(MODSEQ.class);
-	assertEquals(1, m.seqnum);
-	assertEquals(624140003, m.modseq);
+        IMAPResponse response = new IMAPResponse(
+                "* 1 FETCH ( MODSEQ ( 624140003 ) )");
+        FetchResponse fr = new FetchResponse(response);
+        MODSEQ m = fr.getItem(MODSEQ.class);
+        assertEquals(1, m.seqnum);
+        assertEquals(624140003, m.modseq);
     }
 }

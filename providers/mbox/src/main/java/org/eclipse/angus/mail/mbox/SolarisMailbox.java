@@ -23,7 +23,7 @@ public class SolarisMailbox extends Mailbox {
     private final String user;
 
     private static final boolean homeRelative =
-				Boolean.getBoolean("mail.mbox.homerelative");
+            Boolean.getBoolean("mail.mbox.homerelative");
 
     /**
      * Creates a default {@code SolarisMailbox}.
@@ -31,56 +31,56 @@ public class SolarisMailbox extends Mailbox {
      * @throws SecurityException if unable to read the user home or user name.
      */
     public SolarisMailbox() {
-	String h = System.getenv("HOME");
-	if (h == null)
-	    h = System.getProperty("user.home");
-	home = h;
-	user = System.getProperty("user.name");
+        String h = System.getenv("HOME");
+        if (h == null)
+            h = System.getProperty("user.home");
+        home = h;
+        user = System.getProperty("user.name");
     }
 
     public MailFile getMailFile(String user, String folder) {
-	if (folder.equalsIgnoreCase("INBOX"))
-	    return new UNIXInbox(user, filename(user, folder));
-	else
-	    return new UNIXFolder(filename(user, folder));
+        if (folder.equalsIgnoreCase("INBOX"))
+            return new UNIXInbox(user, filename(user, folder));
+        else
+            return new UNIXFolder(filename(user, folder));
     }
 
     /**
      * Given a name of a mailbox folder, expand it to a full path name.
      */
     public String filename(String user, String folder) {
-	try {
-	    switch (folder.charAt(0)) {
-	    case '/':
-		return folder;
-	    case '~':
-		int i = folder.indexOf(File.separatorChar);
-		String tail = "";
-		if (i > 0) {
-		    tail = folder.substring(i);
-		    folder = folder.substring(0, i);
-		}
-		if (folder.length() == 1)
-		    return home + tail;
-		else
-		    return "/home/" + folder.substring(1) + tail;	// XXX
-	    default:
-		if (folder.equalsIgnoreCase("INBOX")) {
-		    if (user == null)	// XXX - should never happen
-			user = this.user;
-		    String inbox = System.getenv("MAIL");
-		    if (inbox == null)
-			inbox = "/var/mail/" + user;
-		    return inbox;
-		} else {
-		    if (homeRelative)
-			return home + File.separator + folder;
-		    else
-			return folder;
-		}
-	    }
-	} catch (StringIndexOutOfBoundsException e) {
-	    return folder;
-	}
+        try {
+            switch (folder.charAt(0)) {
+                case '/':
+                    return folder;
+                case '~':
+                    int i = folder.indexOf(File.separatorChar);
+                    String tail = "";
+                    if (i > 0) {
+                        tail = folder.substring(i);
+                        folder = folder.substring(0, i);
+                    }
+                    if (folder.length() == 1)
+                        return home + tail;
+                    else
+                        return "/home/" + folder.substring(1) + tail;    // XXX
+                default:
+                    if (folder.equalsIgnoreCase("INBOX")) {
+                        if (user == null)    // XXX - should never happen
+                            user = this.user;
+                        String inbox = System.getenv("MAIL");
+                        if (inbox == null)
+                            inbox = "/var/mail/" + user;
+                        return inbox;
+                    } else {
+                        if (homeRelative)
+                            return home + File.separator + folder;
+                        else
+                            return folder;
+                    }
+            }
+        } catch (StringIndexOutOfBoundsException e) {
+            return folder;
+        }
     }
 }

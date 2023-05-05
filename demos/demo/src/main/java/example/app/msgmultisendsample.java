@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -10,11 +10,18 @@
 
 package example.app.internal;
 
-import java.util.*;
-import java.io.*;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
-import jakarta.activation.*;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+
+import java.util.Date;
+import java.util.Properties;
 
 /**
  * msgmultisendsample creates a simple multipart/mixed message and sends it.
@@ -27,64 +34,64 @@ import jakarta.activation.*;
  * running.  The last parameter either turns on or turns off
  * debugging during sending.
  *
- * @author	Max Spivak
+ * @author Max Spivak
  */
 public class msgmultisendsample {
     static String msgText1 = "This is a message body.\nHere's line two.";
     static String msgText2 = "This is the text in the message attachment.";
 
     public static void main(String[] args) {
-	if (args.length != 4) {
-	    System.out.println("usage: java msgmultisend <to> <from> <smtp> true|false");
-	    return;
-	}
+        if (args.length != 4) {
+            System.out.println("usage: java msgmultisend <to> <from> <smtp> true|false");
+            return;
+        }
 
-	String to = args[0];
-	String from = args[1];
-	String host = args[2];
-	boolean debug = Boolean.valueOf(args[3]).booleanValue();
+        String to = args[0];
+        String from = args[1];
+        String host = args[2];
+        boolean debug = Boolean.valueOf(args[3]).booleanValue();
 
-	// create some properties and get the default Session
-	Properties props = new Properties();
-	props.put("mail.smtp.host", host);
+        // create some properties and get the default Session
+        Properties props = new Properties();
+        props.put("mail.smtp.host", host);
 
-	Session session = Session.getInstance(props, null);
-	session.setDebug(debug);
-	
-	try {
-	    // create a message
-	    MimeMessage msg = new MimeMessage(session);
-	    msg.setFrom(new InternetAddress(from));
-	    InternetAddress[] address = {new InternetAddress(to)};
-	    msg.setRecipients(Message.RecipientType.TO, address);
-	    msg.setSubject("Jakarta Mail APIs Multipart Test");
-	    msg.setSentDate(new Date());
+        Session session = Session.getInstance(props, null);
+        session.setDebug(debug);
 
-	    // create and fill the first message part
-	    MimeBodyPart mbp1 = new MimeBodyPart();
-	    mbp1.setText(msgText1);
+        try {
+            // create a message
+            MimeMessage msg = new MimeMessage(session);
+            msg.setFrom(new InternetAddress(from));
+            InternetAddress[] address = {new InternetAddress(to)};
+            msg.setRecipients(Message.RecipientType.TO, address);
+            msg.setSubject("Jakarta Mail APIs Multipart Test");
+            msg.setSentDate(new Date());
 
-	    // create and fill the second message part
-	    MimeBodyPart mbp2 = new MimeBodyPart();
-	    // Use setText(text, charset), to show it off !
-	    mbp2.setText(msgText2, "us-ascii");
+            // create and fill the first message part
+            MimeBodyPart mbp1 = new MimeBodyPart();
+            mbp1.setText(msgText1);
 
-	    // create the Multipart and its parts to it
-	    Multipart mp = new MimeMultipart();
-	    mp.addBodyPart(mbp1);
-	    mp.addBodyPart(mbp2);
+            // create and fill the second message part
+            MimeBodyPart mbp2 = new MimeBodyPart();
+            // Use setText(text, charset), to show it off !
+            mbp2.setText(msgText2, "us-ascii");
 
-	    // add the Multipart to the message
-	    msg.setContent(mp);
-	    
-	    // send the message
-	    Transport.send(msg);
-	} catch (MessagingException mex) {
-	    mex.printStackTrace();
-	    Exception ex = null;
-	    if ((ex = mex.getNextException()) != null) {
-		ex.printStackTrace();
-	    }
-	}
+            // create the Multipart and its parts to it
+            Multipart mp = new MimeMultipart();
+            mp.addBodyPart(mbp1);
+            mp.addBodyPart(mbp2);
+
+            // add the Multipart to the message
+            msg.setContent(mp);
+
+            // send the message
+            Transport.send(msg);
+        } catch (MessagingException mex) {
+            mex.printStackTrace();
+            Exception ex = null;
+            if ((ex = mex.getNextException()) != null) {
+                ex.printStackTrace();
+            }
+        }
     }
 }

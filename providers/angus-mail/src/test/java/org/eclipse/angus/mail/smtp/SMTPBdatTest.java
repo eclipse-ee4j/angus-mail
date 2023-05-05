@@ -16,21 +16,18 @@
 
 package org.eclipse.angus.mail.smtp;
 
-import java.io.IOException;
-import java.io.ByteArrayOutputStream;
-import java.util.Properties;
-
-import jakarta.mail.Session;
-import jakarta.mail.Transport;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
 import jakarta.mail.internet.MimeMessage;
-
 import org.eclipse.angus.mail.test.TestServer;
-
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Properties;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
 
@@ -45,14 +42,18 @@ public final class SMTPBdatTest {
     public void testBdatSuccess() throws Exception {
         TestServer server = null;
         try {
-	    SMTPHandler handler = new SMTPHandler() {
-		{{ extensions.add("CHUNKING"); }}
+            SMTPHandler handler = new SMTPHandler() {
+                {
+                    {
+                        extensions.add("CHUNKING");
+                    }
+                }
 
-		@Override
-		public void setMessage(byte[] msg) {
-		    message = msg;
-		}
-	    };
+                @Override
+                public void setMessage(byte[] msg) {
+                    message = msg;
+                }
+            };
             server = new TestServer(handler);
             server.start();
 
@@ -65,19 +66,19 @@ public final class SMTPBdatTest {
 
             final Transport t = session.getTransport("smtp");
             try {
-		MimeMessage msg = new MimeMessage(session);
-		msg.setRecipients(Message.RecipientType.TO, "joe@example.com");
-		msg.setSubject("test");
-		msg.setText("test\r\n");
+                MimeMessage msg = new MimeMessage(session);
+                msg.setRecipients(Message.RecipientType.TO, "joe@example.com");
+                msg.setSubject("test");
+                msg.setText("test\r\n");
                 t.connect();
-		t.sendMessage(msg, msg.getAllRecipients());
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		msg.writeTo(bos);
-		bos.close();
-		byte[] orig = bos.toByteArray();
-		assertArrayEquals(orig, message);
-	    } catch (MessagingException ex) {
-		fail(ex.getMessage());
+                t.sendMessage(msg, msg.getAllRecipients());
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                msg.writeTo(bos);
+                bos.close();
+                byte[] orig = bos.toByteArray();
+                assertArrayEquals(orig, message);
+            } catch (MessagingException ex) {
+                fail(ex.getMessage());
             } finally {
                 t.close();
             }
@@ -87,9 +88,9 @@ public final class SMTPBdatTest {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
-		// wait for handler to exit
-		server.join();
+                server.interrupt();
+                // wait for handler to exit
+                server.join();
             }
         }
     }
@@ -98,19 +99,23 @@ public final class SMTPBdatTest {
     public void testBdatFailure() throws Exception {
         TestServer server = null;
         try {
-	    SMTPHandler handler = new SMTPHandler() {
-		{{ extensions.add("CHUNKING"); }}
+            SMTPHandler handler = new SMTPHandler() {
+                {
+                    {
+                        extensions.add("CHUNKING");
+                    }
+                }
 
-		@Override
-		public void bdat(String line) throws IOException {
-		    String[] tok = line.split("\\s+");
-		    int bytes = Integer.parseInt(tok[1]);
-		    boolean last = tok.length > 2 &&
-				    tok[2].equalsIgnoreCase("LAST");
-		    readBdatMessage(bytes, last);
-		    println("444 failed");
-		}
-	    };
+                @Override
+                public void bdat(String line) throws IOException {
+                    String[] tok = line.split("\\s+");
+                    int bytes = Integer.parseInt(tok[1]);
+                    boolean last = tok.length > 2 &&
+                            tok[2].equalsIgnoreCase("LAST");
+                    readBdatMessage(bytes, last);
+                    println("444 failed");
+                }
+            };
             server = new TestServer(handler);
             server.start();
 
@@ -123,15 +128,15 @@ public final class SMTPBdatTest {
 
             final Transport t = session.getTransport("smtp");
             try {
-		MimeMessage msg = new MimeMessage(session);
-		msg.setRecipients(Message.RecipientType.TO, "joe@example.com");
-		msg.setSubject("test");
-		msg.setText("test\r\n");
+                MimeMessage msg = new MimeMessage(session);
+                msg.setRecipients(Message.RecipientType.TO, "joe@example.com");
+                msg.setSubject("test");
+                msg.setText("test\r\n");
                 t.connect();
-		t.sendMessage(msg, msg.getAllRecipients());
-		fail("no exception");
-	    } catch (MessagingException ex) {
-		// expect it to fail
+                t.sendMessage(msg, msg.getAllRecipients());
+                fail("no exception");
+            } catch (MessagingException ex) {
+                // expect it to fail
             } finally {
                 t.close();
             }
@@ -141,9 +146,9 @@ public final class SMTPBdatTest {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
-		// wait for handler to exit
-		server.join();
+                server.interrupt();
+                // wait for handler to exit
+                server.join();
             }
         }
     }

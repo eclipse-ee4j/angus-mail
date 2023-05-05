@@ -16,51 +16,56 @@
 
 package org.eclipse.angus.mail.gimap.protocol;
 
-import java.io.*;
-import java.util.*;
-import java.nio.charset.StandardCharsets;
-
-import org.eclipse.angus.mail.iap.*;
-import org.eclipse.angus.mail.imap.protocol.*;
-import org.eclipse.angus.mail.util.MailLogger;
 import org.eclipse.angus.mail.gimap.GmailFolder;
+import org.eclipse.angus.mail.iap.Argument;
 import org.eclipse.angus.mail.iap.ProtocolException;
+import org.eclipse.angus.mail.iap.Response;
+import org.eclipse.angus.mail.imap.protocol.FetchItem;
+import org.eclipse.angus.mail.imap.protocol.FetchResponse;
+import org.eclipse.angus.mail.imap.protocol.IMAPProtocol;
+import org.eclipse.angus.mail.imap.protocol.MessageSet;
+import org.eclipse.angus.mail.imap.protocol.SearchSequence;
+import org.eclipse.angus.mail.util.MailLogger;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 
 /**
  * Extend IMAP support to handle Gmail-specific protocol extensions.
  *
- * @since JavaMail 1.4.6
  * @author Bill Shannon
+ * @since JavaMail 1.4.6
  */
 
 public class GmailProtocol extends IMAPProtocol {
-    
+
     /*
      * Define the Gmail-specific FETCH items.
      */
     public static final FetchItem MSGID_ITEM =
-	new FetchItem("X-GM-MSGID", GmailFolder.FetchProfileItem.MSGID) {
-	    public Object parseItem(FetchResponse r) {
-		return Long.valueOf(r.readLong());
-	    }
-	};
+            new FetchItem("X-GM-MSGID", GmailFolder.FetchProfileItem.MSGID) {
+                public Object parseItem(FetchResponse r) {
+                    return Long.valueOf(r.readLong());
+                }
+            };
     public static final FetchItem THRID_ITEM =
-	new FetchItem("X-GM-THRID", GmailFolder.FetchProfileItem.THRID) {
-	    public Object parseItem(FetchResponse r) {
-		return Long.valueOf(r.readLong());
-	    }
-	};
+            new FetchItem("X-GM-THRID", GmailFolder.FetchProfileItem.THRID) {
+                public Object parseItem(FetchResponse r) {
+                    return Long.valueOf(r.readLong());
+                }
+            };
     public static final FetchItem LABELS_ITEM =
-	new FetchItem("X-GM-LABELS", GmailFolder.FetchProfileItem.LABELS) {
-	    public Object parseItem(FetchResponse r) {
-		return r.readAtomStringList();
-	    }
-	};
+            new FetchItem("X-GM-LABELS", GmailFolder.FetchProfileItem.LABELS) {
+                public Object parseItem(FetchResponse r) {
+                    return r.readAtomStringList();
+                }
+            };
 
     private static final FetchItem[] myFetchItems = {
-	MSGID_ITEM,
-	THRID_ITEM,
-	LABELS_ITEM
+            MSGID_ITEM,
+            THRID_ITEM,
+            LABELS_ITEM
     };
 
     private FetchItem[] fetchItems = null;
@@ -68,27 +73,27 @@ public class GmailProtocol extends IMAPProtocol {
     /**
      * Connect to Gmail.
      *
-     * @param name	the protocol name
-     * @param host	host to connect to
-     * @param port	portnumber to connect to
-     * @param props	Properties object used by this protocol
-     * @param isSSL	use SSL?
-     * @param logger	for log messages
-     * @exception	IOException	for I/O errors
-     * @exception ProtocolException    for protocol failures
+     * @param name   the protocol name
+     * @param host   host to connect to
+     * @param port   portnumber to connect to
+     * @param props  Properties object used by this protocol
+     * @param isSSL  use SSL?
+     * @param logger for log messages
+     * @throws ProtocolException for protocol failures
+     * @exception IOException    for I/O errors
      */
-    public GmailProtocol(String name, String host, int port, 
-			Properties props, boolean isSSL, MailLogger logger)
-			throws IOException, ProtocolException {
-	super(name, host, port, props, isSSL, logger);
+    public GmailProtocol(String name, String host, int port,
+                         Properties props, boolean isSSL, MailLogger logger)
+            throws IOException, ProtocolException {
+        super(name, host, port, props, isSSL, logger);
 
-	// check to see if this is really Gmail
-	if (!hasCapability("X-GM-EXT-1")) {
-	    logger.fine("WARNING! Not connected to Gmail!");
-	    // XXX - could call "disconnect()" here and make this a fatal error
-	} else {
-	    logger.fine("connected to Gmail");
-	}
+        // check to see if this is really Gmail
+        if (!hasCapability("X-GM-EXT-1")) {
+            logger.fine("WARNING! Not connected to Gmail!");
+            // XXX - could call "disconnect()" here and make this a fatal error
+        } else {
+            logger.fine("connected to Gmail");
+        }
     }
 
     /**
@@ -96,95 +101,95 @@ public class GmailProtocol extends IMAPProtocol {
      * Combines our fetch items with those supported by the superclass.
      */
     public FetchItem[] getFetchItems() {
-	if (fetchItems != null)
-	    return fetchItems;
-	FetchItem[] sfi = super.getFetchItems();
-	if (sfi == null || sfi.length == 0)
-	    fetchItems = myFetchItems;
-	else {
-	    fetchItems = new FetchItem[sfi.length + myFetchItems.length];
-	    System.arraycopy(sfi, 0, fetchItems, 0, sfi.length);
-	    System.arraycopy(myFetchItems, 0, fetchItems, sfi.length,
-							myFetchItems.length);
-	}
-	return fetchItems;
+        if (fetchItems != null)
+            return fetchItems;
+        FetchItem[] sfi = super.getFetchItems();
+        if (sfi == null || sfi.length == 0)
+            fetchItems = myFetchItems;
+        else {
+            fetchItems = new FetchItem[sfi.length + myFetchItems.length];
+            System.arraycopy(sfi, 0, fetchItems, 0, sfi.length);
+            System.arraycopy(myFetchItems, 0, fetchItems, sfi.length,
+                    myFetchItems.length);
+        }
+        return fetchItems;
     }
 
     /**
      * Set the specified labels on this message.
      *
-     * @param	msgsets	the message sets
-     * @param	labels	the labels
-     * @param	set	true to set, false to clear
-     * @exception	ProtocolException	for protocol failures
-     * @since	JavaMail 1.5.5
+     * @param    msgsets    the message sets
+     * @param    labels    the labels
+     * @param    set    true to set, false to clear
+     * @exception ProtocolException    for protocol failures
+     * @since JavaMail 1.5.5
      */
     public void storeLabels(MessageSet[] msgsets, String[] labels, boolean set)
-			throws ProtocolException {
-	storeLabels(MessageSet.toString(msgsets), labels, set);
+            throws ProtocolException {
+        storeLabels(MessageSet.toString(msgsets), labels, set);
     }
 
     /**
      * Set the specified labels on this message.
      *
-     * @param	start	the first message number
-     * @param	end	the last message number
-     * @param	labels	the labels
-     * @param	set	true to set, false to clear
-     * @exception	ProtocolException	for protocol failures
-     * @since	JavaMail 1.5.5
+     * @param    start    the first message number
+     * @param    end    the last message number
+     * @param    labels    the labels
+     * @param    set    true to set, false to clear
+     * @exception ProtocolException    for protocol failures
+     * @since JavaMail 1.5.5
      */
     public void storeLabels(int start, int end, String[] labels, boolean set)
-			throws ProtocolException {
-	storeLabels(String.valueOf(start) + ":" + String.valueOf(end),
-		   labels, set);
+            throws ProtocolException {
+        storeLabels(String.valueOf(start) + ":" + String.valueOf(end),
+                labels, set);
     }
 
     /**
      * Set the specified labels on this message.
      *
-     * @param	msg	the message number
-     * @param	labels	the labels
-     * @param	set	true to set, false to clear
-     * @exception	ProtocolException	for protocol failures
-     * @since	JavaMail 1.5.5
+     * @param    msg    the message number
+     * @param    labels    the labels
+     * @param    set    true to set, false to clear
+     * @exception ProtocolException    for protocol failures
+     * @since JavaMail 1.5.5
      */
     public void storeLabels(int msg, String[] labels, boolean set)
-			throws ProtocolException { 
-	storeLabels(String.valueOf(msg), labels, set);
+            throws ProtocolException {
+        storeLabels(String.valueOf(msg), labels, set);
     }
 
     private void storeLabels(String msgset, String[] labels, boolean set)
-			throws ProtocolException {
-	Response[] r;
-	if (set)
-	    r = command("STORE " + msgset + " +X-GM-LABELS",
-			 createLabelList(labels));
-	else
-	    r = command("STORE " + msgset + " -X-GM-LABELS",
-			createLabelList(labels));
-	
-	// Dispatch untagged responses
-	notifyResponseHandlers(r);
-	handleResult(r[r.length-1]);
+            throws ProtocolException {
+        Response[] r;
+        if (set)
+            r = command("STORE " + msgset + " +X-GM-LABELS",
+                    createLabelList(labels));
+        else
+            r = command("STORE " + msgset + " -X-GM-LABELS",
+                    createLabelList(labels));
+
+        // Dispatch untagged responses
+        notifyResponseHandlers(r);
+        handleResult(r[r.length - 1]);
     }
 
     // XXX - assume Gmail always supports UTF-8
     private Argument createLabelList(String[] labels) {
-	Argument args = new Argument();	
-	Argument itemArgs = new Argument();
-	for (int i = 0, len = labels.length; i < len; i++)
-	    itemArgs.writeString(labels[i], StandardCharsets.UTF_8);
-	args.writeArgument(itemArgs);
-	return args;
+        Argument args = new Argument();
+        Argument itemArgs = new Argument();
+        for (int i = 0, len = labels.length; i < len; i++)
+            itemArgs.writeString(labels[i], StandardCharsets.UTF_8);
+        args.writeArgument(itemArgs);
+        return args;
     }
 
     /**
      * Return a GmailSearchSequence.
      */
     protected SearchSequence getSearchSequence() {
-	if (searchSequence == null)
-	    searchSequence = new GmailSearchSequence(this);
-	return searchSequence;
+        if (searchSequence == null)
+            searchSequence = new GmailSearchSequence(this);
+        return searchSequence;
     }
 }

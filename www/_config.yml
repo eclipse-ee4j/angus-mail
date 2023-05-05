@@ -1,9 +1,9 @@
-github: [metadata]
+github: [ metadata ]
 
 remote_theme: eclipsefdn/jekyll-theme-eclipsefdn
 
-title: [Eclipse Angus]
-description: [Angus - Mail]
+title: [ Eclipse Angus ]
+description: [ Angus - Mail ]
 
 links:
   source: https://github.com/eclipse-ee4j/angus-mail

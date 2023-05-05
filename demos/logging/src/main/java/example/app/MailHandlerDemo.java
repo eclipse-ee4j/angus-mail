@@ -11,21 +11,33 @@
 
 package example.app.internal;
 
+import jakarta.activation.DataHandler;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
 import org.eclipse.angus.mail.util.logging.CollectorFormatter;
 import org.eclipse.angus.mail.util.logging.DurationFilter;
 import org.eclipse.angus.mail.util.logging.MailHandler;
 import org.eclipse.angus.mail.util.logging.SeverityComparator;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
-import java.util.*;
-import java.util.logging.*;
-import jakarta.activation.DataHandler;
-import jakarta.mail.MessagingException;
-import jakarta.mail.Session;
-import jakarta.mail.internet.InternetAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Properties;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
+import java.util.logging.MemoryHandler;
+import java.util.logging.SimpleFormatter;
+import java.util.logging.XMLFormatter;
 
 /**
  * Demo for the different configurations for the MailHandler. If the logging
@@ -121,7 +133,7 @@ public class MailHandlerDemo {
      * LogManager reset.
      *
      * @param prefix a string to prefix the output.
-     * @param err any PrintStream or null for System.out.
+     * @param err    any PrintStream or null for System.out.
      */
     @SuppressWarnings("UseOfSystemOutOrSystemErr")
     private static void checkConfig(String prefix, PrintStream err) {
@@ -260,8 +272,8 @@ public class MailHandlerDemo {
      * Gets a formatting string describing the given handler.
      *
      * @param prefix the output prefix.
-     * @param err the error stream.
-     * @param h the handler.
+     * @param err    the error stream.
+     * @param h      the handler.
      * @return the formatted string.
      */
     private static String toString(String prefix, PrintStream err, Handler h) {
@@ -641,6 +653,7 @@ public class MailHandlerDemo {
 
     /**
      * No objects are allowed.
+     *
      * @throws IllegalAccessException always.
      */
     private MailHandlerDemo() throws IllegalAccessException {

@@ -16,9 +16,9 @@
 
 package org.eclipse.angus.mail.util;
 
-import org.junit.*;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * Test that the "mail.mime.decodeparameters" System property
@@ -28,18 +28,18 @@ public class DecodeParametersTest extends ParameterListDecode {
 
     @BeforeClass
     public static void before() {
-	System.out.println("DecodeParameters");
-	System.setProperty("mail.mime.decodeparameters", "true");
+        System.out.println("DecodeParameters");
+        System.setProperty("mail.mime.decodeparameters", "true");
     }
 
     @Test
     public void testDecode() throws Exception {
-	testDecode("paramdata");
+        testDecode("paramdata");
     }
 
     @AfterClass
     public static void after() {
-	// should be unnecessary
-	System.clearProperty("mail.mime.decodeparameters");
+        // should be unnecessary
+        System.clearProperty("mail.mime.decodeparameters");
     }
 }

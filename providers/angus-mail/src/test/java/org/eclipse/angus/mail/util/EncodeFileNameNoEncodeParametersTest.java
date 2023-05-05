@@ -16,19 +16,19 @@
 
 package org.eclipse.angus.mail.util;
 
-import org.junit.*;
+import org.junit.BeforeClass;
 
 /**
  * Test "mail.mime.encodefilename" System property set to "true"
  * and "mail.mime.encodeparameters" set to "false".
  */
 public class EncodeFileNameNoEncodeParametersTest extends EncodeFileNameTest {
- 
+
     @BeforeClass
     public static void before() {
-	System.out.println("EncodeFileNameNoEncodeParameters");
-	System.setProperty("mail.mime.charset", "utf-8");
-	System.setProperty("mail.mime.encodefilename", "true");
-	System.setProperty("mail.mime.encodeparameters", "false");
+        System.out.println("EncodeFileNameNoEncodeParameters");
+        System.setProperty("mail.mime.charset", "utf-8");
+        System.setProperty("mail.mime.encodefilename", "true");
+        System.setProperty("mail.mime.encodeparameters", "false");
     }
 }

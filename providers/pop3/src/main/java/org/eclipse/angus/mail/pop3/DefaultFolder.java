@@ -16,7 +16,11 @@
 
 package org.eclipse.angus.mail.pop3;
 
-import jakarta.mail.*;
+import jakarta.mail.Flags;
+import jakarta.mail.Folder;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.MethodNotSupportedException;
 
 /**
  * The POP3 DefaultFolder.  Only contains the "INBOX" folder.
@@ -26,116 +30,116 @@ import jakarta.mail.*;
 public class DefaultFolder extends Folder {
 
     DefaultFolder(POP3Store store) {
-	super(store);
+        super(store);
     }
 
     @Override
     public String getName() {
-	return "";
+        return "";
     }
 
     @Override
     public String getFullName() {
-	return "";
+        return "";
     }
 
     @Override
     public Folder getParent() {
-	return null;
+        return null;
     }
 
     @Override
     public boolean exists() {
-	return true;
+        return true;
     }
 
     @Override
     public Folder[] list(String pattern) throws MessagingException {
-	Folder[] f = { getInbox() };
-	return f;
+        Folder[] f = {getInbox()};
+        return f;
     }
 
     @Override
     public char getSeparator() {
-	return '/';
+        return '/';
     }
 
     @Override
     public int getType() {
-	return HOLDS_FOLDERS;
+        return HOLDS_FOLDERS;
     }
 
     @Override
     public boolean create(int type) throws MessagingException {
-	return false;
+        return false;
     }
 
     @Override
     public boolean hasNewMessages() throws MessagingException {
-	return false;
+        return false;
     }
 
     @Override
     public Folder getFolder(String name) throws MessagingException {
-	if (!name.equalsIgnoreCase("INBOX")) {
-	    throw new MessagingException("only INBOX supported");
-	} else {
-	    return getInbox();
-	}
+        if (!name.equalsIgnoreCase("INBOX")) {
+            throw new MessagingException("only INBOX supported");
+        } else {
+            return getInbox();
+        }
     }
 
     protected Folder getInbox() throws MessagingException {
-	return getStore().getFolder("INBOX");
+        return getStore().getFolder("INBOX");
     }
-    
+
 
     @Override
     public boolean delete(boolean recurse) throws MessagingException {
-	throw new MethodNotSupportedException("delete");
+        throw new MethodNotSupportedException("delete");
     }
 
     @Override
     public boolean renameTo(Folder f) throws MessagingException {
-	throw new MethodNotSupportedException("renameTo");
+        throw new MethodNotSupportedException("renameTo");
     }
 
     @Override
     public void open(int mode) throws MessagingException {
-	throw new MethodNotSupportedException("open");
+        throw new MethodNotSupportedException("open");
     }
 
     @Override
     public void close(boolean expunge) throws MessagingException {
-	throw new MethodNotSupportedException("close");
+        throw new MethodNotSupportedException("close");
     }
 
     @Override
     public boolean isOpen() {
-	return false;
+        return false;
     }
 
     @Override
     public Flags getPermanentFlags() {
-	return new Flags(); // empty flags object
+        return new Flags(); // empty flags object
     }
 
     @Override
     public int getMessageCount() throws MessagingException {
-	return 0;
+        return 0;
     }
 
     @Override
     public Message getMessage(int msgno) throws MessagingException {
-	throw new MethodNotSupportedException("getMessage");
+        throw new MethodNotSupportedException("getMessage");
     }
 
     @Override
     public void appendMessages(Message[] msgs) throws MessagingException {
-	throw new MethodNotSupportedException("Append not supported");	
+        throw new MethodNotSupportedException("Append not supported");
     }
 
     @Override
     public Message[] expunge() throws MessagingException {
-	throw new MethodNotSupportedException("expunge");	
+        throw new MethodNotSupportedException("expunge");
     }
 }

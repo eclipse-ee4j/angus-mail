@@ -55,14 +55,14 @@
  * <TH>Logging Level</TH>
  * <TH>Purpose</TH>
  * </TR>
- * 
+ *
  * <TR>
  * <TD>org.eclipse.angus.mail.dsn</TD>
  * <TD>FINER</TD>
  * <TD>General debugging output</TD>
  * </TR>
  * </TABLE>
- * 
+ *
  * <P>
  * <strong>WARNING:</strong> The APIs unique to this package should be
  * considered <strong>EXPERIMENTAL</strong>.  They may be changed in the

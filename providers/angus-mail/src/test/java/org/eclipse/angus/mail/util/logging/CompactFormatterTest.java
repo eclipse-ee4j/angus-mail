@@ -17,21 +17,42 @@
 
 package org.eclipse.angus.mail.util.logging;
 
-import java.io.*;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeUtility;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.SocketException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Properties;
+import java.util.PropertyResourceBundle;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeUtility;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.Logger;
-import org.junit.*;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Compact formatter tests.
@@ -136,24 +157,24 @@ public class CompactFormatterTest extends AbstractLogging {
 
     @Test
     public void testEquals() {
-    	CompactFormatter cf = new CompactFormatter();
-    	assertFalse(cf.equals((Object) null));
-    	assertNotEquals(cf, new CollectorFormatter());
-    	assertTrue(cf.equals(cf));
+        CompactFormatter cf = new CompactFormatter();
+        assertFalse(cf.equals((Object) null));
+        assertNotEquals(cf, new CollectorFormatter());
+        assertTrue(cf.equals(cf));
     }
 
     @Test
     public void testHashCode() {
-    	CompactFormatter cf = new CompactFormatter();
-    	assertEquals(System.identityHashCode(cf), cf.hashCode());
+        CompactFormatter cf = new CompactFormatter();
+        assertEquals(System.identityHashCode(cf), cf.hashCode());
     }
 
     @Test
     public void testToString() {
-    	CompactFormatter cf = new CompactFormatter();
-    	String s = cf.toString();
-    	assertTrue(s, s.startsWith(CompactFormatter.class.getName()));
-    	assertTrue(s, s.endsWith(Integer.toHexString(cf.hashCode())));
+        CompactFormatter cf = new CompactFormatter();
+        String s = cf.toString();
+        assertTrue(s, s.startsWith(CompactFormatter.class.getName()));
+        assertTrue(s, s.endsWith(Integer.toHexString(cf.hashCode())));
     }
 
     @Test
@@ -331,7 +352,7 @@ public class CompactFormatterTest extends AbstractLogging {
     public void testFormatWithMessageSurrogateWidthMore() {
         testFormatWithMessageWidthMore(
                 "m\ud801\udc00ss\ud801\udc00g\ud801\udc00"
-              + "m\ud801\udc00ss\ud801\udc00g\ud801\udc00");
+                        + "m\ud801\udc00ss\ud801\udc00g\ud801\udc00");
     }
 
     private void testFormatWithMessageWidthMore(String message) {
@@ -486,8 +507,8 @@ public class CompactFormatterTest extends AbstractLogging {
     public void testFormatMessageSurrogateOddMore() {
         LogRecord record = new LogRecord(Level.SEVERE,
                 "a\ud801\udc00\ud801\udc00\ud801\udc00"
-                 + "\ud801\udc00\ud801\udc00"
-                 + "\ud801\udc00\ud801\udc00");
+                        + "\ud801\udc00\ud801\udc00"
+                        + "\ud801\udc00\ud801\udc00");
         String m = record.getMessage();
         record.setThrown(new Throwable(m));
         CompactFormatter cf = new CompactFormatter("%7$#.7s%n");
@@ -518,7 +539,7 @@ public class CompactFormatterTest extends AbstractLogging {
     public void testFormatMessageSurrogateEvenEqual() {
         LogRecord record = new LogRecord(Level.SEVERE,
                 "a\ud801\udc00\ud801\udc00\ud801\udc00"
-                    + "\ud801\udc00\ud801\udc00");
+                        + "\ud801\udc00\ud801\udc00");
         String m = record.getMessage();
         record.setThrown(new Throwable(m));
         CompactFormatter cf = new CompactFormatter("%7$#.6s%n");
@@ -548,8 +569,8 @@ public class CompactFormatterTest extends AbstractLogging {
     public void testFormatMessageSurrogateEvenMore() {
         LogRecord record = new LogRecord(Level.SEVERE,
                 "a\ud801\udc00\ud801\udc00\ud801\udc00"
-                 + "\ud801\udc00\ud801\udc00"
-                 + "\ud801\udc00\ud801\udc00");
+                        + "\ud801\udc00\ud801\udc00"
+                        + "\ud801\udc00\ud801\udc00");
         String m = record.getMessage();
         record.setThrown(new Throwable(m));
         CompactFormatter cf = new CompactFormatter("%7$#.6s%n");
@@ -1823,8 +1844,8 @@ public class CompactFormatterTest extends AbstractLogging {
     public void testFormatBackTraceUnknown() {
         Exception e = new IOException("Fake I/O");
         e.setStackTrace(new StackTraceElement[]{
-            new StackTraceElement(CompactFormatterTest.class.getName(),
-            "testFormatBackTrace", null, -2)});
+                new StackTraceElement(CompactFormatterTest.class.getName(),
+                        "testFormatBackTrace", null, -2)});
         assertNotNull(e.getMessage(), e.getMessage());
 
         CompactFormatter cf = new CompactFormatter("%14$s");
@@ -1841,7 +1862,7 @@ public class CompactFormatterTest extends AbstractLogging {
         final Class<?> k = Collections.class;
         Exception e = new NullPointerException("Fake NPE");
         e.setStackTrace(new StackTraceElement[]{
-            new StackTraceElement(k.getName(), "newSetFromMap", null, 3878)});
+                new StackTraceElement(k.getName(), "newSetFromMap", null, 3878)});
         assertNotNull(e.getMessage(), e.getMessage());
 
         CompactFormatter cf = new CompactFormatter("%14$s");
@@ -1860,8 +1881,8 @@ public class CompactFormatterTest extends AbstractLogging {
         e.setStackTrace(new StackTraceElement[0]);
         e = new RuntimeException(e);
         e.setStackTrace(new StackTraceElement[]{
-            new StackTraceElement(k.getName(), "newSetFromMap",
-                    k.getSimpleName() +".java", 3878)});
+                new StackTraceElement(k.getName(), "newSetFromMap",
+                        k.getSimpleName() + ".java", 3878)});
         assertNotNull(e.getMessage(), e.getMessage());
 
         CompactFormatter cf = new CompactFormatter("%14$s");
@@ -1899,8 +1920,8 @@ public class CompactFormatterTest extends AbstractLogging {
         e.setStackTrace(new StackTraceElement[0]);
         e = new RuntimeException(e);
         e.setStackTrace(new StackTraceElement[]{
-            new StackTraceElement(k.getName(), "contains",
-                    k.getSimpleName() +".java", 288)});
+                new StackTraceElement(k.getName(), "contains",
+                        k.getSimpleName() + ".java", 288)});
         assertNotNull(e.getMessage(), e.getMessage());
 
         CompactFormatter cf = new CompactFormatter("%14$s");
@@ -1923,8 +1944,8 @@ public class CompactFormatterTest extends AbstractLogging {
         e.setStackTrace(new StackTraceElement[0]);
         e = new RuntimeException(e);
         e.setStackTrace(new StackTraceElement[]{
-            new StackTraceElement(k.getName(), "contains",
-                    "Foo", 288)});
+                new StackTraceElement(k.getName(), "contains",
+                        "Foo", 288)});
         assertNotNull(e.getMessage(), e.getMessage());
 
         CompactFormatter cf = new CompactFormatter("%14$s");
@@ -1961,8 +1982,8 @@ public class CompactFormatterTest extends AbstractLogging {
         second.initCause(first); //Pure Evil.
         first.setStackTrace(new StackTraceElement[0]);
         second.setStackTrace(new StackTraceElement[]{
-            new StackTraceElement(CompactFormatterTest.class.getName(),
-            "dummy$bridge", null, -1)});
+                new StackTraceElement(CompactFormatterTest.class.getName(),
+                        "dummy$bridge", null, -1)});
         record.setThrown(first);
         CompactFormatter cf = new CompactFormatter("%14$s");
         String result = cf.formatBackTrace(record);

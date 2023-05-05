@@ -16,22 +16,21 @@
 
 package org.eclipse.angus.mail.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.util.Properties;
-
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
 import org.eclipse.angus.mail.test.AsciiStringInputStream;
 import org.eclipse.angus.mail.test.NullOutputStream;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.Session;
-import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.internet.MimeMultipart;
+import java.io.IOException;
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test the properties that control the MimeMultipart class.
@@ -39,7 +38,7 @@ import jakarta.mail.internet.MimeMultipart;
  * these tests can be run in the same JVM.
  */
 public class MimeMultipartPropertyTest {
- 
+
     private static Session s = Session.getInstance(new Properties());
 
     /**
@@ -47,92 +46,92 @@ public class MimeMultipartPropertyTest {
      */
     @Before
     public void beforeTest() {
-	clearAll();
+        clearAll();
     }
 
     @Test
     public void testBoundary() throws Exception {
-	MimeMessage m = createMessage("x", "x", true);
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	assertEquals(mp.getCount(), 2);
+        MimeMessage m = createMessage("x", "x", true);
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        assertEquals(mp.getCount(), 2);
     }
 
     @Test
     public void testBoundaryIgnore() throws Exception {
         System.setProperty(
-	    "mail.mime.multipart.ignoreexistingboundaryparameter", "true");
-	MimeMessage m = createMessage("x", "-", true);
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	assertEquals(mp.getCount(), 2);
+                "mail.mime.multipart.ignoreexistingboundaryparameter", "true");
+        MimeMessage m = createMessage("x", "-", true);
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        assertEquals(mp.getCount(), 2);
     }
 
     @Test
     public void testBoundaryMissing() throws Exception {
-	MimeMessage m = createMessage(null, "x", true);
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	assertEquals(mp.getCount(), 2);
+        MimeMessage m = createMessage(null, "x", true);
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        assertEquals(mp.getCount(), 2);
     }
 
-    @Test(expected=MessagingException.class)
+    @Test(expected = MessagingException.class)
     public void testBoundaryMissingEx() throws Exception {
         System.setProperty(
-	    "mail.mime.multipart.ignoremissingboundaryparameter", "false");
-	MimeMessage m = createMessage(null, "x", true);
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	mp.getCount();		// throw exception
-	assertTrue(false);	// never get here
+                "mail.mime.multipart.ignoremissingboundaryparameter", "false");
+        MimeMessage m = createMessage(null, "x", true);
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        mp.getCount();        // throw exception
+        assertTrue(false);    // never get here
     }
 
     @Test
     public void testEndBoundaryMissing() throws Exception {
-	MimeMessage m = createMessage("x", "x", false);
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	assertEquals(mp.getCount(), 2);
+        MimeMessage m = createMessage("x", "x", false);
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        assertEquals(mp.getCount(), 2);
     }
 
-    @Test(expected=MessagingException.class)
+    @Test(expected = MessagingException.class)
     public void testEndBoundaryMissingEx() throws Exception {
         System.setProperty(
-	    "mail.mime.multipart.ignoremissingendboundary", "false");
-	MimeMessage m = createMessage("x", "x", false);
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	mp.getCount();		// throw exception
-	assertTrue(false);	// never get here
+                "mail.mime.multipart.ignoremissingendboundary", "false");
+        MimeMessage m = createMessage("x", "x", false);
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        mp.getCount();        // throw exception
+        assertTrue(false);    // never get here
     }
 
     @Test
     public void testAllowEmpty() throws Exception {
-        System.setProperty( "mail.mime.multipart.allowempty", "true");
-	MimeMessage m = createEmptyMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	assertEquals(mp.getCount(), 0);
+        System.setProperty("mail.mime.multipart.allowempty", "true");
+        MimeMessage m = createEmptyMessage();
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        assertEquals(mp.getCount(), 0);
     }
 
-    @Test(expected=MessagingException.class)
+    @Test(expected = MessagingException.class)
     public void testAllowEmptyEx() throws Exception {
-	MimeMessage m = createEmptyMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	mp.getCount();		// throw exception
-	assertTrue(false);	// never get here
+        MimeMessage m = createEmptyMessage();
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        mp.getCount();        // throw exception
+        assertTrue(false);    // never get here
     }
 
     @Test
     public void testAllowEmptyOutput() throws Exception {
-        System.setProperty( "mail.mime.multipart.allowempty", "true");
-	MimeMessage m = new MimeMessage(s);
-	MimeMultipart mp = new MimeMultipart();
-	m.setContent(mp);
-	m.writeTo(new NullOutputStream());
-	assertEquals(mp.getCount(), 0);
+        System.setProperty("mail.mime.multipart.allowempty", "true");
+        MimeMessage m = new MimeMessage(s);
+        MimeMultipart mp = new MimeMultipart();
+        m.setContent(mp);
+        m.writeTo(new NullOutputStream());
+        assertEquals(mp.getCount(), 0);
     }
 
-    @Test(expected=IOException.class)
+    @Test(expected = IOException.class)
     public void testAllowEmptyOutputEx() throws Exception {
-	MimeMessage m = new MimeMessage(s);
-	MimeMultipart mp = new MimeMultipart();
-	m.setContent(mp);
-	m.writeTo(new NullOutputStream());	// throw exception
-	assertTrue(false);	// never get here
+        MimeMessage m = new MimeMessage(s);
+        MimeMultipart mp = new MimeMultipart();
+        m.setContent(mp);
+        m.writeTo(new NullOutputStream());    // throw exception
+        assertTrue(false);    // never get here
     }
 
     /**
@@ -145,13 +144,13 @@ public class MimeMultipartPropertyTest {
 
     private static void clearAll() {
         System.clearProperty(
-	    "mail.mime.multipart.ignoreexistingboundaryparameter");
+                "mail.mime.multipart.ignoreexistingboundaryparameter");
         System.clearProperty(
-	    "mail.mime.multipart.ignoremissingboundaryparameter");
+                "mail.mime.multipart.ignoremissingboundaryparameter");
         System.clearProperty(
-	    "mail.mime.multipart.ignoremissingendboundary");
+                "mail.mime.multipart.ignoremissingendboundary");
         System.clearProperty(
-	    "mail.mime.multipart.allowempty");
+                "mail.mime.multipart.allowempty");
     }
 
     /**
@@ -161,25 +160,25 @@ public class MimeMultipartPropertyTest {
      * If "end" is true, include the end boundary.
      */
     private static MimeMessage createMessage(String param, String actual,
-				boolean end) throws MessagingException {
+                                             boolean end) throws MessagingException {
         String content =
-	    "Mime-Version: 1.0\n" +
-	    "Subject: Example\n" +
-	    "Content-Type: multipart/mixed; " +
-		(param != null ? "boundary=\"" + param + "\"" : "") + "\n" +
-	    "\n" +
-	    "preamble\n" +
-	    "--" + actual + "\n" +
-	    "\n" +
-	    "first part\n" +
-	    "\n" +
-	    "--" + actual + "\n" +
-	    "\n" +
-	    "second part\n" +
-	    "\n" +
-	    (end ? "--" + actual + "--\n" : "");
- 
-	return new MimeMessage(s, new AsciiStringInputStream(content));
+                "Mime-Version: 1.0\n" +
+                        "Subject: Example\n" +
+                        "Content-Type: multipart/mixed; " +
+                        (param != null ? "boundary=\"" + param + "\"" : "") + "\n" +
+                        "\n" +
+                        "preamble\n" +
+                        "--" + actual + "\n" +
+                        "\n" +
+                        "first part\n" +
+                        "\n" +
+                        "--" + actual + "\n" +
+                        "\n" +
+                        "second part\n" +
+                        "\n" +
+                        (end ? "--" + actual + "--\n" : "");
+
+        return new MimeMessage(s, new AsciiStringInputStream(content));
     }
 
     /**
@@ -187,10 +186,10 @@ public class MimeMultipartPropertyTest {
      */
     private static MimeMessage createEmptyMessage() throws MessagingException {
         String content =
-	    "Mime-Version: 1.0\n" +
-	    "Subject: Example\n" +
-	    "Content-Type: multipart/mixed; boundary=\"x\"\n\n";
- 
-	return new MimeMessage(s, new AsciiStringInputStream(content));
+                "Mime-Version: 1.0\n" +
+                        "Subject: Example\n" +
+                        "Content-Type: multipart/mixed; boundary=\"x\"\n\n";
+
+        return new MimeMessage(s, new AsciiStringInputStream(content));
     }
 }

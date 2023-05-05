@@ -16,17 +16,15 @@
 
 package example.app;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Properties;
-
-import org.junit.Test;
-
-import org.eclipse.angus.mail.util.MailStreamProvider;
-
 import jakarta.mail.NoSuchProviderException;
 import jakarta.mail.Session;
 import jakarta.mail.util.StreamProvider;
+import org.eclipse.angus.mail.util.MailStreamProvider;
+import org.junit.Test;
+
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
 
 public class ModulesTest {
 

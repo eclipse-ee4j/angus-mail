@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -10,10 +10,14 @@
 
 package demo;
 
-import java.io.*;
-import jakarta.mail.*;
-import jakarta.servlet.jsp.*;
-import jakarta.servlet.jsp.tagext.*;
+import jakarta.mail.Multipart;
+import jakarta.servlet.jsp.JspException;
+import jakarta.servlet.jsp.JspTagException;
+import jakarta.servlet.jsp.tagext.BodyContent;
+import jakarta.servlet.jsp.tagext.BodyTag;
+import jakarta.servlet.jsp.tagext.BodyTagSupport;
+
+import java.io.IOException;
 
 /**
  * Custom tag for listing message attachments. The scripting variable is only
@@ -31,69 +35,69 @@ public class ListAttachmentsTag extends BodyTagSupport {
      * messageinfo attribute getter method.
      */
     public String getMessageinfo() {
-	return messageinfo;
+        return messageinfo;
     }
-    
+
     /**
      * messageinfo attribute setter method.
      */
     public void setMessageinfo(String messageinfo) {
-	this.messageinfo = messageinfo;
+        this.messageinfo = messageinfo;
     }
 
     /**
      * Method for processing the start of the tag.
      */
     public int doStartTag() throws JspException {
-	messageInfo = (MessageInfo)pageContext.getAttribute(getMessageinfo());
-	attachmentinfo = new AttachmentInfo();
-	
-	try {
-	    multipart = (Multipart)messageInfo.getMessage().getContent();
-	    numParts = multipart.getCount();
-	} catch (Exception ex) {
-	    throw new JspException(ex.getMessage());
-	}
+        messageInfo = (MessageInfo) pageContext.getAttribute(getMessageinfo());
+        attachmentinfo = new AttachmentInfo();
 
-	getPart();
+        try {
+            multipart = (Multipart) messageInfo.getMessage().getContent();
+            numParts = multipart.getCount();
+        } catch (Exception ex) {
+            throw new JspException(ex.getMessage());
+        }
 
-	return BodyTag.EVAL_BODY_TAG;
+        getPart();
+
+        return BodyTag.EVAL_BODY_TAG;
     }
-   
+
     /**
      * Method for processing the body content of the tag.
      */
     public int doAfterBody() throws JspException {
-	
-	BodyContent body = getBodyContent();
-	try {
-	    body.writeOut(getPreviousOut());
-	} catch (IOException e) {
-	    throw new JspTagException("IterationTag: " + e.getMessage());
-	}
-	
-	// clear up so the next time the body content is empty
-	body.clearBody();
-       
-	partNum++;
-	if (partNum < numParts) {
-	    getPart();
-	    return BodyTag.EVAL_BODY_TAG;
-	} else {
-	    return BodyTag.SKIP_BODY;
-	}
+
+        BodyContent body = getBodyContent();
+        try {
+            body.writeOut(getPreviousOut());
+        } catch (IOException e) {
+            throw new JspTagException("IterationTag: " + e.getMessage());
+        }
+
+        // clear up so the next time the body content is empty
+        body.clearBody();
+
+        partNum++;
+        if (partNum < numParts) {
+            getPart();
+            return BodyTag.EVAL_BODY_TAG;
+        } else {
+            return BodyTag.SKIP_BODY;
+        }
     }
-    
+
     /**
      * Helper method for retrieving message parts.
      */
     private void getPart() throws JspException {
-	try {
-	    attachmentinfo.setPart(partNum, multipart.getBodyPart(partNum));
-	    pageContext.setAttribute(getId(), attachmentinfo);
-	} catch (Exception ex) {
-	    throw new JspException(ex.getMessage());
-	}
+        try {
+            attachmentinfo.setPart(partNum, multipart.getBodyPart(partNum));
+            pageContext.setAttribute(getId(), attachmentinfo);
+        } catch (Exception ex) {
+            throw new JspException(ex.getMessage());
+        }
     }
 }
 

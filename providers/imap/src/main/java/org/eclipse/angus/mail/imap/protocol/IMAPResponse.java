@@ -16,20 +16,20 @@
 
 package org.eclipse.angus.mail.imap.protocol;
 
-import java.io.*;
-import java.util.*;
-
-import org.eclipse.angus.mail.iap.*;
-import org.eclipse.angus.mail.util.ASCIIUtility;
 import org.eclipse.angus.mail.iap.Protocol;
 import org.eclipse.angus.mail.iap.ProtocolException;
 import org.eclipse.angus.mail.iap.Response;
+import org.eclipse.angus.mail.util.ASCIIUtility;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class represents a response obtained from the input stream
  * of an IMAP server.
  *
- * @author  John Mani
+ * @author John Mani
  */
 
 public class IMAPResponse extends Response {
@@ -37,108 +37,109 @@ public class IMAPResponse extends Response {
     private int number;
 
     public IMAPResponse(Protocol c) throws IOException, ProtocolException {
-	super(c);
-	init();
+        super(c);
+        init();
     }
 
     private void init() throws IOException, ProtocolException {
-	// continue parsing if this is an untagged response
-	if (isUnTagged() && !isOK() && !isNO() && !isBAD() && !isBYE()) {
-	    key = readAtom();
+        // continue parsing if this is an untagged response
+        if (isUnTagged() && !isOK() && !isNO() && !isBAD() && !isBYE()) {
+            key = readAtom();
 
-	    // Is this response of the form "* <number> <command>"
-	    try {
-		number = Integer.parseInt(key);
-		key = readAtom();
-	    } catch (NumberFormatException ne) { }
-	}
+            // Is this response of the form "* <number> <command>"
+            try {
+                number = Integer.parseInt(key);
+                key = readAtom();
+            } catch (NumberFormatException ne) {
+            }
+        }
     }
 
     /**
      * Copy constructor.
      *
-     * @param	r	the IMAPResponse to copy
+     * @param    r    the IMAPResponse to copy
      */
     public IMAPResponse(IMAPResponse r) {
-	super((Response)r);
-	key = r.key;
-	number = r.number;
+        super((Response) r);
+        key = r.key;
+        number = r.number;
     }
 
     /**
      * For testing.
      *
-     * @param	r	the response string
-     * @exception	IOException	for I/O errors
-     * @exception	ProtocolException	for protocol failures
+     * @param    r    the response string
+     * @exception IOException    for I/O errors
+     * @exception ProtocolException    for protocol failures
      */
     public IMAPResponse(String r) throws IOException, ProtocolException {
-	this(r, true);
+        this(r, true);
     }
 
     /**
      * For testing.
      *
-     * @param	r	the response string
-     * @param	utf8	UTF-8 allowed?
-     * @exception	IOException	for I/O errors
-     * @exception	ProtocolException	for protocol failures
-     * @since	JavaMail 1.6.0
+     * @param    r    the response string
+     * @param    utf8    UTF-8 allowed?
+     * @exception IOException    for I/O errors
+     * @exception ProtocolException    for protocol failures
+     * @since JavaMail 1.6.0
      */
     public IMAPResponse(String r, boolean utf8)
-				throws IOException, ProtocolException {
-	super(r, utf8);
-	init();
+            throws IOException, ProtocolException {
+        super(r, utf8);
+        init();
     }
 
     /**
-     * Read a list of space-separated "flag-extension" sequences and 
+     * Read a list of space-separated "flag-extension" sequences and
      * return the list as a array of Strings. An empty list is returned
      * as null.  Each item is expected to be an atom, possibly preceeded
      * by a backslash, but we aren't that strict; we just look for strings
      * separated by spaces and terminated by a right paren.  We assume items
      * are always ASCII.
      *
-     * @return	the list items as a String array
+     * @return the list items as a String array
      */
     public String[] readSimpleList() {
-	skipSpaces();
+        skipSpaces();
 
-	if (buffer[index] != '(') // not what we expected
-	    return null;
-	index++; // skip '('
+        if (buffer[index] != '(') // not what we expected
+            return null;
+        index++; // skip '('
 
-	List<String> v = new ArrayList<>();
-	int start;
-	for (start = index; buffer[index] != ')'; index++) {
-	    if (buffer[index] == ' ') { // got one item
-		v.add(ASCIIUtility.toString(buffer, start, index));
-		start = index+1; // index gets incremented at the top
-	    }
-	}
-	if (index > start) // get the last item
-	    v.add(ASCIIUtility.toString(buffer, start, index));
-	index++; // skip ')'
-	
-	int size = v.size();
-	if (size > 0)
-	    return v.toArray(new String[size]);
-	else  // empty list
-	    return null;
+        List<String> v = new ArrayList<>();
+        int start;
+        for (start = index; buffer[index] != ')'; index++) {
+            if (buffer[index] == ' ') { // got one item
+                v.add(ASCIIUtility.toString(buffer, start, index));
+                start = index + 1; // index gets incremented at the top
+            }
+        }
+        if (index > start) // get the last item
+            v.add(ASCIIUtility.toString(buffer, start, index));
+        index++; // skip ')'
+
+        int size = v.size();
+        if (size > 0)
+            return v.toArray(new String[size]);
+        else  // empty list
+            return null;
     }
 
     public String getKey() {
-	return key;
+        return key;
     }
 
     public boolean keyEquals(String k) {
-	if (key != null && key.equalsIgnoreCase(k))
-	    return true;
-	else
-	    return false;
+        if (key != null && key.equalsIgnoreCase(k))
+            return true;
+        else
+            return false;
     }
 
     public int getNumber() {
-	return number;
+        return number;
     }
 }

@@ -16,51 +16,54 @@
 
 package org.eclipse.angus.mail.dsn;
 
-import java.io.*;
+import jakarta.activation.DataHandler;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetHeaders;
+import jakarta.mail.internet.MimeMessage;
 
-import jakarta.activation.*;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 
 /**
  * A special MimeMessage object that contains only message headers,
  * no content.  Used to represent the MIME type text/rfc822-headers.
  *
- * @since	JavaMail 1.4
+ * @since JavaMail 1.4
  */
 public class MessageHeaders extends MimeMessage {
 
     /**
      * Construct a MessageHeaders object.
      *
-     * @exception	MessagingException for failures
+     * @exception MessagingException for failures
      */
     public MessageHeaders() throws MessagingException {
-	super((Session)null);
-	content = new byte[0];
+        super((Session) null);
+        content = new byte[0];
     }
 
     /**
      * Constructs a MessageHeaders object from the given InputStream.
      *
-     * @param	is	InputStream
-     * @exception	MessagingException for failures
+     * @param    is    InputStream
+     * @exception MessagingException for failures
      */
     public MessageHeaders(InputStream is) throws MessagingException {
-	super(null, is);
-	content = new byte[0];
+        super(null, is);
+        content = new byte[0];
     }
 
     /**
      * Constructs a MessageHeaders object using the given InternetHeaders.
      *
-     * @param	headers	InternetHeaders to use
-     * @exception	MessagingException for failures
+     * @param    headers    InternetHeaders to use
+     * @exception MessagingException for failures
      */
     public MessageHeaders(InternetHeaders headers) throws MessagingException {
-	super((Session)null);
-	this.headers = headers;
-	content = new byte[0];
+        super((Session) null);
+        this.headers = headers;
+        content = new byte[0];
     }
 
     /**
@@ -68,24 +71,24 @@ public class MessageHeaders extends MimeMessage {
      * Always returns zero.
      */
     public int getSize() {
-	return 0;
+        return 0;
     }
 
     public InputStream getInputStream() {
-	return new ByteArrayInputStream(content);
+        return new ByteArrayInputStream(content);
     }
 
     protected InputStream getContentStream() {
-	return new ByteArrayInputStream(content);
+        return new ByteArrayInputStream(content);
     }
 
     /**
      * Can't set any content for a MessageHeaders object.
      *
-     * @exception	MessagingException	always
+     * @exception MessagingException    always
      */
     public void setDataHandler(DataHandler dh) throws MessagingException {
-	throw new MessagingException("Can't set content for MessageHeaders");
+        throw new MessagingException("Can't set content for MessageHeaders");
     }
 
 }

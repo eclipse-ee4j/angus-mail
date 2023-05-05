@@ -16,20 +16,19 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.FetchProfile;
+import jakarta.mail.Folder;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
-import jakarta.mail.Folder;
-import jakarta.mail.Session;
-import jakarta.mail.Store;
-import jakarta.mail.FetchProfile;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.rules.Timeout;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -46,12 +45,12 @@ public final class IMAPIdleUntaggedResponseTest {
     public void test() {
         test(false);
     }
-    
+
     @Test
     public void testProtocolFindSocketChannel() {
         test(true);
     }
-        
+
     private void test(boolean isSSL) {
         TestServer server = null;
         try {
@@ -63,7 +62,7 @@ public final class IMAPIdleUntaggedResponseTest {
             if (isSSL) {
                 properties.setProperty("mail.imaps.host", "localhost");
                 properties.setProperty("mail.imaps.port", "" + server.getPort());
-                properties.setProperty("mail.imaps.socketFactory.class", 
+                properties.setProperty("mail.imaps.socketFactory.class",
                         "org.eclipse.angus.mail.util.MailSSLSocketFactory");
                 properties.setProperty("mail.imaps.ssl.trust", "*");
                 properties.setProperty("mail.imaps.ssl.checkserveridentity", "false");
@@ -77,42 +76,42 @@ public final class IMAPIdleUntaggedResponseTest {
             //session.setDebug(true);
 
             final Store store = session.getStore(isSSL ? "imaps" : "imap");
-	    Folder folder0 = null;
+            Folder folder0 = null;
             try {
                 store.connect("test", "test");
                 final Folder folder = store.getFolder("INBOX");
-		folder0 = folder;
+                folder0 = folder;
                 folder.open(Folder.READ_ONLY);
 
-		// create a thread to make sure we're kicked out of idle
-		Thread t = new Thread() {
-		    @Override
-		    public void run() {
-			try {
-			    handler.waitForIdle();
-			    // now do something that is sure to touch the server
-			    FetchProfile fp = new FetchProfile();
-			    fp.add(FetchProfile.Item.ENVELOPE);
-			    folder.fetch(folder.getMessages(), fp);
-			} catch (Exception ex) {
+                // create a thread to make sure we're kicked out of idle
+                Thread t = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            handler.waitForIdle();
+                            // now do something that is sure to touch the server
+                            FetchProfile fp = new FetchProfile();
+                            fp.add(FetchProfile.Item.ENVELOPE);
+                            folder.fetch(folder.getMessages(), fp);
+                        } catch (Exception ex) {
                             //ex.printStackTrace(System.out);
-			}
-		    }
-		};
-		t.start();
+                        }
+                    }
+                };
+                t.start();
 
-		((IMAPFolder)folder).idle();
+                ((IMAPFolder) folder).idle();
 
-		assertEquals("message count", 1, folder.getMessageCount());
+                assertEquals("message count", 1, folder.getMessageCount());
 
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
                 System.out.flush();
-		fail(ex.toString());
+                fail(ex.toString());
             } finally {
-		if (folder0 != null)
-		    folder0.close(false);
+                if (folder0 != null)
+                    folder0.close(false);
                 store.close();
             }
         } catch (final Exception e) {
@@ -132,28 +131,28 @@ public final class IMAPIdleUntaggedResponseTest {
      * sure the notification of the new message is seen.
      */
     private static final class IMAPHandlerIdleExists extends IMAPHandler {
-	// must be static because handler is cloned for each connection
-	private static CountDownLatch latch = new CountDownLatch(1);
+        // must be static because handler is cloned for each connection
+        private static CountDownLatch latch = new CountDownLatch(1);
 
-	@Override
+        @Override
         public void examine(String line) throws IOException {
-	    numberOfMessages = 1;
-	    super.examine(line);
-	}
+            numberOfMessages = 1;
+            super.examine(line);
+        }
 
-	@Override
+        @Override
         public void idle() throws IOException {
             untagged("1 EXISTS");
             untagged("1 RECENT");
-	    cont();
+            cont();
             untagged("1 FETCH (FLAGS (\\Recent \\Seen))");
-	    latch.countDown();
-	    idleWait();
-	    ok();
+            latch.countDown();
+            idleWait();
+            ok();
         }
 
-	public void waitForIdle() throws InterruptedException {
-	    latch.await();
-	}
+        public void waitForIdle() throws InterruptedException {
+            latch.await();
+        }
     }
 }

@@ -1,6 +1,6 @@
 <%--
 
-    Copyright (c) 2001, 2021 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2001, 2023 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -12,25 +12,25 @@
 
 <%@ page language="java" %>
 <%@ page errorPage="errorpage.jsp" %>
-<%@ taglib uri="https://github.com/eclipse-ee4j/jakartamail/tree/master/webapp" 
-    prefix="jakartamail" %>
- 
+<%@ taglib uri="https://github.com/eclipse-ee4j/jakartamail/tree/master/webapp"
+           prefix="jakartamail" %>
+
 <html>
 <head>
-	<title>Jakarta Mail send</title>
+    <title>Jakarta Mail send</title>
 </head>
-	
+
 <body bgcolor="white">
-<jakartamail:sendmail 
-   recipients="<%= request.getParameter(\"to\") %>"
-   sender="<%= request.getParameter(\"from\") %>"
-   subject="<%= request.getParameter(\"subject\") %>"
+<jakartamail:sendmail
+        recipients="<%= request.getParameter(\"to\") %>"
+        sender="<%= request.getParameter(\"from\") %>"
+        subject="<%= request.getParameter(\"subject\") %>"
 >
-<%= request.getParameter("text") %>
+    <%= request.getParameter("text") %>
 </jakartamail:sendmail>
-	    
+
 <h1>Message sent successfully</h1>
-	
+
 </body>
 </html>
 

@@ -16,32 +16,31 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.FetchProfile;
+import jakarta.mail.Folder;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import jakarta.mail.Session;
-import jakarta.mail.Folder;
-import jakarta.mail.FetchProfile;
-import jakarta.mail.MessagingException;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.rules.Timeout;
-import static org.junit.Assert.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test IdleManager.
  */
 public final class IMAPIdleManagerTest {
 
-    private static final int TIMEOUT = 1000;	// 1 second
+    private static final int TIMEOUT = 1000;    // 1 second
 
     // timeout the test in case of deadlock
     @Rule
@@ -52,19 +51,19 @@ public final class IMAPIdleManagerTest {
      */
     @Test
     public void testDone() {
-	testSuccess(false, new IMAPHandlerIdleDone(), false);
+        testSuccess(false, new IMAPHandlerIdleDone(), false);
     }
 
     @Test
     public void testExists() {
-	testSuccess(false, new IMAPHandlerIdleExists(), false);
+        testSuccess(false, new IMAPHandlerIdleExists(), false);
     }
-    
+
     @Test
     public void testDoneProtocolFindSocketChannel() {
         testSuccess(true, new IMAPHandlerIdleDone(), false);
     }
-    
+
     @Test
     public void testExistsProtocolFindSocketChannel() {
         testSuccess(true, new IMAPHandlerIdleExists(), false);
@@ -72,7 +71,7 @@ public final class IMAPIdleManagerTest {
 
     private void testSuccess(boolean isSSL, IMAPHandlerIdle handler, boolean setTimeout) {
         TestServer server = null;
-	IdleManager idleManager = null;
+        IdleManager idleManager = null;
         ExecutorService executor = Executors.newCachedThreadPool();
         try {
             server = new TestServer(handler, isSSL);
@@ -82,7 +81,7 @@ public final class IMAPIdleManagerTest {
             if (isSSL) {
                 properties.setProperty("mail.imaps.host", "localhost");
                 properties.setProperty("mail.imaps.port", "" + server.getPort());
-                properties.setProperty("mail.imaps.socketFactory.class", 
+                properties.setProperty("mail.imaps.socketFactory.class",
                         "org.eclipse.angus.mail.util.MailSSLSocketFactory");
                 properties.setProperty("mail.imaps.ssl.trust", "*");
                 properties.setProperty("mail.imaps.ssl.checkserveridentity", "false");
@@ -99,38 +98,39 @@ public final class IMAPIdleManagerTest {
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
-	    idleManager = new IdleManager(session, executor);
+            idleManager = new IdleManager(session, executor);
 
-            final IMAPStore store = (IMAPStore)session
+            final IMAPStore store = (IMAPStore) session
                     .getStore(isSSL ? "imaps" : "imap");
-	    Folder folder = null;
+            Folder folder = null;
             try {
                 store.connect("test", "test");
-		folder = store.getFolder("INBOX");
-		folder.open(Folder.READ_WRITE);
-		idleManager.watch(folder);
-		handler.waitForIdle();
+                folder = store.getFolder("INBOX");
+                folder.open(Folder.READ_WRITE);
+                idleManager.watch(folder);
+                handler.waitForIdle();
 
-		// now do something that is sure to touch the server
-		FetchProfile fp = new FetchProfile();
-		fp.add(FetchProfile.Item.ENVELOPE);
-		folder.fetch(folder.getMessages(), fp);
+                // now do something that is sure to touch the server
+                FetchProfile fp = new FetchProfile();
+                fp.add(FetchProfile.Item.ENVELOPE);
+                folder.fetch(folder.getMessages(), fp);
 
-		// check that the new message was seen
-		int count = folder.getMessageCount();
-		folder.close(true);
+                // check that the new message was seen
+                int count = folder.getMessageCount();
+                folder.close(true);
 
-		assertEquals(3, count);
-	    } catch (Exception ex) {
-		System.out.println(ex);
+                assertEquals(3, count);
+            } catch (Exception ex) {
+                System.out.println(ex);
                 System.out.flush();
-		ex.printStackTrace();
+                ex.printStackTrace();
                 System.err.flush();
-		fail(ex.toString());
+                fail(ex.toString());
             } finally {
-		try {
-		    folder.close(false);
-		} catch (Exception ex2) { }
+                try {
+                    folder.close(false);
+                } catch (Exception ex2) {
+                }
                 store.close();
             }
         } catch (final Exception e) {
@@ -139,8 +139,8 @@ public final class IMAPIdleManagerTest {
             fail(e.getMessage());
         } finally {
             executor.shutdown();
-	    if (idleManager != null)
-		idleManager.stop();
+            if (idleManager != null)
+                idleManager.stop();
             if (server != null) {
                 server.quit();
             }
@@ -152,17 +152,17 @@ public final class IMAPIdleManagerTest {
      */
     @Test
     public void testBeforeIdleTimeout() {
-	testFailure(new IMAPHandlerBeforeIdleTimeout(), true);
+        testFailure(new IMAPHandlerBeforeIdleTimeout(), true);
     }
 
     @Test
     public void testIdleTimeout() {
-	testFailure(new IMAPHandlerIdleTimeout(), true);
+        testFailure(new IMAPHandlerIdleTimeout(), true);
     }
 
     @Test
     public void testDoneTimeout() {
-	testFailure(new IMAPHandlerDoneTimeout(), true);
+        testFailure(new IMAPHandlerDoneTimeout(), true);
     }
 
     /**
@@ -170,22 +170,22 @@ public final class IMAPIdleManagerTest {
      */
     @Test
     public void testBeforeIdleDrop() {
-	testFailure(new IMAPHandlerBeforeIdleDrop(), false);
+        testFailure(new IMAPHandlerBeforeIdleDrop(), false);
     }
 
     @Test
     public void testIdleDrop() {
-	testFailure(new IMAPHandlerIdleDrop(), false);
+        testFailure(new IMAPHandlerIdleDrop(), false);
     }
 
     @Test
     public void testDoneDrop() {
-	testFailure(new IMAPHandlerDoneDrop(), false);
+        testFailure(new IMAPHandlerDoneDrop(), false);
     }
 
     private void testFailure(IMAPHandlerIdle handler, boolean setTimeout) {
         TestServer server = null;
-	IdleManager idleManager = null;
+        IdleManager idleManager = null;
         try {
             server = new TestServer(handler);
             server.start();
@@ -193,48 +193,49 @@ public final class IMAPIdleManagerTest {
             final Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
             properties.setProperty("mail.imap.port", "" + server.getPort());
-	    if (setTimeout)
-		properties.setProperty("mail.imap.timeout", "" + TIMEOUT);
+            if (setTimeout)
+                properties.setProperty("mail.imap.timeout", "" + TIMEOUT);
             properties.setProperty("mail.imap.usesocketchannels", "true");
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
-	    ExecutorService executor = Executors.newCachedThreadPool();
-	    idleManager = new IdleManager(session, executor);
+            ExecutorService executor = Executors.newCachedThreadPool();
+            idleManager = new IdleManager(session, executor);
 
-            final IMAPStore store = (IMAPStore)session.getStore("imap");
-	    Folder folder = null;
+            final IMAPStore store = (IMAPStore) session.getStore("imap");
+            Folder folder = null;
             try {
                 store.connect("test", "test");
-		folder = store.getFolder("INBOX");
-		folder.open(Folder.READ_WRITE);
-		idleManager.watch(folder);
-		handler.waitForIdle();
+                folder = store.getFolder("INBOX");
+                folder.open(Folder.READ_WRITE);
+                idleManager.watch(folder);
+                handler.waitForIdle();
 
-		// now do something that is sure to touch the server
-		FetchProfile fp = new FetchProfile();
-		fp.add(FetchProfile.Item.ENVELOPE);
-		folder.fetch(folder.getMessages(), fp);
+                // now do something that is sure to touch the server
+                FetchProfile fp = new FetchProfile();
+                fp.add(FetchProfile.Item.ENVELOPE);
+                folder.fetch(folder.getMessages(), fp);
 
-		fail("No exception");
-	    } catch (MessagingException mex) {
-		// success!
-	    } catch (Exception ex) {
-		System.out.println("Failed with exception: " + ex);
-		ex.printStackTrace();
-		fail(ex.toString());
+                fail("No exception");
+            } catch (MessagingException mex) {
+                // success!
+            } catch (Exception ex) {
+                System.out.println("Failed with exception: " + ex);
+                ex.printStackTrace();
+                fail(ex.toString());
             } finally {
-		try {
-		    folder.close(false);
-		} catch (Exception ex2) { }
+                try {
+                    folder.close(false);
+                } catch (Exception ex2) {
+                }
                 store.close();
             }
         } catch (final Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
         } finally {
-	    if (idleManager != null)
-		idleManager.stop();
+            if (idleManager != null)
+                idleManager.stop();
             if (server != null) {
                 server.quit();
             }
@@ -244,7 +245,7 @@ public final class IMAPIdleManagerTest {
     @Test
     public void testNotOpened() {
         TestServer server = null;
-	IdleManager idleManager = null;
+        IdleManager idleManager = null;
         try {
             server = new TestServer(new IMAPHandler());
             server.start();
@@ -256,37 +257,38 @@ public final class IMAPIdleManagerTest {
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
-	    ExecutorService executor = Executors.newCachedThreadPool();
-	    idleManager = new IdleManager(session, executor);
+            ExecutorService executor = Executors.newCachedThreadPool();
+            idleManager = new IdleManager(session, executor);
 
-            final IMAPStore store = (IMAPStore)session.getStore("imap");
-	    Folder folder = null;
+            final IMAPStore store = (IMAPStore) session.getStore("imap");
+            Folder folder = null;
             try {
                 store.connect("test", "test");
-		folder = store.getFolder("INBOX");
-		idleManager.watch(folder);
+                folder = store.getFolder("INBOX");
+                idleManager.watch(folder);
 
-		fail("No exception");
-	    } catch (MessagingException mex) {
-		// make sure we get the expected exception
-		assertTrue(mex.getMessage().contains("open"));
-		// success!
-	    } catch (Exception ex) {
-		System.out.println("Failed with exception: " + ex);
-		ex.printStackTrace();
-		fail(ex.toString());
+                fail("No exception");
+            } catch (MessagingException mex) {
+                // make sure we get the expected exception
+                assertTrue(mex.getMessage().contains("open"));
+                // success!
+            } catch (Exception ex) {
+                System.out.println("Failed with exception: " + ex);
+                ex.printStackTrace();
+                fail(ex.toString());
             } finally {
-		try {
-		    folder.close(false);
-		} catch (Exception ex2) { }
+                try {
+                    folder.close(false);
+                } catch (Exception ex2) {
+                }
                 store.close();
             }
         } catch (final Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
         } finally {
-	    if (idleManager != null)
-		idleManager.stop();
+            if (idleManager != null)
+                idleManager.stop();
             if (server != null) {
                 server.quit();
             }
@@ -296,7 +298,7 @@ public final class IMAPIdleManagerTest {
     @Test
     public void testNoSocketChannel() {
         TestServer server = null;
-	IdleManager idleManager = null;
+        IdleManager idleManager = null;
         try {
             server = new TestServer(new IMAPHandler());
             server.start();
@@ -307,38 +309,39 @@ public final class IMAPIdleManagerTest {
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
-	    ExecutorService executor = Executors.newCachedThreadPool();
-	    idleManager = new IdleManager(session, executor);
+            ExecutorService executor = Executors.newCachedThreadPool();
+            idleManager = new IdleManager(session, executor);
 
-            final IMAPStore store = (IMAPStore)session.getStore("imap");
-	    Folder folder = null;
+            final IMAPStore store = (IMAPStore) session.getStore("imap");
+            Folder folder = null;
             try {
                 store.connect("test", "test");
-		folder = store.getFolder("INBOX");
-		folder.open(Folder.READ_WRITE);
-		idleManager.watch(folder);
+                folder = store.getFolder("INBOX");
+                folder.open(Folder.READ_WRITE);
+                idleManager.watch(folder);
 
-		fail("No exception");
-	    } catch (MessagingException mex) {
-		// make sure we get the expected exception
-		assertTrue(!mex.getMessage().contains("open"));
-		// success!
-	    } catch (Exception ex) {
-		System.out.println("Failed with exception: " + ex);
-		ex.printStackTrace();
-		fail(ex.toString());
+                fail("No exception");
+            } catch (MessagingException mex) {
+                // make sure we get the expected exception
+                assertTrue(!mex.getMessage().contains("open"));
+                // success!
+            } catch (Exception ex) {
+                System.out.println("Failed with exception: " + ex);
+                ex.printStackTrace();
+                fail(ex.toString());
             } finally {
-		try {
-		    folder.close(false);
-		} catch (Exception ex2) { }
+                try {
+                    folder.close(false);
+                } catch (Exception ex2) {
+                }
                 store.close();
             }
         } catch (final Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
         } finally {
-	    if (idleManager != null)
-		idleManager.stop();
+            if (idleManager != null)
+                idleManager.stop();
             if (server != null) {
                 server.quit();
             }
@@ -349,13 +352,13 @@ public final class IMAPIdleManagerTest {
      * Base class for custom handler.
      */
     private static abstract class IMAPHandlerIdle extends IMAPHandler {
-	@Override
+        @Override
         public void select(String line) throws IOException {
-	    numberOfMessages = 1;
-	    super.select(line);
-	}
+            numberOfMessages = 1;
+            super.select(line);
+        }
 
-	public abstract void waitForIdle() throws InterruptedException;
+        public abstract void waitForIdle() throws InterruptedException;
     }
 
     /**
@@ -363,92 +366,94 @@ public final class IMAPIdleManagerTest {
      * EXISTS and OK.
      */
     private static final class IMAPHandlerIdleDone extends IMAPHandlerIdle {
-	// must be static because handler is cloned for each connection
-	private static CountDownLatch latch = new CountDownLatch(1);
+        // must be static because handler is cloned for each connection
+        private static CountDownLatch latch = new CountDownLatch(1);
 
-	@Override
+        @Override
         public void idle() throws IOException {
-	    cont();
-	    latch.countDown();
-	    idleWait();
-	    println("* 3 EXISTS\r\n" + tag + " OK");
+            cont();
+            latch.countDown();
+            idleWait();
+            println("* 3 EXISTS\r\n" + tag + " OK");
         }
 
-	@Override
-	public void waitForIdle() throws InterruptedException {
-	    latch.await();
-	}
+        @Override
+        public void waitForIdle() throws InterruptedException {
+            latch.await();
+        }
     }
 
     /**
      * Custom handler.  Send two EXISTS responses in a single packet.
      */
     private static final class IMAPHandlerIdleExists extends IMAPHandlerIdle {
-	// must be static because handler is cloned for each connection
-	private static CountDownLatch latch = new CountDownLatch(1);
+        // must be static because handler is cloned for each connection
+        private static CountDownLatch latch = new CountDownLatch(1);
 
-	@Override
+        @Override
         public void idle() throws IOException {
-	    cont();
-	    latch.countDown();
-	    idleWait();
-	    println("* 2 EXISTS\r\n* 3 EXISTS");
-	    ok();
+            cont();
+            latch.countDown();
+            idleWait();
+            println("* 2 EXISTS\r\n* 3 EXISTS");
+            ok();
         }
 
-	@Override
-	public void waitForIdle() throws InterruptedException {
-	    latch.await();
-	}
+        @Override
+        public void waitForIdle() throws InterruptedException {
+            latch.await();
+        }
     }
 
     /**
      * Custom handler.  Delay long enough before IDLE starts to force a timeout.
      */
     private static final class IMAPHandlerBeforeIdleTimeout
-						    extends IMAPHandlerIdle {
-	// must be static because handler is cloned for each connection
-	private static CountDownLatch latch = new CountDownLatch(1);
+            extends IMAPHandlerIdle {
+        // must be static because handler is cloned for each connection
+        private static CountDownLatch latch = new CountDownLatch(1);
 
-	@Override
+        @Override
         public void idle() throws IOException {
-	    try {
-		Thread.sleep(2 * TIMEOUT);
-	    } catch (InterruptedException ex) { }
-	    cont();
-	    latch.countDown();
-	    idleWait();
-	    ok();
+            try {
+                Thread.sleep(2 * TIMEOUT);
+            } catch (InterruptedException ex) {
+            }
+            cont();
+            latch.countDown();
+            idleWait();
+            ok();
         }
 
-	@Override
-	public void waitForIdle() throws InterruptedException {
-	    latch.await();
-	}
+        @Override
+        public void waitForIdle() throws InterruptedException {
+            latch.await();
+        }
     }
 
     /**
      * Custom handler.  Delay long enough after IDLE starts to force a timeout.
      */
     private static final class IMAPHandlerIdleTimeout extends IMAPHandlerIdle {
-	// must be static because handler is cloned for each connection
-	private static CountDownLatch latch = new CountDownLatch(1);
+        // must be static because handler is cloned for each connection
+        private static CountDownLatch latch = new CountDownLatch(1);
 
-	@Override
+        @Override
         public void idle() throws IOException {
-	    cont();
-	    latch.countDown();
-	    try {
-		Thread.sleep(2 * TIMEOUT);
-	    } catch (InterruptedException ex) { }
-	    idleWait();
-	    ok();
+            cont();
+            latch.countDown();
+            try {
+                Thread.sleep(2 * TIMEOUT);
+            } catch (InterruptedException ex) {
+            }
+            idleWait();
+            ok();
         }
 
-	@Override
-	public void waitForIdle() throws InterruptedException {
-	    latch.await();
-	}
+        @Override
+        public void waitForIdle() throws InterruptedException {
+            latch.await();
+        }
     }
 
     /**
@@ -456,84 +461,85 @@ public final class IMAPIdleManagerTest {
      * timeout.
      */
     private static final class IMAPHandlerDoneTimeout extends IMAPHandlerIdle {
-	// must be static because handler is cloned for each connection
-	private static CountDownLatch latch = new CountDownLatch(1);
+        // must be static because handler is cloned for each connection
+        private static CountDownLatch latch = new CountDownLatch(1);
 
-	@Override
+        @Override
         public void idle() throws IOException {
-	    cont();
-	    latch.countDown();
-	    idleWait();
-	    try {
-		Thread.sleep(2 * TIMEOUT);
-	    } catch (InterruptedException ex) { }
-	    ok();
+            cont();
+            latch.countDown();
+            idleWait();
+            try {
+                Thread.sleep(2 * TIMEOUT);
+            } catch (InterruptedException ex) {
+            }
+            ok();
         }
 
-	@Override
-	public void waitForIdle() throws InterruptedException {
-	    latch.await();
-	}
+        @Override
+        public void waitForIdle() throws InterruptedException {
+            latch.await();
+        }
     }
 
     /**
      * Custom handler.  Drop the connection before IDLE started.
      */
     private static final class IMAPHandlerBeforeIdleDrop extends
-							    IMAPHandlerIdle {
-	// must be static because handler is cloned for each connection
-	private static CountDownLatch latch = new CountDownLatch(1);
+            IMAPHandlerIdle {
+        // must be static because handler is cloned for each connection
+        private static CountDownLatch latch = new CountDownLatch(1);
 
-	@Override
+        @Override
         public void idle() throws IOException {
-	    latch.countDown();
-	    exit();
+            latch.countDown();
+            exit();
         }
 
-	@Override
-	public void waitForIdle() throws InterruptedException {
-	    latch.await();
-	}
+        @Override
+        public void waitForIdle() throws InterruptedException {
+            latch.await();
+        }
     }
 
     /**
      * Custom handler.  Drop the connection after IDLE started.
      */
     private static final class IMAPHandlerIdleDrop extends IMAPHandlerIdle {
-	// must be static because handler is cloned for each connection
-	private static CountDownLatch latch = new CountDownLatch(1);
+        // must be static because handler is cloned for each connection
+        private static CountDownLatch latch = new CountDownLatch(1);
 
-	@Override
+        @Override
         public void idle() throws IOException {
-	    cont();
-	    latch.countDown();
-	    exit();
+            cont();
+            latch.countDown();
+            exit();
         }
 
-	@Override
-	public void waitForIdle() throws InterruptedException {
-	    latch.await();
-	}
+        @Override
+        public void waitForIdle() throws InterruptedException {
+            latch.await();
+        }
     }
 
     /**
      * Custom handler.  Drop the connection after DONE received.
      */
     private static final class IMAPHandlerDoneDrop extends IMAPHandlerIdle {
-	// must be static because handler is cloned for each connection
-	private static CountDownLatch latch = new CountDownLatch(1);
+        // must be static because handler is cloned for each connection
+        private static CountDownLatch latch = new CountDownLatch(1);
 
-	@Override
+        @Override
         public void idle() throws IOException {
-	    cont();
-	    latch.countDown();
-	    idleWait();
-	    exit();
+            cont();
+            latch.countDown();
+            idleWait();
+            exit();
         }
 
-	@Override
-	public void waitForIdle() throws InterruptedException {
-	    latch.await();
-	}
+        @Override
+        public void waitForIdle() throws InterruptedException {
+            latch.await();
+        }
     }
 }

@@ -28,22 +28,24 @@ public class ParsingException extends ProtocolException {
      * Constructs an ParsingException with no detail message.
      */
     public ParsingException() {
-	super();
+        super();
     }
 
     /**
      * Constructs an ParsingException with the specified detail message.
-     * @param s		the detail message
+     *
+     * @param s the detail message
      */
     public ParsingException(String s) {
-	super(s);
+        super(s);
     }
 
     /**
      * Constructs an ParsingException with the specified Response.
-     * @param r		the Response
+     *
+     * @param r the Response
      */
     public ParsingException(Response r) {
-	super(r);
+        super(r);
     }
 }

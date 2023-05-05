@@ -16,11 +16,14 @@
 
 package org.eclipse.angus.mail.util;
 
-import java.util.Properties;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import org.junit.Test;
 
-import org.junit.*;
+import java.util.Properties;
+
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -33,67 +36,67 @@ public class ReferencesTest {
 
     /*
      * Test cases:
-     * 
+     *
      * Message-Id	References	In-Reply-To	Expected Result
      */
 
     @Test
     public void test1() throws MessagingException {
-	test(null,	null,		null,		null);
+        test(null, null, null, null);
     }
 
     @Test
     public void test2() throws MessagingException {
-	test(null,	null,		"<1@a>",	"<1@a>");
+        test(null, null, "<1@a>", "<1@a>");
     }
 
     @Test
     public void test3() throws MessagingException {
-	test(null,	"<2@b>",	null,		"<2@b>");
+        test(null, "<2@b>", null, "<2@b>");
     }
 
     @Test
     public void test4() throws MessagingException {
-	test(null,	"<2@b>",	"<1@a>",	"<2@b>");
+        test(null, "<2@b>", "<1@a>", "<2@b>");
     }
 
     @Test
     public void test5() throws MessagingException {
-	test("<3@c>",	null,		null,		"<3@c>");
+        test("<3@c>", null, null, "<3@c>");
     }
 
     @Test
     public void test6() throws MessagingException {
-	test("<3@c>",	null,		"<1@a>",	"<1@a> <3@c>");
+        test("<3@c>", null, "<1@a>", "<1@a> <3@c>");
     }
 
     @Test
     public void test7() throws MessagingException {
-	test("<3@c>",	"<2@b>",	null,		"<2@b> <3@c>");
+        test("<3@c>", "<2@b>", null, "<2@b> <3@c>");
     }
 
     @Test
     public void test8() throws MessagingException {
-	test("<3@c>",	"<2@b>",	"<1@a>",	"<2@b> <3@c>");
+        test("<3@c>", "<2@b>", "<1@a>", "<2@b> <3@c>");
     }
 
     private static void test(String msgid, String ref, String irt, String res)
-				throws MessagingException {
-	MimeMessage msg = new MimeMessage(session);
-	msg.setFrom();
-	msg.setRecipients(Message.RecipientType.TO, "you@example.com");
-	msg.setSubject("test");
-	if (msgid != null)
-	    msg.setHeader("Message-Id", msgid);
-	if (ref != null)
-	    msg.setHeader("References", ref);
-	if (irt != null)
-	    msg.setHeader("In-Reply-To", irt);
-	msg.setText("text");
+            throws MessagingException {
+        MimeMessage msg = new MimeMessage(session);
+        msg.setFrom();
+        msg.setRecipients(Message.RecipientType.TO, "you@example.com");
+        msg.setSubject("test");
+        if (msgid != null)
+            msg.setHeader("Message-Id", msgid);
+        if (ref != null)
+            msg.setHeader("References", ref);
+        if (irt != null)
+            msg.setHeader("In-Reply-To", irt);
+        msg.setText("text");
 
-	MimeMessage reply = (MimeMessage)msg.reply(false);
-	String rref = reply.getHeader("References", " ");
+        MimeMessage reply = (MimeMessage) msg.reply(false);
+        String rref = reply.getHeader("References", " ");
 
-	assertEquals(res, rref);
+        assertEquals(res, rref);
     }
 }

@@ -31,27 +31,33 @@ import java.net.Socket;
  */
 public final class NopServer extends Thread {
 
-    /** Server socket. */
+    /**
+     * Server socket.
+     */
     private ServerSocket serverSocket;
 
-    /** Keep on? */
+    /**
+     * Keep on?
+     */
     private volatile boolean keepOn;
 
-    /** Did we get EOF on the client socket? */
+    /**
+     * Did we get EOF on the client socket?
+     */
     private volatile boolean gotEOF = false;
 
     /**
      * Nop server.
      */
     public NopServer() throws IOException {
-	serverSocket = new ServerSocket(0);
+        serverSocket = new ServerSocket(0);
     }
 
     /**
      * Return the port the server is listening on.
      */
     public int getPort() {
-	return serverSocket.getLocalPort();
+        return serverSocket.getLocalPort();
     }
 
     /**
@@ -70,7 +76,7 @@ public final class NopServer extends Thread {
     }
 
     public boolean eof() {
-	return gotEOF;
+        return gotEOF;
     }
 
     @Override
@@ -81,14 +87,14 @@ public final class NopServer extends Thread {
             while (keepOn) {
                 try {
                     final Socket clientSocket = serverSocket.accept();
-		    /*
-		     * Do nothing but consume any input and throw it away.
-		     * When we see EOF, remember it.
-		     */
-		    InputStream is = clientSocket.getInputStream();
-		    while (is.read() >= 0)
-			;
-		    gotEOF = true;
+                    /*
+                     * Do nothing but consume any input and throw it away.
+                     * When we see EOF, remember it.
+                     */
+                    InputStream is = clientSocket.getInputStream();
+                    while (is.read() >= 0)
+                        ;
+                    gotEOF = true;
                 } catch (final IOException e) {
                     //e.printStackTrace();
                 }
