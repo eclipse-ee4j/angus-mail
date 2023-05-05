@@ -79,7 +79,7 @@ public final class IMAPFetchProfileTest {
                 new IMAPHandlerFetch() {
                     @Override
                     public void fetch(String line) throws IOException {
-                        if (line.indexOf("INTERNALDATE") >= 0)
+                        if (line.contains("INTERNALDATE"))
                             saw.add("INTERNALDATE");
                         untagged("1 FETCH (INTERNALDATE \"" + RDATE + "\")");
                         ok();
@@ -107,7 +107,7 @@ public final class IMAPFetchProfileTest {
                 new IMAPHandlerFetch() {
                     @Override
                     public void fetch(String line) throws IOException {
-                        if (line.indexOf("INTERNALDATE") >= 0)
+                        if (line.contains("INTERNALDATE"))
                             saw.add("INTERNALDATE");
                         untagged("1 FETCH (INTERNALDATE \"" + RDATE + "\")");
                         ok();
@@ -130,7 +130,7 @@ public final class IMAPFetchProfileTest {
                 new IMAPHandlerFetch() {
                     @Override
                     public void fetch(String line) throws IOException {
-                        if (line.indexOf("INTERNALDATE") >= 0)
+                        if (line.contains("INTERNALDATE"))
                             saw.add("INTERNALDATE");
                         untagged("1 FETCH (ENVELOPE " + ENVELOPE +
                                 " INTERNALDATE \"" + RDATE + "\" RFC822.SIZE 0)");
@@ -147,7 +147,7 @@ public final class IMAPFetchProfileTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 

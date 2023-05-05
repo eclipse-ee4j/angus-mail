@@ -59,7 +59,7 @@ public final class SMTPBdatTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.smtp.chunksize", "128");
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
@@ -121,7 +121,7 @@ public final class SMTPBdatTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.smtp.chunksize", "128");
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);

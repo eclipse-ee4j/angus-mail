@@ -59,6 +59,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -1150,13 +1151,11 @@ public class SMTPTransport extends Transport {
             try {
                 Class<?> sac = Class.forName(
                         "org.eclipse.angus.mail.smtp.SMTPSaslAuthenticator");
-                Constructor<?> c = sac.getConstructor(new Class<?>[]{
-                        SMTPTransport.class,
+                Constructor<?> c = sac.getConstructor(SMTPTransport.class,
                         String.class,
                         Properties.class,
                         MailLogger.class,
-                        String.class
-                });
+                        String.class);
                 saslAuthenticator = (SaslAuthenticator) c.newInstance(
                         new Object[]{
                                 this,
@@ -1192,7 +1191,7 @@ public class SMTPTransport extends Transport {
                 }
             }
         }
-        String[] mechs = v.toArray(new String[v.size()]);
+        String[] mechs = v.toArray(new String[0]);
         try {
             if (noauthdebug && isTracing()) {
                 logger.fine("SASL AUTH command trace suppressed");
@@ -1373,7 +1372,7 @@ public class SMTPTransport extends Transport {
     private void addressesFailed() {
         if (validSentAddr != null) {
             if (validUnsentAddr != null) {
-                Address newa[] =
+                Address[] newa =
                         new Address[validSentAddr.length + validUnsentAddr.length];
                 System.arraycopy(validSentAddr, 0,
                         newa, 0, validSentAddr.length);
@@ -1594,9 +1593,7 @@ public class SMTPTransport extends Transport {
                         changed = true;
                 }
             }
-        } catch (IOException ioex) {
-            // any exception causes us to give up
-        } catch (MessagingException mex) {
+        } catch (IOException | MessagingException ioex) {
             // any exception causes us to give up
         }
         return changed;
@@ -2521,15 +2518,7 @@ public class SMTPTransport extends Transport {
         if (serverResponse.length() >= 3) {
             try {
                 returnCode = Integer.parseInt(serverResponse.substring(0, 3));
-            } catch (NumberFormatException nfe) {
-                try {
-                    close();
-                } catch (MessagingException mex) {
-                    // thrown by close()--ignore, will close() later anyway
-                    logger.log(Level.FINE, "close failed", mex);
-                }
-                returnCode = -1;
-            } catch (StringIndexOutOfBoundsException ex) {
+            } catch (NumberFormatException | StringIndexOutOfBoundsException nfe) {
                 try {
                     close();
                 } catch (MessagingException mex) {
@@ -2802,7 +2791,7 @@ public class SMTPTransport extends Transport {
          * @exception IOException    for I/O errors
          */
         @Override
-        public void write(byte b[], int off, int len) throws IOException {
+        public void write(byte[] b, int off, int len) throws IOException {
             while (len > 0) {
                 int size = Math.min(buf.length - count, len);
                 if (size == buf.length) {

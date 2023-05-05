@@ -85,7 +85,7 @@ public class BASE64MailboxEncoder {
 
     public static String encode(String original) {
         BASE64MailboxEncoder base64stream = null;
-        char origchars[] = original.toCharArray();
+        char[] origchars = original.toCharArray();
         int length = origchars.length;
         boolean changedString = false;
         CharArrayWriter writer = new CharArrayWriter(length);
@@ -219,7 +219,7 @@ public class BASE64MailboxEncoder {
         }
     }
 
-    private final static char pem_array[] = {
+    private final static char[] pem_array = {
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', // 0
             'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', // 1
             'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', // 2

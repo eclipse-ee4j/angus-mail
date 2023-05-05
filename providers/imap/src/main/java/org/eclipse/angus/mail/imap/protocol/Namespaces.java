@@ -139,7 +139,7 @@ public class Namespaces {
                 Namespace ns = new Namespace(r);
                 v.add(ns);
             } while (!r.isNextNonSpace(')'));
-            return v.toArray(new Namespace[v.size()]);
+            return v.toArray(new Namespace[0]);
         } else {
             String s = r.readAtom();
             if (s == null)

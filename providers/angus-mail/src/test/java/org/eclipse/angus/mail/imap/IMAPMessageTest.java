@@ -147,12 +147,12 @@ public final class IMAPMessageTest {
                 new IMAPHandlerMessage() {
                     @Override
                     public void fetch(String line) throws IOException {
-                        if (line.indexOf("BODYSTRUCTURE") >= 0)
+                        if (line.contains("BODYSTRUCTURE"))
                             untagged("1 FETCH (BODYSTRUCTURE " +
                                     "(\"text\" \"plain\" (\"charset\" \"us-ascii\") " +
                                     "NIL NIL \"7bit\" 0 0 NIL NIL NIL NIL)" +
                                     ")");
-                        else if (line.indexOf("BODY[TEXT]") >= 0)
+                        else if (line.contains("BODY[TEXT]"))
                             untagged("1 FETCH (BODY[TEXT] NIL " +
                                     "FLAGS (\\Seen \\Recent))");
                         ok();
@@ -213,14 +213,14 @@ public final class IMAPMessageTest {
                 new IMAPHandlerMessage() {
                     @Override
                     public void fetch(String line) throws IOException {
-                        if (line.indexOf("BODYSTRUCTURE") >= 0)
+                        if (line.contains("BODYSTRUCTURE"))
                             untagged("1 FETCH (BODYSTRUCTURE (" +
                                     "(\"text\" \"plain\" (\"charset\" \"us-ascii\") " +
                                     "NIL NIL \"7bit\" 4 0 NIL NIL NIL NIL)" +
                                     "(\"text\" \"plain\" (\"charset\" \"us-ascii\") " +
                                     "NIL NIL \"7bit\" 0 0 NIL NIL NIL NIL)" +
                                     " \"mixed\" (\"boundary\" \"----=_x\") NIL NIL))");
-                        else if (line.indexOf("BODY[2]") >= 0)
+                        else if (line.contains("BODY[2]"))
                             untagged("1 FETCH (BODY[2] NIL " +
                                     "FLAGS (\\Seen \\Recent))");
                         ok();
@@ -260,7 +260,7 @@ public final class IMAPMessageTest {
                 new IMAPHandlerMessage() {
                     @Override
                     public void fetch(String line) throws IOException {
-                        if (line.indexOf("BODYSTRUCTURE") >= 0)
+                        if (line.contains("BODYSTRUCTURE"))
                             untagged("1 FETCH (BODYSTRUCTURE (" +
                                     "(\"text\" \"plain\" (\"charset\" \"us-ascii\") " +
                                     "NIL NIL \"7bit\" 0 0 NIL NIL NIL NIL)" +
@@ -268,7 +268,7 @@ public final class IMAPMessageTest {
                                     "(\"name\" \"test.txt\") NIL NIL \"base64 \" " +
                                     "8 NIL NIL NIL NIL) " +
                                     "\"mixed\" (\"boundary\" \"=_x\") NIL NIL))");
-                        else if (line.indexOf("BODY[2]") >= 0)
+                        else if (line.contains("BODY[2]"))
                             untagged("1 FETCH (BODY[2] \"dGVzdA==\" " +
                                     "FLAGS (\\Seen \\Recent))");
                         ok();
@@ -354,7 +354,7 @@ public final class IMAPMessageTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             test.init(properties);
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);

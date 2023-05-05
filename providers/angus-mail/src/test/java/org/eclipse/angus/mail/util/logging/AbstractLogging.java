@@ -77,7 +77,7 @@ abstract class AbstractLogging {
                 }
             }
         }
-        return a.toArray(new Level[a.size()]);
+        return a.toArray(new Level[0]);
     }
 
     /**

@@ -74,7 +74,7 @@ public class UIDSetTest {
         return testData;
     }
 
-    public static void main(String argv[]) throws Exception {
+    public static void main(String[] argv) throws Exception {
         int optind;
         // XXX - all options currently ignored
         for (optind = 0; optind < argv.length; optind++) {

@@ -300,9 +300,6 @@ public class FileErrorManager extends ErrorManager {
                         new ClassNotFoundException(k.getName()),
                         ErrorManager.GENERIC_FAILURE);
             }
-        } catch (RuntimeException re) {
-            super.error("Unable to switch newlines",
-                    re, ErrorManager.GENERIC_FAILURE);
         } catch (Exception ex) {
             super.error("Unable to switch newlines",
                     ex, ErrorManager.GENERIC_FAILURE);

@@ -163,7 +163,7 @@ public class Protocol {
         int n = tagNum.getAndIncrement() % (26 * 26 * 26 + 26 * 26 + 26);
         String tagPrefix;
         if (n < 26)
-            tagPrefix = new String(new char[]{(char) ('A' + n)});
+            tagPrefix = String.valueOf((char) ('A' + n));
         else if (n < (26 * 26 + 26)) {
             n -= 26;
             tagPrefix = new String(new char[]{
@@ -496,7 +496,7 @@ public class Protocol {
         if (logger.isLoggable(Level.FINE))
             logger.log(Level.FINE,
                     "Creating Deflater with compression level {0} and strategy {1}",
-                    new Object[]{level, strategy});
+                    level, strategy);
         Deflater def = new Deflater(Deflater.DEFAULT_COMPRESSION, true);
         try {
             def.setLevel(level);

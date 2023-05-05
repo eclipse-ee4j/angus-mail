@@ -80,7 +80,7 @@ public final class IMAPIdleManagerTest {
             final Properties properties = new Properties();
             if (isSSL) {
                 properties.setProperty("mail.imaps.host", "localhost");
-                properties.setProperty("mail.imaps.port", "" + server.getPort());
+                properties.setProperty("mail.imaps.port", String.valueOf(server.getPort()));
                 properties.setProperty("mail.imaps.socketFactory.class",
                         "org.eclipse.angus.mail.util.MailSSLSocketFactory");
                 properties.setProperty("mail.imaps.ssl.trust", "*");
@@ -90,7 +90,7 @@ public final class IMAPIdleManagerTest {
                     properties.setProperty("mail.imaps.timeout", "" + TIMEOUT);
             } else {
                 properties.setProperty("mail.imap.host", "localhost");
-                properties.setProperty("mail.imap.port", "" + server.getPort());
+                properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
                 properties.setProperty("mail.imap.usesocketchannels", "true");
                 if (setTimeout)
                     properties.setProperty("mail.imap.timeout", "" + TIMEOUT);
@@ -192,7 +192,7 @@ public final class IMAPIdleManagerTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             if (setTimeout)
                 properties.setProperty("mail.imap.timeout", "" + TIMEOUT);
             properties.setProperty("mail.imap.usesocketchannels", "true");
@@ -252,7 +252,7 @@ public final class IMAPIdleManagerTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.imap.usesocketchannels", "true");
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
@@ -305,7 +305,7 @@ public final class IMAPIdleManagerTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 

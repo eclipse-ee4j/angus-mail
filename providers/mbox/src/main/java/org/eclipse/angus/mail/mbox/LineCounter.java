@@ -54,7 +54,7 @@ class LineCounter extends FilterOutputStream {
     }
 
     // for testing
-    public static void main(String argv[]) throws Exception {
+    public static void main(String[] argv) throws Exception {
         int b;
         LineCounter os =
                 new LineCounter(System.out);

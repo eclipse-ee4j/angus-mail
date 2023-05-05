@@ -470,8 +470,6 @@ class TimeoutOutputStream extends OutputStream {
             return sf.get(timeout, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
             exceptionMessage = String.format("%s %s", e, ses.toString());
-        } catch (CancellationException e) {
-            exceptionMessage = e.toString();
         } catch (InterruptedException e) {
             wasInterrupted = true;
             exceptionMessage = e.toString();

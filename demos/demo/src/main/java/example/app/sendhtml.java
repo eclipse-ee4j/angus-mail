@@ -206,12 +206,12 @@ public class sendhtml {
         sb.append("<HTML>\n");
         sb.append("<HEAD>\n");
         sb.append("<TITLE>\n");
-        sb.append(subject + "\n");
+        sb.append(subject).append("\n");
         sb.append("</TITLE>\n");
         sb.append("</HEAD>\n");
 
         sb.append("<BODY>\n");
-        sb.append("<H1>" + subject + "</H1>" + "\n");
+        sb.append("<H1>").append(subject).append("</H1>").append("\n");
 
         while ((line = in.readLine()) != null) {
             sb.append(line);

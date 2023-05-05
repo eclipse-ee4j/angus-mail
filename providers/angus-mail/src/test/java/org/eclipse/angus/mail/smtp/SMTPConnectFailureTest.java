@@ -44,7 +44,7 @@ public class SMTPConnectFailureTest {
             ss.close();
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", HOST);
-            properties.setProperty("mail.smtp.port", "" + port);
+            properties.setProperty("mail.smtp.port", String.valueOf(port));
             properties.setProperty("mail.smtp.connectiontimeout", "" + CTO);
             Session session = Session.getInstance(properties);
             //session.setDebug(true);

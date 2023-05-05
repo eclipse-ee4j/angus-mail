@@ -427,8 +427,8 @@ public class SocketFetcher {
         if (clsSockFact == null)
             clsSockFact = Class.forName(sfClass);
         // get & invoke the getDefault() method
-        Method mthGetDefault = clsSockFact.getMethod("getDefault",
-                new Class<?>[]{});
+        Method mthGetDefault = clsSockFact.getMethod("getDefault"
+        );
         SocketFactory sf = (SocketFactory)
                 mthGetDefault.invoke(new Object(), new Object[]{});
         return sf;
@@ -608,7 +608,7 @@ public class SocketFetcher {
                     eprots.add(prots[i]);
             }
             sslsocket.setEnabledProtocols(
-                    eprots.toArray(new String[eprots.size()]));
+                    eprots.toArray(new String[0]));
         }
         String ciphers = props.getProperty(prefix + ".ssl.ciphersuites", null);
         if (ciphers != null)
@@ -723,17 +723,17 @@ public class SocketFetcher {
             // HostnameChecker.TYPE_LDAP == 2
             // LDAP requires the same regex handling as we need
             Method getInstance = hnc.getMethod("getInstance",
-                    new Class<?>[]{byte.class});
+                    byte.class);
             Object hostnameChecker = getInstance.invoke(new Object(),
-                    new Object[]{Byte.valueOf((byte) 2)});
+                    Byte.valueOf((byte) 2));
 
             // invoke hostnameChecker.match( server, cert)
             if (logger.isLoggable(Level.FINER))
                 logger.finer("using sun.security.util.HostnameChecker");
             Method match = hnc.getMethod("match",
-                    new Class<?>[]{String.class, X509Certificate.class});
+                    String.class, X509Certificate.class);
             try {
-                match.invoke(hostnameChecker, new Object[]{server, cert});
+                match.invoke(hostnameChecker, server, cert);
                 return true;
             } catch (InvocationTargetException cex) {
                 logger.log(Level.FINER, "HostnameChecker FAIL", cex);
@@ -908,7 +908,7 @@ public class SocketFetcher {
         List<String> tokens = new ArrayList<>();
         while (st.hasMoreTokens())
             tokens.add(st.nextToken());
-        return tokens.toArray(new String[tokens.size()]);
+        return tokens.toArray(new String[0]);
     }
 
     /**

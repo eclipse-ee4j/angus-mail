@@ -559,8 +559,8 @@ public class IMAPHandler extends ProtocolHandler {
      * Base64 encode the string.
      */
     protected String base64encode(String s) throws IOException {
-        return new String(Base64.getEncoder().encode(s.getBytes("US-ASCII")),
-                "US-ASCII");
+        return new String(Base64.getEncoder().encode(s.getBytes(StandardCharsets.US_ASCII)),
+                StandardCharsets.US_ASCII);
     }
 
     /**

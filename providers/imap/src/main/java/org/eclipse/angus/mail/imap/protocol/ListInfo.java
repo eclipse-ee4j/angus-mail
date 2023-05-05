@@ -58,7 +58,7 @@ public class ListInfo {
                 v.add(s[i]);
             }
         }
-        attrs = v.toArray(new String[v.size()]);
+        attrs = v.toArray(new String[0]);
 
         r.skipSpaces();
         if (r.readByte() == '"') {

@@ -569,7 +569,6 @@ public class CompactFormatter extends java.util.logging.Formatter {
     private boolean isStaticUtility(final StackTraceElement s) {
         try {
             return LogManagerProperties.isStaticUtilityClass(s.getClassName());
-        } catch (RuntimeException ignore) {
         } catch (Exception | LinkageError ignore) {
         }
         final String cn = s.getClassName();
@@ -610,7 +609,6 @@ public class CompactFormatter extends java.util.logging.Formatter {
     private boolean isReflection(final StackTraceElement s) {
         try {
             return LogManagerProperties.isReflectionClass(s.getClassName());
-        } catch (RuntimeException ignore) {
         } catch (Exception | LinkageError ignore) {
         }
         return s.getClassName().startsWith("java.lang.reflect.")
@@ -732,7 +730,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
             }
 
             if (dot > -1 && ++dot < cursor && ++sign < cursor) {
-                name = name.substring(sign > dot ? sign : dot);
+                name = name.substring(Math.max(sign, dot));
             }
         }
         return name;

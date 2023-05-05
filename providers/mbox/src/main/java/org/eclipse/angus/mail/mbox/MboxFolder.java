@@ -158,7 +158,7 @@ public class MboxFolder extends Folder {
         if (Match.path("INBOX", pattern, '\0'))
             flist.add("INBOX");
 
-        Folder fl[] = new Folder[flist.size()];
+        Folder[] fl = new Folder[flist.size()];
         for (i = 0; i < fl.length; i++) {
             fl[i] = createFolder(mstore, flist.get(i));
         }
@@ -532,9 +532,7 @@ public class MboxFolder extends Folder {
                 if (skeep != null && skeep.equalsIgnoreCase("true"))
                     keep = false;
             }
-        } catch (IOException e) {
-            throw e;
-        } catch (MessagingException e) {
+        } catch (IOException | MessagingException e) {
             throw e;
         } catch (Exception e) {
             e.printStackTrace();
@@ -624,10 +622,8 @@ public class MboxFolder extends Folder {
                 msg.writeTo(pos);
                 pos.flush();
             }
-        } catch (MessagingException me) {
+        } catch (MessagingException | IOException me) {
             throw me;
-        } catch (IOException ioe) {
-            throw ioe;
         }
     }
 
@@ -1009,7 +1005,7 @@ public class MboxFolder extends Folder {
     // Derived from the c-client listWork() function.
     private void listWork(String realdir, String dir, String pat,
                           int level, List<String> flist) {
-        String sl[];
+        String[] sl;
         File fdir = new File(realdir);
         try {
             sl = fdir.list();

@@ -44,7 +44,7 @@ public final class IMAPSaslLoginTest {
 
             Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.imap.sasl.enable", "true");
             properties.setProperty("mail.imap.sasl.mechanisms", "DIGEST-MD5");
             Session session = Session.getInstance(properties);

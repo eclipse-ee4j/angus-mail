@@ -38,7 +38,7 @@ public class folderlist {
     static boolean verbose = false;
     static boolean debug = false;
 
-    public static void main(String argv[]) throws Exception {
+    public static void main(String[] argv) throws Exception {
         int optind;
         for (optind = 0; optind < argv.length; optind++) {
             if (argv[optind].equals("-T")) {

@@ -27,7 +27,7 @@ import java.util.Properties;
 
 public class monitor {
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         if (argv.length != 5) {
             System.out.println(
                     "Usage: monitor <host> <user> <password> <mbox> <freq>");
@@ -70,10 +70,8 @@ public class monitor {
                             System.out.println("Message " +
                                     msgs[i].getMessageNumber() + ":");
                             msgs[i].writeTo(System.out);
-                        } catch (IOException ioex) {
+                        } catch (IOException | MessagingException ioex) {
                             ioex.printStackTrace();
-                        } catch (MessagingException mex) {
-                            mex.printStackTrace();
                         }
                     }
                 }

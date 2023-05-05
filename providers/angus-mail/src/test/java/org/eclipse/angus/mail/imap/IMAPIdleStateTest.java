@@ -57,7 +57,7 @@ public final class IMAPIdleStateTest {
             final Properties properties = new Properties();
             if (isSSL) {
                 properties.setProperty("mail.imaps.host", "localhost");
-                properties.setProperty("mail.imaps.port", "" + server.getPort());
+                properties.setProperty("mail.imaps.port", String.valueOf(server.getPort()));
                 properties.setProperty("mail.imaps.socketFactory.class",
                         "org.eclipse.angus.mail.util.MailSSLSocketFactory");
                 properties.setProperty("mail.imaps.ssl.trust", "*");
@@ -65,7 +65,7 @@ public final class IMAPIdleStateTest {
                 //mail.imaps.usesocketchannels is not set which forces default of false.
             } else {
                 properties.setProperty("mail.imap.host", "localhost");
-                properties.setProperty("mail.imap.port", "" + server.getPort());
+                properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             }
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);

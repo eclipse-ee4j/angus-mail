@@ -45,7 +45,7 @@ public class SimpleClient {
     static FolderViewer fv;
     static MessageViewer mv;
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         boolean usage = false;
 
         for (int optind = 0; optind < argv.length; optind++) {

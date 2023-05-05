@@ -39,7 +39,6 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -213,10 +212,10 @@ class Protocol {
 
         // should be US-ASCII, but not all JDK's support it so use iso-8859-1
         input = new BufferedReader(new InputStreamReader(traceInput,
-                "iso-8859-1"));
+                StandardCharsets.ISO_8859_1));
         output = new PrintWriter(
                 new BufferedWriter(
-                        new OutputStreamWriter(traceOutput, "iso-8859-1")));
+                        new OutputStreamWriter(traceOutput, StandardCharsets.ISO_8859_1)));
     }
 
     @Override
@@ -240,12 +239,7 @@ class Protocol {
 
         capabilities = new HashMap<>(10);
         BufferedReader r = null;
-        try {
-            r = new BufferedReader(new InputStreamReader(in, "us-ascii"));
-        } catch (UnsupportedEncodingException ex) {
-            // should never happen
-            assert false;
-        }
+        r = new BufferedReader(new InputStreamReader(in, StandardCharsets.US_ASCII));
         String s;
         try {
             while ((s = r.readLine()) != null) {
@@ -431,10 +425,8 @@ class Protocol {
         byte[] digest;
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            digest = md.digest(key.getBytes("iso-8859-1"));    // XXX
+            digest = md.digest(key.getBytes(StandardCharsets.ISO_8859_1));    // XXX
         } catch (NoSuchAlgorithmException nsae) {
-            return null;
-        } catch (UnsupportedEncodingException uee) {
             return null;
         }
         return toHex(digest);
@@ -1011,10 +1003,7 @@ class Protocol {
                 if (terr == null) {
                     try {
                         os.write(b);
-                    } catch (IOException ex) {
-                        logger.log(Level.FINE, "exception while streaming", ex);
-                        terr = ex;
-                    } catch (RuntimeException ex) {
+                    } catch (IOException | RuntimeException ex) {
                         logger.log(Level.FINE, "exception while streaming", ex);
                         terr = ex;
                     }

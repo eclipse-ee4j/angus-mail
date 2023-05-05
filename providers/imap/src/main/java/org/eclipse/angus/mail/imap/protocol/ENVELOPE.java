@@ -138,7 +138,7 @@ public class ENVELOPE implements Item {
                     v.add(a);
             } while (!r.isNextNonSpace(')'));
 
-            return v.toArray(new InternetAddress[v.size()]);
+            return v.toArray(new InternetAddress[0]);
         } else if (b == 'N' || b == 'n') { // NIL
             r.skip(2); // skip 'NIL'
             return null;
@@ -194,7 +194,7 @@ class IMAPAddress extends InternetAddress {
             }
             sb.append(';');
             address = sb.toString();
-            grouplist = v.toArray(new IMAPAddress[v.size()]);
+            grouplist = v.toArray(new IMAPAddress[0]);
         } else {
             if (mb == null || mb.length() == 0)
                 address = host;

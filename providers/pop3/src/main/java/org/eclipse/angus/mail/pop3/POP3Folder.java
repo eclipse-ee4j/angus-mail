@@ -502,7 +502,7 @@ public class POP3Folder extends Folder {
      */
     public synchronized int[] getSizes() throws MessagingException {
         checkOpen();
-        int sizes[] = new int[total];
+        int[] sizes = new int[total];
         InputStream is = null;
         LineInputStream lis = null;
         try {

@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -204,7 +205,7 @@ public class SMTPHandler extends ProtocolHandler {
      */
     protected void readMessage() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        PrintWriter pw = new PrintWriter(new OutputStreamWriter(bos, "utf-8"));
+        PrintWriter pw = new PrintWriter(new OutputStreamWriter(bos, StandardCharsets.UTF_8));
         String line;
         while ((line = super.readLine()) != null) {
             if (line.equals("."))

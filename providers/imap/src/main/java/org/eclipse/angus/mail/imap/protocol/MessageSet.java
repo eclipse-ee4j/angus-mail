@@ -67,7 +67,7 @@ public class MessageSet {
             v.add(ms);
             i = j - 1; // i gets incremented @ top of the loop
         }
-        return v.toArray(new MessageSet[v.size()]);
+        return v.toArray(new MessageSet[0]);
     }
 
     /**

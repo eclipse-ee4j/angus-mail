@@ -2125,7 +2125,7 @@ public class IMAPFolder extends Folder implements UIDFolder, ResponseHandler {
                     else
                         p.copy(ms, folder.getFullName());
                 } catch (CommandFailedException cfx) {
-                    if (cfx.getMessage().indexOf("TRYCREATE") != -1)
+                    if (cfx.getMessage().contains("TRYCREATE"))
                         throw new FolderNotFoundException(
                                 folder,
                                 folder.getFullName() + " does not exist"
@@ -2265,7 +2265,7 @@ public class IMAPFolder extends Folder implements UIDFolder, ResponseHandler {
                 }
                 return result;
             } catch (CommandFailedException cfx) {
-                if (cfx.getMessage().indexOf("TRYCREATE") != -1)
+                if (cfx.getMessage().contains("TRYCREATE"))
                     throw new FolderNotFoundException(
                             folder,
                             folder.getFullName() + " does not exist"
@@ -2674,7 +2674,7 @@ public class IMAPFolder extends Folder implements UIDFolder, ResponseHandler {
                     if (m != null) // found it
                         ma.add(m);
                 }
-                msgs = ma.toArray(new Message[ma.size()]);
+                msgs = ma.toArray(new Message[0]);
             }
         } catch (ConnectionException cex) {
             throw new FolderClosedException(this, cex.getMessage());
@@ -4135,7 +4135,7 @@ class LengthCounter extends OutputStream {
             if (newsize > maxsize && maxsize >= 0) {
                 buf = null;
             } else if (newsize > buf.length) {
-                byte newbuf[] = new byte[Math.max(buf.length << 1, newsize)];
+                byte[] newbuf = new byte[Math.max(buf.length << 1, newsize)];
                 System.arraycopy(buf, 0, newbuf, 0, size);
                 buf = newbuf;
                 buf[size] = (byte) b;
@@ -4147,7 +4147,7 @@ class LengthCounter extends OutputStream {
     }
 
     @Override
-    public void write(byte b[], int off, int len) {
+    public void write(byte[] b, int off, int len) {
         if ((off < 0) || (off > b.length) || (len < 0) ||
                 ((off + len) > b.length) || ((off + len) < 0)) {
             throw new IndexOutOfBoundsException();
@@ -4159,7 +4159,7 @@ class LengthCounter extends OutputStream {
             if (newsize > maxsize && maxsize >= 0) {
                 buf = null;
             } else if (newsize > buf.length) {
-                byte newbuf[] = new byte[Math.max(buf.length << 1, newsize)];
+                byte[] newbuf = new byte[Math.max(buf.length << 1, newsize)];
                 System.arraycopy(buf, 0, newbuf, 0, size);
                 buf = newbuf;
                 System.arraycopy(b, off, buf, size, len);

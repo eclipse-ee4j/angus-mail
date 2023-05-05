@@ -28,6 +28,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import static org.junit.Assert.assertFalse;
@@ -87,7 +88,7 @@ public final class POP3AuthDebugTest {
             Thread.sleep(1000);
 
             properties.setProperty("mail.pop3.host", "localhost");
-            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            properties.setProperty("mail.pop3.port", String.valueOf(server.getPort()));
             final Session session = Session.getInstance(properties);
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             PrintStream ps = new PrintStream(bos);
@@ -110,7 +111,7 @@ public final class POP3AuthDebugTest {
             ByteArrayInputStream bis =
                     new ByteArrayInputStream(bos.toByteArray());
             BufferedReader r = new BufferedReader(
-                    new InputStreamReader(bis, "us-ascii"));
+                    new InputStreamReader(bis, StandardCharsets.US_ASCII));
             String line;
             boolean found = false;
             while ((line = r.readLine()) != null) {
@@ -118,7 +119,7 @@ public final class POP3AuthDebugTest {
                     continue;
                 if (line.startsWith("*"))
                     continue;
-                if (line.indexOf(expect) >= 0)
+                if (line.contains(expect))
                     found = true;
             }
             r.close();

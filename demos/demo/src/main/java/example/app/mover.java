@@ -33,7 +33,7 @@ public class mover {
     static boolean expunge = false;
     static String url = null;
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         int start = 1;
         int end = -1;
         int optind;
