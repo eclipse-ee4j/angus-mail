@@ -16,21 +16,23 @@
 
 package org.eclipse.angus.mail.remote;
 
-import jakarta.mail.*;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import jakarta.mail.URLName;
 import org.eclipse.angus.mail.pop3.POP3Store;
 
 /**
  * A local store that uses POP3 to populate the INBOX.
  *
- * @author      Bill Shannon
+ * @author Bill Shannon
  */
 public class POP3RemoteStore extends RemoteStore {
 
     public POP3RemoteStore(Session session, URLName url) {
-	super(session, url);
+        super(session, url);
     }
 
     protected Store getRemoteStore(Session session, URLName url) {
-	return new POP3Store(session, url);
+        return new POP3Store(session, url);
     }
 }

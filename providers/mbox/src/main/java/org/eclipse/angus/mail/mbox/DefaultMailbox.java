@@ -16,46 +16,50 @@
 
 package org.eclipse.angus.mail.mbox;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 
 public class DefaultMailbox extends Mailbox {
     private final String home;
 
     private static final boolean homeRelative =
-				Boolean.getBoolean("mail.mbox.homerelative");
+            Boolean.getBoolean("mail.mbox.homerelative");
 
     public DefaultMailbox() {
-	home = System.getProperty("user.home");
+        home = System.getProperty("user.home");
     }
 
     public MailFile getMailFile(String user, String folder) {
-	return new DefaultMailFile(filename(user, folder));
+        return new DefaultMailFile(filename(user, folder));
     }
 
     public String filename(String user, String folder) {
-	try {
-	    char c = folder.charAt(0);
-	    if (c == File.separatorChar) {
-		return folder;
-	    } else if (c == '~') {
-		int i = folder.indexOf(File.separatorChar);
-		String tail = "";
-		if (i > 0) {
-		    tail = folder.substring(i);
-		    folder = folder.substring(0, i);
-		}
-		return home + tail;
-	    } else {
-		if (folder.equalsIgnoreCase("INBOX"))
-		    folder = "INBOX";
-		if (homeRelative)
-		    return home + File.separator + folder;
-		else
-		    return folder;
-	    }
-	} catch (StringIndexOutOfBoundsException e) {
-	    return folder;
-	}
+        try {
+            char c = folder.charAt(0);
+            if (c == File.separatorChar) {
+                return folder;
+            } else if (c == '~') {
+                int i = folder.indexOf(File.separatorChar);
+                String tail = "";
+                if (i > 0) {
+                    tail = folder.substring(i);
+                    folder = folder.substring(0, i);
+                }
+                return home + tail;
+            } else {
+                if (folder.equalsIgnoreCase("INBOX"))
+                    folder = "INBOX";
+                if (homeRelative)
+                    return home + File.separator + folder;
+                else
+                    return folder;
+            }
+        } catch (StringIndexOutOfBoundsException e) {
+            return folder;
+        }
     }
 }
 
@@ -65,42 +69,42 @@ class DefaultMailFile extends File implements MailFile {
     private static final long serialVersionUID = 3713116697523761684L;
 
     DefaultMailFile(String name) {
-	super(name);
+        super(name);
     }
 
     public boolean lock(String mode) {
-	try {
-	    file = new RandomAccessFile(this, mode);
-	    return true;
-	} catch (FileNotFoundException fe) {
-	    return false;
-	} catch (IOException ie) {
-	    file = null;
-	    return false;
-	}
+        try {
+            file = new RandomAccessFile(this, mode);
+            return true;
+        } catch (FileNotFoundException fe) {
+            return false;
+        } catch (IOException ie) {
+            file = null;
+            return false;
+        }
     }
 
-    public void unlock() { 
-	if (file != null) {
-	    try {
-		file.close();
-	    } catch (IOException e) {
-		// ignore it
-	    }
-	    file = null;
-	}
+    public void unlock() {
+        if (file != null) {
+            try {
+                file.close();
+            } catch (IOException e) {
+                // ignore it
+            }
+            file = null;
+        }
     }
 
     public void touchlock() {
     }
 
     public FileDescriptor getFD() {
-	if (file == null)
-	    return null;
-	try {
-	    return file.getFD();
-	} catch (IOException e) {
-	    return null;
-	}
+        if (file == null)
+            return null;
+        try {
+            return file.getFD();
+        } catch (IOException e) {
+            return null;
+        }
     }
 }

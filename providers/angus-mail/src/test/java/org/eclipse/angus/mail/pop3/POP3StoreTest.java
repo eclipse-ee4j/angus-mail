@@ -16,19 +16,18 @@
 
 package org.eclipse.angus.mail.pop3;
 
-import java.io.IOException;
-import java.util.Properties;
-
 import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.Folder;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
-
 import org.eclipse.angus.mail.test.TestServer;
-
 import org.junit.Test;
-import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.Properties;
+
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -99,7 +98,7 @@ public final class POP3StoreTest {
             final Store store = session.getStore("pop3");
             try {
                 store.connect("test", "test");
-		// success!
+                // success!
             } finally {
                 store.close();
             }
@@ -223,7 +222,7 @@ public final class POP3StoreTest {
             } catch (Exception ex) {
                 assertTrue(ex instanceof AuthenticationFailedException);
                 assertTrue("We are expecting an exception here as the test server " +
-                    "do not allow for two lane authentication format ", ex.toString().contains("unknown command"));
+                        "do not allow for two lane authentication format ", ex.toString().contains("unknown command"));
             } finally {
                 store.close();
             }
@@ -237,12 +236,12 @@ public final class POP3StoreTest {
         }
     }
 
-     /**
+    /**
      * Custom handler of AUTH command.
      *
      * @author Mateusz Marzęcki
      */
-     private static class POP3HandlerXOAUTH extends POP3Handler {
+    private static class POP3HandlerXOAUTH extends POP3Handler {
         @Override
         public void auth() throws IOException {
             this.println("+OK POP3 server ready");
@@ -266,7 +265,7 @@ public final class POP3StoreTest {
         /**
          * {@inheritDoc}
          */
-	@Override
+        @Override
         public void noop() throws IOException {
             this.println("-ERR");
         }
@@ -282,7 +281,7 @@ public final class POP3StoreTest {
         /**
          * {@inheritDoc}
          */
-	@Override
+        @Override
         public void sendGreetings() throws IOException {
             this.println("+OK");
         }

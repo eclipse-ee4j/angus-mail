@@ -16,17 +16,41 @@
 
 package org.eclipse.angus.mail.mbox;
 
-import jakarta.mail.*;
-import jakarta.mail.event.*;
-import jakarta.mail.internet.*;
-import jakarta.mail.util.*;
-import java.io.*;
-import java.util.*;
-
+import jakarta.mail.Address;
+import jakarta.mail.Flags;
+import jakarta.mail.Folder;
+import jakarta.mail.FolderNotFoundException;
+import jakarta.mail.Message;
+import jakarta.mail.MessageRemovedException;
+import jakarta.mail.MessagingException;
+import jakarta.mail.URLName;
+import jakarta.mail.event.ConnectionEvent;
+import jakarta.mail.event.FolderEvent;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetHeaders;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.SharedInputStream;
+import jakarta.mail.util.SharedByteArrayInputStream;
 import org.eclipse.angus.mail.util.LineInputStream;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.StringTokenizer;
+
 /**
- * This class represents a mailbox file containing RFC822 style email messages. 
+ * This class represents a mailbox file containing RFC822 style email messages.
  *
  * @author John Mani
  * @author Bill Shannon
@@ -34,20 +58,20 @@ import org.eclipse.angus.mail.util.LineInputStream;
 
 public class MboxFolder extends Folder {
 
-    private String name;	// null => the default folder
+    private String name;    // null => the default folder
     private boolean is_inbox = false;
-    private int total;		// total number of messages in mailbox
+    private int total;        // total number of messages in mailbox
     private volatile boolean opened = false;
     private List<MessageMetadata> messages;
     private TempFile temp;
     private MboxStore mstore;
     private MailFile folder;
-    private long file_size;	// the size the last time we read or wrote it
+    private long file_size;    // the size the last time we read or wrote it
     private long saved_file_size; // size at the last open, close, or expunge
     private boolean special_imap_message;
 
     private static final boolean homeRelative =
-				Boolean.getBoolean("mail.mbox.homerelative");
+            Boolean.getBoolean("mail.mbox.homerelative");
 
     /**
      * Metadata for each message, to avoid instantiating MboxMessage
@@ -60,252 +84,252 @@ public class MboxFolder extends Folder {
      * is null; otherwise the MboxMessage object contains the metadata.
      */
     static final class MessageMetadata {
-	public long start;	// offset in temp file of start of this message
-	// public long end;	// offset in temp file of end of this message
-	public long dataend;	// offset of end of message data, <= "end"
-	public MboxMessage message;	// the message itself
-	public boolean recent;	// message is recent?
-	public boolean deleted;	// message is marked deleted?
-	public boolean imap;	// special imap message?
+        public long start;    // offset in temp file of start of this message
+        // public long end;	// offset in temp file of end of this message
+        public long dataend;    // offset of end of message data, <= "end"
+        public MboxMessage message;    // the message itself
+        public boolean recent;    // message is recent?
+        public boolean deleted;    // message is marked deleted?
+        public boolean imap;    // special imap message?
     }
 
     public MboxFolder(MboxStore store, String name) {
-	super(store);
-	this.mstore = store;
-	this.name = name;
+        super(store);
+        this.mstore = store;
+        this.name = name;
 
-	if (name != null && name.equalsIgnoreCase("INBOX"))
-	    is_inbox = true;
+        if (name != null && name.equalsIgnoreCase("INBOX"))
+            is_inbox = true;
 
-	folder = mstore.getMailFile(name == null ? "~" : name);
-	if (folder.exists())
-	    saved_file_size = folder.length();
-	else
-	    saved_file_size = -1;
+        folder = mstore.getMailFile(name == null ? "~" : name);
+        if (folder.exists())
+            saved_file_size = folder.length();
+        else
+            saved_file_size = -1;
     }
 
     public char getSeparator() {
-	return File.separatorChar;
+        return File.separatorChar;
     }
 
     public Folder[] list(String pattern) throws MessagingException {
-	if (!folder.isDirectory())
-	    throw new MessagingException("not a directory");
+        if (!folder.isDirectory())
+            throw new MessagingException("not a directory");
 
-	if (name == null)
-	    return list(null, pattern, true);
-	else
-	    return list(name + File.separator, pattern, false);
+        if (name == null)
+            return list(null, pattern, true);
+        else
+            return list(name + File.separator, pattern, false);
     }
 
     /*
      * Version of list shared by MboxStore and MboxFolder.
      */
     protected Folder[] list(String ref, String pattern, boolean fromStore)
-					throws MessagingException {
-	if (ref != null && ref.length() == 0)
-	    ref = null;
-	int i;
-	String refdir = null;
-	String realdir = null;
+            throws MessagingException {
+        if (ref != null && ref.length() == 0)
+            ref = null;
+        int i;
+        String refdir = null;
+        String realdir = null;
 
-	pattern = canonicalize(ref, pattern);
-	if ((i = indexOfAny(pattern, "%*")) >= 0) {
-	    refdir = pattern.substring(0, i);
-	} else {
-	    refdir = pattern;
-	}
-	if ((i = refdir.lastIndexOf(File.separatorChar)) >= 0) {
-	    // get rid of anything after directory name
-	    refdir = refdir.substring(0, i + 1);
-	    realdir = mstore.mb.filename(mstore.user, refdir);
-	} else if (refdir.length() == 0 || refdir.charAt(0) != '~') {
-	    // no separator and doesn't start with "~" => home or cwd
-	    refdir = null;
-	    if (homeRelative)
-		realdir = mstore.home;
-	    else
-		realdir = ".";
-	} else {
-	    realdir = mstore.mb.filename(mstore.user, refdir);
-	}
-	List<String> flist = new ArrayList<String>();
-	listWork(realdir, refdir, pattern, fromStore ? 0 : 1, flist);
-	if (Match.path("INBOX", pattern, '\0'))
-	    flist.add("INBOX");
+        pattern = canonicalize(ref, pattern);
+        if ((i = indexOfAny(pattern, "%*")) >= 0) {
+            refdir = pattern.substring(0, i);
+        } else {
+            refdir = pattern;
+        }
+        if ((i = refdir.lastIndexOf(File.separatorChar)) >= 0) {
+            // get rid of anything after directory name
+            refdir = refdir.substring(0, i + 1);
+            realdir = mstore.mb.filename(mstore.user, refdir);
+        } else if (refdir.length() == 0 || refdir.charAt(0) != '~') {
+            // no separator and doesn't start with "~" => home or cwd
+            refdir = null;
+            if (homeRelative)
+                realdir = mstore.home;
+            else
+                realdir = ".";
+        } else {
+            realdir = mstore.mb.filename(mstore.user, refdir);
+        }
+        List<String> flist = new ArrayList<String>();
+        listWork(realdir, refdir, pattern, fromStore ? 0 : 1, flist);
+        if (Match.path("INBOX", pattern, '\0'))
+            flist.add("INBOX");
 
-	Folder fl[] = new Folder[flist.size()];
-	for (i = 0; i < fl.length; i++) {
-	    fl[i] = createFolder(mstore, flist.get(i));
-	}
-	return fl;
+        Folder fl[] = new Folder[flist.size()];
+        for (i = 0; i < fl.length; i++) {
+            fl[i] = createFolder(mstore, flist.get(i));
+        }
+        return fl;
     }
 
     public String getName() {
-	if (name == null)
-	    return "";
-	else if (is_inbox)
-	    return "INBOX";
-	else
-	    return folder.getName();
+        if (name == null)
+            return "";
+        else if (is_inbox)
+            return "INBOX";
+        else
+            return folder.getName();
     }
 
     public String getFullName() {
-	if (name == null)
-	    return "";
-	else
-	    return name;
+        if (name == null)
+            return "";
+        else
+            return name;
     }
 
     public Folder getParent() {
-	if (name == null)
-	    return null;
-	else if (is_inbox)
-	    return createFolder(mstore, null);
-	else
-	    // XXX - have to recognize other folders under default folder
-	    return createFolder(mstore, folder.getParent());
+        if (name == null)
+            return null;
+        else if (is_inbox)
+            return createFolder(mstore, null);
+        else
+            // XXX - have to recognize other folders under default folder
+            return createFolder(mstore, folder.getParent());
     }
 
     public boolean exists() {
-	return folder.exists();
+        return folder.exists();
     }
 
     public int getType() {
-	if (folder.isDirectory())
-	    return HOLDS_FOLDERS;
-	else
-	    return HOLDS_MESSAGES;
+        if (folder.isDirectory())
+            return HOLDS_FOLDERS;
+        else
+            return HOLDS_MESSAGES;
     }
 
     public Flags getPermanentFlags() {
-	return MboxStore.permFlags;
+        return MboxStore.permFlags;
     }
 
     public synchronized boolean hasNewMessages() {
-	if (folder instanceof UNIXFile) {
-	    UNIXFile f = (UNIXFile)folder;
-	    if (f.length() > 0) {
-		long atime = f.lastAccessed();
-		long mtime = f.lastModified();
+        if (folder instanceof UNIXFile) {
+            UNIXFile f = (UNIXFile) folder;
+            if (f.length() > 0) {
+                long atime = f.lastAccessed();
+                long mtime = f.lastModified();
 //System.out.println(name + " atime " + atime + " mtime " + mtime);
-		return atime < mtime;
-	    }
-	    return false;
-	}
-	long current_size;
-	if (folder.exists())
-	    current_size = folder.length();
-	else
-	    current_size = -1;
-	// if we've never opened the folder, remember the size now
-	// (will cause us to return false the first time)
-	if (saved_file_size < 0)
-	    saved_file_size = current_size;
-	return current_size > saved_file_size;
+                return atime < mtime;
+            }
+            return false;
+        }
+        long current_size;
+        if (folder.exists())
+            current_size = folder.length();
+        else
+            current_size = -1;
+        // if we've never opened the folder, remember the size now
+        // (will cause us to return false the first time)
+        if (saved_file_size < 0)
+            saved_file_size = current_size;
+        return current_size > saved_file_size;
     }
 
     public synchronized Folder getFolder(String name)
-					throws MessagingException {
-	if (folder.exists() && !folder.isDirectory())
-	    throw new MessagingException("not a directory");
-	return createFolder(mstore,
-		(this.name == null ? "~" : this.name) + File.separator + name);
+            throws MessagingException {
+        if (folder.exists() && !folder.isDirectory())
+            throw new MessagingException("not a directory");
+        return createFolder(mstore,
+                (this.name == null ? "~" : this.name) + File.separator + name);
     }
 
     public synchronized boolean create(int type) throws MessagingException {
-	switch (type) {
-	case HOLDS_FOLDERS:
-	    if (!folder.mkdirs()) {
-		return false;
-	    }
-	    break;
+        switch (type) {
+            case HOLDS_FOLDERS:
+                if (!folder.mkdirs()) {
+                    return false;
+                }
+                break;
 
-	case HOLDS_MESSAGES:
-	    if (folder.exists()) {
-		return false;
-	    }
-	    try {
-		(new FileOutputStream((File)folder)).close();
-	    } catch (FileNotFoundException fe) {
-		File parent = new File(folder.getParent());
-		if (!parent.mkdirs())
-		    throw new
-			MessagingException("can't create folder: " + name);
-		try {
-		    (new FileOutputStream((File)folder)).close();
-		} catch (IOException ex3) {
-		    throw new
-			MessagingException("can't create folder: " + name, ex3);
-		}
-	    } catch (IOException e) {
-		throw new
-		    MessagingException("can't create folder: " + name, e);
-	    }
-	    break;
+            case HOLDS_MESSAGES:
+                if (folder.exists()) {
+                    return false;
+                }
+                try {
+                    (new FileOutputStream((File) folder)).close();
+                } catch (FileNotFoundException fe) {
+                    File parent = new File(folder.getParent());
+                    if (!parent.mkdirs())
+                        throw new
+                                MessagingException("can't create folder: " + name);
+                    try {
+                        (new FileOutputStream((File) folder)).close();
+                    } catch (IOException ex3) {
+                        throw new
+                                MessagingException("can't create folder: " + name, ex3);
+                    }
+                } catch (IOException e) {
+                    throw new
+                            MessagingException("can't create folder: " + name, e);
+                }
+                break;
 
-	default:
-	    throw new MessagingException("type not supported");
-	}
-	notifyFolderListeners(FolderEvent.CREATED);
-	return true;
+            default:
+                throw new MessagingException("type not supported");
+        }
+        notifyFolderListeners(FolderEvent.CREATED);
+        return true;
     }
 
     public synchronized boolean delete(boolean recurse)
-					throws MessagingException {
-	checkClosed();
-	if (name == null)
-	    throw new MessagingException("can't delete default folder");
-	boolean ret = true;
-	if (recurse && folder.isDirectory())
-	    ret = delete(new File(folder.getPath()));
-	if (ret && folder.delete()) {
-	    notifyFolderListeners(FolderEvent.DELETED);
-	    return true;
-	}
-	return false;
+            throws MessagingException {
+        checkClosed();
+        if (name == null)
+            throw new MessagingException("can't delete default folder");
+        boolean ret = true;
+        if (recurse && folder.isDirectory())
+            ret = delete(new File(folder.getPath()));
+        if (ret && folder.delete()) {
+            notifyFolderListeners(FolderEvent.DELETED);
+            return true;
+        }
+        return false;
     }
 
     /**
      * Recursively delete the specified file/directory.
      */
     private boolean delete(File f) {
-	File[] files = f.listFiles();
-	boolean ret = true;
-	for (int i = 0; ret && i < files.length; i++) {
-	    if (files[i].isDirectory())
-		ret = delete(files[i]);
-	    else
-		ret = files[i].delete();
-	}
-	return ret;
+        File[] files = f.listFiles();
+        boolean ret = true;
+        for (int i = 0; ret && i < files.length; i++) {
+            if (files[i].isDirectory())
+                ret = delete(files[i]);
+            else
+                ret = files[i].delete();
+        }
+        return ret;
     }
 
     public synchronized boolean renameTo(Folder f)
-				throws MessagingException {
-	checkClosed();
-	if (name == null)
-	    throw new MessagingException("can't rename default folder");
-	if (!(f instanceof MboxFolder))
-	    throw new MessagingException("can't rename to: " + f.getName());
-	String newname = ((MboxFolder)f).folder.getPath();
-	if (folder.renameTo(new File(newname))) {
-	    notifyFolderRenamedListeners(f);
-	    return true;
-	}
-	return false;
+            throws MessagingException {
+        checkClosed();
+        if (name == null)
+            throw new MessagingException("can't rename default folder");
+        if (!(f instanceof MboxFolder))
+            throw new MessagingException("can't rename to: " + f.getName());
+        String newname = ((MboxFolder) f).folder.getPath();
+        if (folder.renameTo(new File(newname))) {
+            notifyFolderRenamedListeners(f);
+            return true;
+        }
+        return false;
     }
 
     /* Ensure the folder is open */
     void checkOpen() throws IllegalStateException {
-	if (!opened) 
-	    throw new IllegalStateException("Folder is not Open");
+        if (!opened)
+            throw new IllegalStateException("Folder is not Open");
     }
 
     /* Ensure the folder is not open */
     private void checkClosed() throws IllegalStateException {
-	if (opened) 
-	    throw new IllegalStateException("Folder is Open");
+        if (opened)
+            throw new IllegalStateException("Folder is Open");
     }
 
     /*
@@ -315,29 +339,29 @@ public class MboxFolder extends Folder {
      * have arrived.
      */
     private void checkRange(int msgno) throws MessagingException {
-	if (msgno < 1) // message-numbers start at 1
-	    throw new IndexOutOfBoundsException("message number < 1");
+        if (msgno < 1) // message-numbers start at 1
+            throw new IndexOutOfBoundsException("message number < 1");
 
-	if (msgno <= total)
-	    return;
+        if (msgno <= total)
+            return;
 
-	// Out of range, let's check if there are any new messages.
-	getMessageCount();
+        // Out of range, let's check if there are any new messages.
+        getMessageCount();
 
-	if (msgno > total) // Still out of range ? Throw up ...
-	    throw new IndexOutOfBoundsException(msgno + " > " + total);
+        if (msgno > total) // Still out of range ? Throw up ...
+            throw new IndexOutOfBoundsException(msgno + " > " + total);
     }
 
     /* Ensure the folder is open & readable */
     private void checkReadable() throws IllegalStateException {
-	if (!opened || (mode != READ_ONLY && mode != READ_WRITE))
-	    throw new IllegalStateException("Folder is not Readable");
+        if (!opened || (mode != READ_ONLY && mode != READ_WRITE))
+            throw new IllegalStateException("Folder is not Readable");
     }
 
     /* Ensure the folder is open & writable */
     private void checkWritable() throws IllegalStateException {
-	if (!opened || mode != READ_WRITE)
-	    throw new IllegalStateException("Folder is not Writable");
+        if (!opened || mode != READ_WRITE)
+            throw new IllegalStateException("Folder is not Writable");
     }
 
     public boolean isOpen() {
@@ -348,75 +372,75 @@ public class MboxFolder extends Folder {
      * Open the folder in the specified mode.
      */
     public synchronized void open(int mode) throws MessagingException {
-	if (opened)
-	    throw new IllegalStateException("Folder is already Open");
+        if (opened)
+            throw new IllegalStateException("Folder is already Open");
 
-	if (!folder.exists())
-	    throw new FolderNotFoundException(this, "Folder doesn't exist: " +
-					    folder.getPath());
-	this.mode = mode;
-	switch (mode) {
-	case READ_WRITE:
-	default:
-	    if (!folder.canWrite())
-		throw new MessagingException("Open Failure, can't write: " +
-					    folder.getPath());
-	    // fall through...
+        if (!folder.exists())
+            throw new FolderNotFoundException(this, "Folder doesn't exist: " +
+                    folder.getPath());
+        this.mode = mode;
+        switch (mode) {
+            case READ_WRITE:
+            default:
+                if (!folder.canWrite())
+                    throw new MessagingException("Open Failure, can't write: " +
+                            folder.getPath());
+                // fall through...
 
-	case READ_ONLY:
-	    if (!folder.canRead())
-		throw new MessagingException("Open Failure, can't read: " +
-					    folder.getPath());
-	    break;
-	}
+            case READ_ONLY:
+                if (!folder.canRead())
+                    throw new MessagingException("Open Failure, can't read: " +
+                            folder.getPath());
+                break;
+        }
 
-	if (is_inbox && folder instanceof InboxFile) {
-	    InboxFile inf = (InboxFile)folder;
-	    if (!inf.openLock(mode == READ_WRITE ? "rw" : "r"))
-		throw new MessagingException("Failed to lock INBOX");
-	}
-	if (!folder.lock("r"))
-	    throw new MessagingException("Failed to lock folder: " + name);
-	messages = new ArrayList<MessageMetadata>();
-	total = 0;
-	Message[] msglist = null;
-	try {
-	    temp = new TempFile(null);
-	    saved_file_size = folder.length();
-	    msglist = load(0L, false);
-	} catch (IOException e) {
-	    throw new MessagingException("IOException", e);
-	} finally {
-	    folder.unlock();
-	}
-	notifyConnectionListeners(ConnectionEvent.OPENED);
-	if (msglist != null)
-	    notifyMessageAddedListeners(msglist);
-	opened = true;		// now really opened
+        if (is_inbox && folder instanceof InboxFile) {
+            InboxFile inf = (InboxFile) folder;
+            if (!inf.openLock(mode == READ_WRITE ? "rw" : "r"))
+                throw new MessagingException("Failed to lock INBOX");
+        }
+        if (!folder.lock("r"))
+            throw new MessagingException("Failed to lock folder: " + name);
+        messages = new ArrayList<MessageMetadata>();
+        total = 0;
+        Message[] msglist = null;
+        try {
+            temp = new TempFile(null);
+            saved_file_size = folder.length();
+            msglist = load(0L, false);
+        } catch (IOException e) {
+            throw new MessagingException("IOException", e);
+        } finally {
+            folder.unlock();
+        }
+        notifyConnectionListeners(ConnectionEvent.OPENED);
+        if (msglist != null)
+            notifyMessageAddedListeners(msglist);
+        opened = true;        // now really opened
     }
 
     public synchronized void close(boolean expunge) throws MessagingException {
-	checkOpen();
+        checkOpen();
 
-	try {
-	    if (mode == READ_WRITE) {
-		try {
-		    writeFolder(true, expunge);
-		} catch (IOException e) {
-		    throw new MessagingException("I/O Exception", e);
-		}
-	    }
-	    messages = null;
-	} finally {
-	    opened = false;
-	    if (is_inbox && folder instanceof InboxFile) {
-		InboxFile inf = (InboxFile)folder;
-		inf.closeLock();
-	    }
-	    temp.close();
-	    temp = null;
-	    notifyConnectionListeners(ConnectionEvent.CLOSED);
-	}
+        try {
+            if (mode == READ_WRITE) {
+                try {
+                    writeFolder(true, expunge);
+                } catch (IOException e) {
+                    throw new MessagingException("I/O Exception", e);
+                }
+            }
+            messages = null;
+        } finally {
+            opened = false;
+            if (is_inbox && folder instanceof InboxFile) {
+                InboxFile inf = (InboxFile) folder;
+                inf.closeLock();
+            }
+            temp.close();
+            temp = null;
+            notifyConnectionListeners(ConnectionEvent.CLOSED);
+        }
     }
 
     /**
@@ -428,127 +452,131 @@ public class MboxFolder extends Folder {
      * Return the number of messages written.
      */
     protected int writeFolder(boolean closing, boolean expunge)
-			throws IOException, MessagingException {
+            throws IOException, MessagingException {
 
-	/*
-	 * First, see if there have been any changes.
-	 */
-	int modified = 0, deleted = 0, recent = 0;
-	for (int msgno = 1; msgno <= total; msgno++) {
-	    MessageMetadata md = messages.get(messageIndexOf(msgno));
-	    MboxMessage msg = md.message;
-	    if (msg != null) {
-		Flags flags = msg.getFlags();
-		if (msg.isModified() || !msg.origFlags.equals(flags))
-		    modified++;
-		if (flags.contains(Flags.Flag.DELETED))
-		    deleted++;
-		if (flags.contains(Flags.Flag.RECENT))
-		    recent++;
-	    } else {
-		if (md.deleted)
-		    deleted++;
-		if (md.recent)
-		    recent++;
-	    }
-	}
-	if ((!closing || recent == 0) && (!expunge || deleted == 0) &&
-		modified == 0)
-	    return 0;
+        /*
+         * First, see if there have been any changes.
+         */
+        int modified = 0, deleted = 0, recent = 0;
+        for (int msgno = 1; msgno <= total; msgno++) {
+            MessageMetadata md = messages.get(messageIndexOf(msgno));
+            MboxMessage msg = md.message;
+            if (msg != null) {
+                Flags flags = msg.getFlags();
+                if (msg.isModified() || !msg.origFlags.equals(flags))
+                    modified++;
+                if (flags.contains(Flags.Flag.DELETED))
+                    deleted++;
+                if (flags.contains(Flags.Flag.RECENT))
+                    recent++;
+            } else {
+                if (md.deleted)
+                    deleted++;
+                if (md.recent)
+                    recent++;
+            }
+        }
+        if ((!closing || recent == 0) && (!expunge || deleted == 0) &&
+                modified == 0)
+            return 0;
 
-	/*
-	 * Have to save any new mail that's been appended to the
-	 * folder since we last loaded it.
-	 */
-	if (!folder.lock("rw"))
-	    throw new MessagingException("Failed to lock folder: " + name);
-	int oldtotal = total;	// XXX
-	Message[] msglist = null;
-	if (folder.length() != file_size)
-	    msglist = load(file_size, !closing);
-	// don't use the folder's FD, need to re-open in order to trunc the file
-	OutputStream os =
-		new BufferedOutputStream(new FileOutputStream((File)folder));
-	int wr = 0;
-	boolean keep = true;
-	try {
-	    if (special_imap_message)
-		appendStream(getMessageStream(0), os);
-	    for (int msgno = 1; msgno <= total; msgno++) {
-		MessageMetadata md = messages.get(messageIndexOf(msgno));
-		MboxMessage msg = md.message;
-		if (msg != null) {
-		    if (expunge && msg.isSet(Flags.Flag.DELETED))
-			continue;	// skip it;
-		    if (closing && msgno <= oldtotal &&
-						msg.isSet(Flags.Flag.RECENT))
-			msg.setFlag(Flags.Flag.RECENT, false);
-		    writeMboxMessage(msg, os);
-		} else {
-		    if (expunge && md.deleted)
-			continue;	// skip it;
-		    if (closing && msgno <= oldtotal && md.recent) {
-			// have to instantiate message so that we can
-			// clear the recent flag
-			msg = (MboxMessage)getMessage(msgno);
-			msg.setFlag(Flags.Flag.RECENT, false);
-			writeMboxMessage(msg, os);
-		    } else {
-			appendStream(getMessageStream(msgno), os);
-		    }
-		}
-		folder.touchlock();
-		wr++;
-	    }
-	    // If no messages in the mailbox, and we're closing,
-	    // maybe we should remove the mailbox.
-	    if (wr == 0 && closing) {
-		String skeep = ((MboxStore)store).getSession().
-					getProperty("mail.mbox.deleteEmpty");
-		if (skeep != null && skeep.equalsIgnoreCase("true"))
-		    keep = false;
-	    }
-	} catch (IOException e) {
-	    throw e;
-	} catch (MessagingException e) {
-	    throw e;
-	} catch (Exception e) {
-e.printStackTrace();
-	    throw new MessagingException("unexpected exception " + e);
-	} finally {
-	    // close the folder, flushing out the data
-	    try {
-		os.close();
-		file_size = saved_file_size = folder.length();
-		if (!keep) {
-		    folder.delete();
-		    file_size = 0;
-		}
-	    } catch (IOException ex) {}
+        /*
+         * Have to save any new mail that's been appended to the
+         * folder since we last loaded it.
+         */
+        if (!folder.lock("rw"))
+            throw new MessagingException("Failed to lock folder: " + name);
+        int oldtotal = total;    // XXX
+        Message[] msglist = null;
+        if (folder.length() != file_size)
+            msglist = load(file_size, !closing);
+        // don't use the folder's FD, need to re-open in order to trunc the file
+        OutputStream os =
+                new BufferedOutputStream(new FileOutputStream((File) folder));
+        int wr = 0;
+        boolean keep = true;
+        try {
+            if (special_imap_message)
+                appendStream(getMessageStream(0), os);
+            for (int msgno = 1; msgno <= total; msgno++) {
+                MessageMetadata md = messages.get(messageIndexOf(msgno));
+                MboxMessage msg = md.message;
+                if (msg != null) {
+                    if (expunge && msg.isSet(Flags.Flag.DELETED))
+                        continue;    // skip it;
+                    if (closing && msgno <= oldtotal &&
+                            msg.isSet(Flags.Flag.RECENT))
+                        msg.setFlag(Flags.Flag.RECENT, false);
+                    writeMboxMessage(msg, os);
+                } else {
+                    if (expunge && md.deleted)
+                        continue;    // skip it;
+                    if (closing && msgno <= oldtotal && md.recent) {
+                        // have to instantiate message so that we can
+                        // clear the recent flag
+                        msg = (MboxMessage) getMessage(msgno);
+                        msg.setFlag(Flags.Flag.RECENT, false);
+                        writeMboxMessage(msg, os);
+                    } else {
+                        appendStream(getMessageStream(msgno), os);
+                    }
+                }
+                folder.touchlock();
+                wr++;
+            }
+            // If no messages in the mailbox, and we're closing,
+            // maybe we should remove the mailbox.
+            if (wr == 0 && closing) {
+                String skeep = ((MboxStore) store).getSession().
+                        getProperty("mail.mbox.deleteEmpty");
+                if (skeep != null && skeep.equalsIgnoreCase("true"))
+                    keep = false;
+            }
+        } catch (IOException e) {
+            throw e;
+        } catch (MessagingException e) {
+            throw e;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new MessagingException("unexpected exception " + e);
+        } finally {
+            // close the folder, flushing out the data
+            try {
+                os.close();
+                file_size = saved_file_size = folder.length();
+                if (!keep) {
+                    folder.delete();
+                    file_size = 0;
+                }
+            } catch (IOException ex) {
+            }
 
-	    if (keep) {
-		// make sure the access time is greater than the mod time
-		// XXX - would be nice to have utime()
-		try {
-		    Thread.sleep(1000);		// sleep for a second
-		} catch (InterruptedException ex) {}
-		InputStream is = null;
-		try {
-		    is = new FileInputStream((File)folder);
-		    is.read();	// read a byte
-		} catch (IOException ex) {}	// ignore errors
-		try {
-		    if (is != null)
-			is.close();
-		    is = null;
-		} catch (IOException ex) {}	// ignore errors
-	    }
+            if (keep) {
+                // make sure the access time is greater than the mod time
+                // XXX - would be nice to have utime()
+                try {
+                    Thread.sleep(1000);        // sleep for a second
+                } catch (InterruptedException ex) {
+                }
+                InputStream is = null;
+                try {
+                    is = new FileInputStream((File) folder);
+                    is.read();    // read a byte
+                } catch (IOException ex) {
+                }    // ignore errors
+                try {
+                    if (is != null)
+                        is.close();
+                    is = null;
+                } catch (IOException ex) {
+                }    // ignore errors
+            }
 
-	    folder.unlock();
-	    if (msglist != null)
-		notifyMessageAddedListeners(msglist);
-	}
-	return wr;
+            folder.unlock();
+            if (msglist != null)
+                notifyMessageAddedListeners(msglist);
+        }
+        return wr;
     }
 
     /**
@@ -556,15 +584,15 @@ e.printStackTrace();
      * input stream when done.
      */
     private static final void appendStream(InputStream is, OutputStream os)
-				throws IOException {
-	try {
-	    byte[] buf = new byte[64 * 1024];
-	    int len;
-	    while ((len = is.read(buf)) > 0)
-		os.write(buf, 0, len);
-	} finally {
-	    is.close();
-	}
+            throws IOException {
+        try {
+            byte[] buf = new byte[64 * 1024];
+            int len;
+            while ((len = is.read(buf)) > 0)
+                os.write(buf, 0, len);
+        } finally {
+            is.close();
+        }
     }
 
     /**
@@ -578,29 +606,29 @@ e.printStackTrace();
      * all the work here, creating an appropriate UNIX From line.
      */
     public static void writeMboxMessage(MimeMessage msg, OutputStream os)
-				throws IOException, MessagingException {
-	try {
-	    if (msg instanceof MboxMessage) {
-		((MboxMessage)msg).writeToFile(os);
-	    } else {
-		// XXX - modify the message to preserve the flags in headers
-		MboxMessage.setHeadersFromFlags(msg);
-		ContentLengthCounter cos = new ContentLengthCounter();
-		NewlineOutputStream nos = new NewlineOutputStream(cos);
-		msg.writeTo(nos);
-		nos.flush();
-		os = new NewlineOutputStream(os, true);
-		os = new ContentLengthUpdater(os, cos.getSize());
-		PrintStream pos = new PrintStream(os, false, "iso-8859-1");
-		pos.println(getUnixFrom(msg));
-		msg.writeTo(pos);
-		pos.flush();
-	    }
-	} catch (MessagingException me) {
-	    throw me;
-	} catch (IOException ioe) {
-	    throw ioe;
-	}
+            throws IOException, MessagingException {
+        try {
+            if (msg instanceof MboxMessage) {
+                ((MboxMessage) msg).writeToFile(os);
+            } else {
+                // XXX - modify the message to preserve the flags in headers
+                MboxMessage.setHeadersFromFlags(msg);
+                ContentLengthCounter cos = new ContentLengthCounter();
+                NewlineOutputStream nos = new NewlineOutputStream(cos);
+                msg.writeTo(nos);
+                nos.flush();
+                os = new NewlineOutputStream(os, true);
+                os = new ContentLengthUpdater(os, cos.getSize());
+                PrintStream pos = new PrintStream(os, false, "iso-8859-1");
+                pos.println(getUnixFrom(msg));
+                msg.writeTo(pos);
+                pos.flush();
+            }
+        } catch (MessagingException me) {
+            throw me;
+        } catch (IOException ioe) {
+            throw ioe;
+        }
     }
 
     /**
@@ -608,53 +636,53 @@ e.printStackTrace();
      * the sender address and the date in the message.
      */
     protected static String getUnixFrom(MimeMessage msg) {
-	Address[] afrom;
-	String from;
-	Date ddate;
-	String date;
-	try {
-	    if ((afrom = msg.getFrom()) == null ||
-		    !(afrom[0] instanceof InternetAddress) ||
-		    (from = ((InternetAddress)afrom[0]).getAddress()) == null)
-		from = "UNKNOWN";
-	    if ((ddate = msg.getReceivedDate()) == null ||
-		    (ddate = msg.getSentDate()) == null)
-		ddate = new Date();
-	} catch (MessagingException e) {
-	    from = "UNKNOWN";
-	    ddate = new Date();
-	}
-	date = ddate.toString();
-	// date is of the form "Sat Aug 12 02:30:00 PDT 1995"
-	// need to strip out the timezone
-	return "From " + from + " " +
-		date.substring(0, 20) + date.substring(24);
+        Address[] afrom;
+        String from;
+        Date ddate;
+        String date;
+        try {
+            if ((afrom = msg.getFrom()) == null ||
+                    !(afrom[0] instanceof InternetAddress) ||
+                    (from = ((InternetAddress) afrom[0]).getAddress()) == null)
+                from = "UNKNOWN";
+            if ((ddate = msg.getReceivedDate()) == null ||
+                    (ddate = msg.getSentDate()) == null)
+                ddate = new Date();
+        } catch (MessagingException e) {
+            from = "UNKNOWN";
+            ddate = new Date();
+        }
+        date = ddate.toString();
+        // date is of the form "Sat Aug 12 02:30:00 PDT 1995"
+        // need to strip out the timezone
+        return "From " + from + " " +
+                date.substring(0, 20) + date.substring(24);
     }
 
     public synchronized int getMessageCount() throws MessagingException {
-	if (!opened)
-	    return -1;
+        if (!opened)
+            return -1;
 
-	boolean locked = false;
-	Message[] msglist = null;
-	try {
-	    if (folder.length() != file_size) {
-		if (!folder.lock("r"))
-		    throw new MessagingException("Failed to lock folder: " +
-							name);
-		locked = true;
-		msglist = load(file_size, true);
-	    }
-	} catch (IOException e) {
-	    throw new MessagingException("I/O Exception", e);
-	} finally {
-	    if (locked) {
-		folder.unlock();
-		if (msglist != null)
-		    notifyMessageAddedListeners(msglist);
-	    }
-	}
-	return total;
+        boolean locked = false;
+        Message[] msglist = null;
+        try {
+            if (folder.length() != file_size) {
+                if (!folder.lock("r"))
+                    throw new MessagingException("Failed to lock folder: " +
+                            name);
+                locked = true;
+                msglist = load(file_size, true);
+            }
+        } catch (IOException e) {
+            throw new MessagingException("I/O Exception", e);
+        } finally {
+            if (locked) {
+                folder.unlock();
+                if (msglist != null)
+                    notifyMessageAddedListeners(msglist);
+            }
+        }
+        return total;
     }
 
     /**
@@ -662,164 +690,164 @@ e.printStackTrace();
      * from 1.
      */
     public synchronized Message getMessage(int msgno)
-				throws MessagingException {
-	checkReadable();
-	checkRange(msgno);
+            throws MessagingException {
+        checkReadable();
+        checkRange(msgno);
 
-	MessageMetadata md = messages.get(messageIndexOf(msgno));
-	MboxMessage m = md.message;
-	if (m == null) {
-	    InputStream is = getMessageStream(msgno);
-	    try {
-		m = loadMessage(is, msgno, mode == READ_WRITE);
-	    } catch (IOException ex) {
-		MessagingException mex =
-		    new MessageRemovedException("mbox message gone", ex);
-		throw mex;
-	    }
-	    md.message = m;
-	}
-	return m;
+        MessageMetadata md = messages.get(messageIndexOf(msgno));
+        MboxMessage m = md.message;
+        if (m == null) {
+            InputStream is = getMessageStream(msgno);
+            try {
+                m = loadMessage(is, msgno, mode == READ_WRITE);
+            } catch (IOException ex) {
+                MessagingException mex =
+                        new MessageRemovedException("mbox message gone", ex);
+                throw mex;
+            }
+            md.message = m;
+        }
+        return m;
     }
 
     private final int messageIndexOf(int msgno) {
-	return special_imap_message ? msgno : msgno - 1;
+        return special_imap_message ? msgno : msgno - 1;
     }
 
     private InputStream getMessageStream(int msgno) {
-	int index = messageIndexOf(msgno);
-	MessageMetadata md = messages.get(index);
-	return temp.newStream(md.start, md.dataend);
+        int index = messageIndexOf(msgno);
+        MessageMetadata md = messages.get(index);
+        return temp.newStream(md.start, md.dataend);
     }
 
     public synchronized void appendMessages(Message[] msgs)
-				throws MessagingException {
-	if (!folder.lock("rw"))
-	    throw new MessagingException("Failed to lock folder: " + name);
+            throws MessagingException {
+        if (!folder.lock("rw"))
+            throw new MessagingException("Failed to lock folder: " + name);
 
-	OutputStream os = null;
-	boolean err = false;
-	try {
-	    os = new BufferedOutputStream(
-		new FileOutputStream(((File)folder).getPath(), true));
-		// XXX - should use getAbsolutePath()?
-	    for (int i = 0; i < msgs.length; i++) {
-		if (msgs[i] instanceof MimeMessage) {
-		    writeMboxMessage((MimeMessage)msgs[i], os);
-		} else {
-		    err = true;
-		    continue;
-		}
-		folder.touchlock();
-	    }
-	} catch (IOException e) {
-	    throw new MessagingException("I/O Exception", e);
-	} catch (MessagingException e) {
-	    throw e;
-	} catch (Exception e) {
-e.printStackTrace();
-	    throw new MessagingException("unexpected exception " + e);
-	} finally {
-	    if (os != null)
-		try {
-		    os.close();
-		} catch (IOException e) {
-		    // ignored
-		}
-	    folder.unlock();
-	}
-	if (opened)
-	    getMessageCount();	// loads new messages as a side effect
-	if (err)
-	    throw new MessagingException("Can't append non-Mime message");
+        OutputStream os = null;
+        boolean err = false;
+        try {
+            os = new BufferedOutputStream(
+                    new FileOutputStream(((File) folder).getPath(), true));
+            // XXX - should use getAbsolutePath()?
+            for (int i = 0; i < msgs.length; i++) {
+                if (msgs[i] instanceof MimeMessage) {
+                    writeMboxMessage((MimeMessage) msgs[i], os);
+                } else {
+                    err = true;
+                    continue;
+                }
+                folder.touchlock();
+            }
+        } catch (IOException e) {
+            throw new MessagingException("I/O Exception", e);
+        } catch (MessagingException e) {
+            throw e;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new MessagingException("unexpected exception " + e);
+        } finally {
+            if (os != null)
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    // ignored
+                }
+            folder.unlock();
+        }
+        if (opened)
+            getMessageCount();    // loads new messages as a side effect
+        if (err)
+            throw new MessagingException("Can't append non-Mime message");
     }
 
     public synchronized Message[] expunge() throws MessagingException {
-	checkWritable();
+        checkWritable();
 
-	/*
-	 * First, write out the folder to make sure we have permission,
-	 * disk space, etc.
-	 */
-	int wr = total;		// number of messages written out
-	try {
-	    wr = writeFolder(false, true);
-	} catch (IOException e) {
-	    throw new MessagingException("expunge failed", e);
-	}
-	if (wr == total)	// wrote them all => nothing expunged
-	    return new Message[0];
+        /*
+         * First, write out the folder to make sure we have permission,
+         * disk space, etc.
+         */
+        int wr = total;        // number of messages written out
+        try {
+            wr = writeFolder(false, true);
+        } catch (IOException e) {
+            throw new MessagingException("expunge failed", e);
+        }
+        if (wr == total)    // wrote them all => nothing expunged
+            return new Message[0];
 
-	/*
-	 * Now, actually get rid of the expunged messages.
-	 */
-	int del = 0;
-	Message[] msglist = new Message[total - wr];
-	int msgno = 1;
-	while (msgno <= total) {
-	    MessageMetadata md = messages.get(messageIndexOf(msgno));
-	    MboxMessage msg = md.message;
-	    if (msg != null) {
-		if (msg.isSet(Flags.Flag.DELETED)) {
-		    msg.setExpunged(true);
-		    msglist[del] = msg;
-		    del++;
-		    messages.remove(messageIndexOf(msgno));
-		    total--;
-		} else {
-		    msg.setMessageNumber(msgno);	// update message number
-		    msgno++;
-		}
-	    } else {
-		if (md.deleted) {
-		    // have to instantiate it for the notification
-		    msg = (MboxMessage)getMessage(msgno);
-		    msg.setExpunged(true);
-		    msglist[del] = msg;
-		    del++;
-		    messages.remove(messageIndexOf(msgno));
-		    total--;
-		} else {
-		    msgno++;
-		}
-	    }
-	}
-	if (del != msglist.length)		// this is really an assert
-	    throw new MessagingException("expunge delete count wrong");
-	notifyMessageRemovedListeners(true, msglist);
-	return msglist;
+        /*
+         * Now, actually get rid of the expunged messages.
+         */
+        int del = 0;
+        Message[] msglist = new Message[total - wr];
+        int msgno = 1;
+        while (msgno <= total) {
+            MessageMetadata md = messages.get(messageIndexOf(msgno));
+            MboxMessage msg = md.message;
+            if (msg != null) {
+                if (msg.isSet(Flags.Flag.DELETED)) {
+                    msg.setExpunged(true);
+                    msglist[del] = msg;
+                    del++;
+                    messages.remove(messageIndexOf(msgno));
+                    total--;
+                } else {
+                    msg.setMessageNumber(msgno);    // update message number
+                    msgno++;
+                }
+            } else {
+                if (md.deleted) {
+                    // have to instantiate it for the notification
+                    msg = (MboxMessage) getMessage(msgno);
+                    msg.setExpunged(true);
+                    msglist[del] = msg;
+                    del++;
+                    messages.remove(messageIndexOf(msgno));
+                    total--;
+                } else {
+                    msgno++;
+                }
+            }
+        }
+        if (del != msglist.length)        // this is really an assert
+            throw new MessagingException("expunge delete count wrong");
+        notifyMessageRemovedListeners(true, msglist);
+        return msglist;
     }
 
     /*
      * Load more messages from the folder starting at the specified offset.
      */
     private Message[] load(long offset, boolean notify)
-				throws MessagingException, IOException {
-	int oldtotal = total;
-	MessageLoader loader = new MessageLoader(temp);
-	int loaded = loader.load(folder.getFD(), offset, messages);
-	total += loaded;
-	file_size = folder.length();
+            throws MessagingException, IOException {
+        int oldtotal = total;
+        MessageLoader loader = new MessageLoader(temp);
+        int loaded = loader.load(folder.getFD(), offset, messages);
+        total += loaded;
+        file_size = folder.length();
 
-	if (offset == 0 && loaded > 0) {
-	    /*
-	     * If the first message is the special message that the
-	     * IMAP server adds to the mailbox, remember that we've
-	     * seen it so it won't be shown to the user.
-	     */
-	    MessageMetadata md = messages.get(0);
-	    if (md.imap) {
-		special_imap_message = true;
-		total--;
-	    }
-	}
-	if (notify) {
-	    Message[] msglist = new Message[total - oldtotal];
-	    for (int i = oldtotal, j = 0; i < total; i++, j++)
-		msglist[j] = getMessage(i + 1);
-	    return msglist;
-	} else
-	    return null;
+        if (offset == 0 && loaded > 0) {
+            /*
+             * If the first message is the special message that the
+             * IMAP server adds to the mailbox, remember that we've
+             * seen it so it won't be shown to the user.
+             */
+            MessageMetadata md = messages.get(0);
+            if (md.imap) {
+                special_imap_message = true;
+                total--;
+            }
+        }
+        if (notify) {
+            Message[] msglist = new Message[total - oldtotal];
+            for (int i = oldtotal, j = 0; i < total; i++, j++)
+                msglist[j] = getMessage(i + 1);
+            return msglist;
+        } else
+            return null;
     }
 
     /**
@@ -827,53 +855,53 @@ e.printStackTrace();
      * The InputStream must be a SharedInputStream.
      */
     private MboxMessage loadMessage(InputStream is, int msgno,
-		boolean writable) throws MessagingException, IOException {
-	LineInputStream in = new LineInputStream(is);
+                                    boolean writable) throws MessagingException, IOException {
+        LineInputStream in = new LineInputStream(is);
 
-	/*
-	 * Read lines until a UNIX From line,
-	 * skipping blank lines.
-	 */
-	String line;
-	String unix_from = null;
-	while ((line = in.readLine()) != null) {
-	    if (line.trim().length() == 0)
-		continue;
-	    if (line.startsWith("From ")) {
-		/*
-		 * A UNIX From line looks like:
-		 * From address Day Mon DD HH:MM:SS YYYY
-		 */
-		unix_from = line;
-		int i;
-		// find the space after the address, before the date
-		i = unix_from.indexOf(' ', 5);
-		if (i < 0)
-		    continue;	// not a valid UNIX From line
-		break;
-	    }
-	    throw new MessagingException("Garbage in mailbox: " + line);
-	}
+        /*
+         * Read lines until a UNIX From line,
+         * skipping blank lines.
+         */
+        String line;
+        String unix_from = null;
+        while ((line = in.readLine()) != null) {
+            if (line.trim().length() == 0)
+                continue;
+            if (line.startsWith("From ")) {
+                /*
+                 * A UNIX From line looks like:
+                 * From address Day Mon DD HH:MM:SS YYYY
+                 */
+                unix_from = line;
+                int i;
+                // find the space after the address, before the date
+                i = unix_from.indexOf(' ', 5);
+                if (i < 0)
+                    continue;    // not a valid UNIX From line
+                break;
+            }
+            throw new MessagingException("Garbage in mailbox: " + line);
+        }
 
-	if (unix_from == null)
-	    throw new EOFException("end of mailbox");
+        if (unix_from == null)
+            throw new EOFException("end of mailbox");
 
-	/*
-	 * Now load the RFC822 headers into an InternetHeaders object.
-	 */
-	InternetHeaders hdrs = new InternetHeaders(is);
+        /*
+         * Now load the RFC822 headers into an InternetHeaders object.
+         */
+        InternetHeaders hdrs = new InternetHeaders(is);
 
-	// the rest is the message content
-	SharedInputStream sis = (SharedInputStream)is;
-	InputStream stream = sis.newStream(sis.getPosition(), -1);
-	return new MboxMessage(this, hdrs, stream, msgno, unix_from, writable);
+        // the rest is the message content
+        SharedInputStream sis = (SharedInputStream) is;
+        InputStream stream = sis.newStream(sis.getPosition(), -1);
+        return new MboxMessage(this, hdrs, stream, msgno, unix_from, writable);
     }
 
     /*
      * Only here to make accessible to MboxMessage.
      */
     protected void notifyMessageChangedListeners(int type, Message m) {
-	super.notifyMessageChangedListeners(type, m);
+        super.notifyMessageChangedListeners(type, m);
     }
 
 
@@ -882,36 +910,36 @@ e.printStackTrace();
      * add a beginning '/' to the URLName.
      */
     public URLName getURLName() {
-	// XXX - note:  this should not be done this way with the
-	// new jakarta.mail apis.
+        // XXX - note:  this should not be done this way with the
+        // new jakarta.mail apis.
 
-	URLName storeURL = getStore().getURLName();
-	if (name == null)
-	    return storeURL;
+        URLName storeURL = getStore().getURLName();
+        if (name == null)
+            return storeURL;
 
-	char separator = getSeparator();
-	String fullname = getFullName();
-	StringBuilder encodedName = new StringBuilder();
+        char separator = getSeparator();
+        String fullname = getFullName();
+        StringBuilder encodedName = new StringBuilder();
 
-	// We need to encode each of the folder's names, and replace
-	// the store's separator char with the URL char '/'.
-	StringTokenizer tok = new StringTokenizer(
-	    fullname, Character.toString(separator), true);
+        // We need to encode each of the folder's names, and replace
+        // the store's separator char with the URL char '/'.
+        StringTokenizer tok = new StringTokenizer(
+                fullname, Character.toString(separator), true);
 
-	while (tok.hasMoreTokens()) {
-	    String s = tok.nextToken();
-	    if (s.charAt(0) == separator)
-		encodedName.append("/");
-	    else
-		// XXX - should encode, but since there's no decoder...
-		//encodedName.append(java.net.URLEncoder.encode(s));
-		encodedName.append(s);
-	}
+        while (tok.hasMoreTokens()) {
+            String s = tok.nextToken();
+            if (s.charAt(0) == separator)
+                encodedName.append("/");
+            else
+                // XXX - should encode, but since there's no decoder...
+                //encodedName.append(java.net.URLEncoder.encode(s));
+                encodedName.append(s);
+        }
 
-	return new URLName(storeURL.getProtocol(), storeURL.getHost(),
-			    storeURL.getPort(), encodedName.toString(),
-			    storeURL.getUsername(),
-			    null /* no password */);
+        return new URLName(storeURL.getProtocol(), storeURL.getHost(),
+                storeURL.getPort(), encodedName.toString(),
+                storeURL.getUsername(),
+                null /* no password */);
     }
 
     /**
@@ -920,7 +948,7 @@ e.printStackTrace();
      * the appropriate subclass is created by the list method.
      */
     protected Folder createFolder(MboxStore store, String name) {
-	return new MboxFolder(store, name);
+        return new MboxFolder(store, name);
     }
 
     /*
@@ -931,19 +959,19 @@ e.printStackTrace();
      * Return a canonicalized pattern given a reference name and a pattern.
      */
     private static String canonicalize(String ref, String pat) {
-	if (ref == null)
-	    return pat;
-	try {
-	    if (pat.length() == 0) {
-		return ref;
-	    } else if (pat.charAt(0) == File.separatorChar) {
-		return ref.substring(0, ref.indexOf(File.separatorChar)) + pat;
-	    } else {
-		return ref + pat;
-	    }
-	} catch (StringIndexOutOfBoundsException e) {
-	    return pat;
-	}
+        if (ref == null)
+            return pat;
+        try {
+            if (pat.length() == 0) {
+                return ref;
+            } else if (pat.charAt(0) == File.separatorChar) {
+                return ref.substring(0, ref.indexOf(File.separatorChar)) + pat;
+            } else {
+                return ref + pat;
+            }
+        } catch (StringIndexOutOfBoundsException e) {
+            return pat;
+        }
     }
 
     /**
@@ -953,16 +981,16 @@ e.printStackTrace();
      * This should be a method on String.
      */
     private static int indexOfAny(String s, String any) {
-	try {
-	    int len = s.length();
-	    for (int i = 0; i < len; i++) {
-		if (any.indexOf(s.charAt(i)) >= 0)
-		    return i;
-	    }
-	    return -1;
-	} catch (StringIndexOutOfBoundsException e) {
-	    return -1;
-	}
+        try {
+            int len = s.length();
+            for (int i = 0; i < len; i++) {
+                if (any.indexOf(s.charAt(i)) >= 0)
+                    return i;
+            }
+            return -1;
+        } catch (StringIndexOutOfBoundsException e) {
+            return -1;
+        }
     }
 
     /**
@@ -972,61 +1000,61 @@ e.printStackTrace();
      * relative to the user's home directory.  dir (if not null) always
      * has a trailing file separator character.
      *
-     * @param realdir	real pathname of directory to start looking in
-     * @param dir	user's name for realdir
-     * @param pat	pattern to match against
-     * @param level	level of the directory hierarchy we're in
-     * @param flist	list to which to add folder names that match
+     * @param realdir real pathname of directory to start looking in
+     * @param dir     user's name for realdir
+     * @param pat     pattern to match against
+     * @param level   level of the directory hierarchy we're in
+     * @param flist   list to which to add folder names that match
      */
     // Derived from the c-client listWork() function.
     private void listWork(String realdir, String dir, String pat,
-					int level, List<String> flist) {
-	String sl[];
-	File fdir = new File(realdir);
-	try {
-	    sl = fdir.list();
-	} catch (SecurityException e) {
-	    return;	// can't read it, ignore it
-	}
+                          int level, List<String> flist) {
+        String sl[];
+        File fdir = new File(realdir);
+        try {
+            sl = fdir.list();
+        } catch (SecurityException e) {
+            return;    // can't read it, ignore it
+        }
 
-	if (level == 0 && dir != null &&
-		Match.path(dir, pat, File.separatorChar))
-	    flist.add(dir);
+        if (level == 0 && dir != null &&
+                Match.path(dir, pat, File.separatorChar))
+            flist.add(dir);
 
-	if (sl == null)
-	    return;	// nothing return, we're done
+        if (sl == null)
+            return;    // nothing return, we're done
 
-	if (realdir.charAt(realdir.length() - 1) != File.separatorChar)
-	    realdir += File.separator;
+        if (realdir.charAt(realdir.length() - 1) != File.separatorChar)
+            realdir += File.separator;
 
-	for (int i = 0; i < sl.length; i++) {
-	    if (sl[i].charAt(0) == '.')
-		continue;	// ignore all "dot" files for now
-	    String md = realdir + sl[i];
-	    File mf = new File(md);
-	    if (!mf.exists())
-		continue;
-	    String name;
-	    if (dir != null)
-		name = dir + sl[i];
-	    else
-		name = sl[i];
-	    if (mf.isDirectory()) {
-		if (Match.path(name, pat, File.separatorChar)) {
-		    flist.add(name);
-		    name += File.separator;
-		} else {
-		    name += File.separator;
-		    if (Match.path(name, pat, File.separatorChar))
-			flist.add(name);
-		}
-		if (Match.dir(name, pat, File.separatorChar))
-		    listWork(md, name, pat, level + 1, flist);
-	    } else {
-		if (Match.path(name, pat, File.separatorChar))
-		    flist.add(name);
-	    }
-	}
+        for (int i = 0; i < sl.length; i++) {
+            if (sl[i].charAt(0) == '.')
+                continue;    // ignore all "dot" files for now
+            String md = realdir + sl[i];
+            File mf = new File(md);
+            if (!mf.exists())
+                continue;
+            String name;
+            if (dir != null)
+                name = dir + sl[i];
+            else
+                name = sl[i];
+            if (mf.isDirectory()) {
+                if (Match.path(name, pat, File.separatorChar)) {
+                    flist.add(name);
+                    name += File.separator;
+                } else {
+                    name += File.separator;
+                    if (Match.path(name, pat, File.separatorChar))
+                        flist.add(name);
+                }
+                if (Match.dir(name, pat, File.separatorChar))
+                    listWork(md, name, pat, level + 1, flist);
+            } else {
+                if (Match.path(name, pat, File.separatorChar))
+                    flist.add(name);
+            }
+        }
     }
 }
 
@@ -1039,113 +1067,113 @@ class Match {
     /**
      * Pathname pattern match
      *
-     * @param s		base string
-     * @param pat	pattern string
-     * @param delim	delimiter character
-     * @return		true if base matches pattern
+     * @param s     base string
+     * @param pat   pattern string
+     * @param delim delimiter character
+     * @return true if base matches pattern
      */
     static public boolean path(String s, String pat, char delim) {
-	try {
-	    return path(s, 0, s.length(), pat, 0, pat.length(), delim);
-	} catch (StringIndexOutOfBoundsException e) {
-	    return false;
-	}
+        try {
+            return path(s, 0, s.length(), pat, 0, pat.length(), delim);
+        } catch (StringIndexOutOfBoundsException e) {
+            return false;
+        }
     }
 
     static private boolean path(String s, int s_index, int s_len,
-	String pat, int p_index, int p_len, char delim)
-	    throws StringIndexOutOfBoundsException {
+                                String pat, int p_index, int p_len, char delim)
+            throws StringIndexOutOfBoundsException {
 
-	while (p_index < p_len) {
-	    char c = pat.charAt(p_index);
-	    switch (c) {
-	    case '%':
-		if (++p_index >= p_len)		// % at end of pattern
-						// ok if no delimiters
-		    return delim == 0 || s.indexOf(delim, s_index) < 0;
-		// scan remainder until delimiter
-		do {
-		    if (path(s, s_index, s_len, pat, p_index, p_len, delim))
-			return true;
-		} while (s.charAt(s_index) != delim && ++s_index < s_len);
-		// ran into a delimiter or ran out of string without a match
-		return false;
+        while (p_index < p_len) {
+            char c = pat.charAt(p_index);
+            switch (c) {
+                case '%':
+                    if (++p_index >= p_len)        // % at end of pattern
+                        // ok if no delimiters
+                        return delim == 0 || s.indexOf(delim, s_index) < 0;
+                    // scan remainder until delimiter
+                    do {
+                        if (path(s, s_index, s_len, pat, p_index, p_len, delim))
+                            return true;
+                    } while (s.charAt(s_index) != delim && ++s_index < s_len);
+                    // ran into a delimiter or ran out of string without a match
+                    return false;
 
-	    case '*':
-		if (++p_index >= p_len)		// end of pattern?
-		    return true;		// unconditional match
-		do {
-		    if (path(s, s_index, s_len, pat, p_index, p_len, delim))
-			return true;
-		} while (++s_index < s_len);
-		// ran out of string without a match
-		return false;
+                case '*':
+                    if (++p_index >= p_len)        // end of pattern?
+                        return true;        // unconditional match
+                    do {
+                        if (path(s, s_index, s_len, pat, p_index, p_len, delim))
+                            return true;
+                    } while (++s_index < s_len);
+                    // ran out of string without a match
+                    return false;
 
-	    default:
-		// if ran out of string or no match, fail
-		if (s_index >= s_len || c != s.charAt(s_index))
-		    return false;
+                default:
+                    // if ran out of string or no match, fail
+                    if (s_index >= s_len || c != s.charAt(s_index))
+                        return false;
 
-		// try the next string and pattern characters
-		s_index++;
-		p_index++;
-	    }
-	}
-	return s_index >= s_len;
+                    // try the next string and pattern characters
+                    s_index++;
+                    p_index++;
+            }
+        }
+        return s_index >= s_len;
     }
 
     /**
      * Directory pattern match
      *
-     * @param s		base string
-     * @param pat	pattern string
-     * @return		true if base is a matching directory of pattern
+     * @param s   base string
+     * @param pat pattern string
+     * @return true if base is a matching directory of pattern
      */
     static public boolean dir(String s, String pat, char delim) {
-	try {
-	    return dir(s, 0, s.length(), pat, 0, pat.length(), delim);
-	} catch (StringIndexOutOfBoundsException e) {
-	    return false;
-	}
+        try {
+            return dir(s, 0, s.length(), pat, 0, pat.length(), delim);
+        } catch (StringIndexOutOfBoundsException e) {
+            return false;
+        }
     }
 
     static private boolean dir(String s, int s_index, int s_len,
-	String pat, int p_index, int p_len, char delim)
-	    throws StringIndexOutOfBoundsException {
+                               String pat, int p_index, int p_len, char delim)
+            throws StringIndexOutOfBoundsException {
 
-	while (p_index < p_len) {
-	    char c = pat.charAt(p_index);
-	    switch (c) {
-	    case '%':
-		if (s_index >= s_len)		// end of base?
-		    return true;		// subset match
-		if (++p_index >= p_len)		// % at end of pattern?
-		    return false;		// no inferiors permitted
-		do {
-		    if (dir(s, s_index, s_len, pat, p_index, p_len, delim))
-			return true;
-		} while (s.charAt(s_index) != delim && ++s_index < s_len);
+        while (p_index < p_len) {
+            char c = pat.charAt(p_index);
+            switch (c) {
+                case '%':
+                    if (s_index >= s_len)        // end of base?
+                        return true;        // subset match
+                    if (++p_index >= p_len)        // % at end of pattern?
+                        return false;        // no inferiors permitted
+                    do {
+                        if (dir(s, s_index, s_len, pat, p_index, p_len, delim))
+                            return true;
+                    } while (s.charAt(s_index) != delim && ++s_index < s_len);
 
-		if (s_index + 1 == s_len)	// s ends with a delimiter
-		    return true;		// must be a subset of pattern
-		return dir(s, s_index, s_len, pat, p_index, p_len, delim);
+                    if (s_index + 1 == s_len)    // s ends with a delimiter
+                        return true;        // must be a subset of pattern
+                    return dir(s, s_index, s_len, pat, p_index, p_len, delim);
 
-	    case '*':
-		return true;			// unconditional match
+                case '*':
+                    return true;            // unconditional match
 
-	    default:
-		if (s_index >= s_len)		// end of base?
-		    return c == delim;		// matched if at delimiter
+                default:
+                    if (s_index >= s_len)        // end of base?
+                        return c == delim;        // matched if at delimiter
 
-		if (c != s.charAt(s_index))
-		    return false;
+                    if (c != s.charAt(s_index))
+                        return false;
 
-		// try the next string and pattern characters
-		s_index++;
-		p_index++;
-	    }
-	}
-	return s_index >= s_len;
+                    // try the next string and pattern characters
+                    s_index++;
+                    p_index++;
+            }
+        }
+        return s_index >= s_len;
     }
 }
 
@@ -1156,10 +1184,10 @@ class Match {
  */
 class SharedByteArrayOutputStream extends ByteArrayOutputStream {
     public SharedByteArrayOutputStream(int size) {
-	super(size);
+        super(size);
     }
 
     public InputStream toStream() {
-	return new SharedByteArrayInputStream(buf, 0, count);
+        return new SharedByteArrayInputStream(buf, 0, count);
     }
 }

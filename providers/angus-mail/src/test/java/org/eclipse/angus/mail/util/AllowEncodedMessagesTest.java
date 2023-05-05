@@ -16,68 +16,67 @@
 
 package org.eclipse.angus.mail.util;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Properties;
-
-import org.eclipse.angus.mail.test.AsciiStringInputStream;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import jakarta.mail.BodyPart;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import org.eclipse.angus.mail.test.AsciiStringInputStream;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test "mail.mime.allowencodedmessages" System property.
  */
 public class AllowEncodedMessagesTest {
- 
+
     private static Session s = Session.getInstance(new Properties());
 
     @BeforeClass
     public static void before() {
-	System.out.println("AllowEncodedMessages");
-	System.setProperty("mail.mime.allowencodedmessages", "true");
+        System.out.println("AllowEncodedMessages");
+        System.setProperty("mail.mime.allowencodedmessages", "true");
     }
 
     @Test
     public void testEncodedMessages() throws Exception {
         MimeMessage m = createMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	BodyPart bp = mp.getBodyPart(0);
-	assertEquals("message/rfc822", bp.getContentType());
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        BodyPart bp = mp.getBodyPart(0);
+        assertEquals("message/rfc822", bp.getContentType());
 
-	MimeMessage m2 = (MimeMessage)bp.getContent();
-	assertEquals("text/plain", m2.getContentType());
-	assertEquals("test message\r\n", m2.getContent());
+        MimeMessage m2 = (MimeMessage) bp.getContent();
+        assertEquals("text/plain", m2.getContentType());
+        assertEquals("test message\r\n", m2.getContent());
     }
 
     @AfterClass
     public static void after() {
-	// should be unnecessary
-	System.clearProperty("mail.mime.allowencodedmessages");
+        // should be unnecessary
+        System.clearProperty("mail.mime.allowencodedmessages");
     }
 
     private static MimeMessage createMessage() throws MessagingException {
         String content =
-	    "Mime-Version: 1.0\n" +
-	    "Subject: Example\n" +
-	    "Content-Type: multipart/mixed; boundary=\"-\"\n" +
-	    "\n" +
-	    "---\n" +
-	    "Content-Type: message/rfc822\n" +
-	    "Content-Transfer-Encoding: base64\n" +
-	    "\n" +
-	    "TWltZS1WZXJzaW9uOiAxLjANClN1YmplY3Q6IH" +
-	    "Rlc3QNCkNvbnRlbnQtVHlwZTogdGV4dC9wbGFp\n" +
-	    "bg0KDQp0ZXN0IG1lc3NhZ2UNCg==\n" +
-	    "\n" +
-	    "-----\n";
+                "Mime-Version: 1.0\n" +
+                        "Subject: Example\n" +
+                        "Content-Type: multipart/mixed; boundary=\"-\"\n" +
+                        "\n" +
+                        "---\n" +
+                        "Content-Type: message/rfc822\n" +
+                        "Content-Transfer-Encoding: base64\n" +
+                        "\n" +
+                        "TWltZS1WZXJzaW9uOiAxLjANClN1YmplY3Q6IH" +
+                        "Rlc3QNCkNvbnRlbnQtVHlwZTogdGV4dC9wbGFp\n" +
+                        "bg0KDQp0ZXN0IG1lc3NhZ2UNCg==\n" +
+                        "\n" +
+                        "-----\n";
 
-	return new MimeMessage(s, new AsciiStringInputStream(content));
+        return new MimeMessage(s, new AsciiStringInputStream(content));
     }
 }

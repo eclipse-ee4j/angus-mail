@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -10,24 +10,26 @@
 
 package demo;
 
-import jakarta.servlet.jsp.tagext.*;
+import jakarta.servlet.jsp.tagext.TagData;
+import jakarta.servlet.jsp.tagext.TagExtraInfo;
+import jakarta.servlet.jsp.tagext.VariableInfo;
 
 /**
  * Extra information class to support the scripting variable created by the
- * ListMessagesTag class. The scope of the variable is limited to the body 
+ * ListMessagesTag class. The scope of the variable is limited to the body
  * of the tag.
  */
 public class ListMessagesTEI extends TagExtraInfo {
-    
+
     public ListMessagesTEI() {
-	super();
+        super();
     }
-    
+
     public VariableInfo[] getVariableInfo(TagData data) {
-	VariableInfo info = new VariableInfo(data.getId(),"MessageInfo",
-	    true, VariableInfo.NESTED);
-	VariableInfo[] varInfo = { info };
-	return varInfo;
+        VariableInfo info = new VariableInfo(data.getId(), "MessageInfo",
+                true, VariableInfo.NESTED);
+        VariableInfo[] varInfo = {info};
+        return varInfo;
     }
 }
 

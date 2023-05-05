@@ -16,8 +16,7 @@
 
 package org.eclipse.angus.mail.remote;
 
-import jakarta.mail.*;
-import org.eclipse.angus.mail.mbox.*;
+import jakarta.mail.MessagingException;
 import org.eclipse.angus.mail.mbox.MboxFolder;
 
 /**
@@ -33,20 +32,20 @@ public class RemoteInbox extends MboxFolder {
     private RemoteStore mstore;
 
     protected RemoteInbox(RemoteStore store, String name) {
-	super(store, name);
-	this.mstore = store;
+        super(store, name);
+        this.mstore = store;
     }
 
     /**
      * Poll the remote store for any new messages.
      */
     public synchronized boolean hasNewMessages() {
-	try {
-	    mstore.updateInbox();
-	} catch (MessagingException ex) {
-	    // ignore it
-	}
-	return super.hasNewMessages();
+        try {
+            mstore.updateInbox();
+        } catch (MessagingException ex) {
+            // ignore it
+        }
+        return super.hasNewMessages();
     }
 
     /**
@@ -54,8 +53,8 @@ public class RemoteInbox extends MboxFolder {
      * Poll the remote store for any new messages first.
      */
     public synchronized void open(int mode) throws MessagingException {
-	mstore.updateInbox();
-	super.open(mode);
+        mstore.updateInbox();
+        super.open(mode);
     }
 
     /**
@@ -63,7 +62,7 @@ public class RemoteInbox extends MboxFolder {
      * Poll the remote store for any new messages first.
      */
     public synchronized int getMessageCount() throws MessagingException {
-	mstore.updateInbox();
-	return super.getMessageCount();
+        mstore.updateInbox();
+        return super.getMessageCount();
     }
 }

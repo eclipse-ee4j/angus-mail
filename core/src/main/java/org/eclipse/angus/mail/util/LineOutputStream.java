@@ -39,38 +39,38 @@ public class LineOutputStream extends FilterOutputStream implements jakarta.mail
     private static byte[] newline;
 
     static {
-	newline = new byte[2];
-	newline[0] = (byte)'\r';
-	newline[1] = (byte)'\n';
+        newline = new byte[2];
+        newline[0] = (byte) '\r';
+        newline[1] = (byte) '\n';
     }
 
     public LineOutputStream(OutputStream out) {
-	this(out, false);
+        this(out, false);
     }
 
     /**
-     * @param	out	the OutputStream
-     * @param	allowutf8	allow UTF-8 characters?
-     * @since	JavaMail 1.6
+     * @param    out    the OutputStream
+     * @param    allowutf8    allow UTF-8 characters?
+     * @since JavaMail 1.6
      */
     public LineOutputStream(OutputStream out, boolean allowutf8) {
-	super(out);
-	this.allowutf8 = allowutf8;
+        super(out);
+        this.allowutf8 = allowutf8;
     }
 
     @Override
     public void writeln(String s) throws IOException {
-	byte[] bytes;
-	if (allowutf8)
-	    bytes = s.getBytes(StandardCharsets.UTF_8);
-	else
-	    bytes = ASCIIUtility.getBytes(s);
-	out.write(bytes);
-	out.write(newline);
+        byte[] bytes;
+        if (allowutf8)
+            bytes = s.getBytes(StandardCharsets.UTF_8);
+        else
+            bytes = ASCIIUtility.getBytes(s);
+        out.write(bytes);
+        out.write(newline);
     }
 
     @Override
     public void writeln() throws IOException {
-	out.write(newline);
+        out.write(newline);
     }
 }

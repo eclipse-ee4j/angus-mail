@@ -16,23 +16,24 @@
 
 package org.eclipse.angus.mail.gimap;
 
-import java.io.IOException;
-
-import jakarta.mail.*;
-
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.URLName;
+import org.eclipse.angus.mail.gimap.protocol.GmailProtocol;
 import org.eclipse.angus.mail.iap.ProtocolException;
-import org.eclipse.angus.mail.imap.IMAPStore;
 import org.eclipse.angus.mail.imap.IMAPFolder;
+import org.eclipse.angus.mail.imap.IMAPStore;
 import org.eclipse.angus.mail.imap.protocol.IMAPProtocol;
 import org.eclipse.angus.mail.imap.protocol.ListInfo;
-import org.eclipse.angus.mail.gimap.protocol.GmailProtocol;
+
+import java.io.IOException;
 
 /**
  * A Gmail Store.  Defaults to imap.gmail.com with SSL.
  * Uses a GmailProtocol and Gmail Folder to support Gmail extensions.
  *
- * @since JavaMail 1.4.6
  * @author Bill Shannon
+ * @since JavaMail 1.4.6
  */
 
 public class GmailStore extends IMAPStore {
@@ -40,55 +41,55 @@ public class GmailStore extends IMAPStore {
      * Constructor that takes a Session object and a URLName that
      * represents a specific IMAP server.
      *
-     * @param	session	the Session
-     * @param	url	the URLName of this store
+     * @param    session    the Session
+     * @param    url    the URLName of this store
      */
     public GmailStore(Session session, URLName url) {
-	this(session, url, "gimap", true);
+        this(session, url, "gimap", true);
     }
 
     /**
      * Constructor used by GmailSSLStore subclass.
      *
-     * @param	session	the Session
-     * @param	url	the URLName of this store
-     * @param	name	the protocol name
-     * @param	isSSL	use SSL to connect?
+     * @param    session    the Session
+     * @param    url    the URLName of this store
+     * @param    name    the protocol name
+     * @param    isSSL    use SSL to connect?
      */
     protected GmailStore(Session session, URLName url,
-                                String name, boolean isSSL) {
-	super(session, url, name, true);	// Gmail requires SSL
+                         String name, boolean isSSL) {
+        super(session, url, name, true);    // Gmail requires SSL
     }
 
     protected boolean protocolConnect(String host, int pport,
-				String user, String password)
-				throws MessagingException {
-	if (host == null)
-	    host = "imap.gmail.com";		// default to Gmail host
-	return super.protocolConnect(host, pport, user, password);
+                                      String user, String password)
+            throws MessagingException {
+        if (host == null)
+            host = "imap.gmail.com";        // default to Gmail host
+        return super.protocolConnect(host, pport, user, password);
     }
 
     protected IMAPProtocol newIMAPProtocol(String host, int port)
-				throws IOException, ProtocolException {
-	return new GmailProtocol(name, host, port,
-					    session.getProperties(),
-					    isSSL,
-					    logger
-					   );
+            throws IOException, ProtocolException {
+        return new GmailProtocol(name, host, port,
+                session.getProperties(),
+                isSSL,
+                logger
+        );
     }
 
     /**
      * Create an IMAPFolder object.
      */
     protected IMAPFolder newIMAPFolder(String fullName, char separator,
-				Boolean isNamespace) {
-	return new GmailFolder(fullName, separator, this, isNamespace);
+                                       Boolean isNamespace) {
+        return new GmailFolder(fullName, separator, this, isNamespace);
     }
 
     /**
      * Create an IMAPFolder object.
      */
     protected IMAPFolder newIMAPFolder(ListInfo li) {
-	return new GmailFolder(li, this);
+        return new GmailFolder(li, this);
     }
 }

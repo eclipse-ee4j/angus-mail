@@ -23,7 +23,7 @@ import jakarta.mail.Provider;
  */
 public class POP3RemoteProvider extends Provider {
     public POP3RemoteProvider() {
-	super(Provider.Type.STORE, "pop3remote",
-	    POP3RemoteStore.class.getName(), "Oracle", null);
+        super(Provider.Type.STORE, "pop3remote",
+                POP3RemoteStore.class.getName(), "Oracle", null);
     }
 }

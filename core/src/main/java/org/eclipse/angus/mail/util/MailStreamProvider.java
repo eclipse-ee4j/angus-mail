@@ -15,15 +15,14 @@
  */
 package org.eclipse.angus.mail.util;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-
 import jakarta.mail.util.SharedByteArrayInputStream;
 import jakarta.mail.util.StreamProvider;
 
+import java.io.InputStream;
+import java.io.OutputStream;
+
 /**
  * Contains the required encoders/decoders and streams required by the API.
- *
  */
 public class MailStreamProvider implements StreamProvider {
 

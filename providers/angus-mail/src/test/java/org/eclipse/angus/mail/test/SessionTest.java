@@ -16,27 +16,26 @@
 
 package org.eclipse.angus.mail.test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import jakarta.mail.Provider;
+import org.eclipse.angus.mail.imap.IMAPProvider;
+import org.junit.Test;
 
 import java.lang.annotation.Annotation;
 
-import org.junit.Test;
-
-import org.eclipse.angus.mail.imap.IMAPProvider;
-
-import jakarta.mail.Provider;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class SessionTest {
 
     private static final String DEFAULT_PROVIDER = "org.eclipse.angus.mail.util.DefaultProvider";
 
-	@Test
-	public void defaultProvider() {
-		assertTrue(containsDefaultProvider(new IMAPProvider()));
-		assertFalse(containsDefaultProvider(new Provider(Provider.Type.STORE, "imap", Object.class.getName(), "Oracle", null) {}));
-	}
-	
+    @Test
+    public void defaultProvider() {
+        assertTrue(containsDefaultProvider(new IMAPProvider()));
+        assertFalse(containsDefaultProvider(new Provider(Provider.Type.STORE, "imap", Object.class.getName(), "Oracle", null) {
+        }));
+    }
+
     private boolean containsDefaultProvider(Provider provider) {
         Annotation[] annotations = provider.getClass().getDeclaredAnnotations();
         for (Annotation annotation : annotations) {

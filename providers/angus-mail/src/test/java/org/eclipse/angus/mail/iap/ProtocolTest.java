@@ -17,14 +17,16 @@
 package org.eclipse.angus.mail.iap;
 
 import org.eclipse.angus.mail.test.NullOutputStream;
+import org.junit.Test;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
 import java.util.Properties;
 
-import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -36,41 +38,41 @@ public final class ProtocolTest {
 
     private static final byte[] noBytes = new byte[0];
     private static final PrintStream nullps =
-				    new PrintStream(new NullOutputStream());
+            new PrintStream(new NullOutputStream());
     private static final ByteArrayInputStream nullis =
-				    new ByteArrayInputStream(noBytes);
+            new ByteArrayInputStream(noBytes);
 
     /**
      * Test that the tag prefix is computed properly.
      */
     @Test
     public void testTagPrefix() throws IOException, ProtocolException {
-	Protocol.tagNum.set(0);		// reset for testing
-	String tag = newProtocolTag();
-	assertEquals("A0", tag);
-	for (int i = 1; i < 26; i++)
-	    tag = newProtocolTag();
-	assertEquals("Z0", tag);
-	tag = newProtocolTag();
-	assertEquals("AA0", tag);
-	for (int i = 26 + 1; i < (26*26 + 26); i++)
-	    tag = newProtocolTag();
-	assertEquals("ZZ0", tag);
-	tag = newProtocolTag();
-	assertEquals("AAA0", tag);
-	for (int i = 26*26 + 26 + 1; i < (26*26*26 + 26*26 + 26); i++)
-	    tag = newProtocolTag();
-	assertEquals("ZZZ0", tag);
-	tag = newProtocolTag();
-	// did it wrap around?
-	assertEquals("A0", tag);
+        Protocol.tagNum.set(0);        // reset for testing
+        String tag = newProtocolTag();
+        assertEquals("A0", tag);
+        for (int i = 1; i < 26; i++)
+            tag = newProtocolTag();
+        assertEquals("Z0", tag);
+        tag = newProtocolTag();
+        assertEquals("AA0", tag);
+        for (int i = 26 + 1; i < (26 * 26 + 26); i++)
+            tag = newProtocolTag();
+        assertEquals("ZZ0", tag);
+        tag = newProtocolTag();
+        assertEquals("AAA0", tag);
+        for (int i = 26 * 26 + 26 + 1; i < (26 * 26 * 26 + 26 * 26 + 26); i++)
+            tag = newProtocolTag();
+        assertEquals("ZZZ0", tag);
+        tag = newProtocolTag();
+        // did it wrap around?
+        assertEquals("A0", tag);
     }
 
     private String newProtocolTag() throws IOException, ProtocolException {
-	Properties props = new Properties();
-	Protocol p = new Protocol(nullis, nullps, props, false);
-	String tag = p.writeCommand("CMD", null);
-	return tag;
+        Properties props = new Properties();
+        Protocol p = new Protocol(nullis, nullps, props, false);
+        String tag = p.writeCommand("CMD", null);
+        return tag;
     }
 
     /**
@@ -78,16 +80,16 @@ public final class ProtocolTest {
      */
     @Test
     public void testTagPrefixReuse() throws IOException, ProtocolException {
-	Properties props = new Properties();
-	props.setProperty("mail.imap.reusetagprefix", "true");
-	Protocol p = new Protocol(nullis, nullps, props, false);
-	String tag = p.writeCommand("CMD", null);
-	assertEquals("A0", tag);
-	p = new Protocol(nullis, nullps, props, false);
-	tag = p.writeCommand("CMD", null);
-	assertEquals("A0", tag);
+        Properties props = new Properties();
+        props.setProperty("mail.imap.reusetagprefix", "true");
+        Protocol p = new Protocol(nullis, nullps, props, false);
+        String tag = p.writeCommand("CMD", null);
+        assertEquals("A0", tag);
+        p = new Protocol(nullis, nullps, props, false);
+        tag = p.writeCommand("CMD", null);
+        assertEquals("A0", tag);
     }
-    
+
     @Test
     public void testLayer1Socket() throws IOException, ProtocolException {
         try (LayerAbstractSocket s = new Layer1of5()) {
@@ -95,7 +97,7 @@ public final class ProtocolTest {
             assertTrue(s.foundChannel());
         }
     }
-    
+
     @Test
     public void testLayer2Socket() throws IOException, ProtocolException {
         try (LayerAbstractSocket s = new Layer2of5()) {
@@ -103,7 +105,7 @@ public final class ProtocolTest {
             assertTrue(s.foundChannel());
         }
     }
-    
+
     @Test
     public void testLayer3Socket() throws IOException, ProtocolException {
         try (LayerAbstractSocket s = new Layer3of5()) {
@@ -111,7 +113,7 @@ public final class ProtocolTest {
             assertTrue(s.foundChannel());
         }
     }
-    
+
     @Test
     public void testLayer4Socket() throws IOException, ProtocolException {
         try (LayerAbstractSocket s = new Layer4of5()) {
@@ -119,7 +121,7 @@ public final class ProtocolTest {
             assertTrue(s.foundChannel());
         }
     }
-    
+
     @Test
     public void testLayer5Socket() throws IOException, ProtocolException {
         try (LayerAbstractSocket s = new Layer5of5()) {
@@ -127,8 +129,8 @@ public final class ProtocolTest {
             assertTrue(s.foundChannel());
         }
     }
-    
-    
+
+
     @Test
     public void testRenamed1Socket() throws IOException, ProtocolException {
         try (RenamedAbstractSocket s = new RenamedSocketLayer1of3()) {
@@ -136,7 +138,7 @@ public final class ProtocolTest {
             assertTrue(s.foundChannel());
         }
     }
-    
+
     @Test
     public void testRenamed2Socket() throws IOException, ProtocolException {
         try (RenamedAbstractSocket s = new RenamedSocketLayer2of3()) {
@@ -144,7 +146,7 @@ public final class ProtocolTest {
             assertTrue(s.foundChannel());
         }
     }
-    
+
     @Test
     public void testRenamed3Socket() throws IOException, ProtocolException {
         try (RenamedAbstractSocket s = new RenamedSocketLayer3of3()) {
@@ -152,7 +154,7 @@ public final class ProtocolTest {
             assertTrue(s.foundChannel());
         }
     }
-    
+
     @Test
     public void testNullSocketsRenamed() throws IOException, ProtocolException {
         try (RenamedAbstractSocket s = new NullSocketsRenamedSocket()) {
@@ -160,7 +162,7 @@ public final class ProtocolTest {
             assertTrue(s.foundChannel());
         }
     }
-    
+
     @Test
     public void testHidden1Socket() throws IOException, ProtocolException {
         try (HiddenAbstractSocket s = new HiddenSocket1of2()) {
@@ -172,7 +174,7 @@ public final class ProtocolTest {
             assertFalse(s.foundChannel());
         }
     }
-    
+
     @Test
     public void testHidden2Socket() throws IOException, ProtocolException {
         try (HiddenAbstractSocket s = new HiddenSocket2of2()) {
@@ -184,7 +186,7 @@ public final class ProtocolTest {
             assertFalse(s.foundChannel());
         }
     }
-    
+
     @Test
     public void testNamedNullAndHiddenSocket() throws IOException, ProtocolException {
         try (HiddenAbstractSocket s = new NamedNullAndHiddenSocket()) {
@@ -192,7 +194,7 @@ public final class ProtocolTest {
             assertFalse(s.foundChannel());
         }
     }
-    
+
     @Test(timeout = 10000)
     public void testSelfNamedSocket() throws IOException, ProtocolException {
         try (WrappedSocket s = new SelfNamedSocket()) {
@@ -200,7 +202,7 @@ public final class ProtocolTest {
             assertFalse(WrappedSocket.foundChannel(s));
         }
     }
-    
+
     @Test(timeout = 10000)
     public void testSelfHiddenSocket() throws IOException, ProtocolException {
         try (WrappedSocket s = new SelfHiddenSocket()) {
@@ -208,102 +210,106 @@ public final class ProtocolTest {
             assertFalse(WrappedSocket.foundChannel(s));
         }
     }
-    
+
     private SocketChannel findSocketChannel(Socket s) throws IOException {
         try {
-	    Method m = Protocol.class.getDeclaredMethod("findSocketChannel", Socket.class);
-	    m.setAccessible(true);
-	    return (SocketChannel) m.invoke((Object) null, s);
-	} catch (RuntimeException re) {
-	    throw re;
-	} catch (Exception e) {
-	    throw new IOException(e);
-	}
+            Method m = Protocol.class.getDeclaredMethod("findSocketChannel", Socket.class);
+            m.setAccessible(true);
+            return (SocketChannel) m.invoke((Object) null, s);
+        } catch (RuntimeException re) {
+            throw re;
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
-    
+
     private static class RenamedSocketLayer3of3 extends RenamedSocketLayer1of3 {
     }
-    
+
     private static class RenamedSocketLayer2of3 extends RenamedSocketLayer1of3 {
     }
-    
-    private static class RenamedSocketLayer1of3 extends RenamedAbstractSocket {    
+
+    private static class RenamedSocketLayer1of3 extends RenamedAbstractSocket {
     }
-    
+
     private static abstract class RenamedAbstractSocket extends Socket {
         private Socket tekcos = new WrappedSocket();
-        
+
         public boolean foundChannel() {
             return WrappedSocket.foundChannel(tekcos);
         }
     }
-    
+
     private static class NullSocketsRenamedSocket extends RenamedAbstractSocket {
         @SuppressWarnings("unused") //Reflective access
-	private Socket socket;
+        private Socket socket;
         @SuppressWarnings("unused") //Reflective access
-	private Socket tekcos;
-        
+        private Socket tekcos;
+
     }
-    
+
     private static class Layer5of5 extends Layer4of5 {
     }
+
     private static class Layer4of5 extends Layer3of5 {
     }
+
     private static class Layer3of5 extends Layer2of5 {
     }
+
     private static class Layer2of5 extends Layer1of5 {
     }
+
     private static class Layer1of5 extends LayerAbstractSocket {
     }
-    
+
     private static abstract class LayerAbstractSocket extends Socket {
         private final Socket socket = new WrappedSocket();
-        
+
         public boolean foundChannel() {
             return WrappedSocket.foundChannel(socket);
         }
     }
-    
+
     private static class SelfNamedSocket extends WrappedSocket {
         @SuppressWarnings("unused") //Reflective access
         private Socket socket = this;
     }
-    
+
     private static class SelfHiddenSocket extends WrappedSocket {
         @SuppressWarnings("unused") //Reflective access
         private Socket hidden = this;
     }
-    
-    
+
+
     private static class HiddenSocket2of2 extends HiddenSocket1of2 {
     }
-    
+
     private static class HiddenSocket1of2 extends HiddenAbstractSocket {
     }
-    
+
     private static abstract class HiddenAbstractSocket extends Socket {
         private final Object hidden = new WrappedSocket();
-        
+
         public boolean foundChannel() {
             return WrappedSocket.foundChannel(hidden);
         }
     }
-    
+
     private static class NamedNullAndHiddenSocket extends HiddenAbstractSocket {
-    
+
         @SuppressWarnings("unused") //Reflective access
         private Socket socket;
     }
-    
+
     private static class WrappedSocket extends Socket {
         private boolean found;
-        
+
         public static boolean foundChannel(Object ws) {
             return ws instanceof WrappedSocket
-                  && ((WrappedSocket) ws).found;
+                    && ((WrappedSocket) ws).found;
         }
-        
+
         @Override
         public SocketChannel getChannel() {
             found = true;

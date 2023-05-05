@@ -16,13 +16,16 @@
 
 package org.eclipse.angus.mail.test;
 
-import java.io.IOException;
-import java.net.*;
-import java.security.GeneralSecurityException;
-
-import javax.net.ssl.*;
-
 import org.eclipse.angus.mail.util.MailSSLSocketFactory;
+
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.security.GeneralSecurityException;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * An SSL socket factory for testing that tracks whether it's being used.
@@ -32,80 +35,86 @@ import org.eclipse.angus.mail.util.MailSSLSocketFactory;
  * An instance of this factory can be set as the value of the
  * <code>mail.&lt;protocol&gt;.ssl.socketFactory</code> property.
  *
- * @since	JavaMail 1.5.3
- * @author	Stephan Sann
- * @author	Bill Shannon
+ * @since JavaMail 1.5.3
+ * @author Stephan Sann
+ * @author Bill Shannon
  */
 public class TestSSLSocketFactory extends SSLSocketFactory {
 
-    /** Holds a SSLSocketFactory to pass all API-method-calls to */
+    /**
+     * Holds a SSLSocketFactory to pass all API-method-calls to
+     */
     private SSLSocketFactory defaultFactory = null;
 
-    /** Was a socket created? */
+    /**
+     * Was a socket created?
+     */
     private boolean socketCreated;
 
-    /** Was a socket wrapped? */
+    /**
+     * Was a socket wrapped?
+     */
     private boolean socketWrapped;
 
     private String[] suites;
 
     /**
      * Initializes a new TestSSLSocketFactory.
-     * 
-     * @throws  GeneralSecurityException for security errors
+     *
+     * @throws GeneralSecurityException for security errors
      */
     public TestSSLSocketFactory() throws GeneralSecurityException {
-	this("TLS");
+        this("TLS");
     }
 
     /**
      * Initializes a new TestSSLSocketFactory with a given protocol.
      * Normally the protocol will be specified as "TLS".
-     * 
-     * @param   protocol  The protocol to use
-     * @throws  NoSuchAlgorithmException if given protocol is not supported
-     * @throws  GeneralSecurityException for security errors
+     *
+     * @param protocol The protocol to use
+     * @throws NoSuchAlgorithmException if given protocol is not supported
+     * @throws GeneralSecurityException for security errors
      */
     public TestSSLSocketFactory(String protocol)
-				throws GeneralSecurityException {
+            throws GeneralSecurityException {
 
-	// Get the default SSLSocketFactory to delegate all API-calls to.
-	// Use a MailSSLSocketFactory so that we can trust "localhost".
-	defaultFactory = new MailSSLSocketFactory();
-	((MailSSLSocketFactory)defaultFactory).setTrustedHosts("localhost");
+        // Get the default SSLSocketFactory to delegate all API-calls to.
+        // Use a MailSSLSocketFactory so that we can trust "localhost".
+        defaultFactory = new MailSSLSocketFactory();
+        ((MailSSLSocketFactory) defaultFactory).setTrustedHosts("localhost");
     }
 
     /**
      * Was a socket created using one of the createSocket methods?
      */
     public boolean getSocketCreated() {
-	return socketCreated;
+        return socketCreated;
     }
 
     /**
      * Was a socket wrapped using the createSocket method that takes a Socket?
      */
     public boolean getSocketWrapped() {
-	return socketWrapped;
+        return socketWrapped;
     }
 
     /**
      * Set the default cipher suites to be applied to future sockets.
      */
     public void setDefaultCipherSuites(String[] suites) {
-	this.suites = suites;
+        this.suites = suites;
     }
 
     /**
      * Configure the socket to be returned.
      */
     private Socket configure(Socket socket) {
-	if (socket instanceof SSLSocket) {	// XXX - always true
-	    SSLSocket s = (SSLSocket)socket;
-	    if (suites != null)
-		s.setEnabledCipherSuites(suites);
-	}
-	return socket;
+        if (socket instanceof SSLSocket) {    // XXX - always true
+            SSLSocket s = (SSLSocket) socket;
+            if (suites != null)
+                s.setEnabledCipherSuites(suites);
+        }
+        return socket;
     }
 
 
@@ -117,10 +126,10 @@ public class TestSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket(Socket socket, String s, int i,
-				boolean flag) throws IOException {
-	Socket wrappedSocket = defaultFactory.createSocket(socket, s, i, flag);
-	socketWrapped = true;
-	return configure(wrappedSocket);
+                                            boolean flag) throws IOException {
+        Socket wrappedSocket = defaultFactory.createSocket(socket, s, i, flag);
+        socketWrapped = true;
+        return configure(wrappedSocket);
     }
 
     /* (non-Javadoc)
@@ -128,10 +137,10 @@ public class TestSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized String[] getDefaultCipherSuites() {
-	if (suites != null)
-	    return suites.clone();
-	else
-	    return defaultFactory.getDefaultCipherSuites();
+        if (suites != null)
+            return suites.clone();
+        else
+            return defaultFactory.getDefaultCipherSuites();
     }
 
     /* (non-Javadoc)
@@ -139,7 +148,7 @@ public class TestSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized String[] getSupportedCipherSuites() {
-	return defaultFactory.getSupportedCipherSuites();
+        return defaultFactory.getSupportedCipherSuites();
     }
 
     /* (non-Javadoc)
@@ -147,9 +156,9 @@ public class TestSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket() throws IOException {
-	Socket socket = defaultFactory.createSocket();
-	socketCreated = true;
-	return configure(socket);
+        Socket socket = defaultFactory.createSocket();
+        socketCreated = true;
+        return configure(socket);
     }
 
     /* (non-Javadoc)
@@ -158,11 +167,11 @@ public class TestSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket(InetAddress inetaddress, int i,
-			InetAddress inetaddress1, int j) throws IOException {
-	Socket socket =
-		defaultFactory.createSocket(inetaddress, i, inetaddress1, j);
-	socketCreated = true;
-	return configure(socket);
+                                            InetAddress inetaddress1, int j) throws IOException {
+        Socket socket =
+                defaultFactory.createSocket(inetaddress, i, inetaddress1, j);
+        socketCreated = true;
+        return configure(socket);
     }
 
     /* (non-Javadoc)
@@ -170,10 +179,10 @@ public class TestSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket(InetAddress inetaddress, int i)
-				throws IOException {
-	Socket socket = defaultFactory.createSocket(inetaddress, i);
-	socketCreated = true;
-	return configure(socket);
+            throws IOException {
+        Socket socket = defaultFactory.createSocket(inetaddress, i);
+        socketCreated = true;
+        return configure(socket);
     }
 
     /* (non-Javadoc)
@@ -182,11 +191,11 @@ public class TestSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket(String s, int i,
-				InetAddress inetaddress, int j)
-				throws IOException, UnknownHostException {
-	Socket socket = defaultFactory.createSocket(s, i, inetaddress, j);
-	socketCreated = true;
-	return configure(socket);
+                                            InetAddress inetaddress, int j)
+            throws IOException, UnknownHostException {
+        Socket socket = defaultFactory.createSocket(s, i, inetaddress, j);
+        socketCreated = true;
+        return configure(socket);
     }
 
     /* (non-Javadoc)
@@ -194,9 +203,9 @@ public class TestSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket(String s, int i)
-				throws IOException, UnknownHostException {
-	Socket socket = defaultFactory.createSocket(s, i);
-	socketCreated = true;
-	return configure(socket);
+            throws IOException, UnknownHostException {
+        Socket socket = defaultFactory.createSocket(s, i);
+        socketCreated = true;
+        return configure(socket);
     }
 }

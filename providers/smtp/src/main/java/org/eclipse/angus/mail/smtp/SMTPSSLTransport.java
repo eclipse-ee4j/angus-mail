@@ -16,7 +16,8 @@
 
 package org.eclipse.angus.mail.smtp;
 
-import jakarta.mail.*;
+import jakarta.mail.Session;
+import jakarta.mail.URLName;
 
 /**
  * This class implements the Transport abstract class using SMTP
@@ -30,10 +31,10 @@ public class SMTPSSLTransport extends SMTPTransport {
     /**
      * Constructor.
      *
-     * @param	session	the Session
-     * @param	urlname	the URLName of this transport
+     * @param    session    the Session
+     * @param    urlname    the URLName of this transport
      */
     public SMTPSSLTransport(Session session, URLName urlname) {
-	super(session, urlname, "smtps", true);
+        super(session, urlname, "smtps", true);
     }
 }

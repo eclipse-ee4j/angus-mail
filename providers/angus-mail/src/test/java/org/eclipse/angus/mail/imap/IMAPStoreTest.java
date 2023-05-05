@@ -16,23 +16,22 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.Folder;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
 import java.io.IOException;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
-import jakarta.mail.Folder;
-import jakarta.mail.Session;
-import jakarta.mail.Store;
-import jakarta.mail.MessagingException;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.rules.Timeout;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -48,8 +47,15 @@ public final class IMAPStoreTest {
     private static final String utf7Folder = "test&A7E-";
 
     public static abstract class IMAPTest {
-	public void init(Properties props) { };
-	public void test(Store store, TestServer server) throws Exception { };
+        public void init(Properties props) {
+        }
+
+        ;
+
+        public void test(Store store, TestServer server) throws Exception {
+        }
+
+        ;
     }
 
     /**
@@ -57,23 +63,23 @@ public final class IMAPStoreTest {
      */
     @Test
     public void testUtf8UsernameLogin() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void test(Store store, TestServer server)
-				    throws MessagingException, IOException {
-		    store.connect(utf8Folder, utf8Folder);
-		}
-	    },
-	    new IMAPLoginHandler() {
-		@Override
-		public void authlogin(String ir)
-					throws IOException {
-		    username = utf8Folder;
-		    password = utf8Folder;
-		    super.authlogin(ir);
-		}
-	    });
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void test(Store store, TestServer server)
+                            throws MessagingException, IOException {
+                        store.connect(utf8Folder, utf8Folder);
+                    }
+                },
+                new IMAPLoginHandler() {
+                    @Override
+                    public void authlogin(String ir)
+                            throws IOException {
+                        username = utf8Folder;
+                        password = utf8Folder;
+                        super.authlogin(ir);
+                    }
+                });
     }
 
     /**
@@ -81,23 +87,23 @@ public final class IMAPStoreTest {
      */
     @Test
     public void testUtf8UsernamePlain() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void test(Store store, TestServer server)
-				    throws MessagingException, IOException {
-		    store.connect(utf8Folder, utf8Folder);
-		}
-	    },
-	    new IMAPPlainHandler() {
-		@Override
-		public void authplain(String ir)
-					throws IOException {
-		    username = utf8Folder;
-		    password = utf8Folder;
-		    super.authplain(ir);
-		}
-	    });
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void test(Store store, TestServer server)
+                            throws MessagingException, IOException {
+                        store.connect(utf8Folder, utf8Folder);
+                    }
+                },
+                new IMAPPlainHandler() {
+                    @Override
+                    public void authplain(String ir)
+                            throws IOException {
+                        username = utf8Folder;
+                        password = utf8Folder;
+                        super.authplain(ir);
+                    }
+                });
     }
 
     /**
@@ -106,25 +112,30 @@ public final class IMAPStoreTest {
      */
     @Test
     public void testUtf7Namespaces() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void test(Store store, TestServer server)
-				    throws MessagingException, IOException {
-		    store.connect("test", "test");
-		    Folder[] pub = ((IMAPStore)store).getSharedNamespaces();
-		    assertEquals(utf8Folder, pub[0].getName());
-		}
-	    },
-	    new IMAPHandler() {
-		{{ capabilities += " NAMESPACE"; }}
-		@Override
-		public void namespace() throws IOException {
-		    untagged("NAMESPACE ((\"\" \"/\")) ((\"~\" \"/\")) " +
-			"((\"" + utf7Folder + "/\" \"/\"))");
-		    ok();
-		}
-	    });
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void test(Store store, TestServer server)
+                            throws MessagingException, IOException {
+                        store.connect("test", "test");
+                        Folder[] pub = ((IMAPStore) store).getSharedNamespaces();
+                        assertEquals(utf8Folder, pub[0].getName());
+                    }
+                },
+                new IMAPHandler() {
+                    {
+                        {
+                            capabilities += " NAMESPACE";
+                        }
+                    }
+
+                    @Override
+                    public void namespace() throws IOException {
+                        untagged("NAMESPACE ((\"\" \"/\")) ((\"~\" \"/\")) " +
+                                "((\"" + utf7Folder + "/\" \"/\"))");
+                        ok();
+                    }
+                });
     }
 
     /**
@@ -133,36 +144,36 @@ public final class IMAPStoreTest {
      */
     @Test
     public void testUtf8FolderNameCreate() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void test(Store store, TestServer server)
-				    throws MessagingException, IOException {
-		    store.connect("test", "test");
-		    Folder test = store.getFolder(utf8Folder);
-		    assertTrue(test.create(Folder.HOLDS_MESSAGES));
-		}
-	    },
-	    new IMAPUtf8Handler() {
-		@Override
-		public void create(String line) throws IOException {
-		    StringTokenizer st = new StringTokenizer(line);
-		    st.nextToken();	// skip tag
-		    st.nextToken();	// skip "CREATE"
-		    String name = unquote(st.nextToken());
-		    if (name.equals(utf8Folder))
-			ok();
-		    else
-			no("wrong name");
-		}
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void test(Store store, TestServer server)
+                            throws MessagingException, IOException {
+                        store.connect("test", "test");
+                        Folder test = store.getFolder(utf8Folder);
+                        assertTrue(test.create(Folder.HOLDS_MESSAGES));
+                    }
+                },
+                new IMAPUtf8Handler() {
+                    @Override
+                    public void create(String line) throws IOException {
+                        StringTokenizer st = new StringTokenizer(line);
+                        st.nextToken();    // skip tag
+                        st.nextToken();    // skip "CREATE"
+                        String name = unquote(st.nextToken());
+                        if (name.equals(utf8Folder))
+                            ok();
+                        else
+                            no("wrong name");
+                    }
 
-		@Override
-		public void list(String line) throws IOException {
-		    untagged("LIST (\\HasNoChildren) \"/\" \"" +
-							utf8Folder + "\"");
-		    ok();
-		}
-	    });
+                    @Override
+                    public void list(String line) throws IOException {
+                        untagged("LIST (\\HasNoChildren) \"/\" \"" +
+                                utf8Folder + "\"");
+                        ok();
+                    }
+                });
     }
 
     /**
@@ -170,23 +181,23 @@ public final class IMAPStoreTest {
      */
     @Test
     public void testCloseClosesFolder() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void test(Store store, TestServer server)
-				    throws MessagingException, IOException {
-		    store.connect("test", "test");
-		    Folder test = store.getFolder("INBOX");
-		    test.open(Folder.READ_ONLY);
-		    store.close();
-		    assertFalse(test.isOpen());
-		    assertEquals(1, server.clientCount());
-		    server.waitForClients(1);
-		    // test will timeout if clients don't terminate
-		}
-	    },
-	    new IMAPHandler() {
-	    });
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void test(Store store, TestServer server)
+                            throws MessagingException, IOException {
+                        store.connect("test", "test");
+                        Folder test = store.getFolder("INBOX");
+                        test.open(Folder.READ_ONLY);
+                        store.close();
+                        assertFalse(test.isOpen());
+                        assertEquals(1, server.clientCount());
+                        server.waitForClients(1);
+                        // test will timeout if clients don't terminate
+                    }
+                },
+                new IMAPHandler() {
+                });
     }
 
     /**
@@ -194,31 +205,31 @@ public final class IMAPStoreTest {
      */
     @Test
     public void testCloseEmptiesPool() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void init(Properties props) {
-		    props.setProperty("mail.imap.connectionpoolsize", "2");
-		}
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void init(Properties props) {
+                        props.setProperty("mail.imap.connectionpoolsize", "2");
+                    }
 
-		@Override
-		public void test(Store store, TestServer server)
-				    throws MessagingException, IOException {
-		    store.connect("test", "test");
-		    Folder test = store.getFolder("INBOX");
-		    test.open(Folder.READ_ONLY);
-		    Folder test2 = store.getFolder("INBOX");
-		    test2.open(Folder.READ_ONLY);
-		    test.close(false);
-		    test2.close(false);
-		    store.close();
-		    assertEquals(2, server.clientCount());
-		    server.waitForClients(2);
-		    // test will timeout if clients don't terminate
-		}
-	    },
-	    new IMAPHandler() {
-	    });
+                    @Override
+                    public void test(Store store, TestServer server)
+                            throws MessagingException, IOException {
+                        store.connect("test", "test");
+                        Folder test = store.getFolder("INBOX");
+                        test.open(Folder.READ_ONLY);
+                        Folder test2 = store.getFolder("INBOX");
+                        test2.open(Folder.READ_ONLY);
+                        test.close(false);
+                        test2.close(false);
+                        store.close();
+                        assertEquals(2, server.clientCount());
+                        server.waitForClients(2);
+                        // test will timeout if clients don't terminate
+                    }
+                },
+                new IMAPHandler() {
+                });
     }
 
     /**
@@ -226,42 +237,46 @@ public final class IMAPStoreTest {
      */
     @Test
     public void testStoreFailureDoesNotCloseFolder() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void init(Properties props) {
-		    props.setProperty(
-			"mail.imap.closefoldersonstorefailure", "false");
-		}
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void init(Properties props) {
+                        props.setProperty(
+                                "mail.imap.closefoldersonstorefailure", "false");
+                    }
 
-		@Override
-		public void test(Store store, TestServer server)
-				    throws MessagingException, IOException {
-		    store.connect("test", "test");
-		    Folder test = store.getFolder("INBOX");
-		    test.open(Folder.READ_ONLY);
-		    try {
-			((IMAPStore)store).getSharedNamespaces();
-			fail("MessagingException expected");
-		    } catch (MessagingException mex) {
-			// expected
-		    }
-		    assertTrue(test.isOpen());
-		    store.close();
-		    assertFalse(test.isOpen());
-		    assertEquals(2, server.clientCount());
-		    server.waitForClients(2);
-		    // test will timeout if clients don't terminate
-		}
-	    },
-	    new IMAPHandler() {
-		{{ capabilities += " NAMESPACE"; }}
+                    @Override
+                    public void test(Store store, TestServer server)
+                            throws MessagingException, IOException {
+                        store.connect("test", "test");
+                        Folder test = store.getFolder("INBOX");
+                        test.open(Folder.READ_ONLY);
+                        try {
+                            ((IMAPStore) store).getSharedNamespaces();
+                            fail("MessagingException expected");
+                        } catch (MessagingException mex) {
+                            // expected
+                        }
+                        assertTrue(test.isOpen());
+                        store.close();
+                        assertFalse(test.isOpen());
+                        assertEquals(2, server.clientCount());
+                        server.waitForClients(2);
+                        // test will timeout if clients don't terminate
+                    }
+                },
+                new IMAPHandler() {
+                    {
+                        {
+                            capabilities += " NAMESPACE";
+                        }
+                    }
 
-		@Override
-		public void namespace() throws IOException {
-		    exit();
-		}
-	    });
+                    @Override
+                    public void namespace() throws IOException {
+                        exit();
+                    }
+                });
     }
 
     /**
@@ -270,42 +285,46 @@ public final class IMAPStoreTest {
      */
     @Test
     public void testCloseAfterFailure() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void init(Properties props) {
-		    props.setProperty(
-			"mail.imap.closefoldersonstorefailure", "false");
-		}
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void init(Properties props) {
+                        props.setProperty(
+                                "mail.imap.closefoldersonstorefailure", "false");
+                    }
 
-		@Override
-		public void test(Store store, TestServer server)
-				    throws MessagingException, IOException {
-		    store.connect("test", "test");
-		    Folder test = store.getFolder("INBOX");
-		    test.open(Folder.READ_ONLY);
-		    try {
-			((IMAPStore)store).getSharedNamespaces();
-			fail("MessagingException expected");
-		    } catch (MessagingException mex) {
-			// expected
-		    }
-		    assertTrue(test.isOpen());
-		    test.close();	// put it back in the pool
-		    store.close();
-		    assertEquals(2, server.clientCount());
-		    server.waitForClients(2);
-		    // test will timeout if clients don't terminate
-		}
-	    },
-	    new IMAPHandler() {
-		{{ capabilities += " NAMESPACE"; }}
+                    @Override
+                    public void test(Store store, TestServer server)
+                            throws MessagingException, IOException {
+                        store.connect("test", "test");
+                        Folder test = store.getFolder("INBOX");
+                        test.open(Folder.READ_ONLY);
+                        try {
+                            ((IMAPStore) store).getSharedNamespaces();
+                            fail("MessagingException expected");
+                        } catch (MessagingException mex) {
+                            // expected
+                        }
+                        assertTrue(test.isOpen());
+                        test.close();    // put it back in the pool
+                        store.close();
+                        assertEquals(2, server.clientCount());
+                        server.waitForClients(2);
+                        // test will timeout if clients don't terminate
+                    }
+                },
+                new IMAPHandler() {
+                    {
+                        {
+                            capabilities += " NAMESPACE";
+                        }
+                    }
 
-		@Override
-		public void namespace() throws IOException {
-		    exit();
-		}
-	    });
+                    @Override
+                    public void namespace() throws IOException {
+                        exit();
+                    }
+                });
     }
 
     /**
@@ -313,42 +332,46 @@ public final class IMAPStoreTest {
      */
     @Test
     public void testStoreFailureDoesCloseFolder() {
-	testWithHandler(
-	    new IMAPTest() {
-		@Override
-		public void init(Properties props) {
-		    props.setProperty(
-			// the default, but just to be sure...
-			"mail.imap.closefoldersonstorefailure", "true");
-		}
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void init(Properties props) {
+                        props.setProperty(
+                                // the default, but just to be sure...
+                                "mail.imap.closefoldersonstorefailure", "true");
+                    }
 
-		@Override
-		public void test(Store store, TestServer server)
-				    throws MessagingException, IOException {
-		    store.connect("test", "test");
-		    Folder test = store.getFolder("INBOX");
-		    test.open(Folder.READ_ONLY);
-		    try {
-			((IMAPStore)store).getSharedNamespaces();
-			fail("MessagingException expected");
-		    } catch (MessagingException mex) {
-			// expected
-		    }
-		    assertFalse(test.isOpen());
-		    store.close();
-		    assertEquals(2, server.clientCount());
-		    server.waitForClients(2);
-		    // test will timeout if clients don't terminate
-		}
-	    },
-	    new IMAPHandler() {
-		{{ capabilities += " NAMESPACE"; }}
+                    @Override
+                    public void test(Store store, TestServer server)
+                            throws MessagingException, IOException {
+                        store.connect("test", "test");
+                        Folder test = store.getFolder("INBOX");
+                        test.open(Folder.READ_ONLY);
+                        try {
+                            ((IMAPStore) store).getSharedNamespaces();
+                            fail("MessagingException expected");
+                        } catch (MessagingException mex) {
+                            // expected
+                        }
+                        assertFalse(test.isOpen());
+                        store.close();
+                        assertEquals(2, server.clientCount());
+                        server.waitForClients(2);
+                        // test will timeout if clients don't terminate
+                    }
+                },
+                new IMAPHandler() {
+                    {
+                        {
+                            capabilities += " NAMESPACE";
+                        }
+                    }
 
-		@Override
-		public void namespace() throws IOException {
-		    exit();
-		}
-	    });
+                    @Override
+                    public void namespace() throws IOException {
+                        exit();
+                    }
+                });
     }
 
     private void testWithHandler(IMAPTest test, IMAPHandler handler) {
@@ -360,17 +383,17 @@ public final class IMAPStoreTest {
             final Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
             properties.setProperty("mail.imap.port", "" + server.getPort());
-	    test.init(properties);
+            test.init(properties);
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
             final Store store = session.getStore("imap");
             try {
-		test.test(store, server);
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
+                test.test(store, server);
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
             } finally {
                 store.close();
             }
@@ -385,32 +408,36 @@ public final class IMAPStoreTest {
     }
 
     private static String unquote(String s) {
-	if (s.startsWith("\"") && s.endsWith("\"") && s.length() > 1) {
-	    s = s.substring(1, s.length() - 1);
-	    // check for any escaped characters
-	    if (s.indexOf('\\') >= 0) {
-		StringBuilder sb = new StringBuilder(s.length());	// approx
-		for (int i = 0; i < s.length(); i++) {
-		    char c = s.charAt(i);
-		    if (c == '\\' && i < s.length() - 1)
-			c = s.charAt(++i);
-		    sb.append(c);
-		}
-		s = sb.toString();
-	    }
-	}
-	return s;
+        if (s.startsWith("\"") && s.endsWith("\"") && s.length() > 1) {
+            s = s.substring(1, s.length() - 1);
+            // check for any escaped characters
+            if (s.indexOf('\\') >= 0) {
+                StringBuilder sb = new StringBuilder(s.length());    // approx
+                for (int i = 0; i < s.length(); i++) {
+                    char c = s.charAt(i);
+                    if (c == '\\' && i < s.length() - 1)
+                        c = s.charAt(++i);
+                    sb.append(c);
+                }
+                s = sb.toString();
+            }
+        }
+        return s;
     }
 
     /**
      * An IMAPHandler that enables UTF-8 support.
      */
     private static class IMAPUtf8Handler extends IMAPHandler {
-	{{ capabilities += " ENABLE UTF8=ACCEPT"; }}
+        {
+            {
+                capabilities += " ENABLE UTF8=ACCEPT";
+            }
+        }
 
-	@Override
-	public void enable(String line) throws IOException {
-	    ok();
-	}
+        @Override
+        public void enable(String line) throws IOException {
+            ok();
+        }
     }
 }

@@ -16,13 +16,6 @@
 
 package org.eclipse.angus.mail.util;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Properties;
-
-import org.eclipse.angus.mail.test.AsciiStringInputStream;
-import org.junit.Test;
-
 import jakarta.mail.BodyPart;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
@@ -30,6 +23,12 @@ import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.util.StreamProvider.EncoderTypes;
+import org.eclipse.angus.mail.test.AsciiStringInputStream;
+import org.junit.Test;
+
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test that the Content-Transfer-Encoding header is ignored
@@ -38,74 +37,74 @@ import jakarta.mail.util.StreamProvider.EncoderTypes;
  * XXX - We don't test any of the properties that control this behavior.
  */
 public class RestrictEncodingTest {
- 
+
     private static Session s = Session.getInstance(new Properties());
 
     @Test
     public void testMultipart() throws Exception {
         MimeMessage m = createMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	assertEquals(2, mp.getCount());
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        assertEquals(2, mp.getCount());
 
-	BodyPart bp = mp.getBodyPart(0);
-	assertEquals("first part=\n", bp.getContent());
+        BodyPart bp = mp.getBodyPart(0);
+        assertEquals("first part=\n", bp.getContent());
     }
 
     @Test
     public void testMessage() throws Exception {
         MimeMessage m = createMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
+        MimeMultipart mp = (MimeMultipart) m.getContent();
 
-	BodyPart bp = mp.getBodyPart(1);
-	MimeMessage m2 = (MimeMessage)bp.getContent();
-	assertEquals("message=\n", m2.getContent());
+        BodyPart bp = mp.getBodyPart(1);
+        MimeMessage m2 = (MimeMessage) bp.getContent();
+        assertEquals("message=\n", m2.getContent());
     }
 
     @Test
     public void testWrite() throws Exception {
         MimeMessage m = new MimeMessage(s);
-	MimeMultipart mp = new MimeMultipart();
-	MimeBodyPart mbp = new MimeBodyPart();
-	mbp.setText("first part");
-	mp.addBodyPart(mbp);
-	MimeMessage m2 = new MimeMessage(s);
-	m2.setSubject("example");
-	m2.setText("message=\n");
-	mbp = new MimeBodyPart();
-	mbp.setContent(m2, "message/rfc822");
-	mbp.setHeader("Content-Transfer-Encoding", EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder());
-	mp.addBodyPart(mbp);
-	m.setContent(mp);
-	m.setHeader("Content-Transfer-Encoding", EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder());
+        MimeMultipart mp = new MimeMultipart();
+        MimeBodyPart mbp = new MimeBodyPart();
+        mbp.setText("first part");
+        mp.addBodyPart(mbp);
+        MimeMessage m2 = new MimeMessage(s);
+        m2.setSubject("example");
+        m2.setText("message=\n");
+        mbp = new MimeBodyPart();
+        mbp.setContent(m2, "message/rfc822");
+        mbp.setHeader("Content-Transfer-Encoding", EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder());
+        mp.addBodyPart(mbp);
+        m.setContent(mp);
+        m.setHeader("Content-Transfer-Encoding", EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder());
 
-	m = new MimeMessage(m);		// copy it
-	mp = (MimeMultipart)m.getContent();
+        m = new MimeMessage(m);        // copy it
+        mp = (MimeMultipart) m.getContent();
 
-	BodyPart bp = mp.getBodyPart(1);
-	m2 = (MimeMessage)bp.getContent();
-	assertEquals("message=\n", m2.getContent());
+        BodyPart bp = mp.getBodyPart(1);
+        m2 = (MimeMessage) bp.getContent();
+        assertEquals("message=\n", m2.getContent());
     }
 
     private static MimeMessage createMessage() throws MessagingException {
         String content =
-	    "Mime-Version: 1.0\n" +
-	    "Content-Type: multipart/mixed; boundary=\"=3D\"\n" +
-	    "Content-Transfer-Encoding: quoted-printable\n" +
-	    "\n" +
-	    "--=3D\n" +
-	    "\n" +
-	    "first part=\n" +
-	    "\n" +
-	    "--=3D\n" +
-	    "Content-Type: message/rfc822\n" +
-	    "Content-Transfer-Encoding: quoted-printable\n" +
-	    "\n" +
-	    "Subject: example\n" +
-	    "\n" +
-	    "message=\n" +
-	    "\n" +
-	    "--=3D--\n";
+                "Mime-Version: 1.0\n" +
+                        "Content-Type: multipart/mixed; boundary=\"=3D\"\n" +
+                        "Content-Transfer-Encoding: quoted-printable\n" +
+                        "\n" +
+                        "--=3D\n" +
+                        "\n" +
+                        "first part=\n" +
+                        "\n" +
+                        "--=3D\n" +
+                        "Content-Type: message/rfc822\n" +
+                        "Content-Transfer-Encoding: quoted-printable\n" +
+                        "\n" +
+                        "Subject: example\n" +
+                        "\n" +
+                        "message=\n" +
+                        "\n" +
+                        "--=3D--\n";
 
-	return new MimeMessage(s, new AsciiStringInputStream(content));
+        return new MimeMessage(s, new AsciiStringInputStream(content));
     }
 }

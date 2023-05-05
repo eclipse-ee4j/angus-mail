@@ -22,8 +22,8 @@ import jakarta.mail.search.StringTerm;
 /**
  * This class implements searching using the Gmail X-GM-RAW extension.
  *
- * @since JavaMail 1.4.6
  * @author Bill Shannon
+ * @since JavaMail 1.4.6
  */
 
 public final class GmailRawSearchTerm extends StringTerm {
@@ -33,30 +33,30 @@ public final class GmailRawSearchTerm extends StringTerm {
     /**
      * Constructor.
      *
-     * @param pattern  the pattern to search for
+     * @param pattern the pattern to search for
      */
     public GmailRawSearchTerm(String pattern) {
-	// Note: comparison is case-insensitive
-	super(pattern);
+        // Note: comparison is case-insensitive
+        super(pattern);
     }
 
     /**
      * The match method.
      *
-     * @param msg	the pattern match is applied to this Message's 
-     *			subject header
-     * @exception	RuntimeException	this can't be supported locally
+     * @param msg the pattern match is applied to this Message's
+     *            subject header
+     * @exception RuntimeException    this can't be supported locally
      */
     public boolean match(Message msg) {
-	throw new RuntimeException("GmailRawSearchTerm not supported locally");
+        throw new RuntimeException("GmailRawSearchTerm not supported locally");
     }
 
     /**
      * Equality comparison.
      */
     public boolean equals(Object obj) {
-	if (!(obj instanceof GmailRawSearchTerm))
-	    return false;
-	return super.equals(obj);
+        if (!(obj instanceof GmailRawSearchTerm))
+            return false;
+        return super.equals(obj);
     }
 }

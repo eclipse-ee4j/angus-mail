@@ -16,18 +16,17 @@
 
 package org.eclipse.angus.mail.imap.protocol;
 
-import org.eclipse.angus.mail.iap.*;
 import org.eclipse.angus.mail.iap.ParsingException;
 
 /**
  * This class represents the UID data item.
  *
- * @author  John Mani
+ * @author John Mani
  */
 
 public class UID implements Item {
-    
-    static final char[] name = {'U','I','D'};
+
+    static final char[] name = {'U', 'I', 'D'};
     public int seqnum;
 
     public long uid;
@@ -35,12 +34,12 @@ public class UID implements Item {
     /**
      * Constructor.
      *
-     * @param	r	the FetchResponse
-     * @exception ParsingException    for parsing failures
+     * @throws ParsingException for parsing failures
+     * @param    r    the FetchResponse
      */
     public UID(FetchResponse r) throws ParsingException {
-	seqnum = r.getNumber();
-	r.skipSpaces();
-	uid = r.readLong();
+        seqnum = r.getNumber();
+        r.skipSpaces();
+        uid = r.readLong();
     }
 }

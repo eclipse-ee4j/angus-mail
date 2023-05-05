@@ -16,15 +16,15 @@
 
 package org.eclipse.angus.mail.util;
 
-import java.util.Properties;
-
-import jakarta.mail.Session;
-import jakarta.mail.MessagingException;
 import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.junit.Test;
 
-import org.junit.*;
+import java.util.Properties;
+
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -32,51 +32,51 @@ import static org.junit.Assert.assertEquals;
  * address header, per RFC 2822.
  */
 public class AddAddressHeaderTest {
- 
+
     private static Session s = Session.getInstance(new Properties());
     private static InternetAddress[] setList = new InternetAddress[1];
     private static InternetAddress[] addList = new InternetAddress[1];
 
     static {
-	try {
-	    setList[0] = new InternetAddress("me@example.com");
-	    addList[0] = new InternetAddress("you@example.com");
-	} catch (MessagingException ex) {
-	}
+        try {
+            setList[0] = new InternetAddress("me@example.com");
+            addList[0] = new InternetAddress("you@example.com");
+        } catch (MessagingException ex) {
+        }
     }
 
     @Test
     public void testFrom() throws Exception {
         MimeMessage m = new MimeMessage(s);
-	m.setFrom(setList[0]);
-	m.addFrom(addList);
-	m.saveChanges();
-	String[] h = m.getHeader("From");
-	assertEquals(1, h.length);
+        m.setFrom(setList[0]);
+        m.addFrom(addList);
+        m.saveChanges();
+        String[] h = m.getHeader("From");
+        assertEquals(1, h.length);
     }
 
     @Test
     public void testTo() throws Exception {
-	testRecipients(Message.RecipientType.TO);
+        testRecipients(Message.RecipientType.TO);
     }
 
     @Test
     public void testCc() throws Exception {
-	testRecipients(Message.RecipientType.CC);
+        testRecipients(Message.RecipientType.CC);
     }
 
     @Test
     public void testBcc() throws Exception {
-	testRecipients(Message.RecipientType.BCC);
+        testRecipients(Message.RecipientType.BCC);
     }
 
     private void testRecipients(Message.RecipientType type) throws Exception {
         MimeMessage m = new MimeMessage(s);
-	m.setRecipients(type, setList);
-	m.addRecipients(type, addList);
-	m.saveChanges();
-	// XXX - depends on RecipientType.toString
-	String[] h = m.getHeader(type.toString());
-	assertEquals(1, h.length);
+        m.setRecipients(type, setList);
+        m.addRecipients(type, addList);
+        m.saveChanges();
+        // XXX - depends on RecipientType.toString
+        String[] h = m.getHeader(type.toString());
+        assertEquals(1, h.length);
     }
 }

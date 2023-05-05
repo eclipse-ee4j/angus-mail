@@ -16,17 +16,16 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.Session;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
-import jakarta.mail.Session;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.rules.Timeout;
 import static org.junit.Assert.fail;
 
 /**
@@ -42,12 +41,12 @@ public final class IMAPIdleStateTest {
     public void testInsecure() {
         test(false);
     }
-    
+
     @Test
     public void testProtocolFindSocketChannel() {
         test(true);
     }
-    
+
     private void test(boolean isSSL) {
         TestServer server = null;
         try {
@@ -59,7 +58,7 @@ public final class IMAPIdleStateTest {
             if (isSSL) {
                 properties.setProperty("mail.imaps.host", "localhost");
                 properties.setProperty("mail.imaps.port", "" + server.getPort());
-                properties.setProperty("mail.imaps.socketFactory.class", 
+                properties.setProperty("mail.imaps.socketFactory.class",
                         "org.eclipse.angus.mail.util.MailSSLSocketFactory");
                 properties.setProperty("mail.imaps.ssl.trust", "*");
                 properties.setProperty("mail.imaps.ssl.checkserveridentity", "false");
@@ -71,34 +70,34 @@ public final class IMAPIdleStateTest {
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
-            final IMAPStore store = (IMAPStore)session.getStore(
+            final IMAPStore store = (IMAPStore) session.getStore(
                     isSSL ? "imaps" : "imap");
             try {
                 store.connect("test", "test");
 
-		// create a thread to run the IDLE command on the Store
-		Thread t = new Thread() {
-		    @Override
-		    public void run() {
-			try {
-			    store.idle();
-			} catch (Exception ex) {
-			}
-		    }
-		};
-		t.start();
-		handler.waitForIdle();
+                // create a thread to run the IDLE command on the Store
+                Thread t = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            store.idle();
+                        } catch (Exception ex) {
+                        }
+                    }
+                };
+                t.start();
+                handler.waitForIdle();
 
-		// Now break it out of idle.
-		// Need to use a method that doesn't check that the Store
-		// is connected first.
-		store.hasCapability("XXX");
-		// no NullPointerException means the bug is fixed!
+                // Now break it out of idle.
+                // Need to use a method that doesn't check that the Store
+                // is connected first.
+                store.hasCapability("XXX");
+                // no NullPointerException means the bug is fixed!
 
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
             } finally {
                 store.close();
             }
@@ -117,19 +116,19 @@ public final class IMAPIdleStateTest {
      * to abort an IDLE.
      */
     private static final class IMAPHandlerIdleBye extends IMAPHandler {
-	// must be static because handler is cloned for each connection
-	private static CountDownLatch latch = new CountDownLatch(1);
+        // must be static because handler is cloned for each connection
+        private static CountDownLatch latch = new CountDownLatch(1);
 
-	@Override
+        @Override
         public void idle() throws IOException {
-	    cont();
-	    latch.countDown();
-	    // don't wait for DONE, just close the connection now
-	    bye("closing");
+            cont();
+            latch.countDown();
+            // don't wait for DONE, just close the connection now
+            bye("closing");
         }
 
-	public void waitForIdle() throws InterruptedException {
-	    latch.await();
-	}
+        public void waitForIdle() throws InterruptedException {
+            latch.await();
+        }
     }
 }

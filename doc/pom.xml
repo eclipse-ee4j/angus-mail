@@ -96,28 +96,34 @@
                                     <artifactId>jakarta.mail-api</artifactId>
                                     <version>${mail-api.version}</version>
                                     <classifier>sources</classifier>
-                                    <outputDirectory>${project.build.directory}/javadoc-sources/jakarta.mail</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/javadoc-sources/jakarta.mail
+                                    </outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.eclipse.angus</groupId>
                                     <artifactId>angus-mail</artifactId>
                                     <version>${angus-mail.version}</version>
                                     <classifier>sources</classifier>
-                                    <outputDirectory>${project.build.directory}/javadoc-sources/org.eclipse.angus.mail</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/javadoc-sources/org.eclipse.angus.mail
+                                    </outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.eclipse.angus</groupId>
                                     <artifactId>dsn</artifactId>
                                     <version>${angus-mail.version}</version>
                                     <classifier>sources</classifier>
-                                    <outputDirectory>${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.dsn</outputDirectory>
+                                    <outputDirectory>
+                                        ${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.dsn
+                                    </outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.eclipse.angus</groupId>
                                     <artifactId>gimap</artifactId>
                                     <version>${angus-mail.version}</version>
                                     <classifier>sources</classifier>
-                                    <outputDirectory>${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.gimap</outputDirectory>
+                                    <outputDirectory>
+                                        ${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.gimap
+                                    </outputDirectory>
                                 </artifactItem>
                             </artifactItems>
                         </configuration>
@@ -168,14 +174,19 @@
                                         <replacevalue expandProperties="true"><![CDATA[${jdoc.pkg}]]></replacevalue>
                                     </replacefilter>
                                 </replace>
-                                <move todir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail" failonerror="false">
+                                <move todir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail"
+                                      failonerror="false">
                                     <fileset dir="${project.build.directory}/javadoc-sources/org.eclipse.angus.mail"/>
                                 </move>
-                                <move todir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail.dsn" failonerror="false">
-                                    <fileset dir="${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.dsn"/>
+                                <move todir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail.dsn"
+                                      failonerror="false">
+                                    <fileset
+                                            dir="${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.dsn"/>
                                 </move>
-                                <move todir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail.gimap" failonerror="false">
-                                    <fileset dir="${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.gimap"/>
+                                <move todir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail.gimap"
+                                      failonerror="false">
+                                    <fileset
+                                            dir="${project.build.directory}/javadoc-sources/org.eclipse.angus.mail.gimap"/>
                                 </move>
                                 <mkdir dir="${project.build.directory}/javadoc-ant"/>
                                 <javadoc destdir="${angus-mail.javadoc.destdir}"
@@ -191,10 +202,10 @@
                                          use="true"
                                          windowtitle="${angus-mail.javadoc.title}"
                                 >
-                                    <arg value="-J-Xmx256m" />
-                                    <arg value="-Xdoclint:none" />
-                                    <arg value="-notimestamp" />
-                                    <arg value="-quiet" />
+                                    <arg value="-J-Xmx256m"/>
+                                    <arg value="-Xdoclint:none"/>
+                                    <arg value="-notimestamp"/>
+                                    <arg value="-quiet"/>
                                     <doctitle>${angus-mail.javadoc.title}</doctitle>
                                     <bottom>${angus-mail.javadoc.bottom}</bottom>
                                     <header>${angus-mail.javadoc.header}</header>
@@ -244,7 +255,8 @@
 			${jdoc.pkg.path}/mail/dsn/MultipartReport.java,
 			${jdoc.pkg.path}/mail/dsn/Report.java
 					"/>
-                                    <fileset dir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail.gimap" includes="${jdoc.pkg.path}/mail/gimap/*.java"/>
+                                    <fileset dir="${project.build.directory}/javadoc-sources/${jdoc.dir}.mail.gimap"
+                                             includes="${jdoc.pkg.path}/mail/gimap/*.java"/>
                                 </javadoc>
                             </target>
                         </configuration>
@@ -256,25 +268,25 @@
                 This is the rule that collects the release artifacts and
                 creates the samples zip file for a release.
             -->
-<!--            <plugin>-->
-<!--                <artifactId>maven-assembly-plugin</artifactId>-->
-<!--                <inherited>false</inherited>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <phase>package</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>single</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <outputDirectory>${angus-mail.www}</outputDirectory>-->
-<!--                            <finalName>angusmail</finalName>-->
-<!--                            <descriptors>-->
-<!--                                <descriptor>src/main/assembly/samples.xml</descriptor>-->
-<!--                            </descriptors>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
+            <!--            <plugin>-->
+            <!--                <artifactId>maven-assembly-plugin</artifactId>-->
+            <!--                <inherited>false</inherited>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <phase>package</phase>-->
+            <!--                        <goals>-->
+            <!--                            <goal>single</goal>-->
+            <!--                        </goals>-->
+            <!--                        <configuration>-->
+            <!--                            <outputDirectory>${angus-mail.www}</outputDirectory>-->
+            <!--                            <finalName>angusmail</finalName>-->
+            <!--                            <descriptors>-->
+            <!--                                <descriptor>src/main/assembly/samples.xml</descriptor>-->
+            <!--                            </descriptors>-->
+            <!--                        </configuration>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--            </plugin>-->
         </plugins>
     </build>
 

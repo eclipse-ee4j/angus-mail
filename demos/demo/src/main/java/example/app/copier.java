@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -11,11 +11,14 @@
 package example.app.internal;
 
 /**
- *
- * @author	Christopher Cotton
+ * @author Christopher Cotton
  */
 
-import jakarta.mail.*;
+import jakarta.mail.Folder;
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import jakarta.mail.URLName;
 
 /**
  * copier will copy a specified number of messages from one folder
@@ -30,63 +33,63 @@ import jakarta.mail.*;
 public class copier {
 
     public static void main(String argv[]) {
-	boolean debug = false;	// change to get more errors
-	
-	if (argv.length != 5) {
-	    System.out.println( "usage: copier <urlname> <src folder>" +
-				"<dest folder> <start msg #> <end msg #>");
-	    return;
-	}
+        boolean debug = false;    // change to get more errors
 
-	try {
-	    URLName url = new URLName(argv[0]);
-	    String src = argv[1];	// source folder
-	    String dest = argv[2];	// dest folder
-	    int start = Integer.parseInt(argv[3]);	// copy from message #
-	    int end = Integer.parseInt(argv[4]);	// to message #
+        if (argv.length != 5) {
+            System.out.println("usage: copier <urlname> <src folder>" +
+                    "<dest folder> <start msg #> <end msg #>");
+            return;
+        }
 
-	    // Get the default Session object
+        try {
+            URLName url = new URLName(argv[0]);
+            String src = argv[1];    // source folder
+            String dest = argv[2];    // dest folder
+            int start = Integer.parseInt(argv[3]);    // copy from message #
+            int end = Integer.parseInt(argv[4]);    // to message #
 
-	    Session session = Session.getInstance(System.getProperties(), null);
-	    // session.setDebug(debug);
+            // Get the default Session object
 
-	    // Get a Store object that implements the protocol.
-	    Store store = session.getStore(url);
-	    store.connect();
-	    System.out.println("Connected...");
+            Session session = Session.getInstance(System.getProperties(), null);
+            // session.setDebug(debug);
 
-	    // Open Source Folder
-	    Folder folder = store.getFolder(src);
-	    folder.open(Folder.READ_WRITE);
-	    System.out.println("Opened source...");	  
+            // Get a Store object that implements the protocol.
+            Store store = session.getStore(url);
+            store.connect();
+            System.out.println("Connected...");
 
-	    if (folder.getMessageCount() == 0) {
-		  System.out.println("Source folder has no messages ..");
-		  folder.close(false);
-		  store.close();
-	    }
+            // Open Source Folder
+            Folder folder = store.getFolder(src);
+            folder.open(Folder.READ_WRITE);
+            System.out.println("Opened source...");
 
-	    // Open destination folder, create if needed 
-	    Folder dfolder = store.getFolder(dest);
-	    if (!dfolder.exists()) // create
-		dfolder.create(Folder.HOLDS_MESSAGES);
+            if (folder.getMessageCount() == 0) {
+                System.out.println("Source folder has no messages ..");
+                folder.close(false);
+                store.close();
+            }
 
-	    Message[] msgs = folder.getMessages(start, end);
-	    System.out.println("Got messages...");	  
+            // Open destination folder, create if needed
+            Folder dfolder = store.getFolder(dest);
+            if (!dfolder.exists()) // create
+                dfolder.create(Folder.HOLDS_MESSAGES);
 
-	    // Copy messages into destination, 
-	    folder.copyMessages(msgs, dfolder);
-	    System.out.println("Copied messages...");	  
+            Message[] msgs = folder.getMessages(start, end);
+            System.out.println("Got messages...");
 
-	    // Close the folder and store
-	    folder.close(false);
-	    store.close();
-	    System.out.println("Closed folder and store...");
-	    
-	} catch (Exception e) {
-	    e.printStackTrace();
-	}
+            // Copy messages into destination,
+            folder.copyMessages(msgs, dfolder);
+            System.out.println("Copied messages...");
 
-	System.exit(0);
+            // Close the folder and store
+            folder.close(false);
+            store.close();
+            System.out.println("Closed folder and store...");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        System.exit(0);
     }
 }

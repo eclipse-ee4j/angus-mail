@@ -16,22 +16,23 @@
 
 package org.eclipse.angus.mail.imap;
 
-import jakarta.mail.*;
+import jakarta.mail.Session;
+import jakarta.mail.URLName;
 
 /**
  * This class provides access to an IMAP message store over SSL.
  */
 
 public class IMAPSSLStore extends IMAPStore {
-    
+
     /**
      * Constructor that takes a Session object and a URLName that
      * represents a specific IMAP server.
      *
-     * @param	session	the Session
-     * @param	url	the URLName of this store
+     * @param    session    the Session
+     * @param    url    the URLName of this store
      */
     public IMAPSSLStore(Session session, URLName url) {
-	super(session, url, "imaps", true); // call super constructor
+        super(session, url, "imaps", true); // call super constructor
     }
 }

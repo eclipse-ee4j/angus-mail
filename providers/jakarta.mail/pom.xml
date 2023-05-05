@@ -61,7 +61,9 @@
                             <classifier>sources</classifier>
                             <excludeArtifactIds>graal-sdk</excludeArtifactIds>
                             <excludeTransitive>true</excludeTransitive>
-                            <excludes>module-info.*,META-INF/versions/**,META-INF/MANIFEST.MF,jakarta/mail/Version.java</excludes>
+                            <excludes>
+                                module-info.*,META-INF/versions/**,META-INF/MANIFEST.MF,jakarta/mail/Version.java
+                            </excludes>
                             <outputDirectory>${dep.sources}</outputDirectory>
                         </configuration>
                     </execution>
@@ -142,13 +144,15 @@
                         </goals>
                         <configuration>
                             <target>
-                                <replace file="${project.build.directory}/generated-sources/dependencies/jakarta/mail/package-info.java">
+                                <replace
+                                        file="${project.build.directory}/generated-sources/dependencies/jakarta/mail/package-info.java">
                                     <replacefilter>
                                         <replacetoken><![CDATA[com.sun.mail]]></replacetoken>
                                         <replacevalue><![CDATA[org.eclipse.angus.mail]]></replacevalue>
                                     </replacefilter>
                                 </replace>
-                                <replace file="${project.build.directory}/generated-sources/dependencies/jakarta/mail/Session.java">
+                                <replace
+                                        file="${project.build.directory}/generated-sources/dependencies/jakarta/mail/Session.java">
                                     <replacefilter>
                                         <replacetoken><![CDATA[com.sun.mail]]></replacetoken>
                                         <replacevalue><![CDATA[org.eclipse.angus.mail]]></replacevalue>

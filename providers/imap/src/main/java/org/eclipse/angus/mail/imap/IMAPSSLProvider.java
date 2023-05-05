@@ -16,17 +16,16 @@
 
 package org.eclipse.angus.mail.imap;
 
-import org.eclipse.angus.mail.util.DefaultProvider;
-
 import jakarta.mail.Provider;
+import org.eclipse.angus.mail.util.DefaultProvider;
 
 /**
  * The IMAP SSL protocol provider.
  */
-@DefaultProvider	// Remove this annotation if you copy this provider
+@DefaultProvider    // Remove this annotation if you copy this provider
 public class IMAPSSLProvider extends Provider {
     public IMAPSSLProvider() {
-	super(Provider.Type.STORE, "imaps", IMAPSSLStore.class.getName(),
-	    "Oracle", null);
+        super(Provider.Type.STORE, "imaps", IMAPSSLStore.class.getName(),
+                "Oracle", null);
     }
 }

@@ -164,17 +164,17 @@
  * For example:
  * </P>
  * <PRE>
- * 	Folder folder = store.getFolder("whatever");
- * 	IMAPFolder ifolder = (IMAPFolder)folder;
- * 	List&lt;MailEvent&gt; events = ifolder.open(Folder.READ_WRITE,
- * 		    new ResyncData(prevUidValidity, prevModSeq));
- * 	for (MailEvent ev : events) {
- * 	    if (ev instanceOf MessageChangedEvent) {
- * 		// process flag changes
- *                } else if (ev instanceof MessageVanishedEvent) {
- * 		// process messages that were removed
- *            }
- * 	}
+ * Folder folder = store.getFolder("whatever");
+ * IMAPFolder ifolder = (IMAPFolder)folder;
+ * List&lt;MailEvent&gt; events = ifolder.open(Folder.READ_WRITE,
+ * new ResyncData(prevUidValidity, prevModSeq));
+ * for (MailEvent ev : events) {
+ * if (ev instanceOf MessageChangedEvent) {
+ * // process flag changes
+ * } else if (ev instanceof MessageVanishedEvent) {
+ * // process messages that were removed
+ * }
+ * }
  * </PRE>
  * <P>
  * See the referenced RFCs for more details on these IMAP extensions.
@@ -189,8 +189,8 @@
  * {@link jakarta.mail.search.SearchTerm SearchTerms}, which can be used as follows:
  * </P>
  * <PRE>
- * 	// search for messages delivered in the last day
- * 	Message[] msgs = folder.search(new YoungerTerm(24 * 60 * 60));
+ * // search for messages delivered in the last day
+ * Message[] msgs = folder.search(new YoungerTerm(24 * 60 * 60));
  * </PRE>
  * <STRONG>LOGIN-REFERRAL Support</STRONG>
  * <P>
@@ -228,7 +228,7 @@
  * how the string is interpreted.  For example, use
  * </P>
  * <PRE>
- * 	props.put("mail.imap.port", "888");
+ * props.put("mail.imap.port", "888");
  * </PRE>
  * <P>
  * to set the <CODE>mail.imap.port</CODE> property, which is of type int.

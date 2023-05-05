@@ -16,16 +16,14 @@
 
 package org.eclipse.angus.mail.smtp;
 
-import java.util.Properties;
-import java.net.ServerSocket;
-
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
-
 import org.eclipse.angus.mail.util.MailConnectException;
-
 import org.junit.Test;
-import static org.junit.Assert.assertTrue;
+
+import java.net.ServerSocket;
+import java.util.Properties;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -40,10 +38,10 @@ public class SMTPConnectFailureTest {
     @Test
     public void testNoServer() {
         try {
-	    // verify that port is not being used
-	    ServerSocket ss = new ServerSocket(0);
-	    int port = ss.getLocalPort();
-	    ss.close();
+            // verify that port is not being used
+            ServerSocket ss = new ServerSocket(0);
+            int port = ss.getLocalPort();
+            ss.close();
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", HOST);
             properties.setProperty("mail.smtp.port", "" + port);
@@ -54,19 +52,19 @@ public class SMTPConnectFailureTest {
             Transport t = session.getTransport("smtp");
             try {
                 t.connect("test", "test");
-		fail("Connected!");
-		// failure!
-	    } catch (MailConnectException mcex) {
-		// success!
-		assertEquals(HOST, mcex.getHost());
-		assertEquals(port, mcex.getPort());
-		assertEquals(CTO, mcex.getConnectionTimeout());
-	    } catch (Exception ex) {
-		// expect an exception when connect times out
-		fail(ex.toString());
+                fail("Connected!");
+                // failure!
+            } catch (MailConnectException mcex) {
+                // success!
+                assertEquals(HOST, mcex.getHost());
+                assertEquals(port, mcex.getPort());
+                assertEquals(CTO, mcex.getConnectionTimeout());
+            } catch (Exception ex) {
+                // expect an exception when connect times out
+                fail(ex.toString());
             } finally {
-		if (t.isConnected())
-		    t.close();
+                if (t.isConnected())
+                    t.close();
             }
         } catch (Exception e) {
             e.printStackTrace();

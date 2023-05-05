@@ -16,10 +16,10 @@
 
 package org.eclipse.angus.mail.test;
 
-import java.io.IOException;
-import java.net.Socket;
-import java.net.InetAddress;
 import javax.net.SocketFactory;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
 
 /**
  * A SocketFactory that saves the Socket it creates so that it can be
@@ -30,51 +30,51 @@ public class SavedSocketFactory extends SocketFactory {
     private Socket saved;
 
     public SavedSocketFactory() {
-	super();
-	try {
-	    factory = SocketFactory.getDefault();
-	} catch(Exception ex) {
-	    // ignore
-	}
+        super();
+        try {
+            factory = SocketFactory.getDefault();
+        } catch (Exception ex) {
+            // ignore
+        }
     }
 
     @Override
     public Socket createSocket() throws IOException {
-	return save(factory.createSocket());
+        return save(factory.createSocket());
     }
 
     @Override
     public Socket createSocket(InetAddress host, int port)
-				throws IOException {
-	return save(factory.createSocket(host, port));
+            throws IOException {
+        return save(factory.createSocket(host, port));
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port,
-				InetAddress localAddress, int localPort)
-				throws IOException {
-	return save(factory.createSocket(
-				    address, port, localAddress, localPort));
+                               InetAddress localAddress, int localPort)
+            throws IOException {
+        return save(factory.createSocket(
+                address, port, localAddress, localPort));
     }
 
     @Override
     public Socket createSocket(String host, int port) throws IOException {
-	return save(factory.createSocket(host, port));
+        return save(factory.createSocket(host, port));
     }
 
     @Override
     public Socket createSocket(String host, int port,
-				InetAddress localHost, int localPort)
-				throws IOException {
-	return save(factory.createSocket(host, port, localHost, localPort));
+                               InetAddress localHost, int localPort)
+            throws IOException {
+        return save(factory.createSocket(host, port, localHost, localPort));
     }
 
     public Socket getSocket() {
-	return saved;
+        return saved;
     }
 
     private Socket save(Socket s) {
-	saved = s;
-	return saved;
+        saved = s;
+        return saved;
     }
 }

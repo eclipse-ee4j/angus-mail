@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -10,11 +10,17 @@
 
 package example.app.internal;
 
-import java.util.*;
-import java.io.*;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
-import jakarta.activation.*;
+import jakarta.mail.Address;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.SendFailedException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+
+import java.util.Date;
+import java.util.Properties;
 
 /**
  * msgsendsample creates a very simple text/plain message and sends it.
@@ -32,77 +38,77 @@ public class msgsendsample {
     static String msgText = "This is a message body.\nHere's the second line.";
 
     public static void main(String[] args) {
-	if (args.length != 4) {
-	    usage();
-	    System.exit(1);
-	}
+        if (args.length != 4) {
+            usage();
+            System.exit(1);
+        }
 
-	System.out.println();
-	
-	String to = args[0];
-	String from = args[1];
-	String host = args[2];
-	boolean debug = Boolean.valueOf(args[3]).booleanValue();
+        System.out.println();
 
-	// create some properties and get the default Session
-	Properties props = new Properties();
-	props.put("mail.smtp.host", host);
-	if (debug) props.put("mail.debug", args[3]);
+        String to = args[0];
+        String from = args[1];
+        String host = args[2];
+        boolean debug = Boolean.valueOf(args[3]).booleanValue();
 
-	Session session = Session.getInstance(props, null);
-	session.setDebug(debug);
-	
-	try {
-	    // create a message
-	    MimeMessage msg = new MimeMessage(session);
-	    msg.setFrom(new InternetAddress(from));
-	    InternetAddress[] address = {new InternetAddress(to)};
-	    msg.setRecipients(Message.RecipientType.TO, address);
-	    msg.setSubject("Jakarta Mail APIs Test");
-	    msg.setSentDate(new Date());
-	    // If the desired charset is known, you can use
-	    // setText(text, charset)
-	    msg.setText(msgText);
-	    
-	    Transport.send(msg);
-	} catch (MessagingException mex) {
-	    System.out.println("\n--Exception handling in msgsendsample.java");
+        // create some properties and get the default Session
+        Properties props = new Properties();
+        props.put("mail.smtp.host", host);
+        if (debug) props.put("mail.debug", args[3]);
 
-	    mex.printStackTrace();
-	    System.out.println();
-	    Exception ex = mex;
-	    do {
-		if (ex instanceof SendFailedException) {
-		    SendFailedException sfex = (SendFailedException)ex;
-		    Address[] invalid = sfex.getInvalidAddresses();
-		    if (invalid != null) {
-			System.out.println("    ** Invalid Addresses");
-			for (int i = 0; i < invalid.length; i++) 
-			    System.out.println("         " + invalid[i]);
-		    }
-		    Address[] validUnsent = sfex.getValidUnsentAddresses();
-		    if (validUnsent != null) {
-			System.out.println("    ** ValidUnsent Addresses");
-			for (int i = 0; i < validUnsent.length; i++) 
-			    System.out.println("         "+validUnsent[i]);
-		    }
-		    Address[] validSent = sfex.getValidSentAddresses();
-		    if (validSent != null) {
-			System.out.println("    ** ValidSent Addresses");
-			for (int i = 0; i < validSent.length; i++) 
-			    System.out.println("         "+validSent[i]);
-		    }
-		}
-		System.out.println();
-		if (ex instanceof MessagingException)
-		    ex = ((MessagingException)ex).getNextException();
-		else
-		    ex = null;
-	    } while (ex != null);
-	}
+        Session session = Session.getInstance(props, null);
+        session.setDebug(debug);
+
+        try {
+            // create a message
+            MimeMessage msg = new MimeMessage(session);
+            msg.setFrom(new InternetAddress(from));
+            InternetAddress[] address = {new InternetAddress(to)};
+            msg.setRecipients(Message.RecipientType.TO, address);
+            msg.setSubject("Jakarta Mail APIs Test");
+            msg.setSentDate(new Date());
+            // If the desired charset is known, you can use
+            // setText(text, charset)
+            msg.setText(msgText);
+
+            Transport.send(msg);
+        } catch (MessagingException mex) {
+            System.out.println("\n--Exception handling in msgsendsample.java");
+
+            mex.printStackTrace();
+            System.out.println();
+            Exception ex = mex;
+            do {
+                if (ex instanceof SendFailedException) {
+                    SendFailedException sfex = (SendFailedException) ex;
+                    Address[] invalid = sfex.getInvalidAddresses();
+                    if (invalid != null) {
+                        System.out.println("    ** Invalid Addresses");
+                        for (int i = 0; i < invalid.length; i++)
+                            System.out.println("         " + invalid[i]);
+                    }
+                    Address[] validUnsent = sfex.getValidUnsentAddresses();
+                    if (validUnsent != null) {
+                        System.out.println("    ** ValidUnsent Addresses");
+                        for (int i = 0; i < validUnsent.length; i++)
+                            System.out.println("         " + validUnsent[i]);
+                    }
+                    Address[] validSent = sfex.getValidSentAddresses();
+                    if (validSent != null) {
+                        System.out.println("    ** ValidSent Addresses");
+                        for (int i = 0; i < validSent.length; i++)
+                            System.out.println("         " + validSent[i]);
+                    }
+                }
+                System.out.println();
+                if (ex instanceof MessagingException)
+                    ex = ((MessagingException) ex).getNextException();
+                else
+                    ex = null;
+            } while (ex != null);
+        }
     }
 
     private static void usage() {
-	System.out.println("usage: java msgsendsample <to> <from> <smtp> true|false");
+        System.out.println("usage: java msgsendsample <to> <from> <smtp> true|false");
     }
 }

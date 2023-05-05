@@ -16,7 +16,8 @@
 
 package org.eclipse.angus.mail.mbox;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * Count the number of bytes in the body of the message written to the stream.
@@ -27,40 +28,40 @@ class ContentLengthCounter extends OutputStream {
     private int lastb1 = -1, lastb2 = -1;
 
     public void write(int b) throws IOException {
-	if (inHeader) {
-	    // if line terminator is CR
-	    if (b == '\r' && lastb1 == '\r')
-		inHeader = false;
-	    else if (b == '\n') {
-		// if line terminator is \n
-		if (lastb1 == '\n')
-		    inHeader = false;
-		// if line terminator is CRLF
-		else if (lastb1 == '\r' && lastb2 == '\n')
-		    inHeader = false;
-	    }
-	    lastb2 = lastb1;
-	    lastb1 = b;
-	} else
-	    size++;
+        if (inHeader) {
+            // if line terminator is CR
+            if (b == '\r' && lastb1 == '\r')
+                inHeader = false;
+            else if (b == '\n') {
+                // if line terminator is \n
+                if (lastb1 == '\n')
+                    inHeader = false;
+                    // if line terminator is CRLF
+                else if (lastb1 == '\r' && lastb2 == '\n')
+                    inHeader = false;
+            }
+            lastb2 = lastb1;
+            lastb1 = b;
+        } else
+            size++;
     }
 
     public void write(byte[] b) throws IOException {
-	if (inHeader)
-	    super.write(b);
-	else
-	    size += b.length;
+        if (inHeader)
+            super.write(b);
+        else
+            size += b.length;
     }
 
     public void write(byte[] b, int off, int len) throws IOException {
-	if (inHeader)
-	    super.write(b, off, len);
-	else
-	    size += len;
+        if (inHeader)
+            super.write(b, off, len);
+        else
+            size += len;
     }
 
     public long getSize() {
-	return size;
+        return size;
     }
 
     /*

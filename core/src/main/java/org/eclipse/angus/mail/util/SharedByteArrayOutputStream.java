@@ -16,25 +16,25 @@
 
 package org.eclipse.angus.mail.util;
 
+import jakarta.mail.util.SharedByteArrayInputStream;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-
-import jakarta.mail.util.SharedByteArrayInputStream;
 
 /**
  * A ByteArrayOutputStream that allows us to share the byte array
  * rather than copy it.  Eventually could replace this with something
  * that doesn't require a single contiguous byte array.
  *
- * @author	Bill Shannon
- * @since	JavaMail 1.4.5
+ * @author Bill Shannon
+ * @since JavaMail 1.4.5
  */
 public class SharedByteArrayOutputStream extends ByteArrayOutputStream {
     public SharedByteArrayOutputStream(int size) {
-	super(size);
+        super(size);
     }
 
     public InputStream toStream() {
-	return new SharedByteArrayInputStream(buf, 0, count);
+        return new SharedByteArrayInputStream(buf, 0, count);
     }
 }

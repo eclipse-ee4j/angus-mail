@@ -16,7 +16,13 @@
 
 package org.eclipse.angus.mail.mbox;
 
-import jakarta.mail.*;
+import jakarta.mail.AuthenticationFailedException;
+import jakarta.mail.Flags;
+import jakarta.mail.Folder;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import jakarta.mail.URLName;
 
 public class MboxStore extends Store {
 
@@ -26,87 +32,87 @@ public class MboxStore extends Store {
     static Flags permFlags;
 
     static {
-	// we support all flags
-	permFlags = new Flags();
-	permFlags.add(Flags.Flag.SEEN);
-	permFlags.add(Flags.Flag.RECENT);
-	permFlags.add(Flags.Flag.DELETED);
-	permFlags.add(Flags.Flag.FLAGGED);
-	permFlags.add(Flags.Flag.ANSWERED);
-	permFlags.add(Flags.Flag.DRAFT);
-	permFlags.add(Flags.Flag.USER);
+        // we support all flags
+        permFlags = new Flags();
+        permFlags.add(Flags.Flag.SEEN);
+        permFlags.add(Flags.Flag.RECENT);
+        permFlags.add(Flags.Flag.DELETED);
+        permFlags.add(Flags.Flag.FLAGGED);
+        permFlags.add(Flags.Flag.ANSWERED);
+        permFlags.add(Flags.Flag.DRAFT);
+        permFlags.add(Flags.Flag.USER);
     }
 
     public MboxStore(Session session, URLName url) {
-	super(session, url);
+        super(session, url);
 
-	// XXX - handle security exception
-	user = System.getProperty("user.name");
-	home = System.getProperty("user.home");
-	String os = System.getProperty("os.name");
-	try {
-	    String cl = "org.eclipse.angus.mail.mbox." + os + "Mailbox";
-	    mb = (Mailbox)Class.forName(cl).
-					getDeclaredConstructor().newInstance();
-	} catch (Exception e) {
-	    mb = new DefaultMailbox();
-	}
+        // XXX - handle security exception
+        user = System.getProperty("user.name");
+        home = System.getProperty("user.home");
+        String os = System.getProperty("os.name");
+        try {
+            String cl = "org.eclipse.angus.mail.mbox." + os + "Mailbox";
+            mb = (Mailbox) Class.forName(cl).
+                    getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            mb = new DefaultMailbox();
+        }
     }
 
     /**
      * Since we do not have any authentication
-     * to do and we do not want a dialog put up asking the user for a 
+     * to do and we do not want a dialog put up asking the user for a
      * password we always succeed in connecting.
      * But if we're given a password, that means the user is
      * doing something wrong so fail the request.
      */
     protected boolean protocolConnect(String host, int port, String user,
-				String passwd) throws MessagingException {
+                                      String passwd) throws MessagingException {
 
-	if (passwd != null)
-	    throw new AuthenticationFailedException(
-				"mbox does not allow passwords");
-	// XXX - should we use the user?
-	return true;
+        if (passwd != null)
+            throw new AuthenticationFailedException(
+                    "mbox does not allow passwords");
+        // XXX - should we use the user?
+        return true;
     }
 
     protected void setURLName(URLName url) {
-	// host, user, password, and file don't matter so we strip them out
-	if (url != null && (url.getUsername() != null ||
-			    url.getHost() != null ||
-			    url.getFile() != null))
-	    url = new URLName(url.getProtocol(), null, -1, null, null, null);
-	super.setURLName(url);
+        // host, user, password, and file don't matter so we strip them out
+        if (url != null && (url.getUsername() != null ||
+                url.getHost() != null ||
+                url.getFile() != null))
+            url = new URLName(url.getProtocol(), null, -1, null, null, null);
+        super.setURLName(url);
     }
 
 
     public Folder getDefaultFolder() throws MessagingException {
-	checkConnected();
+        checkConnected();
 
-	return new MboxFolder(this, null);
+        return new MboxFolder(this, null);
     }
 
     public Folder getFolder(String name) throws MessagingException {
-	checkConnected();
+        checkConnected();
 
-	return new MboxFolder(this, name);
+        return new MboxFolder(this, name);
     }
 
     public Folder getFolder(URLName url) throws MessagingException {
-	checkConnected();
-	return getFolder(url.getFile());
+        checkConnected();
+        return getFolder(url.getFile());
     }
 
     private void checkConnected() throws MessagingException {
-	if (!isConnected())
-	    throw new MessagingException("Not connected");
+        if (!isConnected())
+            throw new MessagingException("Not connected");
     }
 
     MailFile getMailFile(String folder) {
-	return mb.getMailFile(user, folder);
+        return mb.getMailFile(user, folder);
     }
 
     Session getSession() {
-	return session;
+        return session;
     }
 }

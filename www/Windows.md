@@ -11,9 +11,9 @@ TIME\_WAIT state as shown by netstat. The following articles explain
 this situation in more detail and include tips for how to deal with
 it:
 
--   [Microsoft TechNet](http://technet.microsoft.com/en-us/library/cc757512%28WS.10%29.aspx)
--   [Microsoft MSDN](http://msdn.microsoft.com/en-us/library/ms819739.aspx)
--   [Microsoft Support](http://support.microsoft.com/kb/328476) (talks about SQL Server, but applies here as well)
+- [Microsoft TechNet](http://technet.microsoft.com/en-us/library/cc757512%28WS.10%29.aspx)
+- [Microsoft MSDN](http://msdn.microsoft.com/en-us/library/ms819739.aspx)
+- [Microsoft Support](http://support.microsoft.com/kb/328476) (talks about SQL Server, but applies here as well)
 
 Note that it seems the
 [number of available ports has increased in Windows Server 2008](http://support.microsoft.com/kb/929851).

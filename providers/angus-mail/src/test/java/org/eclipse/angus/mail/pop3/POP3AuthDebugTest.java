@@ -16,19 +16,22 @@
 
 package org.eclipse.angus.mail.pop3;
 
-import java.io.*;
-import java.util.Properties;
-
 import jakarta.mail.Session;
 import jakarta.mail.Store;
-
 import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.Timeout;
-import static org.junit.Assert.assertTrue;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.util.Properties;
+
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -37,7 +40,7 @@ import static org.junit.Assert.fail;
  * property "mail.debug.auth" to "true".
  *
  * XXX - should test all authentication types, but that requires
- *	 more work in the dummy test server.
+ * more work in the dummy test server.
  */
 public final class POP3AuthDebugTest {
 
@@ -50,15 +53,15 @@ public final class POP3AuthDebugTest {
      */
     @Test
     public void testNoAuthDefault() {
-	final Properties properties = new Properties();
-	assertFalse("PASS in debug output", test(properties, "PASS"));
+        final Properties properties = new Properties();
+        assertFalse("PASS in debug output", test(properties, "PASS"));
     }
 
     @Test
     public void testNoAuth() {
-	final Properties properties = new Properties();
-	properties.setProperty("mail.debug.auth", "false");
-	assertFalse("PASS in debug output", test(properties, "PASS"));
+        final Properties properties = new Properties();
+        properties.setProperty("mail.debug.auth", "false");
+        assertFalse("PASS in debug output", test(properties, "PASS"));
     }
 
     /**
@@ -66,9 +69,9 @@ public final class POP3AuthDebugTest {
      */
     @Test
     public void testAuth() {
-	final Properties properties = new Properties();
-	properties.setProperty("mail.debug.auth", "true");
-	assertTrue("PASS in debug output", test(properties, "PASS"));
+        final Properties properties = new Properties();
+        properties.setProperty("mail.debug.auth", "true");
+        assertTrue("PASS in debug output", test(properties, "PASS"));
     }
 
     /**
@@ -76,58 +79,58 @@ public final class POP3AuthDebugTest {
      * Scan the debug output looking for "expect", return true if found.
      */
     public boolean test(Properties properties, String expect) {
-	TestServer server = null;
-	try {
-	    final POP3Handler handler = new POP3Handler();
-	    server = new TestServer(handler);
-	    server.start();
-	    Thread.sleep(1000);
+        TestServer server = null;
+        try {
+            final POP3Handler handler = new POP3Handler();
+            server = new TestServer(handler);
+            server.start();
+            Thread.sleep(1000);
 
-	    properties.setProperty("mail.pop3.host", "localhost");
-	    properties.setProperty("mail.pop3.port", "" + server.getPort());
-	    final Session session = Session.getInstance(properties);
-	    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	    PrintStream ps = new PrintStream(bos);
-	    session.setDebugOut(ps);
-	    session.setDebug(true);
+            properties.setProperty("mail.pop3.host", "localhost");
+            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            final Session session = Session.getInstance(properties);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(bos);
+            session.setDebugOut(ps);
+            session.setDebug(true);
 
-	    final Store store = session.getStore("pop3");
-	    try {
-		store.connect("test", "test");
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
-	    } finally {
-		store.close();
-	    }
+            final Store store = session.getStore("pop3");
+            try {
+                store.connect("test", "test");
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
+            } finally {
+                store.close();
+            }
 
-	    ps.close();
-	    bos.close();
-	    ByteArrayInputStream bis =
-		new ByteArrayInputStream(bos.toByteArray());
-	    BufferedReader r = new BufferedReader(
-					new InputStreamReader(bis, "us-ascii"));
-	    String line;
-	    boolean found = false;
-	    while ((line = r.readLine()) != null) {
-		if (line.startsWith("DEBUG"))
-		    continue;
-		if (line.startsWith("*"))
-		    continue;
-		if (line.indexOf(expect) >= 0)
-		    found = true;
-	    }
-	    r.close();
-	    return found;
-	} catch (final Exception e) {
-	    e.printStackTrace();
-	    fail(e.getMessage());
-	    return false;	// XXX - doesn't matter
-	} finally {
-	    if (server != null) {
-		server.quit();
-	    }
-	}
+            ps.close();
+            bos.close();
+            ByteArrayInputStream bis =
+                    new ByteArrayInputStream(bos.toByteArray());
+            BufferedReader r = new BufferedReader(
+                    new InputStreamReader(bis, "us-ascii"));
+            String line;
+            boolean found = false;
+            while ((line = r.readLine()) != null) {
+                if (line.startsWith("DEBUG"))
+                    continue;
+                if (line.startsWith("*"))
+                    continue;
+                if (line.indexOf(expect) >= 0)
+                    found = true;
+            }
+            r.close();
+            return found;
+        } catch (final Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+            return false;    // XXX - doesn't matter
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
     }
 }

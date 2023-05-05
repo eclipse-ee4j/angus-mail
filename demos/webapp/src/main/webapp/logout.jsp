@@ -1,6 +1,6 @@
 <%--
 
-    Copyright (c) 2001, 2021 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2001, 2023 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -12,11 +12,11 @@
 
 <%@ page language="java" import="demo.MailUserBean" %>
 <%@ page errorPage="errorpage.jsp" %>
-<jsp:useBean id="mailuser" scope="session" class="demo.MailUserBean" />
+<jsp:useBean id="mailuser" scope="session" class="demo.MailUserBean"/>
 
 <html>
 <head>
-	<title>Jakarta Mail logout</title>
+    <title>Jakarta Mail logout</title>
 </head>
 
 <% mailuser.logout(); %>

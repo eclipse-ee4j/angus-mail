@@ -16,18 +16,17 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.Session;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
 import java.io.IOException;
 import java.util.Properties;
 
-import jakarta.mail.Session;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.rules.Timeout;
-import static org.junit.Assert.fail;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Test IMAP login referrals (RFC 2221).
@@ -37,9 +36,9 @@ public final class IMAPLoginReferralTest {
     private static final String REFERRAL_URL = "imap://test@server/";
     private static final String REFERRAL_MSG = "try server";
     private static final String REFERRAL =
-			    "[REFERRAL " + REFERRAL_URL + "] " + REFERRAL_MSG;
+            "[REFERRAL " + REFERRAL_URL + "] " + REFERRAL_MSG;
 
-    private static final int TIMEOUT = 1000;	// 1 second
+    private static final int TIMEOUT = 1000;    // 1 second
 
     // timeout the test in case of deadlock
     @Rule
@@ -50,12 +49,12 @@ public final class IMAPLoginReferralTest {
      */
     @Test
     public void testConnectReferral() {
-	test(new IMAPHandler() {
-			@Override
-			public void sendGreetings() throws IOException {
-			    bye(REFERRAL);
-			}
-		    });
+        test(new IMAPHandler() {
+            @Override
+            public void sendGreetings() throws IOException {
+                bye(REFERRAL);
+            }
+        });
     }
 
     /**
@@ -63,13 +62,18 @@ public final class IMAPLoginReferralTest {
      */
     @Test
     public void testLoginReferral() {
-	test(new IMAPHandler() {
-			{{ capabilities += " LOGIN-REFERRALS"; }}
-			@Override
-			public void login() throws IOException {
-			    no(REFERRAL);
-			}
-		    });
+        test(new IMAPHandler() {
+            {
+                {
+                    capabilities += " LOGIN-REFERRALS";
+                }
+            }
+
+            @Override
+            public void login() throws IOException {
+                no(REFERRAL);
+            }
+        });
     }
 
     /**
@@ -77,13 +81,18 @@ public final class IMAPLoginReferralTest {
      */
     @Test
     public void testLoginOkReferral() {
-	test(new IMAPHandler() {
-			{{ capabilities += " LOGIN-REFERRALS"; }}
-			@Override
-			public void login() throws IOException {
-			    ok(REFERRAL);
-			}
-		    });
+        test(new IMAPHandler() {
+            {
+                {
+                    capabilities += " LOGIN-REFERRALS";
+                }
+            }
+
+            @Override
+            public void login() throws IOException {
+                ok(REFERRAL);
+            }
+        });
     }
 
     /**
@@ -91,13 +100,18 @@ public final class IMAPLoginReferralTest {
      */
     @Test
     public void testPlainReferral() {
-	test(new IMAPHandler() {
-			{{ capabilities += " LOGIN-REFERRALS AUTH=PLAIN"; }}
-			@Override
-			public void authplain(String ir) throws IOException {
-			    no(REFERRAL);
-			}
-		    });
+        test(new IMAPHandler() {
+            {
+                {
+                    capabilities += " LOGIN-REFERRALS AUTH=PLAIN";
+                }
+            }
+
+            @Override
+            public void authplain(String ir) throws IOException {
+                no(REFERRAL);
+            }
+        });
     }
 
     /**
@@ -105,50 +119,55 @@ public final class IMAPLoginReferralTest {
      */
     @Test
     public void testPlainOkReferral() {
-	test(new IMAPHandler() {
-			{{ capabilities += " LOGIN-REFERRALS AUTH=PLAIN"; }}
-			@Override
-			public void authplain(String ir) throws IOException {
-			    if (ir == null) {
-				cont("");
-				String resp = readLine();
-			    }
-			    ok(REFERRAL);
-			}
-		    });
+        test(new IMAPHandler() {
+            {
+                {
+                    capabilities += " LOGIN-REFERRALS AUTH=PLAIN";
+                }
+            }
+
+            @Override
+            public void authplain(String ir) throws IOException {
+                if (ir == null) {
+                    cont("");
+                    String resp = readLine();
+                }
+                ok(REFERRAL);
+            }
+        });
     }
 
     private void test(IMAPHandler handler) {
-	TestServer server = null;
-	try {
-	    server = new TestServer(handler);
-	    server.start();
+        TestServer server = null;
+        try {
+            server = new TestServer(handler);
+            server.start();
 
-	    final Properties properties = new Properties();
-	    properties.setProperty("mail.imap.host", "localhost");
-	    properties.setProperty("mail.imap.port", "" + server.getPort());
-	    properties.setProperty("mail.imap.referralexception", "true");
-	    final Session session = Session.getInstance(properties);
-	    //session.setDebug(true);
+            final Properties properties = new Properties();
+            properties.setProperty("mail.imap.host", "localhost");
+            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.referralexception", "true");
+            final Session session = Session.getInstance(properties);
+            //session.setDebug(true);
 
-	    final IMAPStore store = (IMAPStore)session.getStore("imap");
-	    try {
-		store.connect("test", "test");
-		fail("connect succeeded");
-	    } catch (ReferralException ex) {
-		// success!
-		assertEquals(ex.getUrl(), REFERRAL_URL);
-		assertEquals(ex.getText(), REFERRAL_MSG);
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
-	    } finally {
-		store.close();
-	    }
-	} catch (final Exception e) {
-	    e.printStackTrace();
-	    fail(e.getMessage());
+            final IMAPStore store = (IMAPStore) session.getStore("imap");
+            try {
+                store.connect("test", "test");
+                fail("connect succeeded");
+            } catch (ReferralException ex) {
+                // success!
+                assertEquals(ex.getUrl(), REFERRAL_URL);
+                assertEquals(ex.getText(), REFERRAL_MSG);
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
+            } finally {
+                store.close();
+            }
+        } catch (final Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
         } finally {
             if (server != null) {
                 server.quit();

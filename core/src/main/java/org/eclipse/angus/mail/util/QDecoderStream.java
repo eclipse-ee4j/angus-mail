@@ -16,12 +16,13 @@
 
 package org.eclipse.angus.mail.util;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * This class implements a Q Decoder as defined in RFC 2047
  * for decoding MIME headers. It subclasses the QPDecoderStream class.
- * 
+ *
  * @author John Mani
  */
 
@@ -29,10 +30,11 @@ public class QDecoderStream extends QPDecoderStream {
 
     /**
      * Create a Q-decoder that decodes the specified input stream.
-     * @param in        the input stream
+     *
+     * @param in the input stream
      */
     public QDecoderStream(InputStream in) {
-	super(in);
+        super(in);
     }
 
     /**
@@ -43,28 +45,28 @@ public class QDecoderStream extends QPDecoderStream {
      * This method blocks until input data is available, the end of the
      * stream is detected, or an exception is thrown.
      *
-     * @return     the next byte of data, or <code>-1</code> if the end of the
-     *             stream is reached.
-     * @exception  IOException  if an I/O error occurs.
+     * @return the next byte of data, or <code>-1</code> if the end of the
+     * stream is reached.
+     * @throws IOException if an I/O error occurs.
      */
     @Override
     public int read() throws IOException {
-	int c = in.read();
+        int c = in.read();
 
-	if (c == '_') // Return '_' as ' '
-	    return ' ';
-	else if (c == '=') {
-	    // QP Encoded atom. Get the next two bytes ..
-	    ba[0] = (byte)in.read();
-	    ba[1] = (byte)in.read();
-	    // .. and decode them
-	    try {
-		return ASCIIUtility.parseInt(ba, 0, 2, 16);
-	    } catch (NumberFormatException nex) {
-		throw new DecodingException(
-			"QDecoder: Error in QP stream " + nex.getMessage());
-	    }
-	} else
-	    return c;
+        if (c == '_') // Return '_' as ' '
+            return ' ';
+        else if (c == '=') {
+            // QP Encoded atom. Get the next two bytes ..
+            ba[0] = (byte) in.read();
+            ba[1] = (byte) in.read();
+            // .. and decode them
+            try {
+                return ASCIIUtility.parseInt(ba, 0, 2, 16);
+            } catch (NumberFormatException nex) {
+                throw new DecodingException(
+                        "QDecoder: Error in QP stream " + nex.getMessage());
+            }
+        } else
+            return c;
     }
 }

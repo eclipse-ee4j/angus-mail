@@ -31,7 +31,7 @@ public class IMAPPlainHandler extends IMAPHandler {
     protected String password = "test";
 
     public IMAPPlainHandler() {
-	capabilities += " LOGINDISABLED AUTH=PLAIN";
+        capabilities += " LOGINDISABLED AUTH=PLAIN";
     }
 
     /**
@@ -41,21 +41,21 @@ public class IMAPPlainHandler extends IMAPHandler {
      */
     @Override
     public void authplain(String ir) throws IOException {
-	if (ir == null) {
-	    cont("");
-	    ir = readLine();
-	}
-	String auth = new String(Base64.getDecoder().decode(
-				    ir.getBytes(StandardCharsets.US_ASCII)),
-				StandardCharsets.UTF_8);
-	String[] ap = auth.split("\000");
-	String u = ap[1];
-	String p = ap[2];
-	//System.out.printf("USER: %s, PASSWORD: %s%n", u, p);
-	if (!u.equals(username) || !p.equals(password)) {
-	    no("authentication failed");
-	    return;
-	}
+        if (ir == null) {
+            cont("");
+            ir = readLine();
+        }
+        String auth = new String(Base64.getDecoder().decode(
+                ir.getBytes(StandardCharsets.US_ASCII)),
+                StandardCharsets.UTF_8);
+        String[] ap = auth.split("\000");
+        String u = ap[1];
+        String p = ap[2];
+        //System.out.printf("USER: %s, PASSWORD: %s%n", u, p);
+        if (!u.equals(username) || !p.equals(password)) {
+            no("authentication failed");
+            return;
+        }
         ok("[CAPABILITY " + capabilities + "]");
     }
 }

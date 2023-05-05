@@ -16,11 +16,12 @@
 
 package org.eclipse.angus.mail.iap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertArrayEquals;
-import org.junit.Test;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.Timeout;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test response parsing.
@@ -31,14 +32,14 @@ public class ResponseTest {
     public Timeout timeout = Timeout.seconds(5);
 
     private static String[] atomTests = {
-	"atom", "atom ", "atom(", "atom)", "atom{", "atom*", "atom%",
-	"atom\"", "atom\\ ", "atom]", "atom\001", "atom\177"
+            "atom", "atom ", "atom(", "atom)", "atom{", "atom*", "atom%",
+            "atom\"", "atom\\ ", "atom]", "atom\001", "atom\177"
     };
 
     private static String[] astringTests = {
-	"atom", "atom ", "atom(", "atom)", "atom{", "atom*", "atom%",
-	"atom\"", "atom\\ ", "atom\001", "atom\177", "\"atom\"",
-	"{4}\r\natom"
+            "atom", "atom ", "atom(", "atom)", "atom{", "atom*", "atom%",
+            "atom\"", "atom\\ ", "atom\001", "atom\177", "\"atom\"",
+            "{4}\r\natom"
     };
 
     /**
@@ -46,14 +47,14 @@ public class ResponseTest {
      */
     @Test
     public void testAtom() throws Exception {
-	for (String s : atomTests) {
-	    Response r = new Response("* " + s);
-	    assertEquals("atom", r.readAtom());
-	}
-	for (String s : atomTests) {
-	    Response r = new Response("* " + s + " ");
-	    assertEquals("atom", r.readAtom());
-	}
+        for (String s : atomTests) {
+            Response r = new Response("* " + s);
+            assertEquals("atom", r.readAtom());
+        }
+        for (String s : atomTests) {
+            Response r = new Response("* " + s + " ");
+            assertEquals("atom", r.readAtom());
+        }
     }
 
     /**
@@ -61,14 +62,14 @@ public class ResponseTest {
      */
     @Test
     public void testAString() throws Exception {
-	for (String s : astringTests) {
-	    Response r = new Response("* " + s);
-	    assertEquals("atom", r.readAtomString());
-	}
-	for (String s : astringTests) {
-	    Response r = new Response("* " + s + " ");
-	    assertEquals("atom", r.readAtomString());
-	}
+        for (String s : astringTests) {
+            Response r = new Response("* " + s);
+            assertEquals("atom", r.readAtomString());
+        }
+        for (String s : astringTests) {
+            Response r = new Response("* " + s + " ");
+            assertEquals("atom", r.readAtomString());
+        }
     }
 
     /**
@@ -76,8 +77,8 @@ public class ResponseTest {
      */
     @Test
     public void testAStringSpecial() throws Exception {
-	Response r = new Response("* " + "atom] ");
-	assertEquals("atom]", r.readAtomString());
+        Response r = new Response("* " + "atom] ");
+        assertEquals("atom]", r.readAtomString());
     }
 
     /**
@@ -85,44 +86,44 @@ public class ResponseTest {
      */
     @Test
     public void testAStringList() throws Exception {
-	Response r = new Response("* " + "(A B C)");
-	assertArrayEquals(new String[] { "A", "B", "C" },
-			    r.readAtomStringList());
+        Response r = new Response("* " + "(A B C)");
+        assertArrayEquals(new String[]{"A", "B", "C"},
+                r.readAtomStringList());
     }
 
     @Test
     public void testAStringListInitialSpace() throws Exception {
-	Response r = new Response("* " + "( A B C)");
-	assertArrayEquals(new String[] { "A", "B", "C" },
-			    r.readAtomStringList());
+        Response r = new Response("* " + "( A B C)");
+        assertArrayEquals(new String[]{"A", "B", "C"},
+                r.readAtomStringList());
     }
 
     @Test
     public void testAStringListTrailingSpace() throws Exception {
-	Response r = new Response("* " + "(A B C )");
-	assertArrayEquals(new String[] { "A", "B", "C" },
-			    r.readAtomStringList());
+        Response r = new Response("* " + "(A B C )");
+        assertArrayEquals(new String[]{"A", "B", "C"},
+                r.readAtomStringList());
     }
 
     @Test
     public void testAStringListInitialAndTrailingSpace() throws Exception {
-	Response r = new Response("* " + "( A B C )");
-	assertArrayEquals(new String[] { "A", "B", "C" },
-			    r.readAtomStringList());
+        Response r = new Response("* " + "( A B C )");
+        assertArrayEquals(new String[]{"A", "B", "C"},
+                r.readAtomStringList());
     }
 
     @Test
     public void testAStringListMultipleSpaces() throws Exception {
-	Response r = new Response("* " + "(A  B    C)");
-	assertArrayEquals(new String[] { "A", "B", "C" },
-			    r.readAtomStringList());
+        Response r = new Response("* " + "(A  B    C)");
+        assertArrayEquals(new String[]{"A", "B", "C"},
+                r.readAtomStringList());
     }
 
     @Test
     public void testAStringListQuoted() throws Exception {
-	Response r = new Response("* " + "(A B \"C\")");
-	assertArrayEquals(new String[] { "A", "B", "C" },
-			    r.readAtomStringList());
+        Response r = new Response("* " + "(A B \"C\")");
+        assertArrayEquals(new String[]{"A", "B", "C"},
+                r.readAtomStringList());
     }
 
     /**
@@ -130,10 +131,10 @@ public class ResponseTest {
      */
     @Test
     public void testAStringListMore() throws Exception {
-	Response r = new Response("* " + "(A B \"C\") atom");
-	assertArrayEquals(new String[] { "A", "B", "C" },
-			    r.readAtomStringList());
-	assertEquals("atom", r.readAtomString());
+        Response r = new Response("* " + "(A B \"C\") atom");
+        assertArrayEquals(new String[]{"A", "B", "C"},
+                r.readAtomStringList());
+        assertEquals("atom", r.readAtomString());
     }
 
     /**
@@ -141,8 +142,8 @@ public class ResponseTest {
      */
     @Test
     public void testAStringListEmpty() throws Exception {
-	Response r = new Response("* " + "()");
-	assertArrayEquals(new String[0], r.readAtomStringList());
+        Response r = new Response("* " + "()");
+        assertArrayEquals(new String[0], r.readAtomStringList());
     }
 
     /**
@@ -150,9 +151,9 @@ public class ResponseTest {
      */
     @Test
     public void testAStringListEmptyMore() throws Exception {
-	Response r = new Response("* " + "() atom");
-	assertArrayEquals(new String[0], r.readAtomStringList());
-	assertEquals("atom", r.readAtomString());
+        Response r = new Response("* " + "() atom");
+        assertArrayEquals(new String[0], r.readAtomStringList());
+        assertEquals("atom", r.readAtomString());
     }
 
     /**
@@ -160,9 +161,9 @@ public class ResponseTest {
      */
     @Test
     public void testBadStringList() throws Exception {
-	Response response = new Response(
-			    "* (\"name\", \"test\", \"version\", \"1.0\")");
+        Response response = new Response(
+                "* (\"name\", \"test\", \"version\", \"1.0\")");
         String[] list = response.readStringList();
-	// anything other than an infinite loop timeout is considered success
+        // anything other than an infinite loop timeout is considered success
     }
 }

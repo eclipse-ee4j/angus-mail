@@ -24,18 +24,18 @@
 	Without multi-catch we just catch all possible exceptions.
     -->
     <Match>
-	<Class name="org.eclipse.angus.mail.mbox.MboxStore"/>
-	<Method name="&lt;init&gt;"/> <!-- match constructor -->
-	<Bug pattern="REC_CATCH_EXCEPTION"/>
+        <Class name="org.eclipse.angus.mail.mbox.MboxStore"/>
+        <Method name="&lt;init&gt;"/> <!-- match constructor -->
+        <Bug pattern="REC_CATCH_EXCEPTION"/>
     </Match>
 
     <!--
 	We purposely return null instead of an empty list.
     -->
     <Match>
-	<Class name="org.eclipse.angus.mail.mbox.MboxFolder"/>
-	<Method name="load"/>
-	<Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS"/>
+        <Class name="org.eclipse.angus.mail.mbox.MboxFolder"/>
+        <Method name="load"/>
+        <Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS"/>
     </Match>
 
     <!--
@@ -43,44 +43,44 @@
 	around the original stream that needs to remain open.
     -->
     <Match>
-	<Class name="org.eclipse.angus.mail.mbox.SunV3Multipart"/>
-	<Method name="parse"/>
-	<Bug pattern="OS_OPEN_STREAM"/>
+        <Class name="org.eclipse.angus.mail.mbox.SunV3Multipart"/>
+        <Method name="parse"/>
+        <Bug pattern="OS_OPEN_STREAM"/>
     </Match>
 
     <!--
 	When deleting the temp file fails, there's really nothing to be done.
     -->
     <Match>
-	<Class name="org.eclipse.angus.mail.mbox.TempFile"/>
-	<Method name="close"/>
-	<Bug pattern="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"/>
+        <Class name="org.eclipse.angus.mail.mbox.TempFile"/>
+        <Method name="close"/>
+        <Bug pattern="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"/>
     </Match>
 
     <!--
 	We never serialize this class.
     -->
     <Match>
-	<Class name="org.eclipse.angus.mail.mbox.UNIXInbox"/>
-	<Field name="lockfileName"/>
-	<Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED"/>
+        <Class name="org.eclipse.angus.mail.mbox.UNIXInbox"/>
+        <Field name="lockfileName"/>
+        <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED"/>
     </Match>
 
     <!--
 	If close fails, what are we supposed to do?
     -->
     <Match>
-	<Class name="org.eclipse.angus.mail.mbox.MboxFolder"/>
-	<Method name="appendMessages"/>
-	<Bug pattern="DE_MIGHT_IGNORE"/>
+        <Class name="org.eclipse.angus.mail.mbox.MboxFolder"/>
+        <Method name="appendMessages"/>
+        <Bug pattern="DE_MIGHT_IGNORE"/>
     </Match>
 
     <!--
 	If getSentDate fails, treat it the same as returning null.
     -->
     <Match>
-	<Class name="org.eclipse.angus.mail.mbox.MboxMessage"/>
-	<Method name="getUnixFromLine"/>
-	<Bug pattern="DE_MIGHT_IGNORE"/>
+        <Class name="org.eclipse.angus.mail.mbox.MboxMessage"/>
+        <Method name="getUnixFromLine"/>
+        <Bug pattern="DE_MIGHT_IGNORE"/>
     </Match>
 </FindBugsFilter>

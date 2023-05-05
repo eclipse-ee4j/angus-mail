@@ -30,11 +30,11 @@ import org.eclipse.angus.mail.imap.protocol.UIDSet;
  * A <CODE>ResyncData</CODE> instance with uidvalidity and modseq values
  * is used to enable the QRESYNC extension.
  *
- * @since	JavaMail 1.5.1
- * @author	Bill Shannon
+ * @since JavaMail 1.5.1
+ * @author Bill Shannon
  */
 
-public class ResyncData { 
+public class ResyncData {
     private long uidvalidity = -1;
     private long modseq = -1;
     private UIDSet[] uids = null;
@@ -51,61 +51,61 @@ public class ResyncData {
      * UIDVALIDITY of the folder after open to make sure it's
      * the expected folder.
      *
-     * @param	uidvalidity	the UIDVALIDITY
-     * @param	modseq		the MODSEQ
+     * @param    uidvalidity    the UIDVALIDITY
+     * @param    modseq        the MODSEQ
      */
     public ResyncData(long uidvalidity, long modseq) {
-	this.uidvalidity = uidvalidity;
-	this.modseq = modseq;
-	this.uids = null;
+        this.uidvalidity = uidvalidity;
+        this.modseq = modseq;
+        this.uids = null;
     }
 
     /**
      * Used to limit the reported message changes to those with UIDs
      * in the specified range.
      *
-     * @param	uidvalidity	the UIDVALIDITY
-     * @param	modseq		the MODSEQ
-     * @param	uidFirst	the first UID
-     * @param	uidLast		the last UID
+     * @param    uidvalidity    the UIDVALIDITY
+     * @param    modseq        the MODSEQ
+     * @param    uidFirst    the first UID
+     * @param    uidLast        the last UID
      */
     public ResyncData(long uidvalidity, long modseq,
-				long uidFirst, long uidLast) {
-	this.uidvalidity = uidvalidity;
-	this.modseq = modseq;
-	this.uids = new UIDSet[] { new UIDSet(uidFirst, uidLast) };
+                      long uidFirst, long uidLast) {
+        this.uidvalidity = uidvalidity;
+        this.modseq = modseq;
+        this.uids = new UIDSet[]{new UIDSet(uidFirst, uidLast)};
     }
 
     /**
      * Used to limit the reported message changes to those with the
      * specified UIDs.
      *
-     * @param	uidvalidity	the UIDVALIDITY
-     * @param	modseq		the MODSEQ
-     * @param	uids		the UID values
+     * @param    uidvalidity    the UIDVALIDITY
+     * @param    modseq        the MODSEQ
+     * @param    uids        the UID values
      */
     public ResyncData(long uidvalidity, long modseq, long[] uids) {
-	this.uidvalidity = uidvalidity;
-	this.modseq = modseq;
-	this.uids = UIDSet.createUIDSets(uids);
+        this.uidvalidity = uidvalidity;
+        this.modseq = modseq;
+        this.uids = UIDSet.createUIDSets(uids);
     }
 
     /**
      * Get the UIDVALIDITY value specified when this instance was created.
      *
-     * @return	the UIDVALIDITY value
+     * @return the UIDVALIDITY value
      */
     public long getUIDValidity() {
-	return uidvalidity;
+        return uidvalidity;
     }
 
     /**
      * Get the MODSEQ value specified when this instance was created.
      *
-     * @return	the MODSEQ value
+     * @return the MODSEQ value
      */
     public long getModSeq() {
-	return modseq;
+        return modseq;
     }
 
     /*
@@ -113,6 +113,6 @@ public class ResyncData {
      * using Utility.getResyncUIDSet().
      */
     UIDSet[] getUIDSet() {
-	return uids;
+        return uids;
     }
 }

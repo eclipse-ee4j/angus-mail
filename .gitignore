@@ -17,3 +17,4 @@ www/docs
 www/CONTRIBUTING.md
 www/README.md
 www/TCK-Results.md
+*.iml

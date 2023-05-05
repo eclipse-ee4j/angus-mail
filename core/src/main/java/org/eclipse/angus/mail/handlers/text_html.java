@@ -20,11 +20,10 @@ import jakarta.activation.ActivationDataFlavor;
 
 /**
  * DataContentHandler for text/html.
- *
  */
 public class text_html extends text_plain {
     private static ActivationDataFlavor[] myDF = {
-	new ActivationDataFlavor(String.class, "text/html", "HTML String")
+            new ActivationDataFlavor(String.class, "text/html", "HTML String")
     };
 
     /**
@@ -35,6 +34,6 @@ public class text_html extends text_plain {
 
     @Override
     protected ActivationDataFlavor[] getDataFlavors() {
-	return myDF;
+        return myDF;
     }
 }

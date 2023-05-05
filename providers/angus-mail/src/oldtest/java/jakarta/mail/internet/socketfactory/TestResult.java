@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -11,17 +11,18 @@
 public class TestResult {
     private static boolean pass = false;
 
-    private TestResult() { }	// no public constructor
+    private TestResult() {
+    }    // no public constructor
 
     public static void reset() {
-	pass = false;
+        pass = false;
     }
 
     public static void success() {
-	pass = true;
+        pass = true;
     }
 
     public static void print(String s) {
-	System.out.println((pass ? "SUCCESS: " : "FAIL: ") + s);
+        System.out.println((pass ? "SUCCESS: " : "FAIL: ") + s);
     }
 }

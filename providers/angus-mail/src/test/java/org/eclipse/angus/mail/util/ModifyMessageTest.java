@@ -16,13 +16,6 @@
 
 package org.eclipse.angus.mail.util;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Properties;
-
-import org.eclipse.angus.mail.test.AsciiStringInputStream;
-import org.junit.Test;
-
 import jakarta.mail.BodyPart;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
@@ -30,141 +23,147 @@ import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.util.StreamProvider.EncoderTypes;
+import org.eclipse.angus.mail.test.AsciiStringInputStream;
+import org.junit.Test;
+
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test some of the ways you might modify a message that has been
  * read from an input stream.
  */
 public class ModifyMessageTest {
- 
+
     private static Session s = Session.getInstance(new Properties());
 
     @Test
     public void testAddHeader() throws Exception {
         MimeMessage m = createMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
+        MimeMultipart mp = (MimeMultipart) m.getContent();
         m.setHeader("a", "b");
         m.saveChanges();
 
-	MimeMessage m2 = new MimeMessage(m);
-	assertEquals("b", m2.getHeader("a", null));
+        MimeMessage m2 = new MimeMessage(m);
+        assertEquals("b", m2.getHeader("a", null));
     }
 
     @Test
     public void testChangeHeader() throws Exception {
         MimeMessage m = createMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
+        MimeMultipart mp = (MimeMultipart) m.getContent();
         m.setHeader("Subject", "test");
         m.saveChanges();
 
-	MimeMessage m2 = new MimeMessage(m);
-	assertEquals("test", m2.getHeader("Subject", null));
+        MimeMessage m2 = new MimeMessage(m);
+        assertEquals("test", m2.getHeader("Subject", null));
     }
 
     @Test
     public void testAddContent() throws Exception {
         MimeMessage m = createMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	MimeBodyPart mbp = new MimeBodyPart();
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        MimeBodyPart mbp = new MimeBodyPart();
         mbp.setText("test");
-	mp.addBodyPart(mbp);
+        mp.addBodyPart(mbp);
         m.saveChanges();
 
-	MimeMessage m2 = new MimeMessage(m);
-	mp = (MimeMultipart)m2.getContent();
-	BodyPart bp = mp.getBodyPart(2);
-	assertEquals("test", bp.getContent());
-	// make sure nothing else changed
-	bp = mp.getBodyPart(0);
-	assertEquals("first part\n", bp.getContent());
-	bp = mp.getBodyPart(1);
-	assertEquals("second part\n", bp.getContent());
+        MimeMessage m2 = new MimeMessage(m);
+        mp = (MimeMultipart) m2.getContent();
+        BodyPart bp = mp.getBodyPart(2);
+        assertEquals("test", bp.getContent());
+        // make sure nothing else changed
+        bp = mp.getBodyPart(0);
+        assertEquals("first part\n", bp.getContent());
+        bp = mp.getBodyPart(1);
+        assertEquals("second part\n", bp.getContent());
     }
 
     @Test
     public void testChangeContent() throws Exception {
         MimeMessage m = createMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	BodyPart bp = mp.getBodyPart(0);
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        BodyPart bp = mp.getBodyPart(0);
         bp.setText("test");
         m.saveChanges();
 
-	MimeMessage m2 = new MimeMessage(m);
-	mp = (MimeMultipart)m2.getContent();
-	bp = mp.getBodyPart(0);
-	assertEquals("test", bp.getContent());
+        MimeMessage m2 = new MimeMessage(m);
+        mp = (MimeMultipart) m2.getContent();
+        bp = mp.getBodyPart(0);
+        assertEquals("test", bp.getContent());
     }
 
     @Test
     public void testChangeNestedContent() throws Exception {
         MimeMessage m = createNestedMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	mp = (MimeMultipart)mp.getBodyPart(0).getContent();
-	BodyPart bp = mp.getBodyPart(0);
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        mp = (MimeMultipart) mp.getBodyPart(0).getContent();
+        BodyPart bp = mp.getBodyPart(0);
         bp.setText("test");
         m.saveChanges();
 
-	MimeMessage m2 = new MimeMessage(m);
-	mp = (MimeMultipart)m2.getContent();
-	mp = (MimeMultipart)mp.getBodyPart(0).getContent();
-	bp = mp.getBodyPart(0);
-	assertEquals("test", bp.getContent());
-	// make sure other content is not changed or re-encoded
-	MimeBodyPart mbp = (MimeBodyPart)mp.getBodyPart(1);
-	assertEquals("second part\n", mbp.getContent());
-	assertEquals(EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder(), mbp.getEncoding());
-	mbp = (MimeBodyPart)mp.getBodyPart(2);
-	assertEquals("third part\n", mbp.getContent());
-	assertEquals(EncoderTypes.BASE_64.getEncoder(), mbp.getEncoding());
+        MimeMessage m2 = new MimeMessage(m);
+        mp = (MimeMultipart) m2.getContent();
+        mp = (MimeMultipart) mp.getBodyPart(0).getContent();
+        bp = mp.getBodyPart(0);
+        assertEquals("test", bp.getContent());
+        // make sure other content is not changed or re-encoded
+        MimeBodyPart mbp = (MimeBodyPart) mp.getBodyPart(1);
+        assertEquals("second part\n", mbp.getContent());
+        assertEquals(EncoderTypes.QUOTED_PRINTABLE_ENCODER.getEncoder(), mbp.getEncoding());
+        mbp = (MimeBodyPart) mp.getBodyPart(2);
+        assertEquals("third part\n", mbp.getContent());
+        assertEquals(EncoderTypes.BASE_64.getEncoder(), mbp.getEncoding());
     }
 
     private static MimeMessage createMessage() throws MessagingException {
         String content =
-	    "Mime-Version: 1.0\n" +
-	    "Subject: Example\n" +
-	    "Content-Type: multipart/mixed; boundary=\"-\"\n" +
-	    "\n" +
-	    "preamble\n" +
-	    "---\n" +
-	    "\n" +
-	    "first part\n" +
-	    "\n" +
-	    "---\n" +
-	    "\n" +
-	    "second part\n" +
-	    "\n" +
-	    "-----\n";
+                "Mime-Version: 1.0\n" +
+                        "Subject: Example\n" +
+                        "Content-Type: multipart/mixed; boundary=\"-\"\n" +
+                        "\n" +
+                        "preamble\n" +
+                        "---\n" +
+                        "\n" +
+                        "first part\n" +
+                        "\n" +
+                        "---\n" +
+                        "\n" +
+                        "second part\n" +
+                        "\n" +
+                        "-----\n";
 
-	return new MimeMessage(s, new AsciiStringInputStream(content));
+        return new MimeMessage(s, new AsciiStringInputStream(content));
     }
 
     private static MimeMessage createNestedMessage() throws MessagingException {
         String content =
-	    "Mime-Version: 1.0\n" +
-	    "Subject: Example\n" +
-	    "Content-Type: multipart/mixed; boundary=\"-\"\n" +
-	    "\n" +
-	    "preamble\n" +
-	    "---\n" +
-	    "Content-Type: multipart/mixed; boundary=\"x\"\n" +
-	    "\n" +
-	    "--x\n" +
-	    "\n" +
-	    "first part\n" +
-	    "\n" +
-	    "--x\n" +
-	    "Content-Transfer-Encoding: quoted-printable\n" +
-	    "\n" +
-	    "second part\n" +
-	    "\n" +
-	    "--x\n" +
-	    "Content-Transfer-Encoding: base64\n" +
-	    "\n" +
-	    "dGhpcmQgcGFydAo=\n" +	// "third part\n", base64 encoded
-	    "\n" +
-	    "--x--\n" +
-	    "-----\n";
+                "Mime-Version: 1.0\n" +
+                        "Subject: Example\n" +
+                        "Content-Type: multipart/mixed; boundary=\"-\"\n" +
+                        "\n" +
+                        "preamble\n" +
+                        "---\n" +
+                        "Content-Type: multipart/mixed; boundary=\"x\"\n" +
+                        "\n" +
+                        "--x\n" +
+                        "\n" +
+                        "first part\n" +
+                        "\n" +
+                        "--x\n" +
+                        "Content-Transfer-Encoding: quoted-printable\n" +
+                        "\n" +
+                        "second part\n" +
+                        "\n" +
+                        "--x\n" +
+                        "Content-Transfer-Encoding: base64\n" +
+                        "\n" +
+                        "dGhpcmQgcGFydAo=\n" +    // "third part\n", base64 encoded
+                        "\n" +
+                        "--x--\n" +
+                        "-----\n";
 
-	return new MimeMessage(s, new AsciiStringInputStream(content));
+        return new MimeMessage(s, new AsciiStringInputStream(content));
     }
 }

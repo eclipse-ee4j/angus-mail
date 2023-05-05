@@ -20,7 +20,10 @@ import java.io.FileDescriptor;
 
 public interface MailFile extends FileInterface {
     public boolean lock(String mode);
+
     public void unlock();
+
     public void touchlock();
+
     public FileDescriptor getFD();
 }

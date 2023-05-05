@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -10,30 +10,49 @@
 
 package example.app.internal;
 
-import java.io.*;
-import java.util.*;
-import java.text.*;
-
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
-import jakarta.mail.*;
+import jakarta.mail.Address;
+import jakarta.mail.FetchProfile;
+import jakarta.mail.Flags;
+import jakarta.mail.Folder;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
 import jakarta.mail.Part;
-import jakarta.mail.internet.*;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import jakarta.mail.Transport;
+import jakarta.mail.URLName;
+import jakarta.mail.internet.ContentType;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.SingleThreadModel;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.Properties;
 
 
 /**
  * This is a servlet that demonstrates the use of Jakarta Mail APIs
- * in a 3-tier application. It allows the user to login to an 
+ * in a 3-tier application. It allows the user to login to an
  * IMAP store, list all the messages in the INBOX folder, view
  * selected messages, compose and send a message, and logout.
  * <p>
- * Please note: This is NOT an example of how to write servlets! 
+ * Please note: This is NOT an example of how to write servlets!
  * This is simply to show that Jakarta Mail can be used in a servlet.
  * <p>
- * For more information on this servlet, see the 
- * JakartaMailServlet.README.txt file. 
+ * For more information on this servlet, see the
+ * JakartaMailServlet.README.txt file.
  * <p>
- * For more information on servlets, see 
+ * For more information on servlets, see
  * <a href="http://java.sun.com/products/java-server/servlets/index.html">
  * http://java.sun.com/products/java-server/servlets/index.html</a>
  *
@@ -51,561 +70,560 @@ public class JakartaMailServlet extends HttpServlet implements SingleThreadModel
      * and <code>password</code>. The <code>send</code> parameter denotes
      * that the method is processing the compose form submission.
      */
-    public  void doPost(HttpServletRequest req, HttpServletResponse res)
-	throws ServletException, IOException {
+    public void doPost(HttpServletRequest req, HttpServletResponse res)
+            throws ServletException, IOException {
 
-	// get the session
-	HttpSession ssn = req.getSession(true);
+        // get the session
+        HttpSession ssn = req.getSession(true);
 
-	String send = req.getParameter("send");
-	String host = req.getParameter("hostname");
-	String user = req.getParameter("username");
-	String passwd = req.getParameter("password");
-	URLName url = new URLName(protocol, host, -1, mbox, user, passwd);
+        String send = req.getParameter("send");
+        String host = req.getParameter("hostname");
+        String user = req.getParameter("username");
+        String passwd = req.getParameter("password");
+        URLName url = new URLName(protocol, host, -1, mbox, user, passwd);
 
-	ServletOutputStream out = res.getOutputStream();
-	res.setContentType("text/html");
-	out.println("<html><body bgcolor=\"#CCCCFF\">");
+        ServletOutputStream out = res.getOutputStream();
+        res.setContentType("text/html");
+        out.println("<html><body bgcolor=\"#CCCCFF\">");
 
-	if (send != null) {
-	    // process message sending
-	    send(req, res, out, ssn);
+        if (send != null) {
+            // process message sending
+            send(req, res, out, ssn);
 
-	} else {
-	    // initial login
+        } else {
+            // initial login
 
-	    // create 
-	    MailUserData mud = new MailUserData(url);
-	    ssn.putValue("jakartamailservlet", mud);
-	    
-	    try {
-		Properties props = System.getProperties();
-		props.put("mail.smtp.host", host);
-		Session session = Session.getDefaultInstance(props, null);
-		session.setDebug(false);
-		Store store = session.getStore(url);
-		store.connect();
-		Folder folder = store.getDefaultFolder();
-		if (folder == null) 
-		    throw new MessagingException("No default folder");
-		
-		folder = folder.getFolder(mbox);
-		if (folder == null)
-		    throw new MessagingException("Invalid folder");
-		
-		folder.open(Folder.READ_WRITE);
-		int totalMessages = folder.getMessageCount();
-		Message[] msgs = folder.getMessages();
-		FetchProfile fp = new FetchProfile();
-		fp.add(FetchProfile.Item.ENVELOPE);
-		folder.fetch(msgs, fp);
-		
-		// track who logged in
-		System.out.println("Login from: " + store.getURLName());
-		
-		// save stuff into MUD
-		mud.setSession(session);
-		mud.setStore(store);
-		mud.setFolder(folder);
-		
-		// splash
-		out.print("<center>");
-		out.print("<font face=\"Arial,Helvetica\" font size=+3>");
-		out.println("<b>Welcome to Jakarta Mail!</b></font></center><p>");
+            // create
+            MailUserData mud = new MailUserData(url);
+            ssn.putValue("jakartamailservlet", mud);
 
-		// folder table
-		out.println("<table width=\"50%\" border=0 align=center>");
-		// folder name column header
-		out.print("<tr><td width=\"75%\" bgcolor=\"#ffffcc\">");
-		out.print("<font face=\"Arial,Helvetica\" font size=-1>");
-		out.println("<b>FolderName</b></font></td><br>");
-		// msg count column header
-		out.print("<td width=\"25%\" bgcolor=\"#ffffcc\">");
-		out.print("<font face=\"Arial,Helvetica\" font size=-1>");
-		out.println("<b>Messages</b></font></td><br>");
-		out.println("</tr>");
-		// folder name
-		out.print("<tr><td width=\"75%\" bgcolor=\"#ffffff\">");
-		out.print("<a href=\"" + HttpUtils.getRequestURL(req) + "\">" +
-			  "Inbox" + "</a></td><br>");
-		// msg count
-		out.println("<td width=\"25%\" bgcolor=\"#ffffff\">" + 
-			    totalMessages + "</td>");
-		out.println("</tr>");
-		out.println("</table");
-	    } catch (Exception ex) {
-		out.println(ex.toString());            
-	    } finally {
-		out.println("</body></html>");
-		out.close();
-	    }
-	}
+            try {
+                Properties props = System.getProperties();
+                props.put("mail.smtp.host", host);
+                Session session = Session.getDefaultInstance(props, null);
+                session.setDebug(false);
+                Store store = session.getStore(url);
+                store.connect();
+                Folder folder = store.getDefaultFolder();
+                if (folder == null)
+                    throw new MessagingException("No default folder");
+
+                folder = folder.getFolder(mbox);
+                if (folder == null)
+                    throw new MessagingException("Invalid folder");
+
+                folder.open(Folder.READ_WRITE);
+                int totalMessages = folder.getMessageCount();
+                Message[] msgs = folder.getMessages();
+                FetchProfile fp = new FetchProfile();
+                fp.add(FetchProfile.Item.ENVELOPE);
+                folder.fetch(msgs, fp);
+
+                // track who logged in
+                System.out.println("Login from: " + store.getURLName());
+
+                // save stuff into MUD
+                mud.setSession(session);
+                mud.setStore(store);
+                mud.setFolder(folder);
+
+                // splash
+                out.print("<center>");
+                out.print("<font face=\"Arial,Helvetica\" font size=+3>");
+                out.println("<b>Welcome to Jakarta Mail!</b></font></center><p>");
+
+                // folder table
+                out.println("<table width=\"50%\" border=0 align=center>");
+                // folder name column header
+                out.print("<tr><td width=\"75%\" bgcolor=\"#ffffcc\">");
+                out.print("<font face=\"Arial,Helvetica\" font size=-1>");
+                out.println("<b>FolderName</b></font></td><br>");
+                // msg count column header
+                out.print("<td width=\"25%\" bgcolor=\"#ffffcc\">");
+                out.print("<font face=\"Arial,Helvetica\" font size=-1>");
+                out.println("<b>Messages</b></font></td><br>");
+                out.println("</tr>");
+                // folder name
+                out.print("<tr><td width=\"75%\" bgcolor=\"#ffffff\">");
+                out.print("<a href=\"" + HttpUtils.getRequestURL(req) + "\">" +
+                        "Inbox" + "</a></td><br>");
+                // msg count
+                out.println("<td width=\"25%\" bgcolor=\"#ffffff\">" +
+                        totalMessages + "</td>");
+                out.println("</tr>");
+                out.println("</table");
+            } catch (Exception ex) {
+                out.println(ex.toString());
+            } finally {
+                out.println("</body></html>");
+                out.close();
+            }
+        }
     }
-
 
     /**
      * This method handles the GET requests for the client.
      */
-    public void doGet (HttpServletRequest req, HttpServletResponse res)
-	throws ServletException, IOException {
+    public void doGet(HttpServletRequest req, HttpServletResponse res)
+            throws ServletException, IOException {
 
-	HttpSession ses = req.getSession(false); // before we write to out
-	ServletOutputStream out = res.getOutputStream();
-	MailUserData mud = getMUD(ses);
+        HttpSession ses = req.getSession(false); // before we write to out
+        ServletOutputStream out = res.getOutputStream();
+        MailUserData mud = getMUD(ses);
 
-	if (mud == null) {
-	    res.setContentType("text/html");
-	    out.println("<html><body>Please Login (no session)</body></html>");
-	    out.close();
-	    return;
-	}
+        if (mud == null) {
+            res.setContentType("text/html");
+            out.println("<html><body>Please Login (no session)</body></html>");
+            out.close();
+            return;
+        }
 
-	if (!mud.getStore().isConnected()) {
-	    res.setContentType("text/html");
-	    out.println("<html><body>Not Connected To Store</body></html>");
-	    out.close();
-	    return;
-	}
+        if (!mud.getStore().isConnected()) {
+            res.setContentType("text/html");
+            out.println("<html><body>Not Connected To Store</body></html>");
+            out.close();
+            return;
+        }
 
 
-	// mux that takes a GET request, based on parameters figures
-	// out what it should do, and routes it to the
-	// appropriate method
+        // mux that takes a GET request, based on parameters figures
+        // out what it should do, and routes it to the
+        // appropriate method
 
-	// get url parameters
-	String msgStr = req.getParameter("message");
-	String logout = req.getParameter("logout");
-	String compose = req.getParameter("compose");
-	String part = req.getParameter("part");
-	int msgNum = -1;
-	int partNum = -1;
+        // get url parameters
+        String msgStr = req.getParameter("message");
+        String logout = req.getParameter("logout");
+        String compose = req.getParameter("compose");
+        String part = req.getParameter("part");
+        int msgNum = -1;
+        int partNum = -1;
 
-	// process url params
-	if (msgStr != null) {
-	    // operate on message "msgStr"
-	    msgNum = Integer.parseInt(msgStr);
+        // process url params
+        if (msgStr != null) {
+            // operate on message "msgStr"
+            msgNum = Integer.parseInt(msgStr);
 
-	    if (part == null) {
-		// display message "msgStr"
-		res.setContentType("text/html");
-		displayMessage(mud, req, out, msgNum);
+            if (part == null) {
+                // display message "msgStr"
+                res.setContentType("text/html");
+                displayMessage(mud, req, out, msgNum);
 
-	    } else {
-		// display part "part" in message "msgStr"
-		partNum = Integer.parseInt(part);
-		displayPart(mud, msgNum, partNum, out, res);
-	    }
+            } else {
+                // display part "part" in message "msgStr"
+                partNum = Integer.parseInt(part);
+                displayPart(mud, msgNum, partNum, out, res);
+            }
 
-	} else if (compose != null) {
-	    // display compose form
-	    compose(mud, res, out);
+        } else if (compose != null) {
+            // display compose form
+            compose(mud, res, out);
 
-	} else if (logout != null) {
-	    // process logout
-	    try {
-		mud.getFolder().close(false);
-		mud.getStore().close();
-		ses.invalidate();
-		out.println("<html><body>Logged out OK</body></html>");
-	    } catch (MessagingException mex) {
-		out.println(mex.toString());
-	    }
+        } else if (logout != null) {
+            // process logout
+            try {
+                mud.getFolder().close(false);
+                mud.getStore().close();
+                ses.invalidate();
+                out.println("<html><body>Logged out OK</body></html>");
+            } catch (MessagingException mex) {
+                out.println(mex.toString());
+            }
 
-	} else {
-	    // display headers
-	    displayHeaders(mud, req, out);
-	}
+        } else {
+            // display headers
+            displayHeaders(mud, req, out);
+        }
     }
 
     /* main method to display messages */
-    private void displayMessage(MailUserData mud, HttpServletRequest req, 
-				ServletOutputStream out, int msgNum) 
-	throws IOException {
-	    
-	out.println("<html>");
-	out.println("<HEAD><TITLE>Jakarta Mail Servlet</TITLE></HEAD>");
-	out.println("<BODY bgcolor=\"#ccccff\">");
-	out.print("<center><font face=\"Arial,Helvetica\" ");
-	out.println("font size=\"+3\"><b>");
-	out.println("Message " + (msgNum+1) + " in folder " + 
-		    mud.getStore().getURLName() + 
-		    "/INBOX</b></font></center><p>");
+    private void displayMessage(MailUserData mud, HttpServletRequest req,
+                                ServletOutputStream out, int msgNum)
+            throws IOException {
 
-	try {
-	    Message msg = mud.getFolder().getMessage(msgNum);
+        out.println("<html>");
+        out.println("<HEAD><TITLE>Jakarta Mail Servlet</TITLE></HEAD>");
+        out.println("<BODY bgcolor=\"#ccccff\">");
+        out.print("<center><font face=\"Arial,Helvetica\" ");
+        out.println("font size=\"+3\"><b>");
+        out.println("Message " + (msgNum + 1) + " in folder " +
+                mud.getStore().getURLName() +
+                "/INBOX</b></font></center><p>");
 
-	    // first, display this message's headers
-	    displayMessageHeaders(mud, msg, out);
+        try {
+            Message msg = mud.getFolder().getMessage(msgNum);
 
-	    // and now, handle the content
-	    Object o = msg.getContent();
-	    
-	    //if (o instanceof String) {
-	    if (msg.isMimeType("text/plain")) {
-		out.println("<pre>");
-		out.println((String)o);
-		out.println("</pre>");
-	    //} else if (o instanceof Multipart){
-	    } else if (msg.isMimeType("multipart/*")) {
-		Multipart mp = (Multipart)o;
-		int cnt = mp.getCount();
-		for (int i = 0; i < cnt; i++) {
-		    displayPart(mud, msgNum, mp.getBodyPart(i), i, req, out);
-		}
-	    } else {
-		out.println(msg.getContentType());
-	    }
+            // first, display this message's headers
+            displayMessageHeaders(mud, msg, out);
 
-	} catch (MessagingException mex) {
-	    out.println(mex.toString());
-	}
+            // and now, handle the content
+            Object o = msg.getContent();
 
-	out.println("</BODY></html>");
-	out.close();
+            //if (o instanceof String) {
+            if (msg.isMimeType("text/plain")) {
+                out.println("<pre>");
+                out.println((String) o);
+                out.println("</pre>");
+                //} else if (o instanceof Multipart){
+            } else if (msg.isMimeType("multipart/*")) {
+                Multipart mp = (Multipart) o;
+                int cnt = mp.getCount();
+                for (int i = 0; i < cnt; i++) {
+                    displayPart(mud, msgNum, mp.getBodyPart(i), i, req, out);
+                }
+            } else {
+                out.println(msg.getContentType());
+            }
+
+        } catch (MessagingException mex) {
+            out.println(mex.toString());
+        }
+
+        out.println("</BODY></html>");
+        out.close();
     }
 
-    /** 
+    /**
      * This method displays a message part. <code>text/plain</code>
      * content parts are displayed inline. For all other parts,
      * a URL is generated and displayed; clicking on the URL
      * brings up the part in a separate page.
      */
-    private void displayPart(MailUserData mud, int msgNum, Part part, 
-			     int partNum, HttpServletRequest req, 
-			     ServletOutputStream out) 
-	throws IOException {
+    private void displayPart(MailUserData mud, int msgNum, Part part,
+                             int partNum, HttpServletRequest req,
+                             ServletOutputStream out)
+            throws IOException {
 
-	if (partNum != 0)
-	    out.println("<p><hr>");
+        if (partNum != 0)
+            out.println("<p><hr>");
 
-	try {
+        try {
 
-	    String sct = part.getContentType();
-	    if (sct == null) {
-		out.println("invalid part");
-		return;
-	    }
-	    ContentType ct = new ContentType(sct);
-	    
-	    if (partNum != 0)
-		out.println("<b>Attachment Type:</b> " +   
-			    ct.getBaseType() + "<br>");
+            String sct = part.getContentType();
+            if (sct == null) {
+                out.println("invalid part");
+                return;
+            }
+            ContentType ct = new ContentType(sct);
 
-	    if (ct.match("text/plain")) {  
-		// display text/plain inline
-		out.println("<pre>");
-		out.println((String)part.getContent());
-		out.println("</pre>");
+            if (partNum != 0)
+                out.println("<b>Attachment Type:</b> " +
+                        ct.getBaseType() + "<br>");
 
-	    } else {
-		// generate a url for this part
-		String s;
-		if ((s = part.getFileName()) != null)
-		    out.println("<b>Filename:</b> " + s + "<br>");
-		s = null;
-		if ((s = part.getDescription()) != null)
-		    out.println("<b>Description:</b> " + s + "<br>");
-		
-		out.println("<a href=\"" +
-			    HttpUtils.getRequestURL(req) + 
-			    "?message=" +
-			    msgNum + "&part=" +
-			    partNum + "\">Display Attachment</a>");
-	    }
-	} catch (MessagingException mex) {
-	    out.println(mex.toString());
-	}
+            if (ct.match("text/plain")) {
+                // display text/plain inline
+                out.println("<pre>");
+                out.println((String) part.getContent());
+                out.println("</pre>");
+
+            } else {
+                // generate a url for this part
+                String s;
+                if ((s = part.getFileName()) != null)
+                    out.println("<b>Filename:</b> " + s + "<br>");
+                s = null;
+                if ((s = part.getDescription()) != null)
+                    out.println("<b>Description:</b> " + s + "<br>");
+
+                out.println("<a href=\"" +
+						HttpUtils.getRequestURL(req) +
+                        "?message=" +
+                        msgNum + "&part=" +
+                        partNum + "\">Display Attachment</a>");
+            }
+        } catch (MessagingException mex) {
+            out.println(mex.toString());
+        }
     }
 
     /**
-     * This method gets the stream from for a given msg part and 
+     * This method gets the stream from for a given msg part and
      * pushes it out to the browser with the correct content type.
      * Used to display attachments and relies on the browser's
      * content handling capabilities.
      */
     private void displayPart(MailUserData mud, int msgNum,
-			     int partNum, ServletOutputStream out, 
-			     HttpServletResponse res) 
-	throws IOException {
+                             int partNum, ServletOutputStream out,
+                             HttpServletResponse res)
+            throws IOException {
 
-	Part part = null;
-	
-	try {
-	    Message msg = mud.getFolder().getMessage(msgNum);
+        Part part = null;
 
-	    Multipart mp = (Multipart)msg.getContent();
-	    part = mp.getBodyPart(partNum);
-	    
-	    String sct = part.getContentType();
-	    if (sct == null) {
-		out.println("invalid part");
-		return;
-	    }
-	    ContentType ct = new ContentType(sct);
+        try {
+            Message msg = mud.getFolder().getMessage(msgNum);
 
-	    res.setContentType(ct.getBaseType());
-	    InputStream is = part.getInputStream();
-	    int i;
-	    while ((i = is.read()) != -1)
-		out.write(i);
-	    out.flush();
-	    out.close();
-	} catch (MessagingException mex) {
-	    out.println(mex.toString());
-	}
+            Multipart mp = (Multipart) msg.getContent();
+            part = mp.getBodyPart(partNum);
+
+            String sct = part.getContentType();
+            if (sct == null) {
+                out.println("invalid part");
+                return;
+            }
+            ContentType ct = new ContentType(sct);
+
+            res.setContentType(ct.getBaseType());
+            InputStream is = part.getInputStream();
+            int i;
+            while ((i = is.read()) != -1)
+                out.write(i);
+            out.flush();
+            out.close();
+        } catch (MessagingException mex) {
+            out.println(mex.toString());
+        }
     }
 
     /**
-     * This is a utility message that pretty-prints the message 
+     * This is a utility message that pretty-prints the message
      * headers for message that is being displayed.
      */
-    private void displayMessageHeaders(MailUserData mud, Message msg, 
-				       ServletOutputStream out) 
-	throws IOException {
+    private void displayMessageHeaders(MailUserData mud, Message msg,
+                                       ServletOutputStream out)
+            throws IOException {
 
-	try {
-	    out.println("<b>Date:</b> " + msg.getSentDate() + "<br>");
+        try {
+            out.println("<b>Date:</b> " + msg.getSentDate() + "<br>");
 
-	    Address[] fr = msg.getFrom();
-	    if (fr != null) {
-		boolean tf = true;
-		out.print("<b>From:</b> ");
-		for (int i = 0; i < fr.length; i++) {
-		    out.print(((tf) ? " " : ", ") + getDisplayAddress(fr[i]));
-		    tf = false;
-		}
-		out.println("<br>");
-	    }
+            Address[] fr = msg.getFrom();
+            if (fr != null) {
+                boolean tf = true;
+                out.print("<b>From:</b> ");
+                for (int i = 0; i < fr.length; i++) {
+                    out.print(((tf) ? " " : ", ") + getDisplayAddress(fr[i]));
+                    tf = false;
+                }
+                out.println("<br>");
+            }
 
-	    Address[] to = msg.getRecipients(Message.RecipientType.TO);
-	    if (to != null) {
-		boolean tf = true;
-		out.print("<b>To:</b> ");
-		for (int i = 0; i < to.length; i++) {
-		    out.print(((tf) ? " " : ", ") + getDisplayAddress(to[i]));
-		    tf = false;
-		}
-		out.println("<br>");
-	    }
+            Address[] to = msg.getRecipients(Message.RecipientType.TO);
+            if (to != null) {
+                boolean tf = true;
+                out.print("<b>To:</b> ");
+                for (int i = 0; i < to.length; i++) {
+                    out.print(((tf) ? " " : ", ") + getDisplayAddress(to[i]));
+                    tf = false;
+                }
+                out.println("<br>");
+            }
 
-	    Address[] cc = msg.getRecipients(Message.RecipientType.CC);
-	    if (cc != null) {
-		boolean cf = true;
-		out.print("<b>CC:</b> ");
-		for (int i = 0; i < cc.length; i++) {
-		    out.print(((cf) ? " " : ", ") + getDisplayAddress(cc[i]));
-		    cf = false;
-		}
-		out.println("<br>");
-	    }
-	    
-	    out.print("<b>Subject:</b> " + 
-		      ((msg.getSubject() !=null) ? msg.getSubject() : "") + 
-		      "<br>");
+            Address[] cc = msg.getRecipients(Message.RecipientType.CC);
+            if (cc != null) {
+                boolean cf = true;
+                out.print("<b>CC:</b> ");
+                for (int i = 0; i < cc.length; i++) {
+                    out.print(((cf) ? " " : ", ") + getDisplayAddress(cc[i]));
+                    cf = false;
+                }
+                out.println("<br>");
+            }
 
-	} catch (MessagingException mex) {
-	    out.println(msg.toString());
-	}
+            out.print("<b>Subject:</b> " +
+                    ((msg.getSubject() != null) ? msg.getSubject() : "") +
+                    "<br>");
+
+        } catch (MessagingException mex) {
+            out.println(msg.toString());
+        }
     }
 
     /**
      * This method displays the URL's for the available commands and the
-     * INBOX headerlist 
+     * INBOX headerlist
      */
     private void displayHeaders(MailUserData mud,
-				HttpServletRequest req, 
-				ServletOutputStream out)
-	throws IOException {
+                                HttpServletRequest req,
+                                ServletOutputStream out)
+            throws IOException {
 
-	SimpleDateFormat df = new SimpleDateFormat("EE M/d/yy");
+        SimpleDateFormat df = new SimpleDateFormat("EE M/d/yy");
 
-	out.println("<html>");
-	out.println("<HEAD><TITLE>Jakarta Mail Servlet</TITLE></HEAD>");
-	out.println("<BODY bgcolor=\"#ccccff\"><hr>");
-	out.print("<center><font face=\"Arial,Helvetica\" font size=\"+3\">");
-	out.println("<b>Folder " + mud.getStore().getURLName() + 
-		    "/INBOX</b></font></center><p>");
+        out.println("<html>");
+        out.println("<HEAD><TITLE>Jakarta Mail Servlet</TITLE></HEAD>");
+        out.println("<BODY bgcolor=\"#ccccff\"><hr>");
+        out.print("<center><font face=\"Arial,Helvetica\" font size=\"+3\">");
+        out.println("<b>Folder " + mud.getStore().getURLName() +
+                "/INBOX</b></font></center><p>");
 
-	// URL's for the commands that are available
-	out.println("<font face=\"Arial,Helvetica\" font size=\"+3\"><b>");
-	out.println("<a href=\"" +
-		    HttpUtils.getRequestURL(req) +
-		    "?logout=true\">Logout</a>");
-	out.println("<a href=\"" +
-		    HttpUtils.getRequestURL(req) +
-		    "?compose=true\" target=\"compose\">Compose</a>");
-	out.println("</b></font>");
-	out.println("<hr>");
+        // URL's for the commands that are available
+        out.println("<font face=\"Arial,Helvetica\" font size=\"+3\"><b>");
+        out.println("<a href=\"" +
+				HttpUtils.getRequestURL(req) +
+                "?logout=true\">Logout</a>");
+        out.println("<a href=\"" +
+				HttpUtils.getRequestURL(req) +
+                "?compose=true\" target=\"compose\">Compose</a>");
+        out.println("</b></font>");
+        out.println("<hr>");
 
-	// List headers in a table
-	out.print("<table cellpadding=1 cellspacing=1 "); // table
-	out.println("width=\"100%\" border=1>");          // settings
+        // List headers in a table
+        out.print("<table cellpadding=1 cellspacing=1 "); // table
+        out.println("width=\"100%\" border=1>");          // settings
 
-	// sender column header
-	out.println("<tr><td width=\"25%\" bgcolor=\"ffffcc\">");
-	out.println("<font face=\"Arial,Helvetica\" font size=\"+1\">");
-	out.println("<b>Sender</b></font></td>");
-	// date column header
-	out.println("<td width=\"15%\" bgcolor=\"ffffcc\">");
-	out.println("<font face=\"Arial,Helvetica\" font size=\"+1\">");
-	out.println("<b>Date</b></font></td>");
-	// subject column header
-	out.println("<td bgcolor=\"ffffcc\">");
-	out.println("<font face=\"Arial,Helvetica\" font size=\"+1\">");
-	out.println("<b>Subject</b></font></td></tr>");
+        // sender column header
+        out.println("<tr><td width=\"25%\" bgcolor=\"ffffcc\">");
+        out.println("<font face=\"Arial,Helvetica\" font size=\"+1\">");
+        out.println("<b>Sender</b></font></td>");
+        // date column header
+        out.println("<td width=\"15%\" bgcolor=\"ffffcc\">");
+        out.println("<font face=\"Arial,Helvetica\" font size=\"+1\">");
+        out.println("<b>Date</b></font></td>");
+        // subject column header
+        out.println("<td bgcolor=\"ffffcc\">");
+        out.println("<font face=\"Arial,Helvetica\" font size=\"+1\">");
+        out.println("<b>Subject</b></font></td></tr>");
 
-	try {
-	    Folder f = mud.getFolder();
-	    int msgCount = f.getMessageCount();
-	    Message m = null;
-	    // for each message, show its headers
-	    for (int i = 1; i <= msgCount; i++) {
-		m = f.getMessage(i);
-		
-		// if message has the DELETED flag set, don't display it
-		if (m.isSet(Flags.Flag.DELETED))
-		    continue;
+        try {
+            Folder f = mud.getFolder();
+            int msgCount = f.getMessageCount();
+            Message m = null;
+            // for each message, show its headers
+            for (int i = 1; i <= msgCount; i++) {
+                m = f.getMessage(i);
 
-		// from 
-		out.println("<tr valigh=middle>");
-		out.print("<td width=\"25%\" bgcolor=\"ffffff\">");
-		out.println("<font face=\"Arial,Helvetica\">" + 
-			    ((m.getFrom() != null) ? 
-				       m.getFrom()[0].toString() : 
-				       "" ) +
-			    "</font></td>");
+                // if message has the DELETED flag set, don't display it
+                if (m.isSet(Flags.Flag.DELETED))
+                    continue;
 
-		// date
-		out.print("<td nowrap width=\"15%\" bgcolor=\"ffffff\">");
-		out.println("<font face=\"Arial,Helvetica\">" + 
-			    df.format((m.getSentDate()!=null) ? 
-				      m.getSentDate() : m.getReceivedDate()) +
-			    "</font></td>");
+                // from
+                out.println("<tr valigh=middle>");
+                out.print("<td width=\"25%\" bgcolor=\"ffffff\">");
+                out.println("<font face=\"Arial,Helvetica\">" +
+                        ((m.getFrom() != null) ?
+                                m.getFrom()[0].toString() :
+                                "") +
+                        "</font></td>");
 
-		// subject & link
-		out.print("<td bgcolor=\"ffffff\">");
-		out.println("<font face=\"Arial,Helvetica\">" + 
-			    "<a href=\"" +
-			    HttpUtils.getRequestURL(req) + 
-			    "?message=" +
-			    i + "\">" +
-			    ((m.getSubject() != null) ? 
-				   m.getSubject() :
-				   "<i>No Subject</i>") +
-			    "</a>" +
-			    "</font></td>");
-		out.println("</tr>");
-	    }
-	} catch (MessagingException mex) {
-	    out.println("<tr><td>" + mex.toString() + "</td></tr>");
-	    mex.printStackTrace();
-	}
+                // date
+                out.print("<td nowrap width=\"15%\" bgcolor=\"ffffff\">");
+                out.println("<font face=\"Arial,Helvetica\">" +
+                        df.format((m.getSentDate() != null) ?
+                                m.getSentDate() : m.getReceivedDate()) +
+                        "</font></td>");
 
-	out.println("</table>");
-	out.println("</BODY></html>");
-	out.flush();
-	out.close();
+                // subject & link
+                out.print("<td bgcolor=\"ffffff\">");
+                out.println("<font face=\"Arial,Helvetica\">" +
+                        "<a href=\"" +
+						HttpUtils.getRequestURL(req) +
+                        "?message=" +
+                        i + "\">" +
+                        ((m.getSubject() != null) ?
+                                m.getSubject() :
+                                "<i>No Subject</i>") +
+                        "</a>" +
+                        "</font></td>");
+                out.println("</tr>");
+            }
+        } catch (MessagingException mex) {
+            out.println("<tr><td>" + mex.toString() + "</td></tr>");
+            mex.printStackTrace();
+        }
+
+        out.println("</table>");
+        out.println("</BODY></html>");
+        out.flush();
+        out.close();
     }
 
-    /** 
+    /**
      * This method handles the request when the user hits the
      * <i>Compose</i> link. It send the compose form to the browser.
      */
     private void compose(MailUserData mud, HttpServletResponse res,
-			 ServletOutputStream out) 
-	throws IOException {
-	
-	res.setContentType("text/html");
-	out.println(composeForm);
-	out.close();
+                         ServletOutputStream out)
+            throws IOException {
+
+        res.setContentType("text/html");
+        out.println(composeForm);
+        out.close();
     }
 
     /**
      * This method processes the send request from the compose form
      */
     private void send(HttpServletRequest req, HttpServletResponse res,
-		      ServletOutputStream out, HttpSession ssn)
-	throws IOException {
-	    
-	String to = req.getParameter("to");
-	String cc = req.getParameter("cc");
-	String subj = req.getParameter("subject");
-	String text = req.getParameter("text");
+                      ServletOutputStream out, HttpSession ssn)
+            throws IOException {
 
-	try {
-	    MailUserData mud = getMUD(ssn);
-	    if (mud == null)
-		throw new Exception("trying to send, but not logged in");
+        String to = req.getParameter("to");
+        String cc = req.getParameter("cc");
+        String subj = req.getParameter("subject");
+        String text = req.getParameter("text");
 
-	    Message msg = new MimeMessage(mud.getSession());
-	    InternetAddress[] toAddrs = null, ccAddrs = null;
+        try {
+            MailUserData mud = getMUD(ssn);
+            if (mud == null)
+                throw new Exception("trying to send, but not logged in");
 
-	    if (to != null) {
-		toAddrs = InternetAddress.parse(to, false);
-		msg.setRecipients(Message.RecipientType.TO, toAddrs);
-	    } else
-		throw new MessagingException("No \"To\" address specified");
+            Message msg = new MimeMessage(mud.getSession());
+            InternetAddress[] toAddrs = null, ccAddrs = null;
 
-	    if (cc != null) {
-		ccAddrs = InternetAddress.parse(cc, false);
-		msg.setRecipients(Message.RecipientType.CC, ccAddrs);
-	    }
+            if (to != null) {
+                toAddrs = InternetAddress.parse(to, false);
+                msg.setRecipients(Message.RecipientType.TO, toAddrs);
+            } else
+                throw new MessagingException("No \"To\" address specified");
 
-	    if (subj != null)
-		msg.setSubject(subj);
+            if (cc != null) {
+                ccAddrs = InternetAddress.parse(cc, false);
+                msg.setRecipients(Message.RecipientType.CC, ccAddrs);
+            }
 
-	    URLName u = mud.getURLName();
-	    msg.setFrom(new InternetAddress(u.getUsername() + "@" +
-					    u.getHost()));
+            if (subj != null)
+                msg.setSubject(subj);
 
-	    if (text != null)
-		msg.setText(text);
+            URLName u = mud.getURLName();
+            msg.setFrom(new InternetAddress(u.getUsername() + "@" +
+                    u.getHost()));
 
-	    Transport.send(msg);
-	    
-	    out.println("<h1>Message sent successfully</h1></body></html>");
-	    out.close();
-	    
-	} catch (Exception mex) {
-	    out.println("<h1>Error sending message.</h1>");
-	    out.println(mex.toString());
-	    out.println("<br></body></html>");
-	}
+            if (text != null)
+                msg.setText(text);
+
+            Transport.send(msg);
+
+            out.println("<h1>Message sent successfully</h1></body></html>");
+            out.close();
+
+        } catch (Exception mex) {
+            out.println("<h1>Error sending message.</h1>");
+            out.println(mex.toString());
+            out.println("<br></body></html>");
+        }
     }
 
 
     // utility method; returns a string suitable for msg header display
     private String getDisplayAddress(Address a) {
-	String pers = null;
-	String addr = null;
-	if (a instanceof InternetAddress &&
-	    ((pers = ((InternetAddress)a).getPersonal()) != null)) {
-	    
-	    addr = pers + "  "+"&lt;"+((InternetAddress)a).getAddress()+"&gt;";
-	} else 
-	    addr = a.toString();
-	
-	return addr;
+        String pers = null;
+        String addr = null;
+        if (a instanceof InternetAddress &&
+                ((pers = ((InternetAddress) a).getPersonal()) != null)) {
+
+            addr = pers + "  " + "&lt;" + ((InternetAddress) a).getAddress() + "&gt;";
+        } else
+            addr = a.toString();
+
+        return addr;
     }
 
     // utility method; retrieve the MailUserData 
     // from the HttpSession and return it
     private MailUserData getMUD(HttpSession ses) throws IOException {
-	MailUserData mud = null;
+        MailUserData mud = null;
 
-	if (ses == null) {
-	    return null;
-	} else {
-	    if ((mud = (MailUserData)ses.getValue("jakartamailservlet")) == null){
-		return null;
-	    }
-	}
-	return mud;
+        if (ses == null) {
+            return null;
+        } else {
+            if ((mud = (MailUserData) ses.getValue("jakartamailservlet")) == null) {
+                return null;
+            }
+        }
+        return mud;
     }
 
 
     public String getServletInfo() {
-	return "A mail reader servlet";
+        return "A mail reader servlet";
     }
 
     /**
@@ -628,34 +646,34 @@ class MailUserData {
     Folder folder;
 
     public MailUserData(URLName urlname) {
-	url = urlname;
+        url = urlname;
     }
 
     public URLName getURLName() {
-	return url;
+        return url;
     }
 
     public Session getSession() {
-	return session;
+        return session;
     }
 
     public void setSession(Session s) {
-	session = s;
+        session = s;
     }
 
     public Store getStore() {
-	return store;
+        return store;
     }
 
     public void setStore(Store s) {
-	store = s;
+        store = s;
     }
 
     public Folder getFolder() {
-	return folder;
+        return folder;
     }
 
     public void setFolder(Folder f) {
-	folder = f;
+        folder = f;
     }
 }

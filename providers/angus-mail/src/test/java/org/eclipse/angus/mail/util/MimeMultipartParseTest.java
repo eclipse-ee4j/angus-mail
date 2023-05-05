@@ -16,21 +16,22 @@
 
 package org.eclipse.angus.mail.util;
 
-import java.util.*;
-
+import jakarta.activation.DataHandler;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.util.ByteArrayDataSource;
 import jakarta.mail.util.SharedByteArrayInputStream;
+import org.junit.Assert;
+import org.junit.Test;
 
-import java.io.*;
-import jakarta.mail.*;
-import jakarta.mail.event.*;
-import jakarta.mail.internet.*;
-import jakarta.mail.util.*;
-import jakarta.activation.*;
-
-import org.junit.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.util.Date;
+import java.util.Properties;
 
 /*
  * Test multipart parsing.
@@ -40,20 +41,20 @@ import static org.junit.Assert.assertTrue;
 
 public class MimeMultipartParseTest {
     private static Session session =
-	Session.getInstance(new Properties(), null);
+            Session.getInstance(new Properties(), null);
 
     private static final int maxsize = 10000;
     private static final String data =
-	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     @Test
     public void testParse() throws Exception {
-	test(false);
+        test(false);
     }
 
     @Test
     public void testParseShared() throws Exception {
-	test(true);
+        test(true);
     }
 
     /*
@@ -63,87 +64,87 @@ public class MimeMultipartParseTest {
      * for a unit test.
      */
     public void test(boolean shared) throws Exception {
-	testMessage(1, shared);
-	testMessage(2, shared);
-	testMessage(62, shared);
-	testMessage(63, shared);
-	testMessage(64, shared);
-	testMessage(65, shared);
-	testMessage(1023, shared);
-	testMessage(1024, shared);
-	testMessage(1025, shared);
-	for (int size = 8100; size <= maxsize; size++)
-	    testMessage(size, shared);
+        testMessage(1, shared);
+        testMessage(2, shared);
+        testMessage(62, shared);
+        testMessage(63, shared);
+        testMessage(64, shared);
+        testMessage(65, shared);
+        testMessage(1023, shared);
+        testMessage(1024, shared);
+        testMessage(1025, shared);
+        for (int size = 8100; size <= maxsize; size++)
+            testMessage(size, shared);
     }
 
     public void testMessage(int size, boolean shared) throws Exception {
-	//System.out.println("SIZE: " + size);
-	/*
-	 * Construct a multipart message with a part of the
-	 * given size.
-	 */
-	MimeMessage msg = new MimeMessage(session);
-	msg.setFrom(new InternetAddress("me@example.com"));
-	msg.setSubject("test multipart parsing");
-	msg.setSentDate(new Date(0));
-	MimeBodyPart mbp1 = new MimeBodyPart();
-	mbp1.setText("main text\n");
-	MimeBodyPart mbp3 = new MimeBodyPart();
-	mbp3.setText("end text\n");
-	MimeBodyPart mbp2 = new MimeBodyPart();
-	byte[] part = new byte[size];
-	for (int i = 0; i < size; i++) {
-	    int j = i % 64;
-	    if (j == 62)
-		part[i] = (byte)'\r';
-	    else if (j == 63)
-		part[i] = (byte)'\n';
-	    else
-		part[i] = (byte)data.charAt((j + i / 64) % 62);
-	}
-	mbp2.setDataHandler(new DataHandler(
-	    new ByteArrayDataSource(part, "text/plain")));
+        //System.out.println("SIZE: " + size);
+        /*
+         * Construct a multipart message with a part of the
+         * given size.
+         */
+        MimeMessage msg = new MimeMessage(session);
+        msg.setFrom(new InternetAddress("me@example.com"));
+        msg.setSubject("test multipart parsing");
+        msg.setSentDate(new Date(0));
+        MimeBodyPart mbp1 = new MimeBodyPart();
+        mbp1.setText("main text\n");
+        MimeBodyPart mbp3 = new MimeBodyPart();
+        mbp3.setText("end text\n");
+        MimeBodyPart mbp2 = new MimeBodyPart();
+        byte[] part = new byte[size];
+        for (int i = 0; i < size; i++) {
+            int j = i % 64;
+            if (j == 62)
+                part[i] = (byte) '\r';
+            else if (j == 63)
+                part[i] = (byte) '\n';
+            else
+                part[i] = (byte) data.charAt((j + i / 64) % 62);
+        }
+        mbp2.setDataHandler(new DataHandler(
+                new ByteArrayDataSource(part, "text/plain")));
 
-	MimeMultipart mp = new MimeMultipart();
-	mp.addBodyPart(mbp1);
-	mp.addBodyPart(mbp2);
-	mp.addBodyPart(mbp3);
-	msg.setContent(mp);
-	msg.saveChanges();
+        MimeMultipart mp = new MimeMultipart();
+        mp.addBodyPart(mbp1);
+        mp.addBodyPart(mbp2);
+        mp.addBodyPart(mbp3);
+        msg.setContent(mp);
+        msg.saveChanges();
 
-	/*
-	 * Write the message out to a byte array.
-	 */
-	ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	msg.writeTo(bos);
-	bos.close();
-	byte[] buf = bos.toByteArray();
+        /*
+         * Write the message out to a byte array.
+         */
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        msg.writeTo(bos);
+        bos.close();
+        byte[] buf = bos.toByteArray();
 
-	/*
-	 * Construct a new message to parse the bytes.
-	 */
-	msg = new MimeMessage(session, shared ?
-	    new SharedByteArrayInputStream(buf) :
-	    new ByteArrayInputStream(buf));
+        /*
+         * Construct a new message to parse the bytes.
+         */
+        msg = new MimeMessage(session, shared ?
+                new SharedByteArrayInputStream(buf) :
+                new ByteArrayInputStream(buf));
 
-	// verify that the part content is correct
-	mp = (MimeMultipart)msg.getContent();
-	mbp2 = (MimeBodyPart)mp.getBodyPart(1);
-	InputStream is = mbp2.getInputStream();
-	int k = 0;
-	int c;
-	while ((c = is.read()) >= 0) {
-	    int j = k % 64;
-	    byte e;
-	    if (j == 62)
-		e = (byte)'\r';
-	    else if (j == 63)
-		e = (byte)'\n';
-	    else
-		e = (byte)data.charAt((j + k / 64) % 62);
-	    Assert.assertEquals("Size " + size + " at byte " + k, e, c);
-	    k++;
-	}
-	Assert.assertEquals("Expected size", size, k);
+        // verify that the part content is correct
+        mp = (MimeMultipart) msg.getContent();
+        mbp2 = (MimeBodyPart) mp.getBodyPart(1);
+        InputStream is = mbp2.getInputStream();
+        int k = 0;
+        int c;
+        while ((c = is.read()) >= 0) {
+            int j = k % 64;
+            byte e;
+            if (j == 62)
+                e = (byte) '\r';
+            else if (j == 63)
+                e = (byte) '\n';
+            else
+                e = (byte) data.charAt((j + k / 64) % 62);
+            Assert.assertEquals("Size " + size + " at byte " + k, e, c);
+            k++;
+        }
+        Assert.assertEquals("Expected size", size, k);
     }
 }

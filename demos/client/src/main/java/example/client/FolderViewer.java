@@ -20,8 +20,8 @@ import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 
 /**
- * @author	Christopher Cotton
- * @author	Bill Shannon
+ * @author Christopher Cotton
+ * @author Bill Shannon
  */
 public class FolderViewer extends JPanel {
 
@@ -30,57 +30,57 @@ public class FolderViewer extends JPanel {
     JTable table;
 
     public FolderViewer() {
-	this(null);
+        this(null);
     }
 
     public FolderViewer(Folder what) {
-	super(new GridLayout(1,1));
+        super(new GridLayout(1, 1));
 
-	table = new JTable(model);
-	table.setShowGrid(false);
+        table = new JTable(model);
+        table.setShowGrid(false);
 
-	scrollpane = new JScrollPane(table);
+        scrollpane = new JScrollPane(table);
 
-	// setup the folder we were given
-	setFolder(what);
-	
-	// find out what is pressed
-	table.getSelectionModel().addListSelectionListener(
-	    new FolderPressed());
-	scrollpane.setPreferredSize(new Dimension(700, 300));
-	add(scrollpane);
+        // setup the folder we were given
+        setFolder(what);
+
+        // find out what is pressed
+        table.getSelectionModel().addListSelectionListener(
+                new FolderPressed());
+        scrollpane.setPreferredSize(new Dimension(700, 300));
+        add(scrollpane);
     }
 
     /**
      * Change the current Folder for the Viewer
      *
-     * @param what	the folder to be viewed
+     * @param what the folder to be viewed
      */
     public void setFolder(Folder what) {
-	try {
-	    table.getSelectionModel().clearSelection();
-	    if (SimpleClient.mv != null)
-		SimpleClient.mv.setMessage(null);
-	    model.setFolder(what);
-	    scrollpane.invalidate();
-	    scrollpane.validate();
-	} catch (MessagingException me) {
-	    me.printStackTrace();
-	}
+        try {
+            table.getSelectionModel().clearSelection();
+            if (SimpleClient.mv != null)
+                SimpleClient.mv.setMessage(null);
+            model.setFolder(what);
+            scrollpane.invalidate();
+            scrollpane.validate();
+        } catch (MessagingException me) {
+            me.printStackTrace();
+        }
     }
 
     class FolderPressed implements ListSelectionListener {
 
-	public void valueChanged(ListSelectionEvent e) {
-	    if (model != null && !e.getValueIsAdjusting()) {
-		ListSelectionModel lm = (ListSelectionModel) e.getSource();
-		int which = lm.getMaxSelectionIndex();
-		if (which != -1) {
-		    // get the message and display it
-		    Message msg = model.getMessage(which);
-		    SimpleClient.mv.setMessage(msg);
-		}
-	    }
-	}
+        public void valueChanged(ListSelectionEvent e) {
+            if (model != null && !e.getValueIsAdjusting()) {
+                ListSelectionModel lm = (ListSelectionModel) e.getSource();
+                int which = lm.getMaxSelectionIndex();
+                if (which != -1) {
+                    // get the message and display it
+                    Message msg = model.getMessage(which);
+                    SimpleClient.mv.setMessage(msg);
+                }
+            }
+        }
     }
 }

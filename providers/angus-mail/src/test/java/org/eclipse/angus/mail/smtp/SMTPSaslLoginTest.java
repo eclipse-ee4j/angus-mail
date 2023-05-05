@@ -16,17 +16,15 @@
 
 package org.eclipse.angus.mail.smtp;
 
+import jakarta.mail.AuthenticationFailedException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.util.Properties;
 
-import jakarta.mail.Session;
-import jakarta.mail.Transport;
-import jakarta.mail.AuthenticationFailedException;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -55,9 +53,9 @@ public class SMTPSaslLoginTest {
             Transport t = session.getTransport("smtp");
             try {
                 t.connect("test", "test");
-		// success!
-	    } catch (Exception ex) {
-		fail(ex.toString());
+                // success!
+            } catch (Exception ex) {
+                fail(ex.toString());
             } finally {
                 t.close();
             }
@@ -67,7 +65,7 @@ public class SMTPSaslLoginTest {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
+                server.interrupt();
             }
         }
     }
@@ -92,12 +90,12 @@ public class SMTPSaslLoginTest {
             Transport t = session.getTransport("smtp");
             try {
                 t.connect("test", "xtest");
-		// should have failed
-		fail("wrong password succeeded");
-	    } catch (AuthenticationFailedException ex) {
-		// success!
-	    } catch (Exception ex) {
-		fail(ex.toString());
+                // should have failed
+                fail("wrong password succeeded");
+            } catch (AuthenticationFailedException ex) {
+                // success!
+            } catch (Exception ex) {
+                fail(ex.toString());
             } finally {
                 t.close();
             }
@@ -107,7 +105,7 @@ public class SMTPSaslLoginTest {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
+                server.interrupt();
             }
         }
     }
@@ -135,9 +133,9 @@ public class SMTPSaslLoginTest {
             Transport t = session.getTransport("smtp");
             try {
                 t.connect("test", "test");
-		// success!
-	    } catch (Exception ex) {
-		fail(ex.toString());
+                // success!
+            } catch (Exception ex) {
+                fail(ex.toString());
             } finally {
                 t.close();
             }
@@ -147,7 +145,7 @@ public class SMTPSaslLoginTest {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
+                server.interrupt();
             }
         }
     }
@@ -175,12 +173,12 @@ public class SMTPSaslLoginTest {
             Transport t = session.getTransport("smtp");
             try {
                 t.connect("test", "xtest");
-		// should have failed
-		fail("wrong password succeeded");
-	    } catch (AuthenticationFailedException ex) {
-		// success!
-	    } catch (Exception ex) {
-		fail(ex.toString());
+                // should have failed
+                fail("wrong password succeeded");
+            } catch (AuthenticationFailedException ex) {
+                // success!
+            } catch (Exception ex) {
+                fail(ex.toString());
             } finally {
                 t.close();
             }
@@ -190,7 +188,7 @@ public class SMTPSaslLoginTest {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
+                server.interrupt();
             }
         }
     }
@@ -203,12 +201,12 @@ public class SMTPSaslLoginTest {
         TestServer server = null;
         try {
             server = new TestServer(new SMTPSaslHandler() {
-		@Override
-		public void ehlo() throws IOException {
-		    println("250-hello");
-		    println("250 AUTH");
-		}
-	    });
+                @Override
+                public void ehlo() throws IOException {
+                    println("250-hello");
+                    println("250 AUTH");
+                }
+            });
             server.start();
 
             Properties properties = new Properties();
@@ -221,11 +219,11 @@ public class SMTPSaslLoginTest {
             Transport t = session.getTransport("smtp");
             try {
                 t.connect("test", "test");
-		fail("Connect didn't fail");
-	    } catch (AuthenticationFailedException ex) {
-		// success
-	    } catch (Exception ex) {
-		fail(ex.toString());
+                fail("Connect didn't fail");
+            } catch (AuthenticationFailedException ex) {
+                // success
+            } catch (Exception ex) {
+                fail(ex.toString());
             } finally {
                 t.close();
             }
@@ -235,7 +233,7 @@ public class SMTPSaslLoginTest {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
+                server.interrupt();
             }
         }
     }
@@ -248,16 +246,17 @@ public class SMTPSaslLoginTest {
         TestServer server = null;
         try {
             server = new TestServer(new SMTPSaslHandler() {
-		@Override
-		public void ehlo() throws IOException {
-		    println("250-hello");
-		    println("250 XXX");
-		}
-		@Override
-		public void auth(String line) throws IOException {
-		    println("501 Authentication failed");
-		}
-	    });
+                @Override
+                public void ehlo() throws IOException {
+                    println("250-hello");
+                    println("250 XXX");
+                }
+
+                @Override
+                public void auth(String line) throws IOException {
+                    println("501 Authentication failed");
+                }
+            });
             server.start();
 
             Properties properties = new Properties();
@@ -270,9 +269,9 @@ public class SMTPSaslLoginTest {
             Transport t = session.getTransport("smtp");
             try {
                 t.connect("test", "test");
-		// success
-	    } catch (Exception ex) {
-		fail(ex.toString());
+                // success
+            } catch (Exception ex) {
+                fail(ex.toString());
             } finally {
                 t.close();
             }
@@ -282,7 +281,7 @@ public class SMTPSaslLoginTest {
         } finally {
             if (server != null) {
                 server.quit();
-		server.interrupt();
+                server.interrupt();
             }
         }
     }

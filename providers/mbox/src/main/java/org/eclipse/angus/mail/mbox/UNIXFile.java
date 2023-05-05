@@ -27,7 +27,7 @@ public class UNIXFile extends File {
     private static final long serialVersionUID = -7972156315284146651L;
 
     public UNIXFile(String name) {
-	super(name);
+        super(name);
     }
 
     // lock type enum
@@ -36,68 +36,68 @@ public class UNIXFile extends File {
     protected static final int JAVA = 2;
 
     static {
-	String lt = System.getProperty("mail.mbox.locktype", "native");
-	int type = NATIVE;
-	if (lt.equalsIgnoreCase("none"))
-	    type = NONE;
-	else if (lt.equalsIgnoreCase("java"))
-	    type = JAVA;
-	lockType = type;
+        String lt = System.getProperty("mail.mbox.locktype", "native");
+        int type = NATIVE;
+        if (lt.equalsIgnoreCase("none"))
+            type = NONE;
+        else if (lt.equalsIgnoreCase("java"))
+            type = JAVA;
+        lockType = type;
 
-	boolean lloaded = false;
-	if (lockType == NATIVE) {
-	    try {
-		System.loadLibrary("mbox");
-		lloaded = true;
-	    } catch (UnsatisfiedLinkError e) {
-		String classpath = System.getProperty("java.class.path");
-		String sep = System.getProperty("path.separator");
-		String arch = System.getProperty("os.arch");
-		StringTokenizer st = new StringTokenizer(classpath, sep);
-		while (st.hasMoreTokens()) {
-		    String path = st.nextToken();
-		    if (path.endsWith("/classes") ||
-			    path.endsWith("/mail.jar") ||
-			    path.endsWith("/jakarta.mail.jar")) {
-			int i = path.lastIndexOf('/');
-			String libdir = path.substring(0, i + 1) + "lib/";
-			String lib = libdir + arch + "/libmbox.so";
-			try {
-			    System.load(lib);
-			    lloaded = true;
-			    break;
-			} catch (UnsatisfiedLinkError e2) {
-			    lib = libdir + "libmbox.so";
-			    try {
-				System.load(lib);
-				lloaded = true;
-				break;
-			    } catch (UnsatisfiedLinkError e3) {
-				continue;
-			    }
-			}
-		    }
-		}
-	    }
-	}
-	loaded = lloaded;
-	if (loaded)
-	    initIDs(FileDescriptor.class, FileDescriptor.in);
+        boolean lloaded = false;
+        if (lockType == NATIVE) {
+            try {
+                System.loadLibrary("mbox");
+                lloaded = true;
+            } catch (UnsatisfiedLinkError e) {
+                String classpath = System.getProperty("java.class.path");
+                String sep = System.getProperty("path.separator");
+                String arch = System.getProperty("os.arch");
+                StringTokenizer st = new StringTokenizer(classpath, sep);
+                while (st.hasMoreTokens()) {
+                    String path = st.nextToken();
+                    if (path.endsWith("/classes") ||
+                            path.endsWith("/mail.jar") ||
+                            path.endsWith("/jakarta.mail.jar")) {
+                        int i = path.lastIndexOf('/');
+                        String libdir = path.substring(0, i + 1) + "lib/";
+                        String lib = libdir + arch + "/libmbox.so";
+                        try {
+                            System.load(lib);
+                            lloaded = true;
+                            break;
+                        } catch (UnsatisfiedLinkError e2) {
+                            lib = libdir + "libmbox.so";
+                            try {
+                                System.load(lib);
+                                lloaded = true;
+                                break;
+                            } catch (UnsatisfiedLinkError e3) {
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        loaded = lloaded;
+        if (loaded)
+            initIDs(FileDescriptor.class, FileDescriptor.in);
     }
 
     /**
      * Return the access time of the file.
      */
     public static long lastAccessed(File file) {
-	return lastAccessed0(file.getPath());
+        return lastAccessed0(file.getPath());
     }
 
     public long lastAccessed() {
-	return lastAccessed0(getPath());
+        return lastAccessed0(getPath());
     }
 
     private static native void initIDs(Class<FileDescriptor> fdClass,
-					FileDescriptor stdin);
+                                       FileDescriptor stdin);
 
     /**
      * Lock the file referred to by fd.  The string mode is "r"
@@ -105,7 +105,7 @@ public class UNIXFile extends File {
      * if lock can't be acquired.
      */
     public static boolean lock(FileDescriptor fd, String mode) {
-	return lock(fd, mode, false);
+        return lock(fd, mode, false);
     }
 
     /**
@@ -114,19 +114,19 @@ public class UNIXFile extends File {
      * block waiting for the lock if necessary.
      */
     private static boolean lock(FileDescriptor fd, String mode, boolean block) {
-	//return loaded && lock0(fd, mode);
-	if (loaded) {
-	    boolean ret;
-	    //System.out.println("UNIXFile.lock(" + fd + ", " + mode + ")");
-	    ret = lock0(fd, mode, block);
-	    //System.out.println("UNIXFile.lock returns " + ret);
-	    return ret;
-	}
-	return false;
+        //return loaded && lock0(fd, mode);
+        if (loaded) {
+            boolean ret;
+            //System.out.println("UNIXFile.lock(" + fd + ", " + mode + ")");
+            ret = lock0(fd, mode, block);
+            //System.out.println("UNIXFile.lock returns " + ret);
+            return ret;
+        }
+        return false;
     }
 
     private static native boolean lock0(FileDescriptor fd, String mode,
-								boolean block);
+                                        boolean block);
 
     public static native long lastAccessed0(String name);
 }

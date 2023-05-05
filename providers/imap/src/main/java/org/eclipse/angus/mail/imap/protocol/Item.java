@@ -23,8 +23,8 @@ package org.eclipse.angus.mail.imap.protocol;
  * See the BODY, BODYSTRUCTURE, ENVELOPE, FLAGS, INTERNALDATE, RFC822DATA,
  * RFC822SIZE, and UID classes.
  *
- * @author  John Mani
+ * @author John Mani
  */
 
-public interface Item { 
+public interface Item {
 }

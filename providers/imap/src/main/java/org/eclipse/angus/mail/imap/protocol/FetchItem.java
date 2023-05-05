@@ -23,34 +23,34 @@ import org.eclipse.angus.mail.iap.ParsingException;
  * Metadata describing a FETCH item.
  * Note that the "name" field MUST be in uppercase. <p>
  *
- * @author  Bill Shannon
+ * @author Bill Shannon
  * @since JavaMail 1.4.6
  */
 
-public abstract class FetchItem { 
+public abstract class FetchItem {
     private String name;
     private FetchProfile.Item fetchProfileItem;
 
     public FetchItem(String name, FetchProfile.Item fetchProfileItem) {
-	this.name = name;
-	this.fetchProfileItem = fetchProfileItem;
+        this.name = name;
+        this.fetchProfileItem = fetchProfileItem;
     }
 
     public String getName() {
-	return name;
+        return name;
     }
 
     public FetchProfile.Item getFetchProfileItem() {
-	return fetchProfileItem;
+        return fetchProfileItem;
     }
 
     /**
      * Parse the item into some kind of object appropriate for the item.
      * Note that the item name will have been parsed and skipped already.
      *
-     * @param	r	the response
-     * @return		the fetch item
-     * @exception ParsingException    for parsing failures
+     * @throws ParsingException for parsing failures
+     * @param    r    the response
+     * @return the fetch item
      */
     public abstract Object parseItem(FetchResponse r) throws ParsingException;
 }

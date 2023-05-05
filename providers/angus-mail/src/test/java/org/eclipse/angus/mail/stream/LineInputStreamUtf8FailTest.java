@@ -16,14 +16,13 @@
 
 package org.eclipse.angus.mail.stream;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
+import org.eclipse.angus.mail.util.LineInputStream;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import org.eclipse.angus.mail.util.LineInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
 
@@ -35,21 +34,21 @@ public class LineInputStreamUtf8FailTest {
 
     @BeforeClass
     public static void before() {
-	System.out.println("LineInputStreamUtf8Fail");
-	System.clearProperty("mail.mime.allowutf8");
+        System.out.println("LineInputStreamUtf8Fail");
+        System.clearProperty("mail.mime.allowutf8");
     }
 
     @Test
     public void testUtf8() throws Exception {
-	LineInputStream is = new LineInputStream(new ByteArrayInputStream(
-			"a\u00A9b\n".getBytes(StandardCharsets.UTF_8)), false);
-	assertEquals("a\302\251b", is.readLine());
+        LineInputStream is = new LineInputStream(new ByteArrayInputStream(
+                "a\u00A9b\n".getBytes(StandardCharsets.UTF_8)), false);
+        assertEquals("a\302\251b", is.readLine());
     }
 
     @Test
     public void testIso() throws IOException {
-	LineInputStream is = new LineInputStream(new ByteArrayInputStream(
-		    "a\251b\n".getBytes(StandardCharsets.ISO_8859_1)), false);
-	assertEquals("a\251b", is.readLine());
+        LineInputStream is = new LineInputStream(new ByteArrayInputStream(
+                "a\251b\n".getBytes(StandardCharsets.ISO_8859_1)), false);
+        assertEquals("a\251b", is.readLine());
     }
 }

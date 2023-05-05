@@ -16,17 +16,15 @@
 
 package org.eclipse.angus.mail.util;
 
-import java.io.ByteArrayInputStream;
-import java.util.Properties;
-
 import jakarta.mail.BodyPart;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
-
 import org.junit.Test;
 
-import static org.junit.Assert.assertArrayEquals;
+import java.io.ByteArrayInputStream;
+import java.util.Properties;
+
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -35,44 +33,44 @@ import static org.junit.Assert.assertEquals;
  * are used.  This test found some bugs in the way LineInputStream
  * handled different line terminators.
  *
- * @author	trejkaz@kenai.com
+ * @author trejkaz@kenai.com
  */
 public class MimeMultipartPreambleTest {
     @SuppressWarnings({"SingleCharacterStringConcatenation"})
     private String THREE_PART_MAIL =
-        "From: user1@example.com\n" +
-        "To: user2@example.com\n" +
-        "Subject: Receipts\n" +
-        "Date: Wed, 14 Jul 2010 19:25:30 +1000\n" +
-        "MIME-Version: 1.0\n" +
-        "Content-Type: multipart/mixed;boundary=\"----=_NextPart_000_001C_01CB238A.52E35400\"\n" +
-        "\n" +
-        "This is a multi-part message in MIME format.\n" +
-        "\n" +
-        "------=_NextPart_000_001C_01CB238A.52E35400\n" +
-        "Content-Type: text/plain;charset=\"us-ascii\"\n" +
-        "Content-Transfer-Encoding: 7bit\n" +
-        "\n" +
-        "Hi.\n" +
-        "\n" +
-        "\n" +
-        "------=_NextPart_000_001C_01CB238A.52E35400\n" +
-        "Content-Type: application/pdf;name=\"Receipt 1.pdf\"\n" +
-        "Content-Transfer-Encoding: base64\n" +
-        "Content-Disposition: attachment;filename=\"Receipt 1.pdf\"\n" +
-        "\n" +
-        "JVBERi0xLjQKJcfsj6IKNSAwIG9iago8PC9MZW5ndGggNiAwIFIvRmlsdGVyIC9GbGF0ZURlY29k\n" +
-        "\n" +
-        "------=_NextPart_000_001C_01CB238A.52E35400\n" +
-        "Content-Type: application/pdf;name=\"Receipt 2.pdf\"\n" +
-        "Content-Transfer-Encoding: base64\n" +
-        "Content-Disposition: attachment;filename=\"Receipt 2.pdf\"\n" +
-        "\n" +
-        "JVBERi0xLjQKJcfsj6IKNSAwIG9iago8PC9MZW5ndGggNiAwIFIvRmlsdGVyIC9GbGF0ZURlY29k\n" +
-        "\n" +
-        "------=_NextPart_000_001C_01CB238A.52E35400--\n" +
-        "\n" +
-        "\n";
+            "From: user1@example.com\n" +
+                    "To: user2@example.com\n" +
+                    "Subject: Receipts\n" +
+                    "Date: Wed, 14 Jul 2010 19:25:30 +1000\n" +
+                    "MIME-Version: 1.0\n" +
+                    "Content-Type: multipart/mixed;boundary=\"----=_NextPart_000_001C_01CB238A.52E35400\"\n" +
+                    "\n" +
+                    "This is a multi-part message in MIME format.\n" +
+                    "\n" +
+                    "------=_NextPart_000_001C_01CB238A.52E35400\n" +
+                    "Content-Type: text/plain;charset=\"us-ascii\"\n" +
+                    "Content-Transfer-Encoding: 7bit\n" +
+                    "\n" +
+                    "Hi.\n" +
+                    "\n" +
+                    "\n" +
+                    "------=_NextPart_000_001C_01CB238A.52E35400\n" +
+                    "Content-Type: application/pdf;name=\"Receipt 1.pdf\"\n" +
+                    "Content-Transfer-Encoding: base64\n" +
+                    "Content-Disposition: attachment;filename=\"Receipt 1.pdf\"\n" +
+                    "\n" +
+                    "JVBERi0xLjQKJcfsj6IKNSAwIG9iago8PC9MZW5ndGggNiAwIFIvRmlsdGVyIC9GbGF0ZURlY29k\n" +
+                    "\n" +
+                    "------=_NextPart_000_001C_01CB238A.52E35400\n" +
+                    "Content-Type: application/pdf;name=\"Receipt 2.pdf\"\n" +
+                    "Content-Transfer-Encoding: base64\n" +
+                    "Content-Disposition: attachment;filename=\"Receipt 2.pdf\"\n" +
+                    "\n" +
+                    "JVBERi0xLjQKJcfsj6IKNSAwIG9iago8PC9MZW5ndGggNiAwIFIvRmlsdGVyIC9GbGF0ZURlY29k\n" +
+                    "\n" +
+                    "------=_NextPart_000_001C_01CB238A.52E35400--\n" +
+                    "\n" +
+                    "\n";
 
     @Test
     public void testUnixLines() throws Exception {
@@ -98,24 +96,24 @@ public class MimeMultipartPreambleTest {
     private void doThreePartMailTest(String text) throws Exception {
         Session session = Session.getDefaultInstance(new Properties());
         MimeMessage mimeMessage = new MimeMessage(session,
-			new ByteArrayInputStream(text.getBytes("US-ASCII")));
+                new ByteArrayInputStream(text.getBytes("US-ASCII")));
 
         MimeMultipart topMultipart = (MimeMultipart) mimeMessage.getContent();
         assertEquals("Wrong preamble",
-	    "This is a multi-part message in MIME format.",
-	    topMultipart.getPreamble().trim());
+                "This is a multi-part message in MIME format.",
+                topMultipart.getPreamble().trim());
         assertEquals("Wrong number of parts", 3, topMultipart.getCount());
 
         BodyPart part1 = topMultipart.getBodyPart(0);
         assertEquals("Wrong content type for part 1",
-	    "text/plain;charset=\"us-ascii\"", part1.getContentType());
+                "text/plain;charset=\"us-ascii\"", part1.getContentType());
 
         BodyPart part2 = topMultipart.getBodyPart(1);
         assertEquals("Wrong content type for part 2",
-	    "application/pdf;name=\"Receipt 1.pdf\"", part2.getContentType());
+                "application/pdf;name=\"Receipt 1.pdf\"", part2.getContentType());
 
         BodyPart part3 = topMultipart.getBodyPart(2);
         assertEquals("Wrong content type for part 3",
-	    "application/pdf;name=\"Receipt 2.pdf\"", part3.getContentType());
+                "application/pdf;name=\"Receipt 2.pdf\"", part3.getContentType());
     }
 }

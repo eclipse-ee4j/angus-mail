@@ -13,17 +13,17 @@ Exchange
 --------
 
 Exchange 2016 returns incorrect BODYSTRUCTURE data for an S/MIME
-encrypted message.  Use the workaround described in the
+encrypted message. Use the workaround described in the
 [Jakarta Mail FAQ](FAQ.html#imapserverbug).
 
 Exchange fails to find an email address using FromTerm, FromStringTerm,
-RecipientTerm, or RecipientStringTerm.  As described in
+RecipientTerm, or RecipientStringTerm. As described in
 (this blog entry)[https://blogs.technet.microsoft.com/dkhrebin/2013/10/04/how-exchange-imap-search-in-message-header/],
 Exchange will only find a personal name using these search terms.
 Instead, use a HeaderTerm to search for the email address.
 
 Exchange 2010 has a bug where it returns NIL instead of "" for empty
-parameter values, causing a NullPointerException.  A
+parameter values, causing a NullPointerException. A
 [workaround](https://github.com/eclipse-ee4j/javamail/issues/203)
 was added to JavaMail 1.5.5.
 

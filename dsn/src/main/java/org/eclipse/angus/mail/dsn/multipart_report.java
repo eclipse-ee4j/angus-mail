@@ -16,9 +16,13 @@
 
 package org.eclipse.angus.mail.dsn;
 
-import java.io.*;
-import jakarta.activation.*;
+import jakarta.activation.ActivationDataFlavor;
+import jakarta.activation.DataContentHandler;
+import jakarta.activation.DataSource;
 import jakarta.mail.MessagingException;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 
 /**
@@ -26,13 +30,13 @@ import jakarta.mail.MessagingException;
  * Applications should not use this class directly, it's used indirectly
  * through the JavaBeans Activation Framework.
  *
- * @since	JavaMail 1.4
+ * @since JavaMail 1.4
  */
 public class multipart_report implements DataContentHandler {
     private ActivationDataFlavor myDF = new ActivationDataFlavor(
-	    MultipartReport.class,
-	    "multipart/report",
-	    "Multipart Report");
+            MultipartReport.class,
+            "multipart/report",
+            "Multipart Report");
 
     /**
      * Creates a default {@code multipart_report}.
@@ -46,7 +50,7 @@ public class multipart_report implements DataContentHandler {
      * @return The ActivationDataFlavors
      */
     public ActivationDataFlavor[] getTransferDataFlavors() { // throws Exception;
-	return new ActivationDataFlavor[] { myDF };
+        return new ActivationDataFlavor[]{myDF};
     }
 
     /**
@@ -57,40 +61,40 @@ public class multipart_report implements DataContentHandler {
      * @return String object
      */
     public Object getTransferData(ActivationDataFlavor df, DataSource ds)
-				throws IOException {
-	// use myDF.equals to be sure to get ActivationDataFlavor.equals,
-	// which properly ignores Content-Type parameters in comparison
-	if (myDF.equals(df))
-	    return getContent(ds);
-	else
-	    return null;
+            throws IOException {
+        // use myDF.equals to be sure to get ActivationDataFlavor.equals,
+        // which properly ignores Content-Type parameters in comparison
+        if (myDF.equals(df))
+            return getContent(ds);
+        else
+            return null;
     }
 
     /**
      * Return the content.
      */
     public Object getContent(DataSource ds) throws IOException {
-	try {
-	    return new MultipartReport(ds);
-	} catch (MessagingException e) {
-	    IOException ioex =
-		new IOException("Exception while constructing MultipartReport");
-	    ioex.initCause(e);
-	    throw ioex;
-	}
+        try {
+            return new MultipartReport(ds);
+        } catch (MessagingException e) {
+            IOException ioex =
+                    new IOException("Exception while constructing MultipartReport");
+            ioex.initCause(e);
+            throw ioex;
+        }
     }
 
     /**
      * Write the object to the output stream, using the specific MIME type.
      */
     public void writeTo(Object obj, String mimeType, OutputStream os)
-			throws IOException {
-	if (obj instanceof MultipartReport) {
-	    try {
-		((MultipartReport)obj).writeTo(os);
-	    } catch (MessagingException e) {
-		throw new IOException(e.toString());
-	    }
-	}
+            throws IOException {
+        if (obj instanceof MultipartReport) {
+            try {
+                ((MultipartReport) obj).writeTo(os);
+            } catch (MessagingException e) {
+                throw new IOException(e.toString());
+            }
+        }
     }
 }

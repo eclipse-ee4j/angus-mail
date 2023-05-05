@@ -16,10 +16,11 @@
 
 package org.eclipse.angus.mail.test;
 
-import java.io.IOException;
-import java.net.*;
-
 import javax.net.SocketFactory;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 
 /**
  * A socket factory for testing that tracks whether it's being used.
@@ -28,31 +29,35 @@ import javax.net.SocketFactory;
  * An instance of this factory can be set as the value of the
  * <code>mail.&lt;protocol&gt;.socketFactory</code> property.
  *
- * @since	JavaMail 1.5.3
- * @author	Stephan Sann
- * @author	Bill Shannon
+ * @since JavaMail 1.5.3
+ * @author Stephan Sann
+ * @author Bill Shannon
  */
 public class TestSocketFactory extends SocketFactory {
 
-    /** Holds a SocketFactory to pass all API-method-calls to */
+    /**
+     * Holds a SocketFactory to pass all API-method-calls to
+     */
     private SocketFactory defaultFactory = null;
 
-    /** Was a socket created? */
+    /**
+     * Was a socket created?
+     */
     private boolean socketCreated;
 
     /**
      * Initializes a new TestSocketFactory.
      */
     public TestSocketFactory() {
-	// Get the default SocketFactory to delegate all API-calls to.
-	defaultFactory = SocketFactory.getDefault();
+        // Get the default SocketFactory to delegate all API-calls to.
+        defaultFactory = SocketFactory.getDefault();
     }
 
     /**
      * Was a socket created using one of the createSocket methods?
      */
     public boolean getSocketCreated() {
-	return socketCreated;
+        return socketCreated;
     }
 
 
@@ -63,9 +68,9 @@ public class TestSocketFactory extends SocketFactory {
      */
     @Override
     public synchronized Socket createSocket() throws IOException {
-	Socket socket = defaultFactory.createSocket();
-	socketCreated = true;
-	return socket;
+        Socket socket = defaultFactory.createSocket();
+        socketCreated = true;
+        return socket;
     }
 
     /* (non-Javadoc)
@@ -74,11 +79,11 @@ public class TestSocketFactory extends SocketFactory {
      */
     @Override
     public synchronized Socket createSocket(InetAddress inetaddress, int i,
-			InetAddress inetaddress1, int j) throws IOException {
-	Socket socket =
-		defaultFactory.createSocket(inetaddress, i, inetaddress1, j);
-	socketCreated = true;
-	return socket;
+                                            InetAddress inetaddress1, int j) throws IOException {
+        Socket socket =
+                defaultFactory.createSocket(inetaddress, i, inetaddress1, j);
+        socketCreated = true;
+        return socket;
     }
 
     /* (non-Javadoc)
@@ -86,10 +91,10 @@ public class TestSocketFactory extends SocketFactory {
      */
     @Override
     public synchronized Socket createSocket(InetAddress inetaddress, int i)
-				throws IOException {
-	Socket socket = defaultFactory.createSocket(inetaddress, i);
-	socketCreated = true;
-	return socket;
+            throws IOException {
+        Socket socket = defaultFactory.createSocket(inetaddress, i);
+        socketCreated = true;
+        return socket;
     }
 
     /* (non-Javadoc)
@@ -98,11 +103,11 @@ public class TestSocketFactory extends SocketFactory {
      */
     @Override
     public synchronized Socket createSocket(String s, int i,
-				InetAddress inetaddress, int j)
-				throws IOException, UnknownHostException {
-	Socket socket = defaultFactory.createSocket(s, i, inetaddress, j);
-	socketCreated = true;
-	return socket;
+                                            InetAddress inetaddress, int j)
+            throws IOException, UnknownHostException {
+        Socket socket = defaultFactory.createSocket(s, i, inetaddress, j);
+        socketCreated = true;
+        return socket;
     }
 
     /* (non-Javadoc)
@@ -110,9 +115,9 @@ public class TestSocketFactory extends SocketFactory {
      */
     @Override
     public synchronized Socket createSocket(String s, int i)
-				throws IOException, UnknownHostException {
-	Socket socket = defaultFactory.createSocket(s, i);
-	socketCreated = true;
-	return socket;
+            throws IOException, UnknownHostException {
+        Socket socket = defaultFactory.createSocket(s, i);
+        socketCreated = true;
+        return socket;
     }
 }

@@ -17,7 +17,6 @@
 package org.eclipse.angus.mail.imap.protocol;
 
 import org.eclipse.angus.mail.iap.ParsingException;
-
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -31,15 +30,15 @@ public class StatusTest {
      */
     @Test
     public void testMailboxDecode() throws Exception {
-	String mbox = "Entw\u00fcrfe";
-	IMAPResponse response = new IMAPResponse(
-	    "* STATUS " +
-	    BASE64MailboxEncoder.encode(mbox) +
-	    " (MESSAGES 231 UIDNEXT 44292)", false);
-	Status s = new Status(response);
-	assertEquals(mbox, s.mbox);
-	assertEquals(231, s.total);
-	assertEquals(44292, s.uidnext);
+        String mbox = "Entw\u00fcrfe";
+        IMAPResponse response = new IMAPResponse(
+                "* STATUS " +
+                        BASE64MailboxEncoder.encode(mbox) +
+                        " (MESSAGES 231 UIDNEXT 44292)", false);
+        Status s = new Status(response);
+        assertEquals(mbox, s.mbox);
+        assertEquals(231, s.total);
+        assertEquals(44292, s.uidnext);
     }
 
     /**
@@ -47,15 +46,15 @@ public class StatusTest {
      */
     @Test
     public void testMailboxUtf8() throws Exception {
-	String mbox = "Entw\u00fcrfe";
-	IMAPResponse response = new IMAPResponse(
-	    "* STATUS " +
-	    mbox +
-	    " (MESSAGES 231 UIDNEXT 44292)", true);
-	Status s = new Status(response);
-	assertEquals(mbox, s.mbox);
-	assertEquals(231, s.total);
-	assertEquals(44292, s.uidnext);
+        String mbox = "Entw\u00fcrfe";
+        IMAPResponse response = new IMAPResponse(
+                "* STATUS " +
+                        mbox +
+                        " (MESSAGES 231 UIDNEXT 44292)", true);
+        Status s = new Status(response);
+        assertEquals(mbox, s.mbox);
+        assertEquals(231, s.total);
+        assertEquals(44292, s.uidnext);
     }
 
     /**
@@ -63,12 +62,12 @@ public class StatusTest {
      */
     @Test
     public void testSpaces() throws Exception {
-	IMAPResponse response = new IMAPResponse(
-	    "* STATUS  test  ( MESSAGES  231  UIDNEXT  44292 )");
-	Status s = new Status(response);
-	assertEquals("test", s.mbox);
-	assertEquals(231, s.total);
-	assertEquals(44292, s.uidnext);
+        IMAPResponse response = new IMAPResponse(
+                "* STATUS  test  ( MESSAGES  231  UIDNEXT  44292 )");
+        Status s = new Status(response);
+        assertEquals("test", s.mbox);
+        assertEquals(231, s.total);
+        assertEquals(44292, s.uidnext);
     }
 
     /**
@@ -76,9 +75,9 @@ public class StatusTest {
      */
     @Test(expected = ParsingException.class)
     public void testBadResponseNoAttrList() throws Exception {
-	String mbox = "test";
-	IMAPResponse response = new IMAPResponse("* STATUS test ");
-	Status s = new Status(response);
+        String mbox = "test";
+        IMAPResponse response = new IMAPResponse("* STATUS test ");
+        Status s = new Status(response);
     }
 
     /**
@@ -86,8 +85,8 @@ public class StatusTest {
      */
     @Test(expected = ParsingException.class)
     public void testBadResponseNoAttrs() throws Exception {
-	String mbox = "test";
-	IMAPResponse response = new IMAPResponse("* STATUS test (");
-	Status s = new Status(response);
+        String mbox = "test";
+        IMAPResponse response = new IMAPResponse("* STATUS test (");
+        Status s = new Status(response);
     }
 }

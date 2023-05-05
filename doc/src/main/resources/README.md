@@ -9,7 +9,8 @@ and in the [Jakarta EE platform](http://jakarta.ee).
 
 This project does not support the
 [Java EE platform](http://www.oracle.com/technetwork/java/javaee/index.html).
-See [Jakarta Mail](https://jakartaee.github.io/mail-api/README-JakartaMail) for the version supporting the [Java EE platform](http://www.oracle.com/technetwork/java/javaee/index.html)
+See [Jakarta Mail](https://jakartaee.github.io/mail-api/README-JakartaMail) for the version supporting
+the [Java EE platform](http://www.oracle.com/technetwork/java/javaee/index.html)
 and versions 8 and 9 of the [Jakarta EE platform](http://jakarta.ee).
 
 This project is part of [Eclipse Angus project](https://projects.eclipse.org/projects/ee4j.angus).
@@ -17,6 +18,7 @@ This project is part of [Eclipse Angus project](https://projects.eclipse.org/pro
 <br>
 
 # Table of Contents
+
 * [Latest News](#Latest_News)
 * [Download Angus Mail Release](#Download_Angus_Mail_Release)
 * [API Documentation](#API_Documentation)
@@ -30,6 +32,7 @@ This project is part of [Eclipse Angus project](https://projects.eclipse.org/pro
 # <a name="Latest_News"></a>Latest News
 
 ## January 26, 2023 - Angus Mail 2.0.1 Final Release ##
+
 A bug fix release of 2.0.0 fixing compatibility with Java SE 8.
 
 ## January 24, 2023 - Angus Mail 2.0.0 Final Release ##
@@ -88,6 +91,7 @@ on the module path or on the class path.
 In addition, the Angus Mail jar files are published to the Maven repository.
 The main Angus Mail jar file, which is all most applications will need,
 can be included using this Maven dependency:
+
 ```
         <dependencies>
             <dependency>
@@ -103,6 +107,7 @@ can be included using this Maven dependency:
             </dependency>
         </dependencies>
 ```
+
 <br/>
 
 You can find all of the Angus project jar files in
@@ -110,49 +115,49 @@ You can find all of the Angus project jar files in
 
 <br/>
 
-Preferred way of using Angus Mail jar files is to use Jakarta Mail API with Angus Mail runtime:  
+Preferred way of using Angus Mail jar files is to use Jakarta Mail API with Angus Mail runtime:
 
-| jar file                                                                                                                                                            | module name               | groupId           | artifactId          | Description                                                                                                          |
-|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------|:------------------|:--------------------|:---------------------------------------------------------------------------------------------------------------------|
-| [jakarta.mail-api.jar](https://repo1.maven.org/maven2/jakarta/mail/jakarta.mail-api/${mail-api.version}/jakarta.mail-api-${mail-api.version}.jar)                   | jakarta.mail              | jakarta.mail      | jakarta.mail-api    | The Jakarta Mail API definitions only, suitable for compiling against                                                |
-| [angus-mail.jar](https://repo1.maven.org/maven2/org/eclipse/angus/angus-mail/${angus-mail.version}/angus-mail-${angus-mail.version}.jar)                            | org.eclipse.angus.mail              | org.eclipse.angus | angus-mail          | The Angus Mail runtime jar file, including the SMTP, IMAP, and POP3 protocol providers and java.util.logging handler |
-| [gimap.jar](https://repo1.maven.org/maven2/org/eclipse/angus/gimap/${angus-mail.version}/gimap-${angus-mail.version}.jar)                                           | org.eclipse.angus.mail.gimap        | org.eclipse.angus | gimap               | An EXPERIMENTAL Gmail IMAP protocol provider that supports Gmail-specific features                                   |
-| [dsn.jar](https://repo1.maven.org/maven2/org/eclipse/angus/dsn/${angus-mail.version}/dsn-${angus-mail.version}.jar)                                                 | org.eclipse.angus.mail.dsn          | org.eclipse.angus | dsn                 | Support for parsing and creating messages containing Delivery Status Notifications                                   |
+| jar file                                                                                                                                          | module name                  | groupId           | artifactId       | Description                                                                                                          |
+|:--------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------|:------------------|:-----------------|:---------------------------------------------------------------------------------------------------------------------|
+| [jakarta.mail-api.jar](https://repo1.maven.org/maven2/jakarta/mail/jakarta.mail-api/${mail-api.version}/jakarta.mail-api-${mail-api.version}.jar) | jakarta.mail                 | jakarta.mail      | jakarta.mail-api | The Jakarta Mail API definitions only, suitable for compiling against                                                |
+| [angus-mail.jar](https://repo1.maven.org/maven2/org/eclipse/angus/angus-mail/${angus-mail.version}/angus-mail-${angus-mail.version}.jar)          | org.eclipse.angus.mail       | org.eclipse.angus | angus-mail       | The Angus Mail runtime jar file, including the SMTP, IMAP, and POP3 protocol providers and java.util.logging handler |
+| [gimap.jar](https://repo1.maven.org/maven2/org/eclipse/angus/gimap/${angus-mail.version}/gimap-${angus-mail.version}.jar)                         | org.eclipse.angus.mail.gimap | org.eclipse.angus | gimap            | An EXPERIMENTAL Gmail IMAP protocol provider that supports Gmail-specific features                                   |
+| [dsn.jar](https://repo1.maven.org/maven2/org/eclipse/angus/dsn/${angus-mail.version}/dsn-${angus-mail.version}.jar)                               | org.eclipse.angus.mail.dsn   | org.eclipse.angus | dsn              | Support for parsing and creating messages containing Delivery Status Notifications                                   |
 
 <br/>
 
 Alternatively, jakarta.mail.jar, which includes Jakarta Mail APIs with Angus Mail runtime as a default provider in one
 jar file, can be used, ie to limit the length of the classpath or number of dependencies:
 
-| jar file                                                                                                                                                            | module name               | groupId           | artifactId          | Description                                                                                                          |
-|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------|:------------------|:--------------------|:---------------------------------------------------------------------------------------------------------------------|
-| [jakarta.mail.jar](https://repo1.maven.org/maven2/org/eclipse/angus/jakarta.mail/${angus-mail.version}/jakarta.mail-${angus-mail.version}.jar)                      | jakarta.mail              | org.eclipse.angus | jakarta.mail        | The Angus Mail implementation jar file, including the Jakarta Mail API, SMTP, IMAP, and POP3 protocol providers  and java.util.logging handler     |
-| [gimap.jar](https://repo1.maven.org/maven2/org/eclipse/angus/gimap/${angus-mail.version}/gimap-${angus-mail.version}.jar)                                           | org.eclipse.angus.mail.gimap        | org.eclipse.angus | gimap               | An EXPERIMENTAL Gmail IMAP protocol provider that supports Gmail-specific features                                   |
-| [dsn.jar](https://repo1.maven.org/maven2/org/eclipse/angus/dsn/${angus-mail.version}/dsn-${angus-mail.version}.jar)                                                 | org.eclipse.angus.mail.dsn          | org.eclipse.angus | dsn                 | Support for parsing and creating messages containing Delivery Status Notifications                                   |
+| jar file                                                                                                                                       | module name                  | groupId           | artifactId   | Description                                                                                                                                    |
+|:-----------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------|:------------------|:-------------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
+| [jakarta.mail.jar](https://repo1.maven.org/maven2/org/eclipse/angus/jakarta.mail/${angus-mail.version}/jakarta.mail-${angus-mail.version}.jar) | jakarta.mail                 | org.eclipse.angus | jakarta.mail | The Angus Mail implementation jar file, including the Jakarta Mail API, SMTP, IMAP, and POP3 protocol providers  and java.util.logging handler |
+| [gimap.jar](https://repo1.maven.org/maven2/org/eclipse/angus/gimap/${angus-mail.version}/gimap-${angus-mail.version}.jar)                      | org.eclipse.angus.mail.gimap | org.eclipse.angus | gimap        | An EXPERIMENTAL Gmail IMAP protocol provider that supports Gmail-specific features                                                             |
+| [dsn.jar](https://repo1.maven.org/maven2/org/eclipse/angus/dsn/${angus-mail.version}/dsn-${angus-mail.version}.jar)                            | org.eclipse.angus.mail.dsn   | org.eclipse.angus | dsn          | Support for parsing and creating messages containing Delivery Status Notifications                                                             |
 
 <br/>
 
 Finally, for fine-grained control over the providers in use, following jar files can be used:
 
-| jar file                                                                                                                                                            | module name               | groupId           | artifactId          | Description                                                                                                          |
-|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------|:------------------|:--------------------|:---------------------------------------------------------------------------------------------------------------------|
-| [jakarta.mail-api.jar](https://repo1.maven.org/maven2/jakarta/mail/jakarta.mail-api/${mail-api.version}/jakarta.mail-api-${mail-api.version}.jar)                   | jakarta.mail              | jakarta.mail      | jakarta.mail-api    | The Jakarta Mail API definitions only, suitable for compiling against                                                |
-| [angus-core.jar](https://repo1.maven.org/maven2/org/eclipse/angus/angus-core/${angus-mail.version}/angus-core-${angus-mail.version}.jar)                            | org.eclipse.angus.mail              | org.eclipse.angus | angus-core          | The Angus Mail runtime with no protocol providers; use with one of the following providers                           |
-| [gimap.jar](https://repo1.maven.org/maven2/org/eclipse/angus/gimap/${angus-mail.version}/gimap-${angus-mail.version}.jar)                                           | org.eclipse.angus.mail.gimap        | org.eclipse.angus | gimap               | An EXPERIMENTAL Gmail IMAP protocol provider that supports Gmail-specific features                                   |
-| [dsn.jar](https://repo1.maven.org/maven2/org/eclipse/angus/dsn/${angus-mail.version}/dsn-${angus-mail.version}.jar)                                                 | org.eclipse.angus.mail.dsn          | org.eclipse.angus | dsn                 | Support for parsing and creating messages containing Delivery Status Notifications                                   |
-| [smtp.jar](https://repo1.maven.org/maven2/org/eclipse/angus/smtp/${angus-mail.version}/smtp-${angus-mail.version}.jar)                                              | org.eclipse.angus.mail.smtp         | org.eclipse.angus | smtp                | The SMTP protocol provider                                                                                           |
-| [imap.jar](https://repo1.maven.org/maven2/org/eclipse/angus/imap/${angus-mail.version}/imap-${angus-mail.version}.jar)                                              | org.eclipse.angus.mail.imap         | org.eclipse.angus | imap                | The IMAP protocol provider                                                                                           |
-| [pop3.jar](https://repo1.maven.org/maven2/org/eclipse/angus/pop3/${angus-mail.version}/pop3-${angus-mail.version}.jar)                                              | org.eclipse.angus.mail.pop3         | org.eclipse.angus | pop3                | The POP3 protocol provider                                                                                           |
-| [logging-mailhandler.jar](https://repo1.maven.org/maven2/org/eclipse/angus/logging-mailhandler/${angus-mail.version}/logging-mailhandler-${angus-mail.version}.jar) | org.eclipse.angus.mail.util.logging | org.eclipse.angus | logging-mailhandler | A java.util.logging handler that uses Jakarta Mail, suitable for use in Google App Engine.                           |
+| jar file                                                                                                                                                            | module name                         | groupId           | artifactId          | Description                                                                                |
+|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------|:------------------|:--------------------|:-------------------------------------------------------------------------------------------|
+| [jakarta.mail-api.jar](https://repo1.maven.org/maven2/jakarta/mail/jakarta.mail-api/${mail-api.version}/jakarta.mail-api-${mail-api.version}.jar)                   | jakarta.mail                        | jakarta.mail      | jakarta.mail-api    | The Jakarta Mail API definitions only, suitable for compiling against                      |
+| [angus-core.jar](https://repo1.maven.org/maven2/org/eclipse/angus/angus-core/${angus-mail.version}/angus-core-${angus-mail.version}.jar)                            | org.eclipse.angus.mail              | org.eclipse.angus | angus-core          | The Angus Mail runtime with no protocol providers; use with one of the following providers |
+| [gimap.jar](https://repo1.maven.org/maven2/org/eclipse/angus/gimap/${angus-mail.version}/gimap-${angus-mail.version}.jar)                                           | org.eclipse.angus.mail.gimap        | org.eclipse.angus | gimap               | An EXPERIMENTAL Gmail IMAP protocol provider that supports Gmail-specific features         |
+| [dsn.jar](https://repo1.maven.org/maven2/org/eclipse/angus/dsn/${angus-mail.version}/dsn-${angus-mail.version}.jar)                                                 | org.eclipse.angus.mail.dsn          | org.eclipse.angus | dsn                 | Support for parsing and creating messages containing Delivery Status Notifications         |
+| [smtp.jar](https://repo1.maven.org/maven2/org/eclipse/angus/smtp/${angus-mail.version}/smtp-${angus-mail.version}.jar)                                              | org.eclipse.angus.mail.smtp         | org.eclipse.angus | smtp                | The SMTP protocol provider                                                                 |
+| [imap.jar](https://repo1.maven.org/maven2/org/eclipse/angus/imap/${angus-mail.version}/imap-${angus-mail.version}.jar)                                              | org.eclipse.angus.mail.imap         | org.eclipse.angus | imap                | The IMAP protocol provider                                                                 |
+| [pop3.jar](https://repo1.maven.org/maven2/org/eclipse/angus/pop3/${angus-mail.version}/pop3-${angus-mail.version}.jar)                                              | org.eclipse.angus.mail.pop3         | org.eclipse.angus | pop3                | The POP3 protocol provider                                                                 |
+| [logging-mailhandler.jar](https://repo1.maven.org/maven2/org/eclipse/angus/logging-mailhandler/${angus-mail.version}/logging-mailhandler-${angus-mail.version}.jar) | org.eclipse.angus.mail.util.logging | org.eclipse.angus | logging-mailhandler | A java.util.logging handler that uses Jakarta Mail, suitable for use in Google App Engine. |
 
 <br/>
 
 [Angus Activation](https://eclipse-ee4j.github.io/angus-activation/) provides following jar files:
 
-| jar file                                                                                                                                                                              | module name                   | groupId            | artifactId             | Description                                                                 |
-|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------|:-------------------|:-----------------------|:----------------------------------------------------------------------------|
-| [jakarta.activation-api.jar](https://repo1.maven.org/maven2/jakarta/activation/jakarta.activation-api/${activation-api.version}/jakarta.activation-api-${activation-api.version}.jar) | jakarta.activation            | jakarta.activation | jakarta.activation-api | The Jakarta Activation API definitions only, suitable for compiling against |
-| [angus-activation.jar](https://repo1.maven.org/maven2/org/eclipse/angus/angus-activation/${angus-activation.version}/angus-activation-${angus-activation.version}.jar)                | org.eclipse.angus.activation  | org.eclipse.angus  | angus-activation       | The Angus Activation runtime                                                |
+| jar file                                                                                                                                                                              | module name                  | groupId            | artifactId             | Description                                                                 |
+|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------|:-------------------|:-----------------------|:----------------------------------------------------------------------------|
+| [jakarta.activation-api.jar](https://repo1.maven.org/maven2/jakarta/activation/jakarta.activation-api/${activation-api.version}/jakarta.activation-api-${activation-api.version}.jar) | jakarta.activation           | jakarta.activation | jakarta.activation-api | The Jakarta Activation API definitions only, suitable for compiling against |
+| [angus-activation.jar](https://repo1.maven.org/maven2/org/eclipse/angus/angus-activation/${angus-activation.version}/angus-activation-${angus-activation.version}.jar)                | org.eclipse.angus.activation | org.eclipse.angus  | angus-activation       | The Angus Activation runtime                                                |
 
 <br/>
 
@@ -257,11 +262,11 @@ See the [Android](Android) page for details.
 You'll find more information about the protocol providers supported by
 Angus Mail on the following pages:
 
--   [ smtp ](SMTP-Transport)
--   [ imap ](IMAP-Store)
--   [ pop3 ](POP3-Store)
--   [ mbox ](Mbox-Store)
--   [ pop3remote ](POP3-Remote-Store)
+- [ smtp ](SMTP-Transport)
+- [ imap ](IMAP-Store)
+- [ pop3 ](POP3-Store)
+- [ mbox ](Mbox-Store)
+- [ pop3remote ](POP3-Remote-Store)
 
 If you're interested in writing your own protocol provider (most people
 won't need to), you can find more documentation on protocol providers
@@ -273,16 +278,16 @@ with Angus Mail is described [here](OAuth2).
 
 The following pages provide hints and tips for using particular mail servers:
 
--   [Gmail](Gmail)
--   [ Yahoo! Mail ](Yahoo)
--   [ Exchange and Office 365 ](Exchange)
--   [ Outlook.com ](Outlook)
+- [Gmail](Gmail)
+- [ Yahoo! Mail ](Yahoo)
+- [ Exchange and Office 365 ](Exchange)
+- [ Outlook.com ](Outlook)
 
 The following pages provide hints and tips for using Jakarta Mail on
 particular operating systems or environments:
 
--   [Windows](Windows)
--   [Google App Engine](Google-App-Engine)
+- [Windows](Windows)
+- [Google App Engine](Google-App-Engine)
 
 See [Build Instructions](Build-Instructions) for instructions on how to
 download and build the most recent Angus Mail source code. You can also

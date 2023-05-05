@@ -26,15 +26,15 @@ import java.io.InputStream;
  * and the body of the message or part.  This should be the same data
  * that is produced by the writeTo method, but in a readable form.
  *
- * @author	Bill Shannon
- * @since	JavaMail 1.4.5
+ * @author Bill Shannon
+ * @since JavaMail 1.4.5
  */
 public interface ReadableMime {
     /**
      * Return the MIME format stream corresponding to this message part.
      *
-     * @return	the MIME format stream
-     * @exception	MessagingException for failures
+     * @return the MIME format stream
+     * @exception MessagingException for failures
      */
     public InputStream getMimeStream() throws MessagingException;
 }

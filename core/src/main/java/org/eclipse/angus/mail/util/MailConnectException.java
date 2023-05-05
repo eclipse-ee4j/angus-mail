@@ -24,9 +24,9 @@ import jakarta.mail.MessagingException;
  * were trying to connect to.  The underlying exception is available
  * as the "cause" of this exception.
  *
- * @see		java.net.ConnectException
- * @author	Bill Shannon
- * @since 	JavaMail 1.5.0
+ * @see        java.net.ConnectException
+ * @author Bill Shannon
+ * @since JavaMail 1.5.0
  */
 
 public class MailConnectException extends MessagingException {
@@ -39,45 +39,45 @@ public class MailConnectException extends MessagingException {
     /**
      * Constructs a MailConnectException.
      *
-     * @param	cex	the SocketConnectException with the details
+     * @param    cex    the SocketConnectException with the details
      */
     public MailConnectException(SocketConnectException cex) {
-	super(
-	    "Couldn't connect to host, port: " +
-	    cex.getHost() + ", " + cex.getPort() +
-	    "; timeout " + cex.getConnectionTimeout() +
-	    (cex.getMessage() != null ? ("; " + cex.getMessage()) : ""));
-	// extract the details and save them here
-	this.host = cex.getHost();
-	this.port = cex.getPort();
-	this.cto = cex.getConnectionTimeout();
-	setNextException(cex.getException());
+        super(
+                "Couldn't connect to host, port: " +
+                        cex.getHost() + ", " + cex.getPort() +
+                        "; timeout " + cex.getConnectionTimeout() +
+                        (cex.getMessage() != null ? ("; " + cex.getMessage()) : ""));
+        // extract the details and save them here
+        this.host = cex.getHost();
+        this.port = cex.getPort();
+        this.cto = cex.getConnectionTimeout();
+        setNextException(cex.getException());
     }
 
     /**
      * The host we were trying to connect to.
      *
-     * @return	the host
+     * @return the host
      */
     public String getHost() {
-	return host;
+        return host;
     }
 
     /**
      * The port we were trying to connect to.
      *
-     * @return	the port
+     * @return the port
      */
     public int getPort() {
-	return port;
+        return port;
     }
 
     /**
      * The timeout used for the connection attempt.
      *
-     * @return	the connection timeout
+     * @return the connection timeout
      */
     public int getConnectionTimeout() {
-	return cto;
+        return cto;
     }
 }

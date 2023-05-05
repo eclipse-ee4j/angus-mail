@@ -16,6 +16,13 @@
 
 package org.eclipse.angus.mail.dsn;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.InternetHeaders;
+import jakarta.mail.util.LineOutputStream;
+import jakarta.mail.util.StreamProvider;
+import org.eclipse.angus.mail.util.MailLogger;
+import org.eclipse.angus.mail.util.PropUtil;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,27 +31,19 @@ import java.util.Enumeration;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import org.eclipse.angus.mail.util.MailLogger;
-import org.eclipse.angus.mail.util.PropUtil;
-
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.InternetHeaders;
-import jakarta.mail.util.LineOutputStream;
-import jakarta.mail.util.StreamProvider;
-
 /**
  * A message/delivery-status message content, as defined in
  * <A HREF="http://www.ietf.org/rfc/rfc3464.txt" TARGET="_top">RFC 3464</A>.
  *
- * @since	JavaMail 1.4
+ * @since JavaMail 1.4
  */
 public class DeliveryStatus extends Report {
 
     private static MailLogger logger = new MailLogger(
-	DeliveryStatus.class,
-	"DEBUG DSN",
-	PropUtil.getBooleanSystemProperty("mail.dsn.debug", false),
-	System.out);
+            DeliveryStatus.class,
+            "DEBUG DSN",
+            PropUtil.getBooleanSystemProperty("mail.dsn.debug", false),
+            System.out);
 
     /**
      * The DSN fields for the message.
@@ -59,41 +58,41 @@ public class DeliveryStatus extends Report {
     /**
      * Construct a delivery status notification with no content.
      *
-     * @exception	MessagingException for failures
+     * @exception MessagingException for failures
      */
     public DeliveryStatus() throws MessagingException {
-	super("delivery-status");
-	messageDSN = new InternetHeaders();
-	recipientDSN = new InternetHeaders[0];
+        super("delivery-status");
+        messageDSN = new InternetHeaders();
+        recipientDSN = new InternetHeaders[0];
     }
 
     /**
      * Construct a delivery status notification by parsing the
      * supplied input stream.
      *
-     * @param	is	the input stream
-     * @exception	IOException for I/O errors reading the stream
-     * @exception	MessagingException for other failures
+     * @param    is    the input stream
+     * @exception IOException for I/O errors reading the stream
+     * @exception MessagingException for other failures
      */
     public DeliveryStatus(InputStream is)
-				throws MessagingException, IOException {
-	super("delivery-status");
-	messageDSN = new InternetHeaders(is);
-	logger.fine("got messageDSN");
-	Vector<InternetHeaders> v = new Vector<>();
-	try {
-	    while (is.available() > 0) {
-		InternetHeaders h = new InternetHeaders(is);
-		logger.fine("got recipientDSN");
-		v.addElement(h);
-	    }
-	} catch (EOFException ex) {
-	    logger.log(Level.FINE, "got EOFException", ex);
-	}
-	if (logger.isLoggable(Level.FINE))
-	    logger.fine("recipientDSN size " + v.size());
-	recipientDSN = new InternetHeaders[v.size()];
-	v.copyInto(recipientDSN);
+            throws MessagingException, IOException {
+        super("delivery-status");
+        messageDSN = new InternetHeaders(is);
+        logger.fine("got messageDSN");
+        Vector<InternetHeaders> v = new Vector<>();
+        try {
+            while (is.available() > 0) {
+                InternetHeaders h = new InternetHeaders(is);
+                logger.fine("got recipientDSN");
+                v.addElement(h);
+            }
+        } catch (EOFException ex) {
+            logger.log(Level.FINE, "got EOFException", ex);
+        }
+        if (logger.isLoggable(Level.FINE))
+            logger.fine("recipientDSN size " + v.size());
+        recipientDSN = new InternetHeaders[v.size()];
+        v.copyInto(recipientDSN);
     }
 
     /**
@@ -110,84 +109,84 @@ public class DeliveryStatus extends Report {
      *          *( extension-field CRLF )
      * </pre>
      *
-     * @return	the per-message DSN fields
+     * @return the per-message DSN fields
      */
     // XXX - could parse each of these fields
     public InternetHeaders getMessageDSN() {
-	return messageDSN;
+        return messageDSN;
     }
 
     /**
      * Set the per-message fields in the delivery status notification.
      *
-     * @param	messageDSN	the per-message DSN fields
+     * @param    messageDSN    the per-message DSN fields
      */
     public void setMessageDSN(InternetHeaders messageDSN) {
-	this.messageDSN = messageDSN;
+        this.messageDSN = messageDSN;
     }
 
     /**
      * Return the number of recipients for which we have
      * per-recipient delivery status notification information.
      *
-     * @return	the number of recipients
+     * @return the number of recipients
      */
     public int getRecipientDSNCount() {
-	return recipientDSN.length;
+        return recipientDSN.length;
     }
 
     /**
      * Return the delivery status notification information for
      * the specified recipient.
      *
-     * @param	n	the recipient number
-     * @return	the DSN fields for the recipient
+     * @param    n    the recipient number
+     * @return the DSN fields for the recipient
      */
     public InternetHeaders getRecipientDSN(int n) {
-	return recipientDSN[n];
+        return recipientDSN[n];
     }
 
     /**
      * Add deliver status notification information for another
      * recipient.
      *
-     * @param	h	the DSN fields for the recipient
+     * @param    h    the DSN fields for the recipient
      */
     public void addRecipientDSN(InternetHeaders h) {
-	InternetHeaders[] rh = new InternetHeaders[recipientDSN.length + 1];
-	System.arraycopy(recipientDSN, 0, rh, 0, recipientDSN.length);
-	recipientDSN = rh;
-	recipientDSN[recipientDSN.length - 1] = h;
+        InternetHeaders[] rh = new InternetHeaders[recipientDSN.length + 1];
+        System.arraycopy(recipientDSN, 0, rh, 0, recipientDSN.length);
+        recipientDSN = rh;
+        recipientDSN[recipientDSN.length - 1] = h;
     }
 
     public void writeTo(OutputStream os) throws IOException {
-	// see if we already have a LOS
-	LineOutputStream los = null;
-	if (os instanceof LineOutputStream) {
-	    los = (LineOutputStream) os;
-	} else {
-	    los = StreamProvider.provider().outputLineStream(os, false);
-	}
+        // see if we already have a LOS
+        LineOutputStream los = null;
+        if (os instanceof LineOutputStream) {
+            los = (LineOutputStream) os;
+        } else {
+            los = StreamProvider.provider().outputLineStream(os, false);
+        }
 
-	writeInternetHeaders(messageDSN, los);
-	los.writeln();
-	for (int i = 0; i < recipientDSN.length; i++) {
-	    writeInternetHeaders(recipientDSN[i], los);
-	    los.writeln();
-	}
+        writeInternetHeaders(messageDSN, los);
+        los.writeln();
+        for (int i = 0; i < recipientDSN.length; i++) {
+            writeInternetHeaders(recipientDSN[i], los);
+            los.writeln();
+        }
     }
 
     private static void writeInternetHeaders(InternetHeaders h,
-				LineOutputStream los) throws IOException {
-	Enumeration<String> e = h.getAllHeaderLines();
-	while (e.hasMoreElements())
-	    los.writeln(e.nextElement());
+                                             LineOutputStream los) throws IOException {
+        Enumeration<String> e = h.getAllHeaderLines();
+        while (e.hasMoreElements())
+            los.writeln(e.nextElement());
     }
 
     @Override
     public String toString() {
-	return "DeliveryStatus: Reporting-MTA=" +
-	    messageDSN.getHeader("Reporting-MTA", null) + ", #Recipients=" +
-	    recipientDSN.length;
+        return "DeliveryStatus: Reporting-MTA=" +
+                messageDSN.getHeader("Reporting-MTA", null) + ", #Recipients=" +
+                recipientDSN.length;
     }
 }

@@ -27,219 +27,219 @@ import org.eclipse.angus.mail.util.MailSSLSocketFactory;
 public class socketfactorytest {
 
     public static void main(String[] argv) {
-	String mailhost = "mail-sfbay.sun.com";
-	String user = null, password = null;
-	boolean debug = false;
-	boolean auth = false;
-	int optind;
+        String mailhost = "mail-sfbay.sun.com";
+        String user = null, password = null;
+        boolean debug = false;
+        boolean auth = false;
+        int optind;
 
-	for (optind = 0; optind < argv.length; optind++) {
-	    if (argv[optind].equals("-U")) {
-		user = argv[++optind];
-	    } else if (argv[optind].equals("-P")) {
-		password = argv[++optind];
-	    } else if (argv[optind].equals("-M")) {
-		mailhost = argv[++optind];
-	    } else if (argv[optind].equals("-d")) {
-		debug = true;
-	    } else if (argv[optind].equals("-A")) {
-		auth = true;
-	    } else if (argv[optind].equals("--")) {
-		optind++;
-		break;
-	    } else if (argv[optind].startsWith("-")) {
-		System.out.println(
-			"Usage: socketfactorytest [-U user] [-P passwd]]");
-		System.out.println("\t[-M transport-host] [-d] [-A]");
-		System.exit(1);
-	    } else {
-		break;
-	    }
-	}
+        for (optind = 0; optind < argv.length; optind++) {
+            if (argv[optind].equals("-U")) {
+                user = argv[++optind];
+            } else if (argv[optind].equals("-P")) {
+                password = argv[++optind];
+            } else if (argv[optind].equals("-M")) {
+                mailhost = argv[++optind];
+            } else if (argv[optind].equals("-d")) {
+                debug = true;
+            } else if (argv[optind].equals("-A")) {
+                auth = true;
+            } else if (argv[optind].equals("--")) {
+                optind++;
+                break;
+            } else if (argv[optind].startsWith("-")) {
+                System.out.println(
+                        "Usage: socketfactorytest [-U user] [-P passwd]]");
+                System.out.println("\t[-M transport-host] [-d] [-A]");
+                System.exit(1);
+            } else {
+                break;
+            }
+        }
 
-	try {
+        try {
 
-	    // first, no factories
+            // first, no factories
 
-	    Properties props = new Properties();
-	    props.put("mail.smtp.host", mailhost);
-	    Session session = Session.getInstance(props, null);
-	    if (debug)
-		session.setDebug(true);
+            Properties props = new Properties();
+            props.put("mail.smtp.host", mailhost);
+            Session session = Session.getInstance(props, null);
+            if (debug)
+                session.setDebug(true);
 
-	    Transport t = session.getTransport("smtp");
-	    try {
-		if (auth)
-		    t.connect(mailhost, user, password);
-		else
-		    t.connect();
-		TestResult.success();
-	    } finally {
-		t.close();
-	    }
-	    TestResult.print("no factories");
+            Transport t = session.getTransport("smtp");
+            try {
+                if (auth)
+                    t.connect(mailhost, user, password);
+                else
+                    t.connect();
+                TestResult.success();
+            } finally {
+                t.close();
+            }
+            TestResult.print("no factories");
 
-	    // socket factory property
+            // socket factory property
 
-	    TestResult.reset();
-	    props = new Properties();
-	    props.put("mail.smtp.host", mailhost);
-	    props.put("mail.smtp.socketFactory.class", "DummySocketFactory");
-	    session = Session.getInstance(props, null);
-	    if (debug)
-		session.setDebug(true);
+            TestResult.reset();
+            props = new Properties();
+            props.put("mail.smtp.host", mailhost);
+            props.put("mail.smtp.socketFactory.class", "DummySocketFactory");
+            session = Session.getInstance(props, null);
+            if (debug)
+                session.setDebug(true);
 
-	    t = session.getTransport("smtp");
-	    try {
-		if (auth)
-		    t.connect(mailhost, user, password);
-		else
-		    t.connect();
-	    } finally {
-		t.close();
-	    }
-	    TestResult.print("socket factory property");
+            t = session.getTransport("smtp");
+            try {
+                if (auth)
+                    t.connect(mailhost, user, password);
+                else
+                    t.connect();
+            } finally {
+                t.close();
+            }
+            TestResult.print("socket factory property");
 
-	    // socket factory object
+            // socket factory object
 
-	    TestResult.reset();
-	    props = new Properties();
-	    props.put("mail.smtp.host", mailhost);
-	    props.put("mail.smtp.socketFactory", new DummySocketFactory());
-	    session = Session.getInstance(props, null);
-	    if (debug)
-		session.setDebug(true);
+            TestResult.reset();
+            props = new Properties();
+            props.put("mail.smtp.host", mailhost);
+            props.put("mail.smtp.socketFactory", new DummySocketFactory());
+            session = Session.getInstance(props, null);
+            if (debug)
+                session.setDebug(true);
 
-	    t = session.getTransport("smtp");
-	    try {
-		if (auth)
-		    t.connect(mailhost, user, password);
-		else
-		    t.connect();
-	    } finally {
-		t.close();
-	    }
-	    TestResult.print("socket factory object");
+            t = session.getTransport("smtp");
+            try {
+                if (auth)
+                    t.connect(mailhost, user, password);
+                else
+                    t.connect();
+            } finally {
+                t.close();
+            }
+            TestResult.print("socket factory object");
 
-	    // SSL socket factory property
+            // SSL socket factory property
 
-	    TestResult.reset();
-	    props = new Properties();
-	    props.put("mail.smtp.host", mailhost);
-	    props.put("mail.smtp.ssl.enable", "true");
-	    props.put("mail.smtp.ssl.checkserveridentity", "true");
-	    props.put("mail.smtp.ssl.socketFactory.class",
-						"DummySSLSocketFactory");
-	    session = Session.getInstance(props, null);
-	    if (debug)
-		session.setDebug(true);
+            TestResult.reset();
+            props = new Properties();
+            props.put("mail.smtp.host", mailhost);
+            props.put("mail.smtp.ssl.enable", "true");
+            props.put("mail.smtp.ssl.checkserveridentity", "true");
+            props.put("mail.smtp.ssl.socketFactory.class",
+                    "DummySSLSocketFactory");
+            session = Session.getInstance(props, null);
+            if (debug)
+                session.setDebug(true);
 
-	    t = session.getTransport("smtp");
-	    try {
-		if (auth)
-		    t.connect(mailhost, user, password);
-		else
-		    t.connect();
-	    } finally {
-		t.close();
-	    }
-	    TestResult.print("SSL socket factory property");
+            t = session.getTransport("smtp");
+            try {
+                if (auth)
+                    t.connect(mailhost, user, password);
+                else
+                    t.connect();
+            } finally {
+                t.close();
+            }
+            TestResult.print("SSL socket factory property");
 
-	    // SSL socket factory object
+            // SSL socket factory object
 
-	    TestResult.reset();
-	    props = new Properties();
-	    props.put("mail.smtp.host", mailhost);
-	    props.put("mail.smtp.ssl.enable", "true");
-	    props.put("mail.smtp.ssl.checkserveridentity", "true");
-	    props.put("mail.smtp.ssl.socketFactory",
-						new DummySSLSocketFactory());
-	    session = Session.getInstance(props, null);
-	    if (debug)
-		session.setDebug(true);
+            TestResult.reset();
+            props = new Properties();
+            props.put("mail.smtp.host", mailhost);
+            props.put("mail.smtp.ssl.enable", "true");
+            props.put("mail.smtp.ssl.checkserveridentity", "true");
+            props.put("mail.smtp.ssl.socketFactory",
+                    new DummySSLSocketFactory());
+            session = Session.getInstance(props, null);
+            if (debug)
+                session.setDebug(true);
 
-	    t = session.getTransport("smtp");
-	    try {
-		if (auth)
-		    t.connect(mailhost, user, password);
-		else
-		    t.connect();
-	    } finally {
-		t.close();
-	    }
-	    TestResult.print("SSL socket factory object");
+            t = session.getTransport("smtp");
+            try {
+                if (auth)
+                    t.connect(mailhost, user, password);
+                else
+                    t.connect();
+            } finally {
+                t.close();
+            }
+            TestResult.print("SSL socket factory object");
 
-	    // STARTTLS no socket factory
+            // STARTTLS no socket factory
 
-	    TestResult.reset();
-	    props = new Properties();
-	    props.put("mail.smtp.host", mailhost);
-	    props.put("mail.smtp.starttls.enable", "true");
-	    session = Session.getInstance(props, null);
-	    if (debug)
-		session.setDebug(true);
+            TestResult.reset();
+            props = new Properties();
+            props.put("mail.smtp.host", mailhost);
+            props.put("mail.smtp.starttls.enable", "true");
+            session = Session.getInstance(props, null);
+            if (debug)
+                session.setDebug(true);
 
-	    t = session.getTransport("smtp");
-	    try {
-		if (auth)
-		    t.connect(mailhost, user, password);
-		else
-		    t.connect();
-		TestResult.success();
-	    } finally {
-		t.close();
-	    }
-	    TestResult.print("STARTTLS no socket factory");
+            t = session.getTransport("smtp");
+            try {
+                if (auth)
+                    t.connect(mailhost, user, password);
+                else
+                    t.connect();
+                TestResult.success();
+            } finally {
+                t.close();
+            }
+            TestResult.print("STARTTLS no socket factory");
 
-	    // STARTTLS SSL socket factory property
+            // STARTTLS SSL socket factory property
 
-	    TestResult.reset();
-	    props = new Properties();
-	    props.put("mail.smtp.host", mailhost);
-	    props.put("mail.smtp.starttls.enable", "true");
-	    props.put("mail.smtp.ssl.checkserveridentity", "true");
-	    props.put("mail.smtp.ssl.socketFactory.class",
-						"DummySSLSocketFactory");
-	    session = Session.getInstance(props, null);
-	    if (debug)
-		session.setDebug(true);
+            TestResult.reset();
+            props = new Properties();
+            props.put("mail.smtp.host", mailhost);
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.ssl.checkserveridentity", "true");
+            props.put("mail.smtp.ssl.socketFactory.class",
+                    "DummySSLSocketFactory");
+            session = Session.getInstance(props, null);
+            if (debug)
+                session.setDebug(true);
 
-	    t = session.getTransport("smtp");
-	    try {
-		if (auth)
-		    t.connect(mailhost, user, password);
-		else
-		    t.connect();
-	    } finally {
-		t.close();
-	    }
-	    TestResult.print("STARTTLS SSL socket factory property");
+            t = session.getTransport("smtp");
+            try {
+                if (auth)
+                    t.connect(mailhost, user, password);
+                else
+                    t.connect();
+            } finally {
+                t.close();
+            }
+            TestResult.print("STARTTLS SSL socket factory property");
 
-	    // STARTTLS SSL socket factory object
+            // STARTTLS SSL socket factory object
 
-	    TestResult.reset();
-	    props = new Properties();
-	    props.put("mail.smtp.host", mailhost);
-	    props.put("mail.smtp.starttls.enable", "true");
-	    props.put("mail.smtp.ssl.checkserveridentity", "true");
-	    props.put("mail.smtp.ssl.socketFactory",
-						new DummySSLSocketFactory());
-	    session = Session.getInstance(props, null);
-	    if (debug)
-		session.setDebug(true);
+            TestResult.reset();
+            props = new Properties();
+            props.put("mail.smtp.host", mailhost);
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.ssl.checkserveridentity", "true");
+            props.put("mail.smtp.ssl.socketFactory",
+                    new DummySSLSocketFactory());
+            session = Session.getInstance(props, null);
+            if (debug)
+                session.setDebug(true);
 
-	    t = session.getTransport("smtp");
-	    try {
-		if (auth)
-		    t.connect(mailhost, user, password);
-		else
-		    t.connect();
-	    } finally {
-		t.close();
-	    }
-	    TestResult.print("STARTTLS SSL socket factory object");
+            t = session.getTransport("smtp");
+            try {
+                if (auth)
+                    t.connect(mailhost, user, password);
+                else
+                    t.connect();
+            } finally {
+                t.close();
+            }
+            TestResult.print("STARTTLS SSL socket factory object");
 
-	    // Mail SSL socket factory object
+            // Mail SSL socket factory object
 
 	    /*
 	    TestResult.reset();
@@ -269,8 +269,8 @@ public class socketfactorytest {
 	    TestResult.print("Mail SSL socket factory object");
 	    */
 
-	} catch (Exception e) {
-	    System.out.println("Exception: " + e);
-	}
+        } catch (Exception e) {
+            System.out.println("Exception: " + e);
+        }
     }
 }

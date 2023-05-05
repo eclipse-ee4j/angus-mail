@@ -16,16 +16,17 @@
 
 package org.eclipse.angus.mail.pop3;
 
-import jakarta.mail.*;
+import jakarta.mail.Session;
+import jakarta.mail.URLName;
 
 /**
  * A POP3 Message Store using SSL.  Contains only one folder, "INBOX".
  *
- * @author      Bill Shannon
+ * @author Bill Shannon
  */
 public class POP3SSLStore extends POP3Store {
 
     public POP3SSLStore(Session session, URLName url) {
-	super(session, url, "pop3s", true);
+        super(session, url, "pop3s", true);
     }
 }

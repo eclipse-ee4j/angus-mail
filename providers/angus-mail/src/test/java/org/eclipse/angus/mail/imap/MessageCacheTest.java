@@ -16,8 +16,9 @@
 
 package org.eclipse.angus.mail.imap;
 
-import static org.junit.Assert.assertEquals;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test the IMAP MessageCache.
@@ -29,21 +30,21 @@ public class MessageCacheTest {
      */
     @Test
     public void testExpungeAdd() throws Exception {
-	// test a range of values to find boundary condition errors
-	for (int n = 1; n <= 100; n++) {
-	    //System.out.println("MessageCache.testExpungeAdd: test " + n);
-	    // start with one message
-	    MessageCache mc = new MessageCache(1, false);
-	    // add the remaining messages (eat into SLOP)
-	    mc.addMessages(n - 1, 2);
-	    // now expunge a message to cause the seqnums array to be created
-	    mc.expungeMessage(1);
-	    // and add one more message
-	    mc.addMessages(1, n);
-	    //System.out.println("  new seqnum " + mc.seqnumOf(n + 1));
-	    // does the new message have the expected sequence number?
-	    assertEquals(mc.seqnumOf(n + 1), n);
-	}
+        // test a range of values to find boundary condition errors
+        for (int n = 1; n <= 100; n++) {
+            //System.out.println("MessageCache.testExpungeAdd: test " + n);
+            // start with one message
+            MessageCache mc = new MessageCache(1, false);
+            // add the remaining messages (eat into SLOP)
+            mc.addMessages(n - 1, 2);
+            // now expunge a message to cause the seqnums array to be created
+            mc.expungeMessage(1);
+            // and add one more message
+            mc.addMessages(1, n);
+            //System.out.println("  new seqnum " + mc.seqnumOf(n + 1));
+            // does the new message have the expected sequence number?
+            assertEquals(mc.seqnumOf(n + 1), n);
+        }
     }
 
     /**
@@ -53,18 +54,18 @@ public class MessageCacheTest {
      */
     @Test
     public void testExpungeAddExpand() throws Exception {
-	// test a range of values to find boundary condition errors
-	for (int n = 2; n <= 100; n++) {
-	    //System.out.println("MessageCache.testExpungeAdd: test " + n);
-	    // start with two messages
-	    MessageCache mc = new MessageCache(2, false);
-	    // now expunge a message to cause the seqnums array to be created
-	    mc.expungeMessage(1);
-	    // add the remaining messages (eat into SLOP)
-	    mc.addMessages(n - 1, 2);
-	    //System.out.println("  new seqnum " + mc.seqnumOf(n + 1));
-	    // does the new message have the expected sequence number?
-	    assertEquals(mc.seqnumOf(n + 1), n);
-	}
+        // test a range of values to find boundary condition errors
+        for (int n = 2; n <= 100; n++) {
+            //System.out.println("MessageCache.testExpungeAdd: test " + n);
+            // start with two messages
+            MessageCache mc = new MessageCache(2, false);
+            // now expunge a message to cause the seqnums array to be created
+            mc.expungeMessage(1);
+            // add the remaining messages (eat into SLOP)
+            mc.addMessages(n - 1, 2);
+            //System.out.println("  new seqnum " + mc.seqnumOf(n + 1));
+            // does the new message have the expected sequence number?
+            assertEquals(mc.seqnumOf(n + 1), n);
+        }
     }
 }

@@ -16,19 +16,17 @@
 
 package org.eclipse.angus.mail.imap;
 
-import java.io.*;
-import java.util.Properties;
-
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
-import jakarta.mail.MessagingException;
-
 import org.eclipse.angus.mail.test.SavedSocketFactory;
 import org.eclipse.angus.mail.test.TestServer;
-
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.Properties;
+
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 /**
@@ -42,48 +40,48 @@ public final class IMAPLoginFailureTest {
      */
     @Test
     public void testSocketClosed() {
-	TestServer server = null;
-	try {
-	    final IMAPHandler handler = new IMAPHandler() {
-		@Override
-		public void sendGreetings() throws IOException {
-		    capabilities = "IMAP4REV1 LOGINDISABLED";
-		    super.sendGreetings();
-		}
-	    };
-	    server = new TestServer(handler);
-	    server.start();
+        TestServer server = null;
+        try {
+            final IMAPHandler handler = new IMAPHandler() {
+                @Override
+                public void sendGreetings() throws IOException {
+                    capabilities = "IMAP4REV1 LOGINDISABLED";
+                    super.sendGreetings();
+                }
+            };
+            server = new TestServer(handler);
+            server.start();
 
-	    SavedSocketFactory ssf = new SavedSocketFactory();
-	    Properties properties = new Properties();
-	    properties.setProperty("mail.imap.host", "localhost");
-	    properties.setProperty("mail.imap.port", "" + server.getPort());
-	    properties.put("mail.imap.socketFactory", ssf);
-	    final Session session = Session.getInstance(properties);
-	    //session.setDebug(true);
+            SavedSocketFactory ssf = new SavedSocketFactory();
+            Properties properties = new Properties();
+            properties.setProperty("mail.imap.host", "localhost");
+            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.put("mail.imap.socketFactory", ssf);
+            final Session session = Session.getInstance(properties);
+            //session.setDebug(true);
 
-	    final Store store = session.getStore("imap");
-	    try {
-		store.connect("test", "test");
-		fail("login did not fail");
-	    } catch (MessagingException mex) {
-		// this is what we expect, now check that the socket is closed
-		assertTrue(ssf.getSocket().isClosed());
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
-	    } finally {
-		store.close();
-	    }
+            final Store store = session.getStore("imap");
+            try {
+                store.connect("test", "test");
+                fail("login did not fail");
+            } catch (MessagingException mex) {
+                // this is what we expect, now check that the socket is closed
+                assertTrue(ssf.getSocket().isClosed());
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
+            } finally {
+                store.close();
+            }
 
-	} catch (final Exception e) {
-	    e.printStackTrace();
-	    fail(e.getMessage());
-	} finally {
-	    if (server != null) {
-		server.quit();
-	    }
-	}
+        } catch (final Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
     }
 }

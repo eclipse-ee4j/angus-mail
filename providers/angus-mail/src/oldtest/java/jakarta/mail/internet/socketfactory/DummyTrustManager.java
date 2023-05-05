@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -18,14 +18,14 @@ import java.security.cert.X509Certificate;
 public class DummyTrustManager implements X509TrustManager {
 
     public void checkClientTrusted(X509Certificate[] cert, String authType) {
-	// everything is trusted
+        // everything is trusted
     }
 
     public void checkServerTrusted(X509Certificate[] cert, String authType) {
-	// everything is trusted
+        // everything is trusted
     }
 
     public X509Certificate[] getAcceptedIssuers() {
-	return new X509Certificate[0];
+        return new X509Certificate[0];
     }
 }

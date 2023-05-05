@@ -16,14 +16,17 @@
 
 package org.eclipse.angus.mail.util;
 
-import java.lang.annotation.*;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * Annotation to mark the default providers that are part of Jakarta Mail.
  * DO NOT use this on any provider made available independently.
  *
- * @author	Bill Shannon
- * @since	Jakarta Mail 1.6.4
+ * @author Bill Shannon
+ * @since Jakarta Mail 1.6.4
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

@@ -88,11 +88,11 @@
  * </P>
  * <BLOCKQUOTE><PRE>
  * if (folder instanceof org.eclipse.angus.mail.pop3.POP3Folder) {
- *     org.eclipse.angus.mail.pop3.POP3Folder pf =
- * 	(org.eclipse.angus.mail.pop3.POP3Folder)folder;
- *     String uid = pf.getUID(msg);
- *     if (uid != null)
- * 	... // use it
+ * org.eclipse.angus.mail.pop3.POP3Folder pf =
+ * (org.eclipse.angus.mail.pop3.POP3Folder)folder;
+ * String uid = pf.getUID(msg);
+ * if (uid != null)
+ * ... // use it
  * }
  * </PRE></BLOCKQUOTE>
  * <P>
@@ -170,7 +170,7 @@
  * how the string is interpreted.  For example, use
  * </P>
  * <PRE>
- * 	props.put("mail.pop3.port", "888");
+ * props.put("mail.pop3.port", "888");
  * </PRE>
  * <P>
  * to set the <CODE>mail.pop3.port</CODE> property, which is of type int.

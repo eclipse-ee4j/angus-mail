@@ -16,14 +16,20 @@
 
 package org.eclipse.angus.mail.test;
 
-import java.util.List;
-import java.util.ArrayList;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.InetSocketAddress;
-import java.security.*;
-import javax.net.ssl.*;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A simple server for testing.
@@ -38,13 +44,19 @@ import javax.net.ssl.*;
  */
 public final class TestServer extends Thread {
 
-    /** Server socket. */
+    /**
+     * Server socket.
+     */
     private ServerSocket serverSocket;
 
-    /** Keep on? */
+    /**
+     * Keep on?
+     */
     private volatile boolean keepOn;
 
-    /** Protocol handler. */
+    /**
+     * Protocol handler.
+     */
     private final ProtocolHandler handler;
 
     private List<Thread> clients = new ArrayList<Thread>();
@@ -52,92 +64,92 @@ public final class TestServer extends Thread {
     /**
      * Test server.
      *
-     * @param handler	the protocol handler
+     * @param handler the protocol handler
      */
     public TestServer(final ProtocolHandler handler) throws IOException {
-	this(handler, false);
+        this(handler, false);
     }
 
     /**
      * Test server.
      *
-     * @param handler	the protocol handler
-     * @param isSSL	create SSL sockets?
+     * @param handler the protocol handler
+     * @param isSSL   create SSL sockets?
      */
     public TestServer(final ProtocolHandler handler, final boolean isSSL)
-				throws IOException {
+            throws IOException {
         this.handler = handler;
 
-	/*
-	 * Allowing the JDK to pick a port number sometimes results in it
-	 * picking a number that's already in use by another process, but
-	 * no error is returned.  Picking it ourself allows us to make sure
-	 * that it's not used before we pick it.  Hopefully the socket
-	 * creation will fail if the port is already in use.
-	 *
-	 * XXX - perhaps we should use Random to choose a port number in
-	 * the emphemeral range, in case a lot of low port numbers are
-	 * already in use.
-	 */
-	for (int port = 49152; port < 50000 /*65535*/; port++) {
+        /*
+         * Allowing the JDK to pick a port number sometimes results in it
+         * picking a number that's already in use by another process, but
+         * no error is returned.  Picking it ourself allows us to make sure
+         * that it's not used before we pick it.  Hopefully the socket
+         * creation will fail if the port is already in use.
+         *
+         * XXX - perhaps we should use Random to choose a port number in
+         * the emphemeral range, in case a lot of low port numbers are
+         * already in use.
+         */
+        for (int port = 49152; port < 50000 /*65535*/; port++) {
 	    /*
 	    if (isListening(port))
 		continue;
 	    */
-	    try {
-		serverSocket = createServerSocket(port, isSSL);
-		return;
-	    } catch (IOException ex) {
-		// ignore
-	    } catch (GeneralSecurityException ex) {
-		System.out.println(ex);
-		// ignore
-	    }
-	}
-	throw new RuntimeException("Can't find unused port");
+            try {
+                serverSocket = createServerSocket(port, isSSL);
+                return;
+            } catch (IOException ex) {
+                // ignore
+            } catch (GeneralSecurityException ex) {
+                System.out.println(ex);
+                // ignore
+            }
+        }
+        throw new RuntimeException("Can't find unused port");
     }
 
     private static ServerSocket createServerSocket(int port, boolean isSSL)
-				throws IOException, GeneralSecurityException {
-	ServerSocket ss;
-	if (isSSL) {
-	    SSLContext sslContext = createSSLContext();
-	    SSLServerSocketFactory sf = sslContext.getServerSocketFactory();
-	    ss = sf.createServerSocket(port);
-	} else
-	    ss = new ServerSocket(port);
-	return ss;
+            throws IOException, GeneralSecurityException {
+        ServerSocket ss;
+        if (isSSL) {
+            SSLContext sslContext = createSSLContext();
+            SSLServerSocketFactory sf = sslContext.getServerSocketFactory();
+            ss = sf.createServerSocket(port);
+        } else
+            ss = new ServerSocket(port);
+        return ss;
     }
 
     private static SSLContext createSSLContext()
-				throws IOException, GeneralSecurityException {
-	KeyStore keyStore = KeyStore.getInstance("JKS");
-	keyStore.load(
-	    TestServer.class.getResourceAsStream("keystore.jks"),
-	    "changeit".toCharArray());
+            throws IOException, GeneralSecurityException {
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(
+                TestServer.class.getResourceAsStream("keystore.jks"),
+                "changeit".toCharArray());
 
-	// Create key manager
-	KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-	kmf.init(keyStore, "changeit".toCharArray());
-	KeyManager[] km = kmf.getKeyManagers();
+        // Create key manager
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+        kmf.init(keyStore, "changeit".toCharArray());
+        KeyManager[] km = kmf.getKeyManagers();
 
-	// Create trust manager
-	TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
-	tmf.init(keyStore);
-	TrustManager[] tm = tmf.getTrustManagers();
+        // Create trust manager
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+        tmf.init(keyStore);
+        TrustManager[] tm = tmf.getTrustManagers();
 
-	// Initialize SSLContext
-	SSLContext sslContext = SSLContext.getInstance("TLS");
-	sslContext.init(km,  tm, null);
+        // Initialize SSLContext
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(km, tm, null);
 
-	return sslContext;
+        return sslContext;
     }
 
     /**
      * Return the port the server is listening on.
      */
     public int getPort() {
-	return serverSocket.getLocalPort();
+        return serverSocket.getLocalPort();
     }
 
     /**
@@ -160,18 +172,19 @@ public final class TestServer extends Thread {
      */
     @Override
     public void start() {
-	super.start();
-	// don't return until server is really listening
-	// XXX - this might not be necessary
-	for (int tries = 0; tries < 10; tries++) {
-	    if (isListening(getPort())) {
-		return;
-	    }
-	    try {
-		Thread.sleep(100);
-	    } catch (InterruptedException ex) { }
-	}
-	throw new RuntimeException("Server isn't listening");
+        super.start();
+        // don't return until server is really listening
+        // XXX - this might not be necessary
+        for (int tries = 0; tries < 10; tries++) {
+            if (isListening(getPort())) {
+                return;
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ex) {
+            }
+        }
+        throw new RuntimeException("Server isn't listening");
     }
 
     /**
@@ -186,17 +199,17 @@ public final class TestServer extends Thread {
                 try {
                     final Socket clientSocket = serverSocket.accept();
                     final ProtocolHandler pHandler =
-			(ProtocolHandler)handler.clone();
+                            (ProtocolHandler) handler.clone();
                     pHandler.setClientSocket(clientSocket);
                     Thread t = new Thread(pHandler);
-		    synchronized (clients) {
-			clients.add(t);
-		    }
-		    t.start();
+                    synchronized (clients) {
+                        clients.add(t);
+                    }
+                    t.start();
                 } catch (final IOException e) {
                     //e.printStackTrace();
-		} catch (NullPointerException nex) {
-		    // serverSocket can be set to null before we could check
+                } catch (NullPointerException nex) {
+                    // serverSocket can be set to null before we could check
                 }
             }
         } finally {
@@ -208,44 +221,45 @@ public final class TestServer extends Thread {
      * Return number of clients ever created.
      */
     public int clientCount() {
-	synchronized (clients) {
-	    // isListening creates a client that we don't count
-	    return clients.size() - 1;
-	}
+        synchronized (clients) {
+            // isListening creates a client that we don't count
+            return clients.size() - 1;
+        }
     }
 
     /**
      * Wait for at least n clients to terminate.
      */
     public void waitForClients(int n) {
-	if (n > clientCount())
-	    throw new RuntimeException("not that many clients");
-	for (;;) {
-	    int num = -1;	// ignore isListening client
-	    synchronized (clients) {
-		for (Thread t : clients) {
-		    if (!t.isAlive()) {
-			if (++num >= n)
-			    return;
-		    }
-		}
-	    }
-	    try {
-		Thread.sleep(100);
-	    } catch (InterruptedException ex) { }
-	}
+        if (n > clientCount())
+            throw new RuntimeException("not that many clients");
+        for (; ; ) {
+            int num = -1;    // ignore isListening client
+            synchronized (clients) {
+                for (Thread t : clients) {
+                    if (!t.isAlive()) {
+                        if (++num >= n)
+                            return;
+                    }
+                }
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ex) {
+            }
+        }
     }
 
     private boolean isListening(int port) {
-	try {
-	    Socket s = new Socket();
-	    s.connect(new InetSocketAddress("localhost", port), 100);
-	    // it's listening!
-	    s.close();
-	    return true;
-	} catch (Exception ex) {
-	    //System.out.println(ex);
-	}
-	return false;
+        try {
+            Socket s = new Socket();
+            s.connect(new InetSocketAddress("localhost", port), 100);
+            // it's listening!
+            s.close();
+            return true;
+        } catch (Exception ex) {
+            //System.out.println(ex);
+        }
+        return false;
     }
 }

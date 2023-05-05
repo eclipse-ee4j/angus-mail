@@ -27,8 +27,8 @@ package org.eclipse.angus.mail.auth;
  * buffer of bytes. It is an implementation of the RSA Data Security Inc
  * MD4 algorithim as described in internet RFC 1320.
  *
- * @author      Andreas Sterbenz
- * @author      Bill Shannon (adapted for Jakarta Mail)
+ * @author Andreas Sterbenz
+ * @author Bill Shannon (adapted for Jakarta Mail)
  */
 public final class MD4 {
 
@@ -69,7 +69,7 @@ public final class MD4 {
 
     static {
         padding = new byte[136];
-        padding[0] = (byte)0x80;
+        padding[0] = (byte) 0x80;
     }
 
     /**
@@ -84,15 +84,15 @@ public final class MD4 {
     /**
      * Compute and return the message digest of the input byte array.
      *
-     * @param	in	the input byte array
-     * @return	the message digest byte array
+     * @param    in    the input byte array
+     * @return the message digest byte array
      */
     public byte[] digest(byte[] in) {
-	implReset();
-	engineUpdate(in, 0, in.length);
-	byte[] out = new byte[16];
-	implDigest(out, 0);
-	return out;
+        implReset();
+        engineUpdate(in, 0, in.length);
+        byte[] out = new byte[16];
+        implDigest(out, 0);
+        return out;
     }
 
     /**
@@ -116,30 +116,30 @@ public final class MD4 {
     private void implDigest(byte[] out, int ofs) {
         long bitsProcessed = bytesProcessed << 3;
 
-        int index = (int)bytesProcessed & 0x3f;
+        int index = (int) bytesProcessed & 0x3f;
         int padLen = (index < 56) ? (56 - index) : (120 - index);
         engineUpdate(padding, 0, padLen);
 
         //i2bLittle4((int)bitsProcessed, buffer, 56);
         //i2bLittle4((int)(bitsProcessed >>> 32), buffer, 60);
-	buffer[56] = (byte)bitsProcessed;
-	buffer[57] = (byte)(bitsProcessed>>8);
-	buffer[58] = (byte)(bitsProcessed>>16);
-	buffer[59] = (byte)(bitsProcessed>>24);
-	buffer[60] = (byte)(bitsProcessed>>32);
-	buffer[61] = (byte)(bitsProcessed>>40);
-	buffer[62] = (byte)(bitsProcessed>>48);
-	buffer[63] = (byte)(bitsProcessed>>56);
+        buffer[56] = (byte) bitsProcessed;
+        buffer[57] = (byte) (bitsProcessed >> 8);
+        buffer[58] = (byte) (bitsProcessed >> 16);
+        buffer[59] = (byte) (bitsProcessed >> 24);
+        buffer[60] = (byte) (bitsProcessed >> 32);
+        buffer[61] = (byte) (bitsProcessed >> 40);
+        buffer[62] = (byte) (bitsProcessed >> 48);
+        buffer[63] = (byte) (bitsProcessed >> 56);
         implCompress(buffer, 0);
 
         //i2bLittle(state, 0, out, ofs, 16);
-	for (int i = 0; i < state.length; i++) {
-	    int x = state[i];
-	    out[ofs++] = (byte)x;
-	    out[ofs++] = (byte)(x>>8);
-	    out[ofs++] = (byte)(x>>16);
-	    out[ofs++] = (byte)(x>>24);
-	}
+        for (int i = 0; i < state.length; i++) {
+            int x = state[i];
+            out[ofs++] = (byte) x;
+            out[ofs++] = (byte) (x >> 8);
+            out[ofs++] = (byte) (x >> 16);
+            out[ofs++] = (byte) (x >> 24);
+        }
     }
 
     private void engineUpdate(byte[] b, int ofs, int len) {
@@ -201,11 +201,11 @@ public final class MD4 {
      */
     private void implCompress(byte[] buf, int ofs) {
         //b2iLittle64(buf, ofs, x);
-	for (int xfs = 0; xfs < x.length; xfs++) {
-	    x[xfs] = (buf[ofs] & 0xff) | ((buf[ofs+1] & 0xff) << 8) |
-		((buf[ofs+2] & 0xff) << 16) | ((buf[ofs+3] & 0xff) << 24);
-	    ofs += 4;
-	}
+        for (int xfs = 0; xfs < x.length; xfs++) {
+            x[xfs] = (buf[ofs] & 0xff) | ((buf[ofs + 1] & 0xff) << 8) |
+                    ((buf[ofs + 2] & 0xff) << 16) | ((buf[ofs + 3] & 0xff) << 24);
+            ofs += 4;
+        }
 
         int a = state[0];
         int b = state[1];
@@ -213,58 +213,58 @@ public final class MD4 {
         int d = state[3];
 
         /* Round 1 */
-        a = FF (a, b, c, d, x[ 0], S11); /* 1 */
-        d = FF (d, a, b, c, x[ 1], S12); /* 2 */
-        c = FF (c, d, a, b, x[ 2], S13); /* 3 */
-        b = FF (b, c, d, a, x[ 3], S14); /* 4 */
-        a = FF (a, b, c, d, x[ 4], S11); /* 5 */
-        d = FF (d, a, b, c, x[ 5], S12); /* 6 */
-        c = FF (c, d, a, b, x[ 6], S13); /* 7 */
-        b = FF (b, c, d, a, x[ 7], S14); /* 8 */
-        a = FF (a, b, c, d, x[ 8], S11); /* 9 */
-        d = FF (d, a, b, c, x[ 9], S12); /* 10 */
-        c = FF (c, d, a, b, x[10], S13); /* 11 */
-        b = FF (b, c, d, a, x[11], S14); /* 12 */
-        a = FF (a, b, c, d, x[12], S11); /* 13 */
-        d = FF (d, a, b, c, x[13], S12); /* 14 */
-        c = FF (c, d, a, b, x[14], S13); /* 15 */
-        b = FF (b, c, d, a, x[15], S14); /* 16 */
+        a = FF(a, b, c, d, x[0], S11); /* 1 */
+        d = FF(d, a, b, c, x[1], S12); /* 2 */
+        c = FF(c, d, a, b, x[2], S13); /* 3 */
+        b = FF(b, c, d, a, x[3], S14); /* 4 */
+        a = FF(a, b, c, d, x[4], S11); /* 5 */
+        d = FF(d, a, b, c, x[5], S12); /* 6 */
+        c = FF(c, d, a, b, x[6], S13); /* 7 */
+        b = FF(b, c, d, a, x[7], S14); /* 8 */
+        a = FF(a, b, c, d, x[8], S11); /* 9 */
+        d = FF(d, a, b, c, x[9], S12); /* 10 */
+        c = FF(c, d, a, b, x[10], S13); /* 11 */
+        b = FF(b, c, d, a, x[11], S14); /* 12 */
+        a = FF(a, b, c, d, x[12], S11); /* 13 */
+        d = FF(d, a, b, c, x[13], S12); /* 14 */
+        c = FF(c, d, a, b, x[14], S13); /* 15 */
+        b = FF(b, c, d, a, x[15], S14); /* 16 */
 
         /* Round 2 */
-        a = GG (a, b, c, d, x[ 0], S21); /* 17 */
-        d = GG (d, a, b, c, x[ 4], S22); /* 18 */
-        c = GG (c, d, a, b, x[ 8], S23); /* 19 */
-        b = GG (b, c, d, a, x[12], S24); /* 20 */
-        a = GG (a, b, c, d, x[ 1], S21); /* 21 */
-        d = GG (d, a, b, c, x[ 5], S22); /* 22 */
-        c = GG (c, d, a, b, x[ 9], S23); /* 23 */
-        b = GG (b, c, d, a, x[13], S24); /* 24 */
-        a = GG (a, b, c, d, x[ 2], S21); /* 25 */
-        d = GG (d, a, b, c, x[ 6], S22); /* 26 */
-        c = GG (c, d, a, b, x[10], S23); /* 27 */
-        b = GG (b, c, d, a, x[14], S24); /* 28 */
-        a = GG (a, b, c, d, x[ 3], S21); /* 29 */
-        d = GG (d, a, b, c, x[ 7], S22); /* 30 */
-        c = GG (c, d, a, b, x[11], S23); /* 31 */
-        b = GG (b, c, d, a, x[15], S24); /* 32 */
+        a = GG(a, b, c, d, x[0], S21); /* 17 */
+        d = GG(d, a, b, c, x[4], S22); /* 18 */
+        c = GG(c, d, a, b, x[8], S23); /* 19 */
+        b = GG(b, c, d, a, x[12], S24); /* 20 */
+        a = GG(a, b, c, d, x[1], S21); /* 21 */
+        d = GG(d, a, b, c, x[5], S22); /* 22 */
+        c = GG(c, d, a, b, x[9], S23); /* 23 */
+        b = GG(b, c, d, a, x[13], S24); /* 24 */
+        a = GG(a, b, c, d, x[2], S21); /* 25 */
+        d = GG(d, a, b, c, x[6], S22); /* 26 */
+        c = GG(c, d, a, b, x[10], S23); /* 27 */
+        b = GG(b, c, d, a, x[14], S24); /* 28 */
+        a = GG(a, b, c, d, x[3], S21); /* 29 */
+        d = GG(d, a, b, c, x[7], S22); /* 30 */
+        c = GG(c, d, a, b, x[11], S23); /* 31 */
+        b = GG(b, c, d, a, x[15], S24); /* 32 */
 
         /* Round 3 */
-        a = HH (a, b, c, d, x[ 0], S31); /* 33 */
-        d = HH (d, a, b, c, x[ 8], S32); /* 34 */
-        c = HH (c, d, a, b, x[ 4], S33); /* 35 */
-        b = HH (b, c, d, a, x[12], S34); /* 36 */
-        a = HH (a, b, c, d, x[ 2], S31); /* 37 */
-        d = HH (d, a, b, c, x[10], S32); /* 38 */
-        c = HH (c, d, a, b, x[ 6], S33); /* 39 */
-        b = HH (b, c, d, a, x[14], S34); /* 40 */
-        a = HH (a, b, c, d, x[ 1], S31); /* 41 */
-        d = HH (d, a, b, c, x[ 9], S32); /* 42 */
-        c = HH (c, d, a, b, x[ 5], S33); /* 43 */
-        b = HH (b, c, d, a, x[13], S34); /* 44 */
-        a = HH (a, b, c, d, x[ 3], S31); /* 45 */
-        d = HH (d, a, b, c, x[11], S32); /* 46 */
-        c = HH (c, d, a, b, x[ 7], S33); /* 47 */
-        b = HH (b, c, d, a, x[15], S34); /* 48 */
+        a = HH(a, b, c, d, x[0], S31); /* 33 */
+        d = HH(d, a, b, c, x[8], S32); /* 34 */
+        c = HH(c, d, a, b, x[4], S33); /* 35 */
+        b = HH(b, c, d, a, x[12], S34); /* 36 */
+        a = HH(a, b, c, d, x[2], S31); /* 37 */
+        d = HH(d, a, b, c, x[10], S32); /* 38 */
+        c = HH(c, d, a, b, x[6], S33); /* 39 */
+        b = HH(b, c, d, a, x[14], S34); /* 40 */
+        a = HH(a, b, c, d, x[1], S31); /* 41 */
+        d = HH(d, a, b, c, x[9], S32); /* 42 */
+        c = HH(c, d, a, b, x[5], S33); /* 43 */
+        b = HH(b, c, d, a, x[13], S34); /* 44 */
+        a = HH(a, b, c, d, x[3], S31); /* 45 */
+        d = HH(d, a, b, c, x[11], S32); /* 46 */
+        c = HH(c, d, a, b, x[7], S33); /* 47 */
+        b = HH(b, c, d, a, x[15], S34); /* 48 */
 
         state[0] += a;
         state[1] += b;

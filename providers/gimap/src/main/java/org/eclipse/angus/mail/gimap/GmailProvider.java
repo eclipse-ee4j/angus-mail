@@ -16,17 +16,16 @@
 
 package org.eclipse.angus.mail.gimap;
 
-import org.eclipse.angus.mail.util.DefaultProvider;
-
 import jakarta.mail.Provider;
+import org.eclipse.angus.mail.util.DefaultProvider;
 
 /**
  * The Gmail IMAP protocol provider.
  */
-@DefaultProvider	// Remove this annotation if you copy this provider
+@DefaultProvider    // Remove this annotation if you copy this provider
 public class GmailProvider extends Provider {
     public GmailProvider() {
-	super(Provider.Type.STORE, "gimap", GmailStore.class.getName(),
-	    "Oracle", null);
+        super(Provider.Type.STORE, "gimap", GmailStore.class.getName(),
+                "Oracle", null);
     }
 }

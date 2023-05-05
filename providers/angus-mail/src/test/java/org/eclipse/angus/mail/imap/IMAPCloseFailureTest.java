@@ -16,16 +16,15 @@
 
 package org.eclipse.angus.mail.imap;
 
-import java.io.*;
-import java.util.Properties;
-
+import jakarta.mail.Folder;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
-import jakarta.mail.Folder;
-
 import org.eclipse.angus.mail.test.TestServer;
-
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.Properties;
+
 import static org.junit.Assert.fail;
 
 /**
@@ -36,79 +35,79 @@ public final class IMAPCloseFailureTest {
     private static final String HOST = "localhost";
 
     static class NoIMAPHandler extends IMAPHandler {
-	static boolean first = true;
+        static boolean first = true;
 
-	@Override
-	public void examine(String line) throws IOException {
-	    if (first)
-		no("mailbox gone");
-	    else
-		super.examine(line);
-	    first = false;
-	}
+        @Override
+        public void examine(String line) throws IOException {
+            if (first)
+                no("mailbox gone");
+            else
+                super.examine(line);
+            first = false;
+        }
     }
 
     static class BadIMAPHandler extends IMAPHandler {
-	static boolean first = true;
+        static boolean first = true;
 
-	@Override
-	public void examine(String line) throws IOException {
-	    if (first)
-		bad("mailbox gone");
-	    else
-		super.examine(line);
-	    first = false;
-	}
+        @Override
+        public void examine(String line) throws IOException {
+            if (first)
+                bad("mailbox gone");
+            else
+                super.examine(line);
+            first = false;
+        }
     }
 
     @Test
     public void testCloseNo() {
-	testClose(new NoIMAPHandler());
+        testClose(new NoIMAPHandler());
     }
 
     @Test
     public void testCloseBad() {
-	testClose(new BadIMAPHandler());
+        testClose(new BadIMAPHandler());
     }
 
     public void testClose(IMAPHandler handler) {
-	TestServer server = null;
-	try {
-	    server = new TestServer(handler);
-	    server.start();
+        TestServer server = null;
+        try {
+            server = new TestServer(handler);
+            server.start();
 
-	    Properties properties = new Properties();
+            Properties properties = new Properties();
             properties.setProperty("mail.imap.host", HOST);
             properties.setProperty("mail.imap.port", "" + server.getPort());
-	    Session session = Session.getInstance(properties);
-	    //session.setDebug(true);
+            Session session = Session.getInstance(properties);
+            //session.setDebug(true);
 
-	    Store store = session.getStore("imap");
-	    try {
-		store.connect("test", "test");
-		Folder f = store.getFolder("INBOX");
-		f.open(Folder.READ_WRITE);
-		f.close(false);
-		// Make sure that failure while closing doesn't leave us
-		// with a connection that can't be used to open a folder.
-		f.open(Folder.READ_WRITE);
-		f.close(false);
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
-	    } finally {
-		if (store.isConnected())
-		    store.close();
-	    }
+            Store store = session.getStore("imap");
+            try {
+                store.connect("test", "test");
+                Folder f = store.getFolder("INBOX");
+                f.open(Folder.READ_WRITE);
+                f.close(false);
+                // Make sure that failure while closing doesn't leave us
+                // with a connection that can't be used to open a folder.
+                f.open(Folder.READ_WRITE);
+                f.close(false);
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
+            } finally {
+                if (store.isConnected())
+                    store.close();
+            }
 
-	} catch (Exception e) {
-	    e.printStackTrace();
-	    fail(e.getMessage());
-	} finally {
-	    if (server != null) {
-		server.quit();
-	    }
-	}
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
     }
 }

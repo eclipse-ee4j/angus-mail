@@ -16,15 +16,16 @@
 
 package org.eclipse.angus.mail.gimap;
 
-import jakarta.mail.*;
+import jakarta.mail.Session;
+import jakarta.mail.URLName;
 
 /**
  * Support "gimaps" protocol name.
  * Unnecessary, since Gmail always uses SSL, but someone might
  * expect this name to work.
  *
- * @since JavaMail 1.4.6
  * @author Bill Shannon
+ * @since JavaMail 1.4.6
  */
 
 public class GmailSSLStore extends GmailStore {
@@ -32,10 +33,10 @@ public class GmailSSLStore extends GmailStore {
      * Constructor that takes a Session object and a URLName that
      * represents a specific IMAP server.
      *
-     * @param	session	the Session
-     * @param	url	the URLName of this store
+     * @param    session    the Session
+     * @param    url    the URLName of this store
      */
     public GmailSSLStore(Session session, URLName url) {
-	super(session, url, "gimaps", true);
+        super(session, url, "gimaps", true);
     }
 }

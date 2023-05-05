@@ -16,53 +16,53 @@
 
 package org.eclipse.angus.mail.util;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Properties;
-
-import org.junit.Test;
-
 import jakarta.mail.Session;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.junit.Test;
+
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test the MimeMultipart.addFrom method, for bug 5057742.
  */
 public class AddFromTest {
- 
+
     private static final Session s = Session.getInstance(new Properties());
     private static final String ADDR = "a@example.com";
     private static final InternetAddress iaddr;
     private static final InternetAddress[] addresses;
+
     static {
-	InternetAddress ia = null;
-	try {
-	    ia = new InternetAddress(ADDR);
-	} catch (AddressException ex) {
-	    // can't happen
-	} finally {
-	    iaddr = ia;
-	}
-	addresses = new InternetAddress[] { iaddr };
+        InternetAddress ia = null;
+        try {
+            ia = new InternetAddress(ADDR);
+        } catch (AddressException ex) {
+            // can't happen
+        } finally {
+            iaddr = ia;
+        }
+        addresses = new InternetAddress[]{iaddr};
     }
 
     @Test
     public void testNoFrom() throws Exception {
         MimeMessage m = new MimeMessage(s);
-	m.addFrom(addresses);
-	assertEquals("Number of From headers", 1, m.getHeader("From").length);
-	assertEquals("From header", ADDR, m.getHeader("From", ","));
+        m.addFrom(addresses);
+        assertEquals("Number of From headers", 1, m.getHeader("From").length);
+        assertEquals("From header", ADDR, m.getHeader("From", ","));
     }
 
     @Test
     public void testOneFrom() throws Exception {
         MimeMessage m = new MimeMessage(s);
-	m.setFrom(iaddr);
-	m.addFrom(addresses);
-	assertEquals("Number of From headers", 1, m.getHeader("From").length);
-	assertEquals("From header", ADDR + ", " + ADDR,
-	    m.getHeader("From", ","));
+        m.setFrom(iaddr);
+        m.addFrom(addresses);
+        assertEquals("Number of From headers", 1, m.getHeader("From").length);
+        assertEquals("From header", ADDR + ", " + ADDR,
+                m.getHeader("From", ","));
     }
 }

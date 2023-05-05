@@ -16,10 +16,14 @@
 
 package org.eclipse.angus.mail.mbox;
 
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
-import jakarta.activation.*;
-import java.io.*;
+import jakarta.activation.DataHandler;
+import jakarta.mail.IllegalWriteException;
+import jakarta.mail.MessagingException;
+import jakarta.mail.MethodNotSupportedException;
+import jakarta.mail.internet.InternetHeaders;
+import jakarta.mail.internet.MimeBodyPart;
+
+import java.io.IOException;
 import java.io.OutputStream;
 
 /**
@@ -38,12 +42,12 @@ public class SunV3BodyPart extends MimeBodyPart {
      *
      * Used by providers.
      *
-     * @param	headers	The header of this part
-     * @param	content	bytes representing the body of this part.
+     * @param    headers    The header of this part
+     * @param    content    bytes representing the body of this part.
      */
-    public SunV3BodyPart(InternetHeaders headers, byte[] content) 
-			throws MessagingException {
-	super(headers, content);
+    public SunV3BodyPart(InternetHeaders headers, byte[] content)
+            throws MessagingException {
+        super(headers, content);
     }
 
     /**
@@ -57,29 +61,29 @@ public class SunV3BodyPart extends MimeBodyPart {
      * @return size in bytes
      */
     public int getSize() throws MessagingException {
-	String s = getHeader("X-Sun-Content-Length", null);
-	try {
-	    return Integer.parseInt(s);
-	} catch (NumberFormatException ex) {
-	    return -1;
-	}
+        String s = getHeader("X-Sun-Content-Length", null);
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException ex) {
+            return -1;
+        }
     }
 
     /**
      * Return the number of lines for the content of this Part.
      * Return -1 if this number cannot be determined. <p>
      *
-     * Note that this number may not be an exact measure of the 
-     * content length and may or may not account for any transfer 
-     * encoding of the content. 
-     */  
-     public int getLineCount() throws MessagingException {
-	String s = getHeader("X-Sun-Content-Lines", null);
-	try {
-	    return Integer.parseInt(s);
-	} catch (NumberFormatException ex) {
-	    return -1;
-	}
+     * Note that this number may not be an exact measure of the
+     * content length and may or may not account for any transfer
+     * encoding of the content.
+     */
+    public int getLineCount() throws MessagingException {
+        String s = getHeader("X-Sun-Content-Lines", null);
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException ex) {
+            return -1;
+        }
     }
 
     /*
@@ -89,41 +93,41 @@ public class SunV3BodyPart extends MimeBodyPart {
      * sun_att.c from the Sun IMAP server code.
      */
     static class MimeV3Map {
-	String mime;
-	String v3;
+        String mime;
+        String v3;
 
-	MimeV3Map(String mime, String v3) {
-	    this.mime = mime;
-	    this.v3 = v3;
-	}
+        MimeV3Map(String mime, String v3) {
+            this.mime = mime;
+            this.v3 = v3;
+        }
 
-	private static MimeV3Map[] mimeV3Table = new MimeV3Map[] {
-	    new MimeV3Map("text/plain", "text"),
-	    new MimeV3Map("text/plain", "default"),
-	    new MimeV3Map("multipart/x-sun-attachment", "X-sun-attachment"),
-	    new MimeV3Map("application/postscript", "postscript-file"),
-	    new MimeV3Map("image/gif", "gif-file")
-	    // audio-file
-	    // cshell-script
-	};
+        private static MimeV3Map[] mimeV3Table = new MimeV3Map[]{
+                new MimeV3Map("text/plain", "text"),
+                new MimeV3Map("text/plain", "default"),
+                new MimeV3Map("multipart/x-sun-attachment", "X-sun-attachment"),
+                new MimeV3Map("application/postscript", "postscript-file"),
+                new MimeV3Map("image/gif", "gif-file")
+                // audio-file
+                // cshell-script
+        };
 
-	// V3 Content-Type to MIME Content-Type
-	static String toMime(String s) {
-	    for (int i = 0; i < mimeV3Table.length; i++) {
-		if (mimeV3Table[i].v3.equalsIgnoreCase(s))
-		    return mimeV3Table[i].mime;
-	    }
-	    return "application/x-" + s;
-	}
+        // V3 Content-Type to MIME Content-Type
+        static String toMime(String s) {
+            for (int i = 0; i < mimeV3Table.length; i++) {
+                if (mimeV3Table[i].v3.equalsIgnoreCase(s))
+                    return mimeV3Table[i].mime;
+            }
+            return "application/x-" + s;
+        }
 
-	// MIME Content-Type to V3 Content-Type
-	static String toV3(String s) {
-	    for (int i = 0; i < mimeV3Table.length; i++) {
-		if (mimeV3Table[i].mime.equalsIgnoreCase(s))
-		    return mimeV3Table[i].v3;
-	    }
-	    return s;
-	}
+        // MIME Content-Type to V3 Content-Type
+        static String toV3(String s) {
+            for (int i = 0; i < mimeV3Table.length; i++) {
+                if (mimeV3Table[i].mime.equalsIgnoreCase(s))
+                    return mimeV3Table[i].v3;
+            }
+            return s;
+        }
     }
 
     /**
@@ -135,17 +139,17 @@ public class SunV3BodyPart extends MimeBodyPart {
      * This implementation uses <code>getHeader(name)</code>
      * to obtain the requisite header field.
      *
-     * @return	Content-Type of this BodyPart
+     * @return Content-Type of this BodyPart
      */
     public String getContentType() throws MessagingException {
-	String ct = getHeader("Content-Type", null);
-	if (ct == null)
-	    ct = getHeader("X-Sun-Data-Type", null);
-	if (ct == null)
-	    ct = "text/plain";
-	else if (ct.indexOf('/') < 0)
-	    ct = MimeV3Map.toMime(ct);
-	return ct;
+        String ct = getHeader("Content-Type", null);
+        if (ct == null)
+            ct = getHeader("X-Sun-Data-Type", null);
+        if (ct == null)
+            ct = "text/plain";
+        else if (ct.indexOf('/') < 0)
+            ct = MimeV3Map.toMime(ct);
+        return ct;
     }
 
     /**
@@ -159,74 +163,74 @@ public class SunV3BodyPart extends MimeBodyPart {
      * @see #headers
      */
     public String getEncoding() throws MessagingException {
-	String enc = super.getEncoding();
-	if (enc == null)
-	    enc = getHeader("X-Sun-Encoding-Info", null);
-	return enc;
+        String enc = super.getEncoding();
+        if (enc == null)
+            enc = getHeader("X-Sun-Encoding-Info", null);
+        return enc;
     }
 
     /**
      * Returns the "Content-Description" header field of this BodyPart.
-     * This typically associates some descriptive information with 
+     * This typically associates some descriptive information with
      * this part. Returns null if this field is unavailable or its
      * value is absent. <p>
      *
      * If the Content-Description field is encoded as per RFC 2047,
-     * it is decoded and converted into Unicode. If the decoding or 
+     * it is decoded and converted into Unicode. If the decoding or
      * conversion fails, the raw data is returned as-is <p>
      *
      * This implementation uses <code>getHeader(name)</code>
      * to obtain the requisite header field.
-     * 
-     * @return	content-description
+     *
+     * @return content-description
      */
     public String getDescription() throws MessagingException {
-	String desc = super.getDescription();
-	if (desc == null)
-	    desc = getHeader("X-Sun-Data-Description", null);
-	return desc;
+        String desc = super.getDescription();
+        if (desc == null)
+            desc = getHeader("X-Sun-Data-Description", null);
+        return desc;
     }
 
     /**
      * Set the "Content-Description" header field for this BodyPart.
-     * If the description parameter is <code>null</code>, then any 
+     * If the description parameter is <code>null</code>, then any
      * existing "Content-Description" fields are removed. <p>
      *
-     * If the description contains non US-ASCII characters, it will 
-     * be encoded using the platform's default charset. If the 
-     * description contains only US-ASCII characters, no encoding 
+     * If the description contains non US-ASCII characters, it will
+     * be encoded using the platform's default charset. If the
+     * description contains only US-ASCII characters, no encoding
      * is done and it is used as-is.
-     * 
+     *
      * @param description content-description
-     * @exception	IllegalWriteException if the underlying
-     *			implementation does not support modification
-     * @exception	IllegalStateException if this BodyPart is
-     *			obtained from a READ_ONLY folder.
+     * @exception IllegalWriteException if the underlying
+     * implementation does not support modification
+     * @exception IllegalStateException if this BodyPart is
+     * obtained from a READ_ONLY folder.
      */
     public void setDescription(String description) throws MessagingException {
-	throw new MethodNotSupportedException("SunV3BodyPart not writable");
+        throw new MethodNotSupportedException("SunV3BodyPart not writable");
     }
 
     /**
      * Set the "Content-Description" header field for this BodyPart.
-     * If the description parameter is <code>null</code>, then any 
+     * If the description parameter is <code>null</code>, then any
      * existing "Content-Description" fields are removed. <p>
      *
-     * If the description contains non US-ASCII characters, it will 
-     * be encoded using the specified charset. If the description 
-     * contains only US-ASCII characters, no encoding  is done and 
+     * If the description contains non US-ASCII characters, it will
+     * be encoded using the specified charset. If the description
+     * contains only US-ASCII characters, no encoding  is done and
      * it is used as-is
-     * 
-     * @param	description	Description
-     * @param	charset		Charset for encoding
-     * @exception	IllegalWriteException if the underlying
-     *			implementation does not support modification
-     * @exception	IllegalStateException if this BodyPart is
-     *			obtained from a READ_ONLY folder.
+     *
+     * @param    description    Description
+     * @param    charset        Charset for encoding
+     * @exception IllegalWriteException if the underlying
+     * implementation does not support modification
+     * @exception IllegalStateException if this BodyPart is
+     * obtained from a READ_ONLY folder.
      */
-    public void setDescription(String description, String charset) 
-		throws MessagingException {
-	throw new MethodNotSupportedException("SunV3BodyPart not writable");
+    public void setDescription(String description, String charset)
+            throws MessagingException {
+        throw new MethodNotSupportedException("SunV3BodyPart not writable");
     }
 
     /**
@@ -238,13 +242,13 @@ public class SunV3BodyPart extends MimeBodyPart {
      * the "Content-Type" header field of this BodyPart.
      * Returns <code>null</code> if both are absent.
      *
-     * @return	filename
+     * @return filename
      */
     public String getFileName() throws MessagingException {
-	String name = super.getFileName();
-	if (name == null)
-	    name = getHeader("X-Sun-Data-Name", null);
-	return name;
+        String name = super.getFileName();
+        if (name == null)
+            name = getHeader("X-Sun-Data-Name", null);
+        return name;
     }
 
     /**
@@ -253,42 +257,41 @@ public class SunV3BodyPart extends MimeBodyPart {
      * Sets the "filename" parameter of the "Content-Disposition"
      * header field of this BodyPart.
      *
-     * @exception	IllegalWriteException if the underlying
-     *			implementation does not support modification
-     * @exception	IllegalStateException if this BodyPart is
-     *			obtained from a READ_ONLY folder.
+     * @exception IllegalWriteException if the underlying
+     * implementation does not support modification
+     * @exception IllegalStateException if this BodyPart is
+     * obtained from a READ_ONLY folder.
      */
     public void setFileName(String filename) throws MessagingException {
-	throw new MethodNotSupportedException("SunV3BodyPart not writable");
+        throw new MethodNotSupportedException("SunV3BodyPart not writable");
     }
 
     /**
      * This method provides the mechanism to set this BodyPart's content.
      * The given DataHandler object should wrap the actual content.
-     * 
-     * @param   dh      The DataHandler for the content
-     * @exception       IllegalWriteException if the underlying
-     * 			implementation does not support modification
-     * @exception	IllegalStateException if this BodyPart is
-     *			obtained from a READ_ONLY folder.
-     */                 
-    public void setDataHandler(DataHandler dh) 
-		throws MessagingException {
-	throw new MethodNotSupportedException("SunV3BodyPart not writable");
+     *
+     * @param dh The DataHandler for the content
+     * @throws IllegalWriteException if the underlying
+     *                               implementation does not support modification
+     * @exception IllegalStateException if this BodyPart is
+     * obtained from a READ_ONLY folder.
+     */
+    public void setDataHandler(DataHandler dh)
+            throws MessagingException {
+        throw new MethodNotSupportedException("SunV3BodyPart not writable");
     }
 
     /**
      * Output the BodyPart as a RFC822 format stream.
      *
-     * @exception MessagingException
-     * @exception IOException	if an error occurs writing to the
-     *				stream or if an error is generated
-     *				by the jakarta.activation layer.
+     * @throws IOException if an error occurs writing to the
+     *                     stream or if an error is generated
+     *                     by the jakarta.activation layer.
      * @see jakarta.activation.DataHandler#writeTo(java.io.OutputStream)
      */
     public void writeTo(OutputStream os)
-				throws IOException, MessagingException {
-	throw new MethodNotSupportedException("SunV3BodyPart writeTo");
+            throws IOException, MessagingException {
+        throw new MethodNotSupportedException("SunV3BodyPart writeTo");
     }
 
     /**
@@ -310,6 +313,6 @@ public class SunV3BodyPart extends MimeBodyPart {
      * the Message.saveChanges() methods.
      */
     protected void updateHeaders() throws MessagingException {
-	throw new MethodNotSupportedException("SunV3BodyPart updateHeaders");
+        throw new MethodNotSupportedException("SunV3BodyPart updateHeaders");
     }
 }

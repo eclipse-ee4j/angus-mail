@@ -16,21 +16,18 @@
 
 package org.eclipse.angus.mail.pop3;
 
-import java.util.Properties;
-
 import jakarta.mail.Folder;
-import jakarta.mail.Session;
-import jakarta.mail.Store;
 import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
 import jakarta.mail.Part;
-import jakarta.mail.MessagingException;
-
+import jakarta.mail.Session;
+import jakarta.mail.Store;
 import org.eclipse.angus.mail.test.TestServer;
-
 import org.junit.Test;
 
-import static org.junit.Assert.assertFalse;
+import java.util.Properties;
+
 import static org.junit.Assert.fail;
 
 /**
@@ -54,15 +51,15 @@ public final class POP3MessageTest {
             final Properties properties = new Properties();
             properties.setProperty("mail.pop3.host", "localhost");
             properties.setProperty("mail.pop3.port", "" + server.getPort());
-	    if (cached)
-		properties.setProperty("mail.pop3.filecache.enable", "true");
+            if (cached)
+                properties.setProperty("mail.pop3.filecache.enable", "true");
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
             store = session.getStore("pop3");
-	    store.connect("test", "test");
-	    folder = store.getFolder("INBOX");
-	    folder.open(Folder.READ_ONLY);
+            store.connect("test", "test");
+            folder = store.getFolder("INBOX");
+            folder.open(Folder.READ_ONLY);
         } catch (final Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
@@ -70,17 +67,17 @@ public final class POP3MessageTest {
     }
 
     private static void stopServer() {
-	try {
-	    if (folder != null)
-		folder.close(false);
-	    if (store != null)
-		store.close();
-	} catch (MessagingException ex) {
-	    // ignore it
-	} finally {
-	    if (server != null)
-		server.quit();
-	}
+        try {
+            if (folder != null)
+                folder.close(false);
+            if (store != null)
+                store.close();
+        } catch (MessagingException ex) {
+            // ignore it
+        } finally {
+            if (server != null)
+                server.quit();
+        }
     }
 
     /**
@@ -92,7 +89,7 @@ public final class POP3MessageTest {
      */
     @Test
     public void testReadTwice() throws Exception {
-	readTwice(false);
+        readTwice(false);
     }
 
     /**
@@ -100,30 +97,30 @@ public final class POP3MessageTest {
      */
     @Test
     public void testReadTwiceCached() throws Exception {
-	readTwice(true);
+        readTwice(true);
     }
 
     private void readTwice(boolean cached) throws Exception {
-	startServer(cached);
-	try {
-	    Message[] msgs = folder.getMessages();
-	    for (int i = 0; i < msgs.length; i++) {
-		loadMail(msgs[i]);
-		loadMail(msgs[i]);	
-	    }
-	} finally {
-	    stopServer();
-	}
-	// no exception is success!
+        startServer(cached);
+        try {
+            Message[] msgs = folder.getMessages();
+            for (int i = 0; i < msgs.length; i++) {
+                loadMail(msgs[i]);
+                loadMail(msgs[i]);
+            }
+        } finally {
+            stopServer();
+        }
+        // no exception is success!
     }
 
     private void loadMail(Part p) throws Exception {
-	Object content = p.getContent();
-	if (content instanceof Multipart) {
-	    Multipart mp = (Multipart)content;
-	    int cnt = mp.getCount();
-	    for (int i = 0; i < cnt; i++)
-		loadMail(mp.getBodyPart(i));
-	}
+        Object content = p.getContent();
+        if (content instanceof Multipart) {
+            Multipart mp = (Multipart) content;
+            int cnt = mp.getCount();
+            for (int i = 0; i < cnt; i++)
+                loadMail(mp.getBodyPart(i));
+        }
     }
 }

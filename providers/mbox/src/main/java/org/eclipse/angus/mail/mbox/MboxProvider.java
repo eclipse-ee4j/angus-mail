@@ -23,7 +23,7 @@ import jakarta.mail.Provider;
  */
 public class MboxProvider extends Provider {
     public MboxProvider() {
-	super(Provider.Type.STORE, "mbox", MboxStore.class.getName(),
-	    "Oracle", null);
+        super(Provider.Type.STORE, "mbox", MboxStore.class.getName(),
+                "Oracle", null);
     }
 }

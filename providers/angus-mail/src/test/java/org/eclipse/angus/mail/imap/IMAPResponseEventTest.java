@@ -16,18 +16,17 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import jakarta.mail.event.StoreEvent;
+import jakarta.mail.event.StoreListener;
+import org.eclipse.angus.mail.test.TestServer;
+import org.junit.Test;
+
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import jakarta.mail.Session;
-import jakarta.mail.Store;
-import jakarta.mail.event.StoreListener;
-import jakarta.mail.event.StoreEvent;
-
-import org.eclipse.angus.mail.test.TestServer;
-
-import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -43,7 +42,7 @@ public final class IMAPResponseEventTest {
      */
     @Test
     public void testLoginResponseEvent() {
-	testLogin("");
+        testLogin("");
     }
 
     /**
@@ -51,7 +50,7 @@ public final class IMAPResponseEventTest {
      */
     @Test
     public void testAuthLoginResponseEvent() {
-	testLogin("LOGINDISABLED AUTH=LOGIN");
+        testLogin("LOGINDISABLED AUTH=LOGIN");
     }
 
     /**
@@ -59,7 +58,7 @@ public final class IMAPResponseEventTest {
      */
     @Test
     public void testAuthPlainResponseEvent() {
-	testLogin("LOGINDISABLED AUTH=PLAIN");
+        testLogin("LOGINDISABLED AUTH=PLAIN");
     }
 
     private void testLogin(String type) {
@@ -75,35 +74,35 @@ public final class IMAPResponseEventTest {
             properties.setProperty("mail.imap.enableresponseevents", "true");
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
-	    final CountDownLatch latch = new CountDownLatch(1);
+            final CountDownLatch latch = new CountDownLatch(1);
 
             final Store store = session.getStore("imap");
-	    store.addStoreListener(new StoreListener() {
-		@Override
-		public void notification(StoreEvent e) {
-		    String s;
-		    if (e.getMessageType() == IMAPStore.RESPONSE) {
-			s = "RESPONSE: ";
-			// is this the expected AUTHENTICATE response?
-			if (e.getMessage().indexOf("X-LOGIN-SUCCESS") >= 0)
-			    gotResponse = true;
-			latch.countDown();
-		    } else
-			s = "OTHER: ";
-		    //System.out.println(s + e.getMessage());
-		}
-	    });
-	    gotResponse = false;
+            store.addStoreListener(new StoreListener() {
+                @Override
+                public void notification(StoreEvent e) {
+                    String s;
+                    if (e.getMessageType() == IMAPStore.RESPONSE) {
+                        s = "RESPONSE: ";
+                        // is this the expected AUTHENTICATE response?
+                        if (e.getMessage().indexOf("X-LOGIN-SUCCESS") >= 0)
+                            gotResponse = true;
+                        latch.countDown();
+                    } else
+                        s = "OTHER: ";
+                    //System.out.println(s + e.getMessage());
+                }
+            });
+            gotResponse = false;
             try {
                 store.connect("test", "test");
-		// time for event to be delivered
-		latch.await(5, TimeUnit.SECONDS);
-		assertTrue(gotResponse);
+                // time for event to be delivered
+                latch.await(5, TimeUnit.SECONDS);
+                assertTrue(gotResponse);
 
-	    } catch (Exception ex) {
-		System.out.println(ex);
-		//ex.printStackTrace();
-		fail(ex.toString());
+            } catch (Exception ex) {
+                System.out.println(ex);
+                //ex.printStackTrace();
+                fail(ex.toString());
             } finally {
                 store.close();
             }
@@ -123,8 +122,8 @@ public final class IMAPResponseEventTest {
      * will check for success.
      */
     private static final class IMAPHandlerLogin extends IMAPHandler {
-	public IMAPHandlerLogin(String type) {
-	    capabilities += " " + type + " X-LOGIN-SUCCESS";
-	}
+        public IMAPHandlerLogin(String type) {
+            capabilities += " " + type + " X-LOGIN-SUCCESS";
+        }
     }
 }

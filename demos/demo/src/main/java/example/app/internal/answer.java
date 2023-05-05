@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -10,11 +10,24 @@
 
 package example.app.internal;
 
-import java.util.*;
-import java.io.*;
-import jakarta.mail.*;
-import jakarta.mail.search.*;
-import jakarta.mail.internet.*;
+import jakarta.mail.Address;
+import jakarta.mail.FetchProfile;
+import jakarta.mail.Flags;
+import jakarta.mail.Folder;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
+import jakarta.mail.URLName;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.search.FlagTerm;
+import jakarta.mail.search.OrTerm;
+import jakarta.mail.search.RecipientTerm;
+import jakarta.mail.search.SearchTerm;
+
+import java.util.Date;
+import java.util.Hashtable;
+import java.util.Properties;
 
 /**
  * Program to manage the javamail@Sun.COM mailing list by keeping track
@@ -47,239 +60,239 @@ public class answer {
     static String user = "javamail";
     static String password = "1javamail1";
     static String mbox =
-	"/net/anybodys.sfbay/export6/javamail/logs/javamail.log";
+            "/net/anybodys.sfbay/export6/javamail/logs/javamail.log";
     static String url = null;
     static boolean verbose = false;
     static boolean update = false;
     static boolean markAll = false;
 
     public static void main(String argv[]) {
-	int optind;
+        int optind;
 
-	for (optind = 0; optind < argv.length; optind++) {
-	    if (argv[optind].equals("-T")) {
-		protocol = argv[++optind];
-	    } else if (argv[optind].equals("-H")) {
-		host = argv[++optind];
-	    } else if (argv[optind].equals("-U")) {
-		user = argv[++optind];
-	    } else if (argv[optind].equals("-P")) {
-		password = argv[++optind];
-	    } else if (argv[optind].equals("-v")) {
-		verbose = true;
-	    } else if (argv[optind].equals("-f")) {
-		mbox = argv[++optind];
-	    } else if (argv[optind].equals("-L")) {
-		url = argv[++optind];
-	    } else if (argv[optind].equals("-u")) {
-		update = true;
-	    } else if (argv[optind].equals("-a")) {
-		markAll = true;
-		update = true;
-	    } else if (argv[optind].equals("--")) {
-		optind++;
-		break;
-	    } else if (argv[optind].startsWith("-")) {
-		System.out.println(
-"Usage: answer [-L url] [-T protocol] [-H host] [-U user] [-P password]\n" +
-"\t[-f mailbox] [-v] [-u] [-a] [msgno ...]");
-		System.exit(1);
-	    } else {
-		break;
-	    }
-	}
+        for (optind = 0; optind < argv.length; optind++) {
+            if (argv[optind].equals("-T")) {
+                protocol = argv[++optind];
+            } else if (argv[optind].equals("-H")) {
+                host = argv[++optind];
+            } else if (argv[optind].equals("-U")) {
+                user = argv[++optind];
+            } else if (argv[optind].equals("-P")) {
+                password = argv[++optind];
+            } else if (argv[optind].equals("-v")) {
+                verbose = true;
+            } else if (argv[optind].equals("-f")) {
+                mbox = argv[++optind];
+            } else if (argv[optind].equals("-L")) {
+                url = argv[++optind];
+            } else if (argv[optind].equals("-u")) {
+                update = true;
+            } else if (argv[optind].equals("-a")) {
+                markAll = true;
+                update = true;
+            } else if (argv[optind].equals("--")) {
+                optind++;
+                break;
+            } else if (argv[optind].startsWith("-")) {
+                System.out.println(
+                        "Usage: answer [-L url] [-T protocol] [-H host] [-U user] [-P password]\n" +
+                                "\t[-f mailbox] [-v] [-u] [-a] [msgno ...]");
+                System.exit(1);
+            } else {
+                break;
+            }
+        }
 
         try {
-	    // Get a Properties object
-	    Properties props = System.getProperties();
+            // Get a Properties object
+            Properties props = System.getProperties();
 
-	    // Get a Session object
-	    Session session = Session.getDefaultInstance(props,
-				    new TtyAuthenticator());
+            // Get a Session object
+            Session session = Session.getDefaultInstance(props,
+                    new TtyAuthenticator());
 
-	    // Get a Store object
-	    Store store = null;
-	    if (url != null) {
-		URLName urln = new URLName(url);
-		store = session.getStore(urln);
-		store.connect();
-	    } else {
-		if (protocol != null)		
-		    store = session.getStore(protocol);
-		else
-		    store = session.getStore();
+            // Get a Store object
+            Store store = null;
+            if (url != null) {
+                URLName urln = new URLName(url);
+                store = session.getStore(urln);
+                store.connect();
+            } else {
+                if (protocol != null)
+                    store = session.getStore(protocol);
+                else
+                    store = session.getStore();
 
-		// Connect
-		if (host != null || user != null || password != null)
-		    store.connect(host, user, password);
-		else
-		    store.connect();
-	    }
-	    
+                // Connect
+                if (host != null || user != null || password != null)
+                    store.connect(host, user, password);
+                else
+                    store.connect();
+            }
 
-	    // Open the Folder
 
-	    Folder folder = store.getDefaultFolder();
-	    if (folder == null) {
-	        System.out.println("No default folder");
-	        System.exit(1);
-	    }
+            // Open the Folder
 
-	    folder = folder.getFolder(mbox);
-	    if (folder == null) {
-	        System.out.println("Invalid folder");
-	        System.exit(1);
-	    }
+            Folder folder = store.getDefaultFolder();
+            if (folder == null) {
+                System.out.println("No default folder");
+                System.exit(1);
+            }
 
-	    if (optind < argv.length || update)
-		folder.open(Folder.READ_WRITE);
-	    else
-		folder.open(Folder.READ_ONLY);
-	    int totalMessages = folder.getMessageCount();
+            folder = folder.getFolder(mbox);
+            if (folder == null) {
+                System.out.println("Invalid folder");
+                System.exit(1);
+            }
 
-	    if (totalMessages == 0) {
-		System.out.println("Empty folder");
-		folder.close(false);
-		store.close();
-		System.exit(1);
-	    }
+            if (optind < argv.length || update)
+                folder.open(Folder.READ_WRITE);
+            else
+                folder.open(Folder.READ_ONLY);
+            int totalMessages = folder.getMessageCount();
 
-	    if (verbose) {
-		int newMessages = folder.getNewMessageCount();
-		pv("Total messages = " + totalMessages);
-		pv("New messages = " + newMessages);
-		pv("-------------------------------");
-	    }
+            if (totalMessages == 0) {
+                System.out.println("Empty folder");
+                folder.close(false);
+                store.close();
+                System.exit(1);
+            }
 
-	    if (optind >= argv.length) {
-		// get all messages that aren't answered or flagged
-		Flags f = new Flags();
-		f.add(Flags.Flag.ANSWERED);
-		f.add(Flags.Flag.FLAGGED);
+            if (verbose) {
+                int newMessages = folder.getNewMessageCount();
+                pv("Total messages = " + totalMessages);
+                pv("New messages = " + newMessages);
+                pv("-------------------------------");
+            }
 
-		// Use a suitable FetchProfile
-		FetchProfile fp = new FetchProfile();
-		fp.add(FetchProfile.Item.ENVELOPE);
-		fp.add(FetchProfile.Item.FLAGS);
+            if (optind >= argv.length) {
+                // get all messages that aren't answered or flagged
+                Flags f = new Flags();
+                f.add(Flags.Flag.ANSWERED);
+                f.add(Flags.Flag.FLAGGED);
 
-		Message[] msgs = folder.search(new FlagTerm(f, false));
-		folder.fetch(msgs, fp);
+                // Use a suitable FetchProfile
+                FetchProfile fp = new FetchProfile();
+                fp.add(FetchProfile.Item.ENVELOPE);
+                fp.add(FetchProfile.Item.FLAGS);
 
-		if (update) {
-		    doUpdate(msgs);
-		    // re-fetch messages
-		    msgs = folder.search(new FlagTerm(f, false));
-		    pv("");
-		    pv("");
-		}
+                Message[] msgs = folder.search(new FlagTerm(f, false));
+                folder.fetch(msgs, fp);
 
-		System.out.println("Unanswered messages:");
-		for (int i = 0; i < msgs.length; i++) {
-		    Message msg = msgs[i];
-		    System.out.println("--------------------------");
-		    System.out.println("MESSAGE #" +
-			msg.getMessageNumber() + ":");
-		    Question q = new Question(msg);
-		    System.out.println(q);
-		    if (q.isReply())
-			System.out.println(
-			    "A reply to a message we haven't seen");
-		    if (markAll) {
-			int msgno = msg.getMessageNumber();
-			if (q.isReply()) {
-			    pv("Flagging message #" + msgno);
-			    msg.setFlag(Flags.Flag.FLAGGED, true);
-			} else {
-			    pv("Answering message #" + msgno);
-			    msg.setFlag(Flags.Flag.ANSWERED, true);
-			}
-		    }
-		}
+                if (update) {
+                    doUpdate(msgs);
+                    // re-fetch messages
+                    msgs = folder.search(new FlagTerm(f, false));
+                    pv("");
+                    pv("");
+                }
 
-	    } else {
-		for (int i = optind; i < argv.length; i++) {
-		    int msgno = Integer.parseInt(argv[i]);
-		    Message msg = folder.getMessage(msgno);
-		    Question q = new Question(msg);
-		    if (q.isReply()) {
-			pv("Flagging message #" + msgno);
-			msg.setFlag(Flags.Flag.FLAGGED, true);
-		    } else {
-			pv("Answering message #" + msgno);
-			msg.setFlag(Flags.Flag.ANSWERED, true);
-		    }
-		}
-	    }
+                System.out.println("Unanswered messages:");
+                for (int i = 0; i < msgs.length; i++) {
+                    Message msg = msgs[i];
+                    System.out.println("--------------------------");
+                    System.out.println("MESSAGE #" +
+                            msg.getMessageNumber() + ":");
+                    Question q = new Question(msg);
+                    System.out.println(q);
+                    if (q.isReply())
+                        System.out.println(
+                                "A reply to a message we haven't seen");
+                    if (markAll) {
+                        int msgno = msg.getMessageNumber();
+                        if (q.isReply()) {
+                            pv("Flagging message #" + msgno);
+                            msg.setFlag(Flags.Flag.FLAGGED, true);
+                        } else {
+                            pv("Answering message #" + msgno);
+                            msg.setFlag(Flags.Flag.ANSWERED, true);
+                        }
+                    }
+                }
 
-	    folder.close(false);
-	    store.close();
-	} catch (Exception ex) {
-	    System.out.println("Oops, got exception! " + ex.getMessage());
-	    ex.printStackTrace();
-	    System.exit(1);
-	}
-	System.exit(0);
+            } else {
+                for (int i = optind; i < argv.length; i++) {
+                    int msgno = Integer.parseInt(argv[i]);
+                    Message msg = folder.getMessage(msgno);
+                    Question q = new Question(msg);
+                    if (q.isReply()) {
+                        pv("Flagging message #" + msgno);
+                        msg.setFlag(Flags.Flag.FLAGGED, true);
+                    } else {
+                        pv("Answering message #" + msgno);
+                        msg.setFlag(Flags.Flag.ANSWERED, true);
+                    }
+                }
+            }
+
+            folder.close(false);
+            store.close();
+        } catch (Exception ex) {
+            System.out.println("Oops, got exception! " + ex.getMessage());
+            ex.printStackTrace();
+            System.exit(1);
+        }
+        System.exit(0);
     }
 
     /**
      * Update the mailbox to account for any replies.
      */
     static void doUpdate(Message[] msgs) throws MessagingException {
-	// a hash table of all the unanswered questions
-	Hashtable qt = new Hashtable();
+        // a hash table of all the unanswered questions
+        Hashtable qt = new Hashtable();
 
-	Address javamailAddress = new InternetAddress("javamail@Sun.COM");
-	SearchTerm javamail = new OrTerm(
-		new RecipientTerm(Message.RecipientType.TO, javamailAddress),
-		new RecipientTerm(Message.RecipientType.CC, javamailAddress));
+        Address javamailAddress = new InternetAddress("javamail@Sun.COM");
+        SearchTerm javamail = new OrTerm(
+                new RecipientTerm(Message.RecipientType.TO, javamailAddress),
+                new RecipientTerm(Message.RecipientType.CC, javamailAddress));
 
-	for (int i = 0; i < msgs.length; i++) {
-	    Message msg = msgs[i];
-	    pv("--------------------------");
-	    pv("MESSAGE #" + msg.getMessageNumber() + ":");
-	    Question q = new Question(msg);
-	    pv(q.toString());
-	    Question q0;
-	    if ((q0 = (Question)qt.get(q)) != null) {
-		pv("Found in table");
-		if (q.isReply()) {
-		    Message qm = q0.getMessage();
-		    if (!qm.isSet(Flags.Flag.ANSWERED)) {
-			pv("Answered:");
-			pv(q0.toString());
-			qm.setFlag(Flags.Flag.ANSWERED, true);
-		    }
-		    pv("is reply, flagging it");
-		    msg.setFlag(Flags.Flag.FLAGGED, true);
-		} else {
-		    // a second copy of a message that's not a reply?
-		    // shouldn't happen.
-		}
-	    } else {
-		pv("NOT found in table");
-		if (q.isReply()) {
-		    // a reply to a message we haven't seen?
-		    pv("flagging, but no original msg");
-		    msg.setFlag(Flags.Flag.FLAGGED, true);
-		} else {
-		    // an original question, put it in the table
-		    qt.put(q, q);
-		    // if the message looks like spam, flag it
-		    if (!javamail.match(msg)) {
-			pv("SPAM!!!");
-			msg.setFlag(Flags.Flag.FLAGGED, true);
-		    }
-		}
-	    }
-	}
+        for (int i = 0; i < msgs.length; i++) {
+            Message msg = msgs[i];
+            pv("--------------------------");
+            pv("MESSAGE #" + msg.getMessageNumber() + ":");
+            Question q = new Question(msg);
+            pv(q.toString());
+            Question q0;
+            if ((q0 = (Question) qt.get(q)) != null) {
+                pv("Found in table");
+                if (q.isReply()) {
+                    Message qm = q0.getMessage();
+                    if (!qm.isSet(Flags.Flag.ANSWERED)) {
+                        pv("Answered:");
+                        pv(q0.toString());
+                        qm.setFlag(Flags.Flag.ANSWERED, true);
+                    }
+                    pv("is reply, flagging it");
+                    msg.setFlag(Flags.Flag.FLAGGED, true);
+                } else {
+                    // a second copy of a message that's not a reply?
+                    // shouldn't happen.
+                }
+            } else {
+                pv("NOT found in table");
+                if (q.isReply()) {
+                    // a reply to a message we haven't seen?
+                    pv("flagging, but no original msg");
+                    msg.setFlag(Flags.Flag.FLAGGED, true);
+                } else {
+                    // an original question, put it in the table
+                    qt.put(q, q);
+                    // if the message looks like spam, flag it
+                    if (!javamail.match(msg)) {
+                        pv("SPAM!!!");
+                        msg.setFlag(Flags.Flag.FLAGGED, true);
+                    }
+                }
+            }
+        }
     }
 
     /**
      * Print verbose.
      */
     static void pv(String s) {
-	if (verbose)
-	    System.out.println(s);
+        if (verbose)
+            System.out.println(s);
     }
 }
 
@@ -288,70 +301,70 @@ public class answer {
  * or possibly a reply to such a question.
  */
 class Question {
-    Message	msg;
-    Address	sender;
-    Address[]	recipients;
-    String	subject;
-    Date	date;
-    boolean	reply = false;
+    Message msg;
+    Address sender;
+    Address[] recipients;
+    String subject;
+    Date date;
+    boolean reply = false;
 
     Question(Message msg) throws MessagingException {
-	this.msg = msg;
-	sender = msg.getReplyTo()[0];    // XXX - assume only one
-	subject = msg.getSubject();
-	if (subject == null)
-	    subject = "";
-	else if (subject.regionMatches(true, 0, "Re: ", 0, 4)) {
-	    subject = subject.substring(4);
-	    reply = true;
-	    recipients = msg.getRecipients(Message.RecipientType.TO);
-	}
-	subject = subject.trim();
-	date = msg.getSentDate();
-	if (date == null)
-	    date = msg.getReceivedDate();
+        this.msg = msg;
+        sender = msg.getReplyTo()[0];    // XXX - assume only one
+        subject = msg.getSubject();
+        if (subject == null)
+            subject = "";
+        else if (subject.regionMatches(true, 0, "Re: ", 0, 4)) {
+            subject = subject.substring(4);
+            reply = true;
+            recipients = msg.getRecipients(Message.RecipientType.TO);
+        }
+        subject = subject.trim();
+        date = msg.getSentDate();
+        if (date == null)
+            date = msg.getReceivedDate();
     }
 
     public boolean isReply() {
-	return reply;
+        return reply;
     }
 
     public Message getMessage() {
-	return msg;
+        return msg;
     }
 
     public int hashCode() {
-	return subject.hashCode();
+        return subject.hashCode();
     }
 
     public boolean equals(Object obj) {
-	if (!(obj instanceof Question))
-	    return false;
-	Question q = (Question)obj;
-	if (this.reply == q.reply)
-	    return this.sender.equals(q.sender) &&
-		    this.subject.equals(q.subject);
+        if (!(obj instanceof Question))
+            return false;
+        Question q = (Question) obj;
+        if (this.reply == q.reply)
+            return this.sender.equals(q.sender) &&
+                    this.subject.equals(q.subject);
 
-	/*
-	 * A reply is equal to a question if the sender of the question
-	 * is one of the recipients of the reply.
-	 */
-	Question qq, qr;
-	if (this.reply) {
-	    qq = q;
-	    qr = this;
-	} else {
-	    qq = this;
-	    qr = q;
-	}
-	for (int i = 0; i < qr.recipients.length; i++) {
-	    if (qq.sender.equals(qr.recipients[i]))
-		return true;
-	}
-	return false;
+        /*
+         * A reply is equal to a question if the sender of the question
+         * is one of the recipients of the reply.
+         */
+        Question qq, qr;
+        if (this.reply) {
+            qq = q;
+            qr = this;
+        } else {
+            qq = this;
+            qr = q;
+        }
+        for (int i = 0; i < qr.recipients.length; i++) {
+            if (qq.sender.equals(qr.recipients[i]))
+                return true;
+        }
+        return false;
     }
 
     public String toString() {
-	return "Date: " + date + "\nFrom: " + sender + "\nSubject: " + subject;
+        return "Date: " + date + "\nFrom: " + sender + "\nSubject: " + subject;
     }
 }

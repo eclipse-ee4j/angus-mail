@@ -19,8 +19,7 @@ package org.eclipse.angus.mail.handlers;
 import jakarta.activation.ActivationDataFlavor;
 import jakarta.activation.DataSource;
 
-import java.awt.Image;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,7 +29,7 @@ import java.io.OutputStream;
  */
 public class image_gif extends handler_base {
     private static ActivationDataFlavor[] myDF = {
-	new ActivationDataFlavor(Image.class, "image/gif", "GIF Image")
+            new ActivationDataFlavor(Image.class, "image/gif", "GIF Image")
     };
 
     /**
@@ -41,31 +40,31 @@ public class image_gif extends handler_base {
 
     @Override
     protected ActivationDataFlavor[] getDataFlavors() {
-	return myDF;
+        return myDF;
     }
 
     @Override
     public Object getContent(DataSource ds) throws IOException {
-	InputStream is = ds.getInputStream();
-	int pos = 0;
-	int count;
-	byte buf[] = new byte[1024];
+        InputStream is = ds.getInputStream();
+        int pos = 0;
+        int count;
+        byte buf[] = new byte[1024];
 
-	while ((count = is.read(buf, pos, buf.length - pos)) != -1) {
-	    pos += count;
-	    if (pos >= buf.length) {
-		int size = buf.length;
-		if (size < 256*1024)
-		    size += size;
-		else
-		    size += 256*1024;
-		byte tbuf[] = new byte[size];
-		System.arraycopy(buf, 0, tbuf, 0, pos);
-		buf = tbuf;
-	    }
-	}
-	Toolkit tk = Toolkit.getDefaultToolkit();
-	return tk.createImage(buf, 0, pos);
+        while ((count = is.read(buf, pos, buf.length - pos)) != -1) {
+            pos += count;
+            if (pos >= buf.length) {
+                int size = buf.length;
+                if (size < 256 * 1024)
+                    size += size;
+                else
+                    size += 256 * 1024;
+                byte tbuf[] = new byte[size];
+                System.arraycopy(buf, 0, tbuf, 0, pos);
+                buf = tbuf;
+            }
+        }
+        Toolkit tk = Toolkit.getDefaultToolkit();
+        return tk.createImage(buf, 0, pos);
     }
 
     /**
@@ -73,13 +72,13 @@ public class image_gif extends handler_base {
      */
     @Override
     public void writeTo(Object obj, String type, OutputStream os)
-			throws IOException {
-	if (!(obj instanceof Image))
-	    throw new IOException("\"" + getDataFlavors()[0].getMimeType() +
-		"\" DataContentHandler requires Image object, " +
-		"was given object of type " + obj.getClass().toString());
+            throws IOException {
+        if (!(obj instanceof Image))
+            throw new IOException("\"" + getDataFlavors()[0].getMimeType() +
+                    "\" DataContentHandler requires Image object, " +
+                    "was given object of type " + obj.getClass().toString());
 
-	throw new IOException(getDataFlavors()[0].getMimeType() +
-				" encoding not supported");
+        throw new IOException(getDataFlavors()[0].getMimeType() +
+                " encoding not supported");
     }
 }

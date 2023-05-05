@@ -16,83 +16,82 @@
 
 package org.eclipse.angus.mail.util;
 
-import static org.junit.Assert.assertTrue;
-
-import java.util.Properties;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import java.util.Properties;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test "mail.mime.allowutf8" System property with address headers.
  */
 public class Utf8AddressTest {
- 
+
     private static Session s = Session.getInstance(new Properties());
     private static String utf8name = "test\u00a1\u00a2\u00a3";
 
     @BeforeClass
     public static void before() {
-	System.out.println("Utf8Address");
-	s.getProperties().setProperty("mail.mime.allowutf8", "true");
+        System.out.println("Utf8Address");
+        s.getProperties().setProperty("mail.mime.allowutf8", "true");
     }
 
     @Test
     public void testFrom() throws Exception {
         MimeMessage m = new MimeMessage(s);
-	m.setFrom(new InternetAddress("joe@example.com", utf8name, "UTF-8"));
-	m.saveChanges();
-	String h = m.getHeader("From", "");
-	assertTrue(h.contains(utf8name));
+        m.setFrom(new InternetAddress("joe@example.com", utf8name, "UTF-8"));
+        m.saveChanges();
+        String h = m.getHeader("From", "");
+        assertTrue(h.contains(utf8name));
     }
 
     @Test
     public void testFromString() throws Exception {
         MimeMessage m = new MimeMessage(s);
-	m.setFrom(utf8name + " <joe@example.com>");
-	m.saveChanges();
-	String h = m.getHeader("From", "");
-	assertTrue(h.contains(utf8name));
+        m.setFrom(utf8name + " <joe@example.com>");
+        m.saveChanges();
+        String h = m.getHeader("From", "");
+        assertTrue(h.contains(utf8name));
     }
 
     @Test
     public void testTo() throws Exception {
         MimeMessage m = new MimeMessage(s);
-	m.setRecipient(Message.RecipientType.TO,
-	    new InternetAddress("joe@example.com", utf8name, "UTF-8"));
-	m.saveChanges();
-	String h = m.getHeader("To", "");
-	assertTrue(h.contains(utf8name));
+        m.setRecipient(Message.RecipientType.TO,
+                new InternetAddress("joe@example.com", utf8name, "UTF-8"));
+        m.saveChanges();
+        String h = m.getHeader("To", "");
+        assertTrue(h.contains(utf8name));
     }
 
     @Test
     public void testToString() throws Exception {
         MimeMessage m = new MimeMessage(s);
-	m.setRecipients(Message.RecipientType.TO,
-	    utf8name + " <joe@example.com>");
-	m.saveChanges();
-	String h = m.getHeader("To", "");
-	assertTrue(h.contains(utf8name));
+        m.setRecipients(Message.RecipientType.TO,
+                utf8name + " <joe@example.com>");
+        m.saveChanges();
+        String h = m.getHeader("To", "");
+        assertTrue(h.contains(utf8name));
     }
 
     @Test
     public void testSender() throws Exception {
         MimeMessage m = new MimeMessage(s);
-	m.setSender(new InternetAddress("joe@example.com", utf8name, "UTF-8"));
-	m.saveChanges();
-	String h = m.getHeader("Sender", "");
-	assertTrue(h.contains(utf8name));
+        m.setSender(new InternetAddress("joe@example.com", utf8name, "UTF-8"));
+        m.saveChanges();
+        String h = m.getHeader("Sender", "");
+        assertTrue(h.contains(utf8name));
     }
 
     @AfterClass
     public static void after() {
-	// should be unnecessary
-	s.getProperties().remove("mail.mime.allowutf8");
+        // should be unnecessary
+        s.getProperties().remove("mail.mime.allowutf8");
     }
 }

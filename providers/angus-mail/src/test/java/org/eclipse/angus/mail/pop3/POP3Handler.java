@@ -16,11 +16,11 @@
 
 package org.eclipse.angus.mail.pop3;
 
+import org.eclipse.angus.mail.test.ProtocolHandler;
+
 import java.io.IOException;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
-
-import org.eclipse.angus.mail.test.ProtocolHandler;
 
 /**
  * Handle connection.
@@ -29,45 +29,50 @@ import org.eclipse.angus.mail.test.ProtocolHandler;
  */
 public class POP3Handler extends ProtocolHandler {
 
-    /** Current line. */
+    /**
+     * Current line.
+     */
     private String currentLine;
 
-    /** First test message. */
+    /**
+     * First test message.
+     */
     private String top1 =
-	    "Mime-Version: 1.0\r\n" +
-	    "From: joe@example.com\r\n" +
-	    "To: bob@example.com\r\n" +
-	    "Subject: Example\r\n" +
-	    "Content-Type: text/plain\r\n" +
-	    "\r\n";
+            "Mime-Version: 1.0\r\n" +
+                    "From: joe@example.com\r\n" +
+                    "To: bob@example.com\r\n" +
+                    "Subject: Example\r\n" +
+                    "Content-Type: text/plain\r\n" +
+                    "\r\n";
     private String msg1 = top1 +
-	    "plain text\r\n";
+            "plain text\r\n";
 
-    /** Second test message. */
+    /**
+     * Second test message.
+     */
     private String top2 =
-	    "Mime-Version: 1.0\r\n" +
-	    "From: joe@example.com\r\n" +
-	    "To: bob@example.com\r\n" +
-	    "Subject: Multipart Example\r\n" +
-	    "Content-Type: multipart/mixed; boundary=\"xxx\"\r\n" +
-	    "\r\n";
+            "Mime-Version: 1.0\r\n" +
+                    "From: joe@example.com\r\n" +
+                    "To: bob@example.com\r\n" +
+                    "Subject: Multipart Example\r\n" +
+                    "Content-Type: multipart/mixed; boundary=\"xxx\"\r\n" +
+                    "\r\n";
     private String msg2 = top2 +
-	    "preamble\r\n" +
-	    "--xxx\r\n" +
-	    "\r\n" +
-	    "first part\r\n" +
-	    "\r\n" +
-	    "--xxx\r\n" +
-	    "\r\n" +
-	    "second part\r\n" +
-	    "\r\n" +
-	    "--xxx--\r\n";
+            "preamble\r\n" +
+            "--xxx\r\n" +
+            "\r\n" +
+            "first part\r\n" +
+            "\r\n" +
+            "--xxx\r\n" +
+            "\r\n" +
+            "second part\r\n" +
+            "\r\n" +
+            "--xxx--\r\n";
 
     /**
      * Send greetings.
      *
-     * @throws IOException
-     *             unable to write to socket
+     * @throws IOException unable to write to socket
      */
     @Override
     public void sendGreetings() throws IOException {
@@ -77,29 +82,26 @@ public class POP3Handler extends ProtocolHandler {
     /**
      * Send String to socket.
      *
-     * @param str
-     *            String to send
-     * @throws IOException
-     *             unable to write to socket
+     * @param str String to send
+     * @throws IOException unable to write to socket
      */
     public void println(final String str) throws IOException {
         this.writer.print(str);
-	this.writer.print("\r\n");
+        this.writer.print("\r\n");
         this.writer.flush();
     }
 
     /**
      * Handle command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     @Override
     public void handleCommand() throws IOException {
         this.currentLine = readLine();
 
         if (this.currentLine == null) {
-	    // probably just EOF because the socket was closed
+            // probably just EOF because the socket was closed
             //LOGGER.severe("Current line is null!");
             this.exit();
             return;
@@ -149,8 +151,7 @@ public class POP3Handler extends ProtocolHandler {
     /**
      * STAT command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void stat() throws IOException {
         this.println("+OK 2 " + (msg1.length() + msg2.length()));
@@ -159,8 +160,7 @@ public class POP3Handler extends ProtocolHandler {
     /**
      * LIST command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void list() throws IOException {
         this.writer.println("+OK");
@@ -172,35 +172,32 @@ public class POP3Handler extends ProtocolHandler {
     /**
      * RETR command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void retr(String arg) throws IOException {
-	String msg;
-	if (arg.equals("1"))
-	    msg = msg1;
-	else
-	    msg = msg2;
+        String msg;
+        if (arg.equals("1"))
+            msg = msg1;
+        else
+            msg = msg2;
         this.println("+OK " + msg.length() + " octets");
-	this.writer.write(msg);
-	this.println(".");
+        this.writer.write(msg);
+        this.println(".");
     }
 
     /**
      * DELE command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void dele() throws IOException {
-	this.println("-ERR DELE not supported");
+        this.println("-ERR DELE not supported");
     }
 
     /**
      * NOOP command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void noop() throws IOException {
         this.println("+OK");
@@ -209,8 +206,7 @@ public class POP3Handler extends ProtocolHandler {
     /**
      * RSET command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void rset() throws IOException {
         this.println("+OK");
@@ -219,8 +215,7 @@ public class POP3Handler extends ProtocolHandler {
     /**
      * QUIT command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void quit() throws IOException {
         this.println("+OK");
@@ -231,25 +226,23 @@ public class POP3Handler extends ProtocolHandler {
      * TOP command.
      * XXX - ignores number of lines argument
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void top(String arg) throws IOException {
-	String top;
-	if (arg.equals("1"))
-	    top = top1;
-	else
-	    top = top2;
+        String top;
+        if (arg.equals("1"))
+            top = top1;
+        else
+            top = top2;
         this.println("+OK " + top.length() + " octets");
-	this.writer.write(top);
-	this.println(".");
+        this.writer.write(top);
+        this.println(".");
     }
 
     /**
      * UIDL command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void uidl() throws IOException {
         this.writer.println("+OK");
@@ -261,8 +254,7 @@ public class POP3Handler extends ProtocolHandler {
     /**
      * USER command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void user() throws IOException {
         this.println("+OK");
@@ -271,8 +263,7 @@ public class POP3Handler extends ProtocolHandler {
     /**
      * PASS command.
      *
-     * @throws IOException
-     *             unable to read/write to socket
+     * @throws IOException unable to read/write to socket
      */
     public void pass() throws IOException {
         this.println("+OK");
@@ -283,7 +274,7 @@ public class POP3Handler extends ProtocolHandler {
      *
      * @throws IOException unable to write to socket
      */
-	public void capa() throws IOException {
+    public void capa() throws IOException {
         this.println("-ERR CAPA not supported");
     }
 
@@ -292,7 +283,7 @@ public class POP3Handler extends ProtocolHandler {
      *
      * @throws IOException unable to write to socket
      */
-	public void auth() throws IOException {
-		this.println("-ERR AUTH not supported");
+    public void auth() throws IOException {
+        this.println("-ERR AUTH not supported");
     }
 }

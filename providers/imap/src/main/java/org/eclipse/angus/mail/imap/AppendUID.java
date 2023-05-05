@@ -16,22 +16,20 @@
 
 package org.eclipse.angus.mail.imap;
 
-import org.eclipse.angus.mail.iap.*;
-
 /**
  * Information from the APPENDUID response code
  * defined by the UIDPLUS extension -
  * <A HREF="http://www.ietf.org/rfc/rfc4315.txt">RFC 4315</A>.
  *
- * @author  Bill Shannon
+ * @author Bill Shannon
  */
 
-public class AppendUID { 
+public class AppendUID {
     public long uidvalidity = -1;
     public long uid = -1;
 
     public AppendUID(long uidvalidity, long uid) {
-	this.uidvalidity = uidvalidity;
-	this.uid = uid;
+        this.uidvalidity = uidvalidity;
+        this.uid = uid;
     }
 }

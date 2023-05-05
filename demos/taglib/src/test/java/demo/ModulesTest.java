@@ -16,16 +16,14 @@
 
 package demo;
 
-import static org.junit.Assert.assertEquals;
+import jakarta.mail.Session;
+import jakarta.mail.util.StreamProvider;
+import org.eclipse.angus.mail.util.MailStreamProvider;
+import org.junit.Test;
 
 import java.util.Properties;
 
-import org.junit.Test;
-
-import org.eclipse.angus.mail.util.MailStreamProvider;
-
-import jakarta.mail.Session;
-import jakarta.mail.util.StreamProvider;
+import static org.junit.Assert.assertEquals;
 
 public class ModulesTest {
 

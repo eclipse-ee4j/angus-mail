@@ -23,9 +23,9 @@ build.gradle file for your Android application:
         compile 'jakarta.activation:jakarta.activation-api:2.1.1'
     }
 
-One of the standard Java features not supported on Android is SASL.  That means
-none of the "mail._protocol_.sasl.*" properties will have any effect.  One of
-the main uses of SASL was to enable OAuth2 support.  The latest version
+One of the standard Java features not supported on Android is SASL. That means
+none of the "mail._protocol_.sasl.*" properties will have any effect. One of
+the main uses of SASL was to enable OAuth2 support. The latest version
 of Angus Mail includes built-in OAuth2 support that doesn't require SASL.
 See the [OAuth2](OAuth2) page for more details.
 

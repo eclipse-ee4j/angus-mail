@@ -21,8 +21,8 @@ import jakarta.mail.Message;
 /**
  * This class implements searching for the Gmail thread ID.
  *
- * @since JavaMail 1.4.6
  * @author Bill Shannon
+ * @since JavaMail 1.4.6
  */
 
 public final class GmailThrIdTerm extends LongTerm {
@@ -32,42 +32,42 @@ public final class GmailThrIdTerm extends LongTerm {
     /**
      * Constructor.
      *
-     * @param thrId  the thread ID
+     * @param thrId the thread ID
      */
     public GmailThrIdTerm(long thrId) {
-	super(thrId);
+        super(thrId);
     }
 
     /**
      * The match method.
      *
-     * @param msg	the Message number is matched with this Message
-     * @return		true if the match succeeds, otherwise false
+     * @param msg the Message number is matched with this Message
+     * @return true if the match succeeds, otherwise false
      */
     public boolean match(Message msg) {
-	long thrId;
+        long thrId;
 
-	try {
-	    if (msg instanceof GmailMessage)
-		thrId = ((GmailMessage)msg).getThrId();
-	    else
-		return false;
-	} catch (Exception e) {
-	    return false;
-	}
+        try {
+            if (msg instanceof GmailMessage)
+                thrId = ((GmailMessage) msg).getThrId();
+            else
+                return false;
+        } catch (Exception e) {
+            return false;
+        }
 
-	return super.match(thrId);
+        return super.match(thrId);
     }
 
     /**
      * Equality comparison.
      *
-     * @param	obj	the object to compare with
-     * @return		true if equal
+     * @param    obj    the object to compare with
+     * @return true if equal
      */
     public boolean equals(Object obj) {
-	if (!(obj instanceof GmailThrIdTerm))
-	    return false;
-	return super.equals(obj);
+        if (!(obj instanceof GmailThrIdTerm))
+            return false;
+        return super.equals(obj);
     }
 }

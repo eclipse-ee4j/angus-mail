@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2023 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -10,11 +10,19 @@
 
 package example.app.internal;
 
-import java.util.*;
-import java.io.*;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
-import jakarta.activation.*;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+
+import java.io.IOException;
+import java.util.Date;
+import java.util.Properties;
 
 /**
  * sendfile will create a multipart message with the second
@@ -30,48 +38,48 @@ import jakarta.activation.*;
  * running.  <i>file</i> is the file to send. The next parameter
  * either turns on or turns off debugging during sending.
  *
- * @author	Christopher Cotton
+ * @author Christopher Cotton
  */
 public class sendfile {
 
     public static void main(String[] args) {
-	if (args.length != 5) {
-	    System.out.println("usage: java sendfile <to> <from> <smtp> <file> true|false");
-	    System.exit(1);
-	}
+        if (args.length != 5) {
+            System.out.println("usage: java sendfile <to> <from> <smtp> <file> true|false");
+            System.exit(1);
+        }
 
-	String to = args[0];
-	String from = args[1];
-	String host = args[2];
-	String filename = args[3];
-	boolean debug = Boolean.valueOf(args[4]).booleanValue();
-	String msgText1 = "Sending a file.\n";
-	String subject = "Sending a file";
-	
-	// create some properties and get the default Session
-	Properties props = System.getProperties();
-	props.put("mail.smtp.host", host);
-	
-	Session session = Session.getInstance(props, null);
-	session.setDebug(debug);
-	
-	try {
-	    // create a message
-	    MimeMessage msg = new MimeMessage(session);
-	    msg.setFrom(new InternetAddress(from));
-	    InternetAddress[] address = {new InternetAddress(to)};
-	    msg.setRecipients(Message.RecipientType.TO, address);
-	    msg.setSubject(subject);
+        String to = args[0];
+        String from = args[1];
+        String host = args[2];
+        String filename = args[3];
+        boolean debug = Boolean.valueOf(args[4]).booleanValue();
+        String msgText1 = "Sending a file.\n";
+        String subject = "Sending a file";
 
-	    // create and fill the first message part
-	    MimeBodyPart mbp1 = new MimeBodyPart();
-	    mbp1.setText(msgText1);
+        // create some properties and get the default Session
+        Properties props = System.getProperties();
+        props.put("mail.smtp.host", host);
 
-	    // create the second message part
-	    MimeBodyPart mbp2 = new MimeBodyPart();
+        Session session = Session.getInstance(props, null);
+        session.setDebug(debug);
 
-	    // attach the file to the message
-	    mbp2.attachFile(filename);
+        try {
+            // create a message
+            MimeMessage msg = new MimeMessage(session);
+            msg.setFrom(new InternetAddress(from));
+            InternetAddress[] address = {new InternetAddress(to)};
+            msg.setRecipients(Message.RecipientType.TO, address);
+            msg.setSubject(subject);
+
+            // create and fill the first message part
+            MimeBodyPart mbp1 = new MimeBodyPart();
+            mbp1.setText(msgText1);
+
+            // create the second message part
+            MimeBodyPart mbp2 = new MimeBodyPart();
+
+            // attach the file to the message
+            mbp2.attachFile(filename);
 
 	    /*
 	     * Use the following approach instead of the above line if
@@ -87,16 +95,16 @@ public class sendfile {
 	    mbp2.setFileName(fds.getName());
 	     */
 
-	    // create the Multipart and add its parts to it
-	    Multipart mp = new MimeMultipart();
-	    mp.addBodyPart(mbp1);
-	    mp.addBodyPart(mbp2);
+            // create the Multipart and add its parts to it
+            Multipart mp = new MimeMultipart();
+            mp.addBodyPart(mbp1);
+            mp.addBodyPart(mbp2);
 
-	    // add the Multipart to the message
-	    msg.setContent(mp);
+            // add the Multipart to the message
+            msg.setContent(mp);
 
-	    // set the Date: header
-	    msg.setSentDate(new Date());
+            // set the Date: header
+            msg.setSentDate(new Date());
 
 	    /*
 	     * If you want to control the Content-Transfer-Encoding
@@ -107,17 +115,17 @@ public class sendfile {
 	    mbp2.setHeader("Content-Transfer-Encoding", "base64");
 	     */
 
-	    // send the message
-	    Transport.send(msg);
-	    
-	} catch (MessagingException mex) {
-	    mex.printStackTrace();
-	    Exception ex = null;
-	    if ((ex = mex.getNextException()) != null) {
-		ex.printStackTrace();
-	    }
-	} catch (IOException ioex) {
-	    ioex.printStackTrace();
-	}
+            // send the message
+            Transport.send(msg);
+
+        } catch (MessagingException mex) {
+            mex.printStackTrace();
+            Exception ex = null;
+            if ((ex = mex.getNextException()) != null) {
+                ex.printStackTrace();
+            }
+        } catch (IOException ioex) {
+            ioex.printStackTrace();
+        }
     }
 }

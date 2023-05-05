@@ -21,28 +21,28 @@ package org.eclipse.angus.mail.dsn;
  * Subclasses define specific report types, such as {@link DeliveryStatus}
  * and {@link DispositionNotification}.
  *
- * @since	JavaMail 1.4.2
+ * @since JavaMail 1.4.2
  */
 public abstract class Report {
-    protected String type;	// the MIME subtype of the report
+    protected String type;    // the MIME subtype of the report
 
     /**
      * Construct a report of the indicated MIME subtype.
      * The primary MIME type is always "message".
      *
-     * @param	type	the MIME subtype
+     * @param    type    the MIME subtype
      */
     protected Report(String type) {
-	this.type = type;
+        this.type = type;
     }
 
     /**
      * Get the MIME subtype of the report.
      * The primary MIME type is always "message".
      *
-     * @return	the MIME subtype
+     * @return the MIME subtype
      */
     public String getType() {
-	return type;
+        return type;
     }
 }

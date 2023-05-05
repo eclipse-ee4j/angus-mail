@@ -16,46 +16,46 @@
 
 package example.app;
 
-import java.util.Properties;
-
 import jakarta.mail.Session;
-import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.InternetHeaders;
-
+import jakarta.mail.internet.MimeMessage;
 import org.eclipse.angus.mail.dsn.DeliveryStatus;
 import org.eclipse.angus.mail.dsn.MultipartReport;
+import org.junit.Test;
 
-import org.junit.*;
+import java.util.Properties;
+
 import static org.junit.Assert.assertTrue;
 
 /**
+ *
  */
 public class MultipartReportTest {
- 
+
     private static Session session = Session.getInstance(new Properties());
 
     @Test
     public void testWrongIndexBug() throws Exception {
-	MimeMessage msg = new MimeMessage(session);
+        MimeMessage msg = new MimeMessage(session);
 
-	// create the Multipart and its parts to it
-	MultipartReport mp = new MultipartReport();
-	mp.setText("test Multipart Report\n");
+        // create the Multipart and its parts to it
+        MultipartReport mp = new MultipartReport();
+        mp.setText("test Multipart Report\n");
 
-	DeliveryStatus ds = new DeliveryStatus();
-	InternetHeaders mdsn = new InternetHeaders();
-	mdsn.setHeader("Reporting-MTA", "test");
-	ds.setMessageDSN(mdsn);
-	InternetHeaders rdsn = new InternetHeaders();
-	rdsn.setHeader("Final-Recipient", "joe");
-	rdsn.setHeader("Action", "none");
-	rdsn.setHeader("Status", "none");
-	ds.addRecipientDSN(rdsn);
-	mp.setReport(ds);
-	msg.setContent(mp);
-	msg.saveChanges();
-	msg.writeTo(new NullOutputStream());
-	// anything other than an exception is success
-	assertTrue("MultipartReport constructed", true);
+        DeliveryStatus ds = new DeliveryStatus();
+        InternetHeaders mdsn = new InternetHeaders();
+        mdsn.setHeader("Reporting-MTA", "test");
+        ds.setMessageDSN(mdsn);
+        InternetHeaders rdsn = new InternetHeaders();
+        rdsn.setHeader("Final-Recipient", "joe");
+        rdsn.setHeader("Action", "none");
+        rdsn.setHeader("Status", "none");
+        ds.addRecipientDSN(rdsn);
+        mp.setReport(ds);
+        msg.setContent(mp);
+        msg.saveChanges();
+        msg.writeTo(new NullOutputStream());
+        // anything other than an exception is success
+        assertTrue("MultipartReport constructed", true);
     }
 }

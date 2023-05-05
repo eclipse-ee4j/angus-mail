@@ -16,108 +16,109 @@
 
 package org.eclipse.angus.mail.gimap;
 
-import jakarta.mail.*;
-
-import org.eclipse.angus.mail.util.*;
-import org.eclipse.angus.mail.iap.*;
-import org.eclipse.angus.mail.imap.*;
-import org.eclipse.angus.mail.imap.protocol.*;
-import org.eclipse.angus.mail.gimap.protocol.*;
+import jakarta.mail.FolderClosedException;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
 import org.eclipse.angus.mail.gimap.protocol.GmailProtocol;
+import org.eclipse.angus.mail.iap.ConnectionException;
+import org.eclipse.angus.mail.iap.ProtocolException;
+import org.eclipse.angus.mail.imap.IMAPFolder;
+import org.eclipse.angus.mail.imap.IMAPMessage;
+import org.eclipse.angus.mail.imap.protocol.IMAPProtocol;
 
 /**
  * A Gmail message.  Adds methods to access Gmail-specific per-message data.
  *
- * @since JavaMail 1.4.6
  * @author Bill Shannon
+ * @since JavaMail 1.4.6
  */
 
 public class GmailMessage extends IMAPMessage {
     /**
      * Constructor.
      *
-     * @param	folder	the containing folder
-     * @param	msgnum	the message sequence number
+     * @param    folder    the containing folder
+     * @param    msgnum    the message sequence number
      */
     protected GmailMessage(IMAPFolder folder, int msgnum) {
-	super(folder, msgnum);
+        super(folder, msgnum);
     }
 
     /**
      * Constructor, for use by IMAPNestedMessage.
      *
-     * @param	session	the Session
+     * @param    session    the Session
      */
     protected GmailMessage(Session session) {
-	super(session);
+        super(session);
     }
 
     /**
      * Return the Gmail unique message ID.
      *
-     * @return	the message ID
-     * @exception	MessagingException for failures
+     * @return the message ID
+     * @exception MessagingException for failures
      */
     public long getMsgId() throws MessagingException {
-	Long msgid = (Long)getItem(GmailProtocol.MSGID_ITEM);
-	if (msgid != null)
-	    return msgid.longValue();
-	else
-	    return -1;
+        Long msgid = (Long) getItem(GmailProtocol.MSGID_ITEM);
+        if (msgid != null)
+            return msgid.longValue();
+        else
+            return -1;
     }
 
     /**
      * Return the Gmail unique thread ID.
      *
-     * @return	the thread ID
-     * @exception	MessagingException for failures
+     * @return the thread ID
+     * @exception MessagingException for failures
      */
     public long getThrId() throws MessagingException {
-	Long thrid = (Long)getItem(GmailProtocol.THRID_ITEM);
-	if (thrid != null)
-	    return thrid.longValue();
-	else
-	    return -1;
+        Long thrid = (Long) getItem(GmailProtocol.THRID_ITEM);
+        if (thrid != null)
+            return thrid.longValue();
+        else
+            return -1;
     }
 
     /**
      * Return the Gmail labels associated with this message.
      *
-     * @return	array of labels, or empty array if none
-     * @exception	MessagingException for failures
+     * @return array of labels, or empty array if none
+     * @exception MessagingException for failures
      */
     public String[] getLabels() throws MessagingException {
-	String[] labels = (String[])getItem(GmailProtocol.LABELS_ITEM);
-	if (labels != null)
-	    return (String[])(labels.clone());
-	else
-	    return new String[0];
+        String[] labels = (String[]) getItem(GmailProtocol.LABELS_ITEM);
+        if (labels != null)
+            return (String[]) (labels.clone());
+        else
+            return new String[0];
     }
 
     /**
      * Set/Unset the given labels on this message.
      *
-     * @param	labels	the labels to add or remove
-     * @param	set	true to add labels, false to remove
-     * @exception	MessagingException for failures
+     * @param    labels    the labels to add or remove
+     * @param    set    true to add labels, false to remove
+     * @exception MessagingException for failures
      * @since JavaMail 1.5.5
      */
     public synchronized void setLabels(String[] labels, boolean set)
-			throws MessagingException {
+            throws MessagingException {
         // Acquire MessageCacheLock, to freeze seqnum.
-        synchronized(getMessageCacheLock()) {
-	    try {
-		IMAPProtocol ip = getProtocol();
-		assert ip instanceof GmailProtocol;
-		GmailProtocol p = (GmailProtocol)ip;
-		checkExpunged(); // Insure that this message is not expunged
-		p.storeLabels(getSequenceNumber(), labels, set);
-	    } catch (ConnectionException cex) {
-		throw new FolderClosedException(folder, cex.getMessage());
-	    } catch (ProtocolException pex) {
-		throw new MessagingException(pex.getMessage(), pex);
-	    }
-	}
+        synchronized (getMessageCacheLock()) {
+            try {
+                IMAPProtocol ip = getProtocol();
+                assert ip instanceof GmailProtocol;
+                GmailProtocol p = (GmailProtocol) ip;
+                checkExpunged(); // Insure that this message is not expunged
+                p.storeLabels(getSequenceNumber(), labels, set);
+            } catch (ConnectionException cex) {
+                throw new FolderClosedException(folder, cex.getMessage());
+            } catch (ProtocolException pex) {
+                throw new MessagingException(pex.getMessage(), pex);
+            }
+        }
     }
 
     /**
@@ -131,7 +132,7 @@ public class GmailMessage extends IMAPMessage {
      * @since JavaMail 1.5.6
      */
     public synchronized void clearCachedLabels() {
-	if (items != null)
-	    items.remove(GmailProtocol.LABELS_ITEM.getName());
+        if (items != null)
+            items.remove(GmailProtocol.LABELS_ITEM.getName());
     }
 }

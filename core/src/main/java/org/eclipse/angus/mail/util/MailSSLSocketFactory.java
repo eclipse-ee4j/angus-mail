@@ -16,6 +16,13 @@
 
 package org.eclipse.angus.mail.util;
 
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -29,14 +36,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-
 /**
  * An SSL socket factory that makes it easier to specify trust.
  * This socket factory can be configured to trust all hosts or
@@ -47,66 +46,80 @@ import javax.net.ssl.X509TrustManager;
  * An instance of this factory can be set as the value of the
  * <code>mail.&lt;protocol&gt;.ssl.socketFactory</code> property.
  *
- * @since	JavaMail 1.4.2
- * @author	Stephan Sann
- * @author	Bill Shannon
+ * @since JavaMail 1.4.2
+ * @author Stephan Sann
+ * @author Bill Shannon
  */
 public class MailSSLSocketFactory extends SSLSocketFactory {
 
-    /** Should all hosts be trusted? */
+    /**
+     * Should all hosts be trusted?
+     */
     private boolean trustAllHosts;
 
-    /** String-array of trusted hosts */
+    /**
+     * String-array of trusted hosts
+     */
     private String[] trustedHosts = null;
 
-    /** Holds a SSLContext to get SSLSocketFactories from */
+    /**
+     * Holds a SSLContext to get SSLSocketFactories from
+     */
     private SSLContext sslcontext;
 
-    /** Holds the KeyManager array to use */
+    /**
+     * Holds the KeyManager array to use
+     */
     private KeyManager[] keyManagers;
 
-    /** Holds the TrustManager array to use */
+    /**
+     * Holds the TrustManager array to use
+     */
     private TrustManager[] trustManagers;
 
-    /** Holds the SecureRandom to use */
+    /**
+     * Holds the SecureRandom to use
+     */
     private SecureRandom secureRandom;
 
-    /** Holds a SSLSocketFactory to pass all API-method-calls to */
+    /**
+     * Holds a SSLSocketFactory to pass all API-method-calls to
+     */
     private SSLSocketFactory adapteeFactory = null;
 
     /**
      * Initializes a new MailSSLSocketFactory.
-     * 
-     * @throws  GeneralSecurityException for security errors
+     *
+     * @throws GeneralSecurityException for security errors
      */
     public MailSSLSocketFactory() throws GeneralSecurityException {
-	this("TLS");
+        this("TLS");
     }
 
     /**
      * Initializes a new MailSSLSocketFactory with a given protocol.
      * Normally the protocol will be specified as "TLS".
-     * 
-     * @param   protocol  The protocol to use
-     * @throws  NoSuchAlgorithmException if given protocol is not supported
-     * @throws  GeneralSecurityException for security errors
+     *
+     * @param protocol The protocol to use
+     * @throws NoSuchAlgorithmException if given protocol is not supported
+     * @throws GeneralSecurityException for security errors
      */
     public MailSSLSocketFactory(String protocol)
-				throws GeneralSecurityException {
+            throws GeneralSecurityException {
 
-	// By default we do NOT trust all hosts.
-	trustAllHosts = false;
+        // By default we do NOT trust all hosts.
+        trustAllHosts = false;
 
-	// Get an instance of an SSLContext.
-	sslcontext = SSLContext.getInstance(protocol);
+        // Get an instance of an SSLContext.
+        sslcontext = SSLContext.getInstance(protocol);
 
-	// Default properties to init the SSLContext
-	keyManagers = null;
-	trustManagers = new TrustManager[] { new MailTrustManager() };
-	secureRandom = null;
+        // Default properties to init the SSLContext
+        keyManagers = null;
+        trustManagers = new TrustManager[]{new MailTrustManager()};
+        secureRandom = null;
 
-	// Assemble a default SSLSocketFactory to delegate all API-calls to.
-	newAdapteeFactory();
+        // Assemble a default SSLSocketFactory to delegate all API-calls to.
+        newAdapteeFactory();
     }
 
 
@@ -115,126 +128,126 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      * KeyManager array, TrustManager array and SecureRandom and
      * sets it to the instance var adapteeFactory.
      *
-     * @throws	KeyManagementException for key manager errors
+     * @throws KeyManagementException for key manager errors
      */
     private synchronized void newAdapteeFactory()
-				throws KeyManagementException {
-	sslcontext.init(keyManagers, trustManagers, secureRandom);
+            throws KeyManagementException {
+        sslcontext.init(keyManagers, trustManagers, secureRandom);
 
-	// Get SocketFactory and save it in our instance var
-	adapteeFactory = sslcontext.getSocketFactory();
+        // Get SocketFactory and save it in our instance var
+        adapteeFactory = sslcontext.getSocketFactory();
     }
 
     /**
      * @return the keyManagers
      */
     public synchronized KeyManager[] getKeyManagers() {
-	return keyManagers.clone();
+        return keyManagers.clone();
     }
 
     /**
      * @param keyManagers the keyManagers to set
-     * @throws  GeneralSecurityException for security errors
+     * @throws GeneralSecurityException for security errors
      */
     public synchronized void setKeyManagers(KeyManager... keyManagers)
-				throws GeneralSecurityException  {
-	this.keyManagers = keyManagers.clone();
-	newAdapteeFactory();
+            throws GeneralSecurityException {
+        this.keyManagers = keyManagers.clone();
+        newAdapteeFactory();
     }
 
     /**
      * @return the secureRandom
      */
     public synchronized SecureRandom getSecureRandom() {
-	return secureRandom;
+        return secureRandom;
     }
 
     /**
      * @param secureRandom the secureRandom to set
-     * @throws  GeneralSecurityException for security errors
+     * @throws GeneralSecurityException for security errors
      */
     public synchronized void setSecureRandom(SecureRandom secureRandom)
-				throws GeneralSecurityException  {
-	this.secureRandom = secureRandom;
-	newAdapteeFactory();
+            throws GeneralSecurityException {
+        this.secureRandom = secureRandom;
+        newAdapteeFactory();
     }
 
     /**
      * @return the trustManagers
      */
     public synchronized TrustManager[] getTrustManagers() {
-	return trustManagers;
+        return trustManagers;
     }
 
     /**
      * @param trustManagers the trustManagers to set
-     * @throws  GeneralSecurityException for security errors
+     * @throws GeneralSecurityException for security errors
      */
     public synchronized void setTrustManagers(TrustManager... trustManagers)
-				throws GeneralSecurityException {
-	this.trustManagers = trustManagers;
-	newAdapteeFactory();
+            throws GeneralSecurityException {
+        this.trustManagers = trustManagers;
+        newAdapteeFactory();
     }
 
     /**
-     * @return	true if all hosts should be trusted
+     * @return true if all hosts should be trusted
      */
     public synchronized boolean isTrustAllHosts() {
-	return trustAllHosts;
+        return trustAllHosts;
     }
 
     /**
-     * @param	trustAllHosts should all hosts be trusted?
+     * @param    trustAllHosts should all hosts be trusted?
      */
     public synchronized void setTrustAllHosts(boolean trustAllHosts) {
-	this.trustAllHosts = trustAllHosts;
-    }
-    
-    /**
-     * @return	the trusted hosts
-     */
-    public synchronized String[] getTrustedHosts() {
-	if (trustedHosts == null)
-	    return null;
-	else
-	    return trustedHosts.clone();
+        this.trustAllHosts = trustAllHosts;
     }
 
     /**
-     * @param	trustedHosts the hosts to trust
+     * @return the trusted hosts
+     */
+    public synchronized String[] getTrustedHosts() {
+        if (trustedHosts == null)
+            return null;
+        else
+            return trustedHosts.clone();
+    }
+
+    /**
+     * @param    trustedHosts the hosts to trust
      */
     public synchronized void setTrustedHosts(String... trustedHosts) {
-	if (trustedHosts == null)
-	    this.trustedHosts = null;
-	else
-	    this.trustedHosts = trustedHosts.clone();
+        if (trustedHosts == null)
+            this.trustedHosts = null;
+        else
+            this.trustedHosts = trustedHosts.clone();
     }
 
     /**
      * After a successful conection to the server, this method is
      * called to ensure that the server should be trusted.
-     * 
-     * @param	server		name of the server we connected to
-     * @param   sslSocket	SSLSocket connected to the server
-     * @return  true  if "trustAllHosts" is set to true OR the server
-     *		is contained in the "trustedHosts" array;
+     *
+     * @param sslSocket SSLSocket connected to the server
+     * @return true  if "trustAllHosts" is set to true OR the server
+     * is contained in the "trustedHosts" array;
+     * @param    server        name of the server we connected to
      */
     public synchronized boolean isServerTrusted(String server,
-				SSLSocket sslSocket) {
+                                                SSLSocket sslSocket) {
 
-	//System.out.println("DEBUG: isServerTrusted host " + server);
+        //System.out.println("DEBUG: isServerTrusted host " + server);
 
-	// If "trustAllHosts" is set to true, we return true
-	if (trustAllHosts)
-	    return true;
+        // If "trustAllHosts" is set to true, we return true
+        if (trustAllHosts)
+            return true;
 
-	// If the socket host is contained in the "trustedHosts" array,
-	// we return true
-	if (trustedHosts != null)
-	    return Arrays.asList(trustedHosts).contains(server); // ignore case?
+        // If the socket host is contained in the "trustedHosts" array,
+        // we return true
+        if (trustedHosts != null)
+            return Arrays.asList(trustedHosts).contains(server); // ignore case?
 
-	// If we get here, trust of the server was verified by the trust manager
-	return true;
+        // If we get here, trust of the server was verified by the trust manager
+        return true;
     }
 
 
@@ -246,8 +259,8 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket(Socket socket, String s, int i,
-				boolean flag) throws IOException {
-	return adapteeFactory.createSocket(socket, s, i, flag);
+                                            boolean flag) throws IOException {
+        return adapteeFactory.createSocket(socket, s, i, flag);
     }
 
     /* (non-Javadoc)
@@ -255,7 +268,7 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized String[] getDefaultCipherSuites() {
-	return adapteeFactory.getDefaultCipherSuites();
+        return adapteeFactory.getDefaultCipherSuites();
     }
 
     /* (non-Javadoc)
@@ -263,7 +276,7 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized String[] getSupportedCipherSuites() {
-	return adapteeFactory.getSupportedCipherSuites();
+        return adapteeFactory.getSupportedCipherSuites();
     }
 
     /* (non-Javadoc)
@@ -271,7 +284,7 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket() throws IOException {
-	return adapteeFactory.createSocket();
+        return adapteeFactory.createSocket();
     }
 
     /* (non-Javadoc)
@@ -280,8 +293,8 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket(InetAddress inetaddress, int i,
-			InetAddress inetaddress1, int j) throws IOException {
-	return adapteeFactory.createSocket(inetaddress, i, inetaddress1, j);
+                                            InetAddress inetaddress1, int j) throws IOException {
+        return adapteeFactory.createSocket(inetaddress, i, inetaddress1, j);
     }
 
     /* (non-Javadoc)
@@ -289,8 +302,8 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket(InetAddress inetaddress, int i)
-				throws IOException {
-	return adapteeFactory.createSocket(inetaddress, i);
+            throws IOException {
+        return adapteeFactory.createSocket(inetaddress, i);
     }
 
     /* (non-Javadoc)
@@ -299,9 +312,9 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket(String s, int i,
-				InetAddress inetaddress, int j)
-				throws IOException, UnknownHostException {
-	return adapteeFactory.createSocket(s, i, inetaddress, j);
+                                            InetAddress inetaddress, int j)
+            throws IOException, UnknownHostException {
+        return adapteeFactory.createSocket(s, i, inetaddress, j);
     }
 
     /* (non-Javadoc)
@@ -309,8 +322,8 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      */
     @Override
     public synchronized Socket createSocket(String s, int i)
-				throws IOException, UnknownHostException {
-	return adapteeFactory.createSocket(s, i);
+            throws IOException, UnknownHostException {
+        return adapteeFactory.createSocket(s, i);
     }
 
 
@@ -318,52 +331,54 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
 
     /**
      * A default Trustmanager.
-     * 
-     * @author  Stephan Sann
+     *
+     * @author Stephan Sann
      */
     private class MailTrustManager implements X509TrustManager {
 
-	/** A TrustManager to pass method calls to */
-	private X509TrustManager adapteeTrustManager = null;
+        /**
+         * A TrustManager to pass method calls to
+         */
+        private X509TrustManager adapteeTrustManager = null;
 
-	/**
-	 * Initializes a new TrustManager instance.
-	 */
-	private MailTrustManager() throws GeneralSecurityException {
-	    TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
-	    tmf.init((KeyStore)null);
-	    adapteeTrustManager = (X509TrustManager)tmf.getTrustManagers()[0];
-	}
+        /**
+         * Initializes a new TrustManager instance.
+         */
+        private MailTrustManager() throws GeneralSecurityException {
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
+            tmf.init((KeyStore) null);
+            adapteeTrustManager = (X509TrustManager) tmf.getTrustManagers()[0];
+        }
 
-	/* (non-Javadoc)
-	 * @see javax.net.ssl.X509TrustManager#checkClientTrusted(
-	 *		java.security.cert.X509Certificate[], java.lang.String)
-	 */
-	@Override
-	public void checkClientTrusted(X509Certificate[] certs, String authType)
-					throws CertificateException {
-	    if (!(isTrustAllHosts() || getTrustedHosts() != null))
-		adapteeTrustManager.checkClientTrusted(certs, authType);
-	}
+        /* (non-Javadoc)
+         * @see javax.net.ssl.X509TrustManager#checkClientTrusted(
+         *		java.security.cert.X509Certificate[], java.lang.String)
+         */
+        @Override
+        public void checkClientTrusted(X509Certificate[] certs, String authType)
+                throws CertificateException {
+            if (!(isTrustAllHosts() || getTrustedHosts() != null))
+                adapteeTrustManager.checkClientTrusted(certs, authType);
+        }
 
-	/* (non-Javadoc)
-	 * @see javax.net.ssl.X509TrustManager#checkServerTrusted(
-	 *		java.security.cert.X509Certificate[], java.lang.String)
-	 */
-	@Override
-	public void checkServerTrusted(X509Certificate[] certs, String authType)
-					throws CertificateException {
+        /* (non-Javadoc)
+         * @see javax.net.ssl.X509TrustManager#checkServerTrusted(
+         *		java.security.cert.X509Certificate[], java.lang.String)
+         */
+        @Override
+        public void checkServerTrusted(X509Certificate[] certs, String authType)
+                throws CertificateException {
 
-	    if (!(isTrustAllHosts() || getTrustedHosts() != null))
-		adapteeTrustManager.checkServerTrusted(certs, authType);
-	}
+            if (!(isTrustAllHosts() || getTrustedHosts() != null))
+                adapteeTrustManager.checkServerTrusted(certs, authType);
+        }
 
-	/* (non-Javadoc)
-	 * @see javax.net.ssl.X509TrustManager#getAcceptedIssuers()
-	 */
-	@Override
-	public X509Certificate[] getAcceptedIssuers() {
-	    return adapteeTrustManager.getAcceptedIssuers();
-	}
+        /* (non-Javadoc)
+         * @see javax.net.ssl.X509TrustManager#getAcceptedIssuers()
+         */
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return adapteeTrustManager.getAcceptedIssuers();
+        }
     }
 }

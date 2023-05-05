@@ -16,7 +16,9 @@
 
 package org.eclipse.angus.mail.mbox;
 
-import java.io.*;
+import java.io.FilterOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -31,64 +33,64 @@ public class NewlineOutputStream extends FilterOutputStream {
     private static final byte[] newline;
 
     static {
-	String s = null;
-	try {
-	    s = System.lineSeparator();
-	} catch (SecurityException sex) {
-	    // ignore, should never happen
-	}
-	if (s == null || s.length() <= 0)
-	    s = "\n";
-	newline = s.getBytes(StandardCharsets.ISO_8859_1);
+        String s = null;
+        try {
+            s = System.lineSeparator();
+        } catch (SecurityException sex) {
+            // ignore, should never happen
+        }
+        if (s == null || s.length() <= 0)
+            s = "\n";
+        newline = s.getBytes(StandardCharsets.ISO_8859_1);
     }
 
     public NewlineOutputStream(OutputStream os) {
-	this(os, false);
+        this(os, false);
     }
 
     public NewlineOutputStream(OutputStream os, boolean endWithBlankLine) {
-	super(os);
-	this.endWithBlankLine = endWithBlankLine;
+        super(os);
+        this.endWithBlankLine = endWithBlankLine;
     }
 
     public void write(int b) throws IOException {
-	if (b == '\r') {
-	    out.write(newline);
-	    bol++;
-	} else if (b == '\n') {
-	    if (lastb != '\r') {
-		out.write(newline);
-		bol++;
-	    }
-	} else {
-	    out.write(b);
-	    bol = 0;	// no longer at beginning of line
-	}
-	lastb = b;
+        if (b == '\r') {
+            out.write(newline);
+            bol++;
+        } else if (b == '\n') {
+            if (lastb != '\r') {
+                out.write(newline);
+                bol++;
+            }
+        } else {
+            out.write(b);
+            bol = 0;    // no longer at beginning of line
+        }
+        lastb = b;
     }
 
     public void write(byte b[]) throws IOException {
-	write(b, 0, b.length);
+        write(b, 0, b.length);
     }
 
     public void write(byte b[], int off, int len) throws IOException {
-	for (int i = 0 ; i < len ; i++) {
-	    write(b[off + i]);
-	}
+        for (int i = 0; i < len; i++) {
+            write(b[off + i]);
+        }
     }
 
     public void flush() throws IOException {
-	if (endWithBlankLine) {
-	    if (bol == 0) {
-		// not at bol, return to bol and add a blank line
-		out.write(newline);
-		out.write(newline);
-	    } else if (bol == 1) {
-		// at bol, add a blank line
-		out.write(newline);
-	    }
-	}
-	bol = 2;
-	out.flush();
+        if (endWithBlankLine) {
+            if (bol == 0) {
+                // not at bol, return to bol and add a blank line
+                out.write(newline);
+                out.write(newline);
+            } else if (bol == 1) {
+                // at bol, add a blank line
+                out.write(newline);
+            }
+        }
+        bol = 2;
+        out.flush();
     }
 }

@@ -13,6 +13,7 @@ package example.app.internal;
 
 import org.eclipse.angus.mail.util.logging.CollectorFormatter;
 import org.eclipse.angus.mail.util.logging.CompactFormatter;
+
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;

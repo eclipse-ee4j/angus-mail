@@ -22,13 +22,11 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimePart;
-
-import java.util.Properties;
-
+import org.eclipse.angus.mail.test.AsciiStringInputStream;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import org.eclipse.angus.mail.test.AsciiStringInputStream;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 
@@ -36,74 +34,74 @@ import static org.junit.Assert.assertEquals;
  * Test the "mail.mime.contenttypehandler" property.
  */
 public class ContentTypeCleanerTest {
- 
+
     private static Session s = Session.getInstance(new Properties());
 
     @BeforeClass
     public static void before() {
-	System.out.println("ContentTypeCleaner");
-	System.setProperty("mail.mime.contenttypehandler",
-	    ContentTypeCleanerTest.class.getName());
+        System.out.println("ContentTypeCleaner");
+        System.setProperty("mail.mime.contenttypehandler",
+                ContentTypeCleanerTest.class.getName());
     }
 
     @Test
     public void testGarbage() throws Exception {
         MimeMessage m = createMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	BodyPart bp = mp.getBodyPart(0);
-	assertEquals("text/plain", bp.getContentType());
-	assertEquals("first part\n", bp.getContent());
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        BodyPart bp = mp.getBodyPart(0);
+        assertEquals("text/plain", bp.getContentType());
+        assertEquals("first part\n", bp.getContent());
     }
 
     @Test
     public void testValid() throws Exception {
         MimeMessage m = createMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	BodyPart bp = mp.getBodyPart(1);
-	assertEquals("text/plain; charset=iso-8859-1", bp.getContentType());
-	assertEquals("second part\n", bp.getContent());
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        BodyPart bp = mp.getBodyPart(1);
+        assertEquals("text/plain; charset=iso-8859-1", bp.getContentType());
+        assertEquals("second part\n", bp.getContent());
     }
 
     @Test
     public void testEmpty() throws Exception {
         MimeMessage m = createMessage();
-	MimeMultipart mp = (MimeMultipart)m.getContent();
-	BodyPart bp = mp.getBodyPart(2);
-	assertEquals("text/plain", bp.getContentType());
-	assertEquals("third part\n", bp.getContent());
+        MimeMultipart mp = (MimeMultipart) m.getContent();
+        BodyPart bp = mp.getBodyPart(2);
+        assertEquals("text/plain", bp.getContentType());
+        assertEquals("third part\n", bp.getContent());
     }
 
     public static String cleanContentType(MimePart mp, String contentType) {
-	if (contentType == null)
-	    return null;
-	if (contentType.equals("complete garbage"))
-	    return "text/plain";
-	return contentType;
+        if (contentType == null)
+            return null;
+        if (contentType.equals("complete garbage"))
+            return "text/plain";
+        return contentType;
     }
 
     private static MimeMessage createMessage() throws MessagingException {
         String content =
-	    "Mime-Version: 1.0\n" +
-	    "Subject: Example\n" +
-	    "Content-Type: multipart/mixed; boundary=\"-\"\n" +
-	    "\n" +
-	    "preamble\n" +
-	    "---\n" +
-	    "Content-Type: complete garbage\n" +
-	    "\n" +
-	    "first part\n" +
-	    "\n" +
-	    "---\n" +
-	    "Content-Type: text/plain; charset=iso-8859-1\n" +
-	    "\n" +
-	    "second part\n" +
-	    "\n" +
-	    "---\n" +
-	    "\n" +
-	    "third part\n" +
-	    "\n" +
-	    "-----\n";
+                "Mime-Version: 1.0\n" +
+                        "Subject: Example\n" +
+                        "Content-Type: multipart/mixed; boundary=\"-\"\n" +
+                        "\n" +
+                        "preamble\n" +
+                        "---\n" +
+                        "Content-Type: complete garbage\n" +
+                        "\n" +
+                        "first part\n" +
+                        "\n" +
+                        "---\n" +
+                        "Content-Type: text/plain; charset=iso-8859-1\n" +
+                        "\n" +
+                        "second part\n" +
+                        "\n" +
+                        "---\n" +
+                        "\n" +
+                        "third part\n" +
+                        "\n" +
+                        "-----\n";
 
-	return new MimeMessage(s, new AsciiStringInputStream(content));
+        return new MimeMessage(s, new AsciiStringInputStream(content));
     }
 }

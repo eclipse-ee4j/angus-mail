@@ -16,9 +16,8 @@
 
 package org.eclipse.angus.mail.smtp;
 
-import org.eclipse.angus.mail.util.DefaultProvider;
-
 import jakarta.mail.Provider;
+import org.eclipse.angus.mail.util.DefaultProvider;
 
 /**
  * The SMTP protocol provider.
@@ -26,7 +25,7 @@ import jakarta.mail.Provider;
 @DefaultProvider    // Remove this annotation if you copy this provider
 public class SMTPProvider extends Provider {
     public SMTPProvider() {
-	super(Provider.Type.TRANSPORT, "smtp", SMTPTransport.class.getName(),
-	    "Oracle", null);
+        super(Provider.Type.TRANSPORT, "smtp", SMTPTransport.class.getName(),
+                "Oracle", null);
     }
 }

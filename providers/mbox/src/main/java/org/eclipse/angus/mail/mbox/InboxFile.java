@@ -18,5 +18,6 @@ package org.eclipse.angus.mail.mbox;
 
 public interface InboxFile extends MailFile {
     public boolean openLock(String mode);
+
     public void closeLock();
 }

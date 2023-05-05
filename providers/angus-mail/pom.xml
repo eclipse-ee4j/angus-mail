@@ -58,7 +58,9 @@
                             <classifier>sources</classifier>
                             <excludeTransitive>true</excludeTransitive>
                             <excludeArtifactIds>graal-sdk</excludeArtifactIds>
-                            <excludes>module-info.*,META-INF/versions/**,META-INF/MANIFEST.MF,META-INF/services/jakarta.mail.Provider</excludes>
+                            <excludes>
+                                module-info.*,META-INF/versions/**,META-INF/MANIFEST.MF,META-INF/services/jakarta.mail.Provider
+                            </excludes>
                             <outputDirectory>${dep.sources}</outputDirectory>
                         </configuration>
                     </execution>

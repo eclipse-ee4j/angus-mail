@@ -16,8 +16,11 @@
 
 package org.eclipse.angus.mail.imap;
 
-import jakarta.mail.*;
-import org.eclipse.angus.mail.imap.protocol.*;
+import jakarta.mail.Flags;
+import jakarta.mail.FolderClosedException;
+import jakarta.mail.MessageRemovedException;
+import jakarta.mail.MessagingException;
+import jakarta.mail.MethodNotSupportedException;
 import org.eclipse.angus.mail.iap.ProtocolException;
 import org.eclipse.angus.mail.imap.protocol.BODYSTRUCTURE;
 import org.eclipse.angus.mail.imap.protocol.ENVELOPE;
@@ -26,7 +29,7 @@ import org.eclipse.angus.mail.imap.protocol.IMAPProtocol;
 /**
  * This class implements a nested IMAP message
  *
- * @author  John Mani
+ * @author John Mani
  */
 
 public class IMAPNestedMessage extends IMAPMessage {
@@ -35,16 +38,16 @@ public class IMAPNestedMessage extends IMAPMessage {
     /**
      * Package private constructor. <p>
      *
-     * Note that nested messages have no containing folder, nor 
+     * Note that nested messages have no containing folder, nor
      * a message number.
      */
     IMAPNestedMessage(IMAPMessage m, BODYSTRUCTURE b, ENVELOPE e, String sid) {
-	super(m._getSession());
-	msg = m;
-	bs = b;
-	envelope = e;
-	sectionId = sid;
-	setPeek(m.getPeek());
+        super(m._getSession());
+        msg = m;
+        bs = b;
+        envelope = e;
+        sectionId = sid;
+        setPeek(m.getPeek());
     }
 
     /*
@@ -53,8 +56,8 @@ public class IMAPNestedMessage extends IMAPMessage {
      */
     @Override
     protected IMAPProtocol getProtocol()
-			throws ProtocolException, FolderClosedException {
-	return msg.getProtocol();
+            throws ProtocolException, FolderClosedException {
+        return msg.getProtocol();
     }
 
     /*
@@ -62,7 +65,7 @@ public class IMAPNestedMessage extends IMAPMessage {
      */
     @Override
     protected boolean isREV1() throws FolderClosedException {
-	return msg.isREV1();
+        return msg.isREV1();
     }
 
     /*
@@ -71,7 +74,7 @@ public class IMAPNestedMessage extends IMAPMessage {
      */
     @Override
     protected Object getMessageCacheLock() {
-	return msg.getMessageCacheLock();
+        return msg.getMessageCacheLock();
     }
 
     /*
@@ -80,16 +83,16 @@ public class IMAPNestedMessage extends IMAPMessage {
      */
     @Override
     protected int getSequenceNumber() {
-	return msg.getSequenceNumber();
+        return msg.getSequenceNumber();
     }
 
     /*
-     * Check whether the enclosing message is expunged. Overrides 
+     * Check whether the enclosing message is expunged. Overrides
      * IMAPMessage.checkExpunged().
      */
     @Override
     protected void checkExpunged() throws MessageRemovedException {
-	msg.checkExpunged();
+        msg.checkExpunged();
     }
 
     /*
@@ -98,23 +101,23 @@ public class IMAPNestedMessage extends IMAPMessage {
      */
     @Override
     public boolean isExpunged() {
-	return msg.isExpunged();
+        return msg.isExpunged();
     }
 
     /*
-     * Get the enclosing message's fetchBlockSize. 
+     * Get the enclosing message's fetchBlockSize.
      */
     @Override
     protected int getFetchBlockSize() {
-	return msg.getFetchBlockSize();
+        return msg.getFetchBlockSize();
     }
 
     /*
-     * Get the enclosing message's ignoreBodyStructureSize. 
+     * Get the enclosing message's ignoreBodyStructureSize.
      */
     @Override
     protected boolean ignoreBodyStructureSize() {
-	return msg.ignoreBodyStructureSize();
+        return msg.ignoreBodyStructureSize();
     }
 
     /*
@@ -123,17 +126,17 @@ public class IMAPNestedMessage extends IMAPMessage {
      */
     @Override
     public int getSize() throws MessagingException {
-	return bs.size;
+        return bs.size;
     }
 
     /*
      * Disallow setting flags on nested messages
      */
     @Override
-    public synchronized void setFlags(Flags flag, boolean set) 
-			throws MessagingException {
-	// Cannot set FLAGS on a nested IMAP message	
-	throw new MethodNotSupportedException(
-		"Cannot set flags on this nested message");
+    public synchronized void setFlags(Flags flag, boolean set)
+            throws MessagingException {
+        // Cannot set FLAGS on a nested IMAP message
+        throw new MethodNotSupportedException(
+                "Cannot set flags on this nested message");
     }
 }

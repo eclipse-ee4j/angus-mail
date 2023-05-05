@@ -25,9 +25,9 @@
 	safe that it doesn't return a copy.
     -->
     <Match>
-	<Class name="org.eclipse.angus.mail.gimap.protocol.GmailProtocol"/>
-	<Method name="getFetchItems"/>
-	<Bug pattern="EI_EXPOSE_REP"/>
+        <Class name="org.eclipse.angus.mail.gimap.protocol.GmailProtocol"/>
+        <Method name="getFetchItems"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
     </Match>
 
     <!--
@@ -36,9 +36,9 @@
 	the getItem method to do the synchronization.
     -->
     <Match>
-	<Class name="org.eclipse.angus.mail.gimap.GmailMessage"/>
-	<Method name="getLabels"/>
-	<Bug pattern="UG_SYNC_SET_UNSYNC_GET"/>
+        <Class name="org.eclipse.angus.mail.gimap.GmailMessage"/>
+        <Method name="getLabels"/>
+        <Bug pattern="UG_SYNC_SET_UNSYNC_GET"/>
     </Match>
 
 </FindBugsFilter>

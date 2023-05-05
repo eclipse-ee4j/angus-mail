@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2019 Jason Mehrens. All Rights Reserved.
+ * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2023 Jason Mehrens. All Rights Reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -11,7 +11,12 @@
 
 package example.app.internal;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -67,9 +72,9 @@ public class FileErrorManager extends ErrorManager {
      * Creates a new error manager. Files are stored in the users temp
      * directory.
      *
-     * @exception SecurityException if unable to access system properties or if
-     * a security manager is present and unable to read or write to users temp
-     * directory.
+     * @throws SecurityException if unable to access system properties or if
+     *                           a security manager is present and unable to read or write to users temp
+     *                           directory.
      */
     public FileErrorManager() {
         this.emailStore = getEmailStore();
@@ -80,12 +85,12 @@ public class FileErrorManager extends ErrorManager {
      * Creates a new error manager.
      *
      * @param dir a directory to store the email files.
-     * @throws NullPointerException if <code>dir</code> is <code>null</code>
+     * @throws NullPointerException     if <code>dir</code> is <code>null</code>
      * @throws IllegalArgumentException if <code>dir</code> is a
-     * <code>java.io.File</code> subclass, not a directory, or is not an
-     * absolute path.
-     * @throws SecurityException if a security manager is present and unable to
-     * read or write to a given directory.
+     *                                  <code>java.io.File</code> subclass, not a directory, or is not an
+     *                                  absolute path.
+     * @throws SecurityException        if a security manager is present and unable to
+     *                                  read or write to a given directory.
      */
     public FileErrorManager(File dir) {
         this.emailStore = dir;
@@ -99,8 +104,8 @@ public class FileErrorManager extends ErrorManager {
      * class. If an email is written to the file system without error, then the
      * original reported error is ignored.
      *
-     * @param msg String raw email or plain error message.
-     * @param ex Exception that occurred in the mail handler.
+     * @param msg  String raw email or plain error message.
+     * @param ex   Exception that occurred in the mail handler.
      * @param code int error manager code.
      */
     @Override
@@ -190,7 +195,7 @@ public class FileErrorManager extends ErrorManager {
     private void storeEmail(String email) throws IOException {
         File tmp = null;
         FileOutputStream out = null;
-        for (;;) {
+        for (; ; ) {
             tmp = File.createTempFile(prefixName(), suffixName(), emailStore);
             try {
                 out = new FileOutputStream(tmp);

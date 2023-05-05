@@ -39,42 +39,44 @@ public class TraceInputStream extends FilterInputStream {
     /**
      * Creates an input stream filter built on top of the specified
      * input stream.
-     *   
-     * @param   in   the underlying input stream.
-     * @param   logger	log trace here
+     *
+     * @param in     the underlying input stream.
+     * @param logger log trace here
      */
     public TraceInputStream(InputStream in, MailLogger logger) {
-	super(in);
-	this.trace = logger.isLoggable(Level.FINEST);
-	this.traceOut = new LogOutputStream(logger);
+        super(in);
+        this.trace = logger.isLoggable(Level.FINEST);
+        this.traceOut = new LogOutputStream(logger);
     }
 
     /**
      * Creates an input stream filter built on top of the specified
      * input stream.
-     *   
-     * @param   in   the underlying input stream.
-     * @param	traceOut	the trace stream.
+     *
+     * @param in the underlying input stream.
+     * @param    traceOut    the trace stream.
      */
     public TraceInputStream(InputStream in, OutputStream traceOut) {
-	super(in);
-	this.traceOut = traceOut;
+        super(in);
+        this.traceOut = traceOut;
     }
 
     /**
      * Set trace mode.
-     * @param	trace	the trace mode
+     *
+     * @param    trace    the trace mode
      */
     public void setTrace(boolean trace) {
-	this.trace = trace;
+        this.trace = trace;
     }
 
     /**
      * Set quote mode.
-     * @param	quote	the quote mode
+     *
+     * @param    quote    the quote mode
      */
     public void setQuote(boolean quote) {
-	this.quote = quote;
+        this.quote = quote;
     }
 
     /**
@@ -84,60 +86,60 @@ public class TraceInputStream extends FilterInputStream {
      */
     @Override
     public int read() throws IOException {
-	int b = in.read();
-	if (trace && b != -1) {
-	    if (quote)
-		writeByte(b);
-	    else
-		traceOut.write(b);
-	}
-	return b;
+        int b = in.read();
+        if (trace && b != -1) {
+            if (quote)
+                writeByte(b);
+            else
+                traceOut.write(b);
+        }
+        return b;
     }
 
     /**
      * Reads up to <code>len</code> bytes of data from this input stream
      * into an array of bytes. Returns <code>-1</code> if no more data
-     * is available. Writes out the read bytes into the trace stream, if 
+     * is available. Writes out the read bytes into the trace stream, if
      * trace mode is <code>true</code>
      */
     @Override
     public int read(byte b[], int off, int len) throws IOException {
-	int count = in.read(b, off, len);
-	if (trace && count != -1) {
-	    if (quote) {
-		for (int i = 0; i < count; i++)
-		    writeByte(b[off + i]);
-	    } else
-		traceOut.write(b, off, count);
-	}
-	return count;
+        int count = in.read(b, off, len);
+        if (trace && count != -1) {
+            if (quote) {
+                for (int i = 0; i < count; i++)
+                    writeByte(b[off + i]);
+            } else
+                traceOut.write(b, off, count);
+        }
+        return count;
     }
 
     /**
      * Write a byte in a way that every byte value is printable ASCII.
      */
     private final void writeByte(int b) throws IOException {
-	b &= 0xff;
-	if (b > 0x7f) {
-	    traceOut.write('M');
-	    traceOut.write('-');
-	    b &= 0x7f;
-	}
-	if (b == '\r') {
-	    traceOut.write('\\');
-	    traceOut.write('r');
-	} else if (b == '\n') {
-	    traceOut.write('\\');
-	    traceOut.write('n');
-	    traceOut.write('\n');
-	} else if (b == '\t') {
-	    traceOut.write('\\');
-	    traceOut.write('t');
-	} else if (b < ' ') {
-	    traceOut.write('^');
-	    traceOut.write('@' + b);
-	} else {
-	    traceOut.write(b);
-	}
+        b &= 0xff;
+        if (b > 0x7f) {
+            traceOut.write('M');
+            traceOut.write('-');
+            b &= 0x7f;
+        }
+        if (b == '\r') {
+            traceOut.write('\\');
+            traceOut.write('r');
+        } else if (b == '\n') {
+            traceOut.write('\\');
+            traceOut.write('n');
+            traceOut.write('\n');
+        } else if (b == '\t') {
+            traceOut.write('\\');
+            traceOut.write('t');
+        } else if (b < ' ') {
+            traceOut.write('^');
+            traceOut.write('@' + b);
+        } else {
+            traceOut.write(b);
+        }
     }
 }

@@ -34,9 +34,9 @@ when setting the \Deleted flag on a message, Gmail will expunge
 the message, causing it to disappear from the mailbox.
 
 Gmail also includes a setting to control what happens to deleted
-and expunged messages (including auto-expunged messages).  They
+and expunged messages (including auto-expunged messages). They
 can be archived (left in the [Gmail]/All Mail folder), moved to
-the [Gmail]/Trash folder, or removed completely.  The default is
+the [Gmail]/Trash folder, or removed completely. The default is
 to archive the message.
 
 As of Mar 21, 2011, an old Gmail bug has returned. When reading an

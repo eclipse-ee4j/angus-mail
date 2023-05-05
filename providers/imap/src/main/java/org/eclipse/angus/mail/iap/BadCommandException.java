@@ -28,22 +28,24 @@ public class BadCommandException extends ProtocolException {
      * Constructs an BadCommandException with no detail message.
      */
     public BadCommandException() {
-	super();
+        super();
     }
 
     /**
      * Constructs an BadCommandException with the specified detail message.
-     * @param s		the detail message
+     *
+     * @param s the detail message
      */
     public BadCommandException(String s) {
-	super(s);
+        super(s);
     }
 
     /**
      * Constructs an BadCommandException with the specified Response.
-     * @param r		the Response
+     *
+     * @param r the Response
      */
     public BadCommandException(Response r) {
-	super(r);
+        super(r);
     }
 }

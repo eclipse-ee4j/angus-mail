@@ -16,9 +16,9 @@
 
 package org.eclipse.angus.mail.util;
 
-import org.junit.*;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * Test that the "mail.mime.parameters.strict" System property
@@ -28,18 +28,18 @@ public class ParametersNoStrictTest extends ParameterListDecode {
 
     @BeforeClass
     public static void before() {
-	System.out.println("ParametersNoStrict");
-	System.setProperty("mail.mime.parameters.strict", "false");
+        System.out.println("ParametersNoStrict");
+        System.setProperty("mail.mime.parameters.strict", "false");
     }
 
     @Test
     public void testDecode() throws Exception {
-	testDecode("paramdatanostrict");
+        testDecode("paramdatanostrict");
     }
 
     @AfterClass
     public static void after() {
-	// should be unnecessary
-	System.clearProperty("mail.mime.parameters.strict");
+        // should be unnecessary
+        System.clearProperty("mail.mime.parameters.strict");
     }
 }

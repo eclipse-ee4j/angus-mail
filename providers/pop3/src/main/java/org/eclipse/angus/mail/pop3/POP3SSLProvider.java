@@ -16,9 +16,8 @@
 
 package org.eclipse.angus.mail.pop3;
 
-import org.eclipse.angus.mail.util.DefaultProvider;
-
 import jakarta.mail.Provider;
+import org.eclipse.angus.mail.util.DefaultProvider;
 
 /**
  * The POP3 SSL protocol provider.
@@ -26,7 +25,7 @@ import jakarta.mail.Provider;
 @DefaultProvider    // Remove this annotation if you copy this provider
 public class POP3SSLProvider extends Provider {
     public POP3SSLProvider() {
-	super(Provider.Type.STORE, "pop3s", POP3SSLStore.class.getName(),
-	    "Oracle", null);
+        super(Provider.Type.STORE, "pop3s", POP3SSLStore.class.getName(),
+                "Oracle", null);
     }
 }
