@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -81,7 +82,7 @@ public class UUDecoderStreamTest {
         return testData;
     }
 
-    public static void main(String argv[]) throws Exception {
+    public static void main(String[] argv) throws Exception {
         int optind;
         // XXX - all options currently ignored
         for (optind = 0; optind < argv.length; optind++) {
@@ -149,7 +150,7 @@ public class UUDecoderStreamTest {
         }
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Writer os = new OutputStreamWriter(bos, "us-ascii");
+        Writer os = new OutputStreamWriter(bos, StandardCharsets.US_ASCII);
         for (; ; ) {
             line = in.readLine();
             if (line.equals("EXPECT"))
@@ -161,7 +162,7 @@ public class UUDecoderStreamTest {
         t.input = bos.toByteArray();
 
         bos = new ByteArrayOutputStream();
-        os = new OutputStreamWriter(bos, "us-ascii");
+        os = new OutputStreamWriter(bos, StandardCharsets.US_ASCII);
         for (; ; ) {
             line = in.readLine();
             if (line.startsWith("EXCEPTION")) {

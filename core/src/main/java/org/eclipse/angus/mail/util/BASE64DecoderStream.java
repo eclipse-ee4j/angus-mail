@@ -188,7 +188,7 @@ public class BASE64DecoderStream extends FilterInputStream {
      * This character array provides the character to value map
      * based on RFC1521.
      */
-    private final static char pem_array[] = {
+    private final static char[] pem_array = {
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', // 0
             'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', // 1
             'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', // 2
@@ -199,7 +199,7 @@ public class BASE64DecoderStream extends FilterInputStream {
             '4', '5', '6', '7', '8', '9', '+', '/'  // 7
     };
 
-    private final static byte pem_convert_array[] = new byte[256];
+    private final static byte[] pem_convert_array = new byte[256];
 
     static {
         for (int i = 0; i < 255; i++)
@@ -369,7 +369,7 @@ public class BASE64DecoderStream extends FilterInputStream {
         // reach into the input buffer and extract up to 10
         // recent characters, to help in debugging.
         String errstr = "";
-        int nc = input_pos > 10 ? 10 : input_pos;
+        int nc = Math.min(input_pos, 10);
         if (nc > 0) {
             errstr += ", the " + nc +
                     " most recent characters were: \"";

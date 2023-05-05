@@ -98,13 +98,7 @@ public class text_xml extends text_plain {
             } else {
                 transformer.transform((Source) obj, result);
             }
-        } catch (TransformerException ex) {
-            IOException ioex = new IOException(
-                    "Unable to run the JAXP transformer on a stream "
-                            + ex.getMessage());
-            ioex.initCause(ex);
-            throw ioex;
-        } catch (RuntimeException ex) {
+        } catch (TransformerException | RuntimeException ex) {
             IOException ioex = new IOException(
                     "Unable to run the JAXP transformer on a stream "
                             + ex.getMessage());
@@ -119,9 +113,7 @@ public class text_xml extends text_plain {
             return ct.getSubType().equals("xml") &&
                     (ct.getPrimaryType().equals("text") ||
                             ct.getPrimaryType().equals("application"));
-        } catch (ParseException ex) {
-            return false;
-        } catch (RuntimeException ex) {
+        } catch (ParseException | RuntimeException ex) {
             return false;
         }
     }

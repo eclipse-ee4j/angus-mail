@@ -337,9 +337,7 @@ public class DurationFilter implements Filter {
             if (isTimeEntry(suffix, value)) {
                 try {
                     result = LogManagerProperties.parseDurationToMillis(value);
-                } catch (final RuntimeException ignore) {
-                } catch (final Exception ignore) {
-                } catch (final LinkageError ignore) {
+                } catch (final LinkageError | Exception ignore) {
                 }
             }
 

@@ -22,6 +22,7 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
@@ -68,12 +69,12 @@ public class IMAPProtocolTest {
         assertEquals("section number", "1.1", b.getSection());
         //System.out.println(b);
         //System.out.write(b.getByteArray().getNewBytes());
-        String result = new String(b.getByteArray().getNewBytes(), "us-ascii");
+        String result = new String(b.getByteArray().getNewBytes(), StandardCharsets.US_ASCII);
         assertEquals("getByteArray.getNewBytes", content, result);
         InputStream is = b.getByteArrayInputStream();
         byte[] ba = new byte[is.available()];
         is.read(ba);
-        result = new String(ba, "us-ascii");
+        result = new String(ba, StandardCharsets.US_ASCII);
         assertEquals("getByteArrayInputStream", content, result);
     }
 
@@ -93,12 +94,12 @@ public class IMAPProtocolTest {
         assertEquals("section number", "1.1", b.getSection());
         //System.out.println(b);
         //System.out.write(b.getByteArray().getNewBytes());
-        String result = new String(b.getByteArray().getNewBytes(), "us-ascii");
+        String result = new String(b.getByteArray().getNewBytes(), StandardCharsets.US_ASCII);
         assertEquals("getByteArray.getNewBytes", content, result);
         InputStream is = b.getByteArrayInputStream();
         byte[] ba = new byte[is.available()];
         is.read(ba);
-        result = new String(ba, "us-ascii");
+        result = new String(ba, StandardCharsets.US_ASCII);
         assertEquals("getByteArrayInputStream", content, result);
     }
 }

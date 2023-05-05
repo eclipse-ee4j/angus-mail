@@ -24,7 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Random;
@@ -176,17 +176,13 @@ public class BASE64Test {
     private static byte[] encodedLine;
 
     static {
-        try {
-            origLine =
-                    "000000000000000000000000000000000000000000000000000000000".
-                            getBytes("us-ascii");
-            encodedLine =
-                    ("MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw" +
-                            "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw" + "\r\n").
-                            getBytes("us-ascii");
-        } catch (UnsupportedEncodingException uex) {
-            // should never happen;
-        }
+        origLine =
+                "000000000000000000000000000000000000000000000000000000000".
+                        getBytes(StandardCharsets.US_ASCII);
+        encodedLine =
+                ("MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw" +
+                        "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw" + "\r\n").
+                        getBytes(StandardCharsets.US_ASCII);
     }
 
     /**
@@ -291,7 +287,7 @@ public class BASE64Test {
         int off = 0;
         int got;
         while (need > 0) {
-            got = in.read(buf, off, need > readsize ? readsize : need);
+            got = in.read(buf, off, Math.min(need, readsize));
             if (got <= 0)
                 break;
             off += got;

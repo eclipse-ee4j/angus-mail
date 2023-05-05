@@ -78,7 +78,7 @@ public final class IMAPCloseFailureTest {
 
             Properties properties = new Properties();
             properties.setProperty("mail.imap.host", HOST);
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             Session session = Session.getInstance(properties);
             //session.setDebug(true);
 

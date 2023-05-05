@@ -41,7 +41,7 @@ public class foldersplit {
     static boolean nop = false;
     static SimpleDateFormat df = new SimpleDateFormat("yyyy.MM");
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         int optind;
 
         for (optind = 0; optind < argv.length; optind++) {

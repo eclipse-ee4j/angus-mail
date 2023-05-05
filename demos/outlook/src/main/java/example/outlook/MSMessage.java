@@ -194,7 +194,7 @@ public class MSMessage extends MimeMessage {
             String mailer = msg.getHeader("X-mailer", null);
             if (mailer == null) // No X-mailer ?
                 return false; // Oh well !
-            if (mailer.indexOf("Microsoft") == -1) // Not MS stuff ?
+            if (!mailer.contains("Microsoft")) // Not MS stuff ?
                 return false;
         }
 

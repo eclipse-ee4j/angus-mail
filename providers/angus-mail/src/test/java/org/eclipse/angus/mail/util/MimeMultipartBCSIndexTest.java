@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 /**
@@ -65,7 +66,7 @@ public class MimeMultipartBCSIndexTest {
     public void testBCSTableIndexInconsistency() {
 
         try {
-            InputStream in = new ByteArrayInputStream(EMLContent.getBytes("ISO-8859-1"));
+            InputStream in = new ByteArrayInputStream(EMLContent.getBytes(StandardCharsets.ISO_8859_1));
 
             Session session = Session.getDefaultInstance(new Properties());
 

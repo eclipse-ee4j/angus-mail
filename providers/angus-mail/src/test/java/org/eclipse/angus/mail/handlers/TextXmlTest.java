@@ -27,6 +27,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -87,7 +88,7 @@ public class TextXmlTest {
         DataContentHandler dch = new text_xml();
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         dch.writeTo(xml, "text/xml", bos);
-        String sc = new String(bos.toByteArray(), "us-ascii");
+        String sc = new String(bos.toByteArray(), StandardCharsets.US_ASCII);
         assertEquals(xml, sc);
     }
 
@@ -98,9 +99,9 @@ public class TextXmlTest {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         StreamSource ss = new StreamSource(new ByteArrayInputStream(xmlBytes));
         dch.writeTo(ss, "text/xml", bos);
-        String sc = new String(bos.toByteArray(), "us-ascii");
+        String sc = new String(bos.toByteArray(), StandardCharsets.US_ASCII);
         // transformer adds an <?xml> header, so can't check for exact match
-        assertTrue(sc.indexOf(xml.trim()) >= 0);
+        assertTrue(sc.contains(xml.trim()));
     }
 
     /**

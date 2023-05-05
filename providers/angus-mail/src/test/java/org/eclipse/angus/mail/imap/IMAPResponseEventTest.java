@@ -70,7 +70,7 @@ public final class IMAPResponseEventTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.imap.enableresponseevents", "true");
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
@@ -84,7 +84,7 @@ public final class IMAPResponseEventTest {
                     if (e.getMessageType() == IMAPStore.RESPONSE) {
                         s = "RESPONSE: ";
                         // is this the expected AUTHENTICATE response?
-                        if (e.getMessage().indexOf("X-LOGIN-SUCCESS") >= 0)
+                        if (e.getMessage().contains("X-LOGIN-SUCCESS"))
                             gotResponse = true;
                         latch.countDown();
                     } else

@@ -69,6 +69,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -506,9 +507,9 @@ public class MailHandlerTest extends AbstractLogging {
         instance.setLevel(Level.INFO);
         instance.setFilter(BooleanFilter.FALSE);
         instance.setAttachmentFormatters(
-                new Formatter[]{new SimpleFormatter(), new XMLFormatter()});
+                new SimpleFormatter(), new XMLFormatter());
         //null filter makes all records INFO and above loggable.
-        instance.setAttachmentFilters(new Filter[]{BooleanFilter.FALSE, null});
+        instance.setAttachmentFilters(BooleanFilter.FALSE, null);
         assertEquals(false, instance.isLoggable(new LogRecord(Level.FINEST, "")));
         assertEquals(true, instance.isLoggable(new LogRecord(Level.INFO, "")));
         assertEquals(true, instance.isLoggable(new LogRecord(Level.WARNING, "")));
@@ -823,9 +824,9 @@ public class MailHandlerTest extends AbstractLogging {
             instance.setFilter(filter);
             instance.setPushLevel(Level.OFF);
             instance.setPushFilter(filter);
-            instance.setAttachmentFormatters(new Formatter[]{formatter});
-            instance.setAttachmentFilters(new Filter[]{filter});
-            instance.setAttachmentNames(new Formatter[]{subject});
+            instance.setAttachmentFormatters(formatter);
+            instance.setAttachmentFilters(filter);
+            instance.setAttachmentNames(subject);
 
             assertTrue(em.exceptions.isEmpty());
 
@@ -1017,8 +1018,8 @@ public class MailHandlerTest extends AbstractLogging {
         instance.setComparator(new ThrowComparator());
         instance.setFormatter(new ThrowFormatter());
         instance.setSubject(new ThrowFormatter());
-        instance.setAttachmentFormatters(new Formatter[]{new ThrowFormatter()});
-        instance.setAttachmentNames(new Formatter[]{new ThrowFormatter()});
+        instance.setAttachmentFormatters(new ThrowFormatter());
+        instance.setAttachmentNames(new ThrowFormatter());
 
         LogRecord record = new LogRecord(Level.INFO, "");
         instance.publish(record);
@@ -1045,8 +1046,8 @@ public class MailHandlerTest extends AbstractLogging {
         instance.setComparator(new ErrorComparator());
         instance.setFormatter(new ErrorFormatter());
         instance.setSubject(new ErrorFormatter());
-        instance.setAttachmentFormatters(new Formatter[]{new ErrorFormatter()});
-        instance.setAttachmentNames(new Formatter[]{new ErrorFormatter()});
+        instance.setAttachmentFormatters(new ErrorFormatter());
+        instance.setAttachmentNames(new ErrorFormatter());
 
         LogRecord record = new LogRecord(Level.INFO, "");
         instance.publish(record);
@@ -1099,9 +1100,9 @@ public class MailHandlerTest extends AbstractLogging {
         InternalErrorManager em = new InternalErrorManager();
         instance.setErrorManager(em);
 
-        instance.setAttachmentFormatters(new Formatter[]{new SimpleFormatter()});
-        instance.setAttachmentFilters(new Filter[]{new ErrorFilter()});
-        instance.setAttachmentNames(new String[]{"test.txt"});
+        instance.setAttachmentFormatters(new SimpleFormatter());
+        instance.setAttachmentFilters(new ErrorFilter());
+        instance.setAttachmentNames("test.txt");
 
         instance.publish(record);
         try {
@@ -1255,9 +1256,9 @@ public class MailHandlerTest extends AbstractLogging {
         InternalErrorManager em = new InternalErrorManager();
         instance.setErrorManager(em);
 
-        instance.setAttachmentFormatters(new Formatter[]{new SimpleFormatter()});
-        instance.setAttachmentFilters(new Filter[]{new ThrowFilter()});
-        instance.setAttachmentNames(new String[]{"test.txt"});
+        instance.setAttachmentFormatters(new SimpleFormatter());
+        instance.setAttachmentFilters(new ThrowFilter());
+        instance.setAttachmentNames("test.txt");
 
         instance.publish(record);
         instance.close();
@@ -1269,47 +1270,42 @@ public class MailHandlerTest extends AbstractLogging {
     public void testEmpty() {
         MailHandler instance = createHandlerWithRecords();
         instance.setFormatter(new SimpleFormatter());
-        instance.setAttachmentFormatters(new Formatter[]{
-                new EmptyFormatter(), new SimpleFormatter(), new SimpleFormatter()});
+        instance.setAttachmentFormatters(new EmptyFormatter(), new SimpleFormatter(), new SimpleFormatter());
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
         instance.setFormatter(new SimpleFormatter());
-        instance.setAttachmentFormatters(new Formatter[]{
-                new SimpleFormatter(), new EmptyFormatter(), new SimpleFormatter()});
+        instance.setAttachmentFormatters(new SimpleFormatter(), new EmptyFormatter(), new SimpleFormatter());
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
         instance.setFormatter(new SimpleFormatter());
-        instance.setAttachmentFormatters(new Formatter[]{
-                new SimpleFormatter(), new SimpleFormatter(), new EmptyFormatter()});
+        instance.setAttachmentFormatters(new SimpleFormatter(), new SimpleFormatter(), new EmptyFormatter());
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
         instance.setFormatter(new EmptyFormatter());
-        instance.setAttachmentFormatters(new Formatter[]{
-                new SimpleFormatter(), new SimpleFormatter(), new SimpleFormatter()});
+        instance.setAttachmentFormatters(new SimpleFormatter(), new SimpleFormatter(), new SimpleFormatter());
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
         instance.setFormatter(new EmptyFormatter());
-        instance.setAttachmentFormatters(new Formatter[]{
-                new SimpleFormatter(), new EmptyFormatter(), new SimpleFormatter()});
+        instance.setAttachmentFormatters(new SimpleFormatter(), new EmptyFormatter(), new SimpleFormatter());
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
         instance.setFormatter(new SimpleFormatter());
-        instance.setAttachmentFormatters(new Formatter[]{new EmptyFormatter()});
+        instance.setAttachmentFormatters(new EmptyFormatter());
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
         instance.setFormatter(new EmptyFormatter());
-        instance.setAttachmentFormatters(new Formatter[]{new SimpleFormatter()});
+        instance.setAttachmentFormatters(new SimpleFormatter());
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
         instance.setFormatter(new EmptyFormatter());
-        instance.setAttachmentFormatters(new Formatter[]{new EmptyFormatter()});
+        instance.setAttachmentFormatters(new EmptyFormatter());
         testEmpty(instance);
 
         instance = createHandlerWithRecords();
@@ -1501,8 +1497,8 @@ public class MailHandlerTest extends AbstractLogging {
         Properties props = createInitProperties("");
         props.put("mail.to", "localhost@localdomain");
         instance.setMailProperties(props);
-        instance.setAttachmentFormatters(new Formatter[]{new XMLFormatter()});
-        instance.setAttachmentNames(new String[]{"all.xml"});
+        instance.setAttachmentFormatters(new XMLFormatter());
+        instance.setAttachmentNames("all.xml");
         String p = instance.getClass().getName();
 
         assertEquals(manager.getProperty(p.concat(".encoding")), instance.getEncoding());
@@ -2074,9 +2070,9 @@ public class MailHandlerTest extends AbstractLogging {
         };
 
         instance.setAttachmentFormatters(
-                new Formatter[]{push, atFor, atName, atFilter});
+                push, atFor, atName, atFilter);
         instance.setAttachmentNames(
-                new Formatter[]{nameComp, nameMail, nameSub, nameAuth});
+                nameComp, nameMail, nameSub, nameAuth);
 
         String SOURCE_CLASS = MailHandlerTest.class.getName();
         String SOURCE_METHOD = "testPushInsidePush";
@@ -3017,9 +3013,6 @@ public class MailHandlerTest extends AbstractLogging {
                             assertEquals("", locale.getLanguage());
                         }
                     }
-                } catch (RuntimeException re) {
-                    dump(re);
-                    throw new AssertionError(re);
                 } catch (Exception ex) {
                     dump(ex);
                     throw new AssertionError(ex);
@@ -3080,7 +3073,7 @@ public class MailHandlerTest extends AbstractLogging {
                     MimeMultipart mp = (MimeMultipart) msg.getContent();
                     Locale l = Locale.getDefault();
                     assertEquals(LogManagerProperties.toLanguageTag(l), msg.getHeader("Accept-Language", null));
-                    String lang[] = msg.getContentLanguage();
+                    String[] lang = msg.getContentLanguage();
                     assertNotNull(lang);
                     assertEquals(LogManagerProperties.toLanguageTag(l), lang[0]);
                     assertEquals(1, mp.getCount());
@@ -3091,9 +3084,6 @@ public class MailHandlerTest extends AbstractLogging {
                     assertNotNull(lang);
                     assertEquals(LogManagerProperties.toLanguageTag(l), lang[0]);
                     assertEquals(LogManagerProperties.toLanguageTag(l), part.getHeader("Accept-Language", null));
-                } catch (RuntimeException re) {
-                    dump(re);
-                    throw new AssertionError(re);
                 } catch (Exception ex) {
                     dump(ex);
                     throw new AssertionError(ex);
@@ -3175,7 +3165,7 @@ public class MailHandlerTest extends AbstractLogging {
                     assertFalse(l.getCountry().equals(expect.getCountry()));
 
                     assertEquals(LogManagerProperties.toLanguageTag(l), msg.getHeader("Accept-Language", null));
-                    String lang[] = msg.getContentLanguage();
+                    String[] lang = msg.getContentLanguage();
                     assertEquals(1, lang.length);
                     assertEquals(LogManagerProperties.toLanguageTag(expect), lang[0]);
                     assertEquals(1, mp.getCount());
@@ -3186,9 +3176,6 @@ public class MailHandlerTest extends AbstractLogging {
                     assertEquals(1, lang.length);
                     assertEquals(LogManagerProperties.toLanguageTag(expect), lang[0]);
                     assertEquals(LogManagerProperties.toLanguageTag(l), part.getHeader("Accept-Language", null));
-                } catch (RuntimeException re) {
-                    dump(re);
-                    throw new AssertionError(re);
                 } catch (Exception ex) {
                     dump(ex);
                     throw new AssertionError(ex);
@@ -3281,7 +3268,7 @@ public class MailHandlerTest extends AbstractLogging {
                     MimeMultipart mp = (MimeMultipart) msg.getContent();
                     Locale l = Locale.getDefault();
                     assertEquals(LogManagerProperties.toLanguageTag(l), msg.getHeader("Accept-Language", null));
-                    String lang[] = msg.getContentLanguage();
+                    String[] lang = msg.getContentLanguage();
                     assertEquals(LogManagerProperties.toLanguageTag(Locale.ENGLISH), lang[0]);
                     assertEquals(LogManagerProperties.toLanguageTag(Locale.GERMAN), lang[1]);
                     assertEquals(LogManagerProperties.toLanguageTag(Locale.FRANCE), lang[2]);
@@ -3303,9 +3290,6 @@ public class MailHandlerTest extends AbstractLogging {
                     part = (MimePart) mp.getBodyPart(3);
                     assertEquals(LogManagerProperties.toLanguageTag(l), part.getHeader("Accept-Language", null));
                     assertEquals(LogManagerProperties.toLanguageTag(Locale.FRANCE), part.getHeader("Content-Language", ","));
-                } catch (RuntimeException re) {
-                    dump(re);
-                    throw new AssertionError(re);
                 } catch (Exception ex) {
                     dump(ex);
                     throw new AssertionError(ex);
@@ -3316,12 +3300,10 @@ public class MailHandlerTest extends AbstractLogging {
         target.setLevel(Level.ALL);
         target.setFilter(new LocaleFilter(Locale.JAPANESE, true));
         target.setPushLevel(Level.OFF);
-        target.setAttachmentFormatters(new Formatter[]{
-                new SimpleFormatter(), new SimpleFormatter(), new SimpleFormatter()});
-        target.setAttachmentFilters(new Filter[]{
-                new LocaleFilter(Locale.ENGLISH, false),
+        target.setAttachmentFormatters(new SimpleFormatter(), new SimpleFormatter(), new SimpleFormatter());
+        target.setAttachmentFilters(new LocaleFilter(Locale.ENGLISH, false),
                 new LocaleFilter(Locale.GERMAN, false),
-                new LocaleFilter(Locale.FRANCE, false)}); //just the language.
+                new LocaleFilter(Locale.FRANCE, false)); //just the language.
 
         assertEquals(3, target.getAttachmentFormatters().length);
         assertEquals(3, target.getAttachmentFilters().length);
@@ -4018,7 +4000,7 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(false, instance.getAttachmentFilters() == result);
 
         if (instance.getAttachmentFormatters().length != 0) {
-            instance.setAttachmentFormatters(new Formatter[0]);
+            instance.setAttachmentFormatters();
         }
 
         try {
@@ -4030,7 +4012,7 @@ public class MailHandlerTest extends AbstractLogging {
         }
 
         try {
-            instance.setAttachmentFilters(new Filter[0]);
+            instance.setAttachmentFilters();
         } catch (RuntimeException re) {
             fail(re.toString());
         }
@@ -4038,7 +4020,7 @@ public class MailHandlerTest extends AbstractLogging {
         try {
             assertEquals(0, instance.getAttachmentFormatters().length);
 
-            instance.setAttachmentFilters(new Filter[]{BooleanFilter.TRUE});
+            instance.setAttachmentFilters(BooleanFilter.TRUE);
             fail("Filter to formatter mismatch.");
         } catch (IndexOutOfBoundsException pass) {
         } catch (RuntimeException re) {
@@ -4046,12 +4028,12 @@ public class MailHandlerTest extends AbstractLogging {
         }
 
         instance.setAttachmentFormatters(
-                new Formatter[]{new SimpleFormatter(), new XMLFormatter()});
+                new SimpleFormatter(), new XMLFormatter());
 
         try {
             assertEquals(2, instance.getAttachmentFormatters().length);
 
-            instance.setAttachmentFilters(new Filter[]{BooleanFilter.TRUE});
+            instance.setAttachmentFilters(BooleanFilter.TRUE);
             fail("Filter to formatter mismatch.");
         } catch (IndexOutOfBoundsException pass) {
         } catch (RuntimeException re) {
@@ -4079,7 +4061,7 @@ public class MailHandlerTest extends AbstractLogging {
 
         try {
             assertEquals(2, instance.getAttachmentFormatters().length);
-            instance.setAttachmentFilters(new Filter[0]);
+            instance.setAttachmentFilters();
             fail("Filter to formatter mismatch.");
         } catch (IndexOutOfBoundsException pass) {
         } catch (RuntimeException re) {
@@ -4214,7 +4196,7 @@ public class MailHandlerTest extends AbstractLogging {
         }
 
         if (instance.getAttachmentFormatters().length > 0) {
-            instance.setAttachmentFormatters(new Formatter[0]);
+            instance.setAttachmentFormatters();
         }
 
         try {
@@ -4232,7 +4214,7 @@ public class MailHandlerTest extends AbstractLogging {
         }
 
         try {
-            instance.setAttachmentNames(new String[]{"foo.txt", ""});
+            instance.setAttachmentNames("foo.txt", "");
             fail("Empty name was allowed.");
         } catch (IllegalArgumentException pass) {
         } catch (RuntimeException re) {
@@ -4240,7 +4222,7 @@ public class MailHandlerTest extends AbstractLogging {
         }
 
         instance.setAttachmentFormatters(
-                new Formatter[]{new SimpleFormatter(), new XMLFormatter()});
+                new SimpleFormatter(), new XMLFormatter());
         try {
             instance.setAttachmentNames(new String[2]);
             fail("Null index was allowed.");
@@ -4292,7 +4274,7 @@ public class MailHandlerTest extends AbstractLogging {
             fail(re.toString());
         }
 
-        instance.setAttachmentFormatters(new Formatter[0]);
+        instance.setAttachmentFormatters();
 
         try {
             instance.setAttachmentNames(new Formatter[2]);
@@ -4303,7 +4285,7 @@ public class MailHandlerTest extends AbstractLogging {
         }
 
         instance.setAttachmentFormatters(
-                new Formatter[]{new SimpleFormatter(), new XMLFormatter()});
+                new SimpleFormatter(), new XMLFormatter());
 
         assertEquals(instance.getAttachmentFormatters().length,
                 instance.getAttachmentNames().length);
@@ -4374,7 +4356,7 @@ public class MailHandlerTest extends AbstractLogging {
 
         Formatter same = new XMLFormatter();
         instance.setAttachmentFormatters(
-                new Formatter[]{same, same});
+                same, same);
         Formatter[] formatters = instance.getAttachmentNames();
         f1 = formatters[0];
         f2 = formatters[1];
@@ -4436,7 +4418,7 @@ public class MailHandlerTest extends AbstractLogging {
         instance.setPushLevel(Level.OFF);
         instance.setPushFilter((Filter) null);
         instance.setFilter(BooleanFilter.FALSE);
-        instance.setAttachmentFormatters(new Formatter[]{new XMLFormatter()});
+        instance.setAttachmentFormatters(new XMLFormatter());
         instance.setAttachmentFilters(new Filter[]{null});
         InternalErrorManager em = new InternalErrorManager();
         instance.setErrorManager(em);
@@ -4445,7 +4427,7 @@ public class MailHandlerTest extends AbstractLogging {
         assertTrue(instance.isLoggable(record));
 
         instance.publish(record);
-        instance.setAttachmentFilters(new Filter[]{BooleanFilter.FALSE});
+        instance.setAttachmentFilters(BooleanFilter.FALSE);
         assertFalse(instance.isLoggable(record));
         instance.close();
 
@@ -5060,7 +5042,7 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 assertEquals(0, h.getAttachmentFormatters().length);
-                h.setAttachmentNames(new String[]{"error.txt"});
+                h.setAttachmentNames("error.txt");
                 fail("Missing secure check.");
             } catch (SecurityException pass) {
             } catch (Exception fail) {
@@ -5069,7 +5051,7 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 assertEquals(0, h.getAttachmentFormatters().length);
-                h.setAttachmentNames(new Formatter[]{new ThrowFormatter()});
+                h.setAttachmentNames(new ThrowFormatter());
                 fail("Missing secure check.");
             } catch (SecurityException pass) {
             } catch (Exception fail) {
@@ -5078,7 +5060,7 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 assertEquals(0, h.getAttachmentFormatters().length);
-                h.setAttachmentFilters(new Filter[]{new ThrowFilter()});
+                h.setAttachmentFilters(new ThrowFilter());
                 fail("Missing secure check.");
             } catch (SecurityException pass) {
             } catch (Exception fail) {
@@ -5086,7 +5068,7 @@ public class MailHandlerTest extends AbstractLogging {
             }
 
             try {
-                h.setAttachmentFormatters(new Formatter[]{new ThrowFormatter()});
+                h.setAttachmentFormatters(new ThrowFormatter());
                 fail("Missing secure check.");
             } catch (SecurityException pass) {
             } catch (Exception fail) {
@@ -5095,7 +5077,7 @@ public class MailHandlerTest extends AbstractLogging {
 
             manager.secure = false;
             try {
-                h.setAttachmentFormatters(new Formatter[]{new ThrowFormatter()});
+                h.setAttachmentFormatters(new ThrowFormatter());
             } catch (SecurityException fail) {
                 fail("Unexpected secure check.");
             } catch (Exception fail) {
@@ -5106,7 +5088,7 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 assertEquals(1, h.getAttachmentFormatters().length);
-                h.setAttachmentFilters(new Filter[]{new ThrowFilter()});
+                h.setAttachmentFilters(new ThrowFilter());
                 fail("Missing secure check.");
             } catch (SecurityException pass) {
             } catch (Exception fail) {
@@ -5124,7 +5106,7 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 assertEquals(1, h.getAttachmentFormatters().length);
-                h.setAttachmentNames(new String[]{"error.txt"});
+                h.setAttachmentNames("error.txt");
                 fail("Missing secure check.");
             } catch (SecurityException pass) {
             } catch (Exception fail) {
@@ -5151,7 +5133,7 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 assertEquals(1, h.getAttachmentFormatters().length);
-                h.setAttachmentNames(new Formatter[]{new ThrowFormatter()});
+                h.setAttachmentNames(new ThrowFormatter());
                 fail("Missing secure check.");
             } catch (SecurityException pass) {
             } catch (Exception fail) {
@@ -5161,9 +5143,7 @@ public class MailHandlerTest extends AbstractLogging {
             manager.secure = false;
             try {
                 assertEquals(1, h.getAttachmentFormatters().length);
-                h.setAttachmentFormatters(new Formatter[0]);
-            } catch (SecurityException fail) {
-                fail(fail.toString());
+                h.setAttachmentFormatters();
             } catch (Exception fail) {
                 fail(fail.toString());
             } finally {
@@ -5174,8 +5154,6 @@ public class MailHandlerTest extends AbstractLogging {
                 assertEquals(0, h.getAttachmentFormatters().length);
                 assertEquals(0, h.getAttachmentFilters().length);
                 assertEquals(0, h.getAttachmentNames().length);
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
@@ -5198,8 +5176,6 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 h.getComparator();
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
@@ -5222,8 +5198,6 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 h.getLevel();
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
@@ -5246,8 +5220,6 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 h.getFilter();
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
@@ -5270,8 +5242,6 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 h.getFormatter();
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
@@ -5310,24 +5280,18 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 h.getEncoding();
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
 
             try {
                 h.flush();
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
 
             try {
                 h.push();
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
@@ -5358,8 +5322,6 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 h.getPushFilter();
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
@@ -5382,8 +5344,6 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 h.getPushLevel();
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
@@ -5422,16 +5382,12 @@ public class MailHandlerTest extends AbstractLogging {
 
             try {
                 h.getSubject();
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
 
             try {
                 assertTrue(h.getCapacity() > 0);
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
@@ -5463,8 +5419,6 @@ public class MailHandlerTest extends AbstractLogging {
             try {
                 h.publish(new LogRecord(Level.SEVERE, ""));
                 h.flush();
-            } catch (SecurityException fail) {
-                fail(fail.toString());
             } catch (Exception fail) {
                 fail(fail.toString());
             }
@@ -7426,7 +7380,7 @@ public class MailHandlerTest extends AbstractLogging {
                     && !msg.startsWith(Level.SEVERE.getName())) {
                 MimeMessage message;
                 try { //Headers can be UTF-8 or US-ASCII.
-                    byte[] b = msg.getBytes("UTF-8");
+                    byte[] b = msg.getBytes(StandardCharsets.UTF_8);
                     assertTrue(b.length > 0);
 
                     ByteArrayInputStream in = new ByteArrayInputStream(b);
@@ -7890,9 +7844,6 @@ public class MailHandlerTest extends AbstractLogging {
                 String[] a = message.getHeader("auto-submitted");
                 assertTrue(Arrays.toString(a), a == null || a.length == 0);
                 message.saveChanges();
-            } catch (RuntimeException RE) {
-                dump(RE);
-                fail(RE.toString());
             } catch (Exception ME) {
                 dump(ME);
                 fail(ME.toString());

@@ -1824,8 +1824,6 @@ public class MailHandler extends Handler {
         try {
             try { //Use direct call so we do not prefix raw email.
                 errorManager.error(toRawString(msg), ex, code);
-            } catch (final RuntimeException re) {
-                reportError(toMsgString(re), ex, code);
             } catch (final Exception e) {
                 reportError(toMsgString(e), ex, code);
             }
@@ -2859,8 +2857,6 @@ public class MailHandler extends Handler {
             } finally {
                 getAndSetContextClassLoader(ccl);
             }
-        } catch (final RuntimeException re) {
-            reportError(msg, re, code);
         } catch (final Exception e) {
             reportError(msg, e, code);
         }
@@ -2913,8 +2909,6 @@ public class MailHandler extends Handler {
                     }
                 }
             }
-        } catch (final RuntimeException re) {
-            reportError(re.getMessage(), re, code);
         } catch (final Exception e) {
             reportError(e.getMessage(), e, code);
         }
@@ -3378,9 +3372,6 @@ public class MailHandler extends Handler {
 
             //Verify reply-to addresses.
             verifyAddresses(abort.getReplyTo());
-        } catch (final RuntimeException RE) {
-            setErrorContent(abort, verify, RE);
-            reportError(abort, RE, ErrorManager.OPEN_FAILURE);
         } catch (final Exception ME) {
             setErrorContent(abort, verify, ME);
             reportError(abort, ME, ErrorManager.OPEN_FAILURE);
@@ -4274,8 +4265,6 @@ public class MailHandler extends Handler {
                 pw.flush();
             } //Close OSW before generating string. JDK-6995537
             return out.toString(charset);
-        } catch (final RuntimeException unexpected) {
-            return t.toString() + ' ' + unexpected.toString();
         } catch (final Exception badMimeCharset) {
             return t.toString() + ' ' + badMimeCharset.toString();
         }

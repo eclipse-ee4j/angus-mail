@@ -63,7 +63,7 @@ public class testidle {
     public static final AtomicInteger folderProgress = new AtomicInteger();
     public static final AtomicInteger msgProgress = new AtomicInteger();
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         if (argv.length != 5) {
             System.out.println(
                     "Usage: testidle <host> <user> <password> <mbox> <time>");
@@ -113,10 +113,8 @@ public class testidle {
                             System.out.println("Message " +
                                     msgs[i].getMessageNumber() + ":");
                             msgs[i].writeTo(System.out);
-                        } catch (IOException ioex) {
+                        } catch (IOException | MessagingException ioex) {
                             ioex.printStackTrace();
-                        } catch (MessagingException mex) {
-                            mex.printStackTrace();
                         }
                     }
                 }

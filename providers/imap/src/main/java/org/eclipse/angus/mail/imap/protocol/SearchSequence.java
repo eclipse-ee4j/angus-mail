@@ -410,7 +410,7 @@ public class SearchSequence {
      *
      * Note that this format does not contain the TimeZone
      */
-    private static String monthTable[] = {
+    private static String[] monthTable = {
             "Jan", "Feb", "Mar", "Apr", "May", "Jun",
             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     };

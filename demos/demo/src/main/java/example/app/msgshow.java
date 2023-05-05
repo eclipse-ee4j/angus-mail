@@ -62,7 +62,7 @@ public class msgshow {
     static boolean saveAttachments = false;
     static int attnum = 1;
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         int optind;
         InputStream msgStream = System.in;
 

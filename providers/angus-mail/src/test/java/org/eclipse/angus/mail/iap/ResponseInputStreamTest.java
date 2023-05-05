@@ -20,6 +20,7 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.fail;
 
@@ -34,7 +35,7 @@ public class ResponseInputStreamTest {
     @Test
     public void testEofWhileReadingLiteral() throws Exception {
         ByteArrayInputStream bis = new ByteArrayInputStream(
-                "test{1}\r\n".getBytes("ISO-8859-1"));
+                "test{1}\r\n".getBytes(StandardCharsets.ISO_8859_1));
         ResponseInputStream ris = new ResponseInputStream(bis);
         try {
             ris.readResponse();

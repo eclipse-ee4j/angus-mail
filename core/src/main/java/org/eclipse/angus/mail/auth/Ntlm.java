@@ -30,6 +30,7 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -103,9 +104,7 @@ public class Ntlm {
             fac = SecretKeyFactory.getInstance("DES");
             cipher = Cipher.getInstance("DES/ECB/NoPadding");
             md4 = new MD4();
-        } catch (NoSuchPaddingException e) {
-            assert false;
-        } catch (NoSuchAlgorithmException e) {
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
             assert false;
         }
     }
@@ -191,11 +190,7 @@ public class Ntlm {
             logger.fine("type 1 message: " + toHex(msg));
 
         String result = null;
-        try {
-            result = new String(Base64.getEncoder().encode(msg), "iso-8859-1");
-        } catch (UnsupportedEncodingException e) {
-            assert false;
-        }
+        result = new String(Base64.getEncoder().encode(msg), StandardCharsets.ISO_8859_1);
         return result;
     }
 
@@ -232,13 +227,11 @@ public class Ntlm {
         }
         try {
             byte[] nk = new byte[16];
-            System.arraycopy(key, 0, nk, 0, key.length > 16 ? 16 : key.length);
+            System.arraycopy(key, 0, nk, 0, Math.min(key.length, 16));
             SecretKeySpec skey = new SecretKeySpec(nk, "HmacMD5");
             hmac.init(skey);
             return hmac.doFinal(text);
-        } catch (InvalidKeyException ex) {
-            assert false;
-        } catch (RuntimeException e) {
+        } catch (InvalidKeyException | RuntimeException ex) {
             assert false;
         }
         return null;
@@ -247,12 +240,7 @@ public class Ntlm {
     private byte[] calcLMHash() throws GeneralSecurityException {
         byte[] magic = {0x4b, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25};
         byte[] pwb = null;
-        try {
-            pwb = password.toUpperCase(Locale.ENGLISH).getBytes("iso-8859-1");
-        } catch (UnsupportedEncodingException ex) {
-            // should never happen
-            assert false;
-        }
+        pwb = password.toUpperCase(Locale.ENGLISH).getBytes(StandardCharsets.ISO_8859_1);
         byte[] pwb1 = new byte[14];
         int len = password.length();
         if (len > 14)
@@ -345,12 +333,7 @@ public class Ntlm {
             /* First decode the type2 message to get the server challenge */
             /* challenge is located at type2[24] for 8 bytes */
             byte[] type2 = null;
-            try {
-                type2 = Base64.getDecoder().decode(type2msg.getBytes("us-ascii"));
-            } catch (UnsupportedEncodingException ex) {
-                // should never happen
-                assert false;
-            }
+            type2 = Base64.getDecoder().decode(type2msg.getBytes(StandardCharsets.US_ASCII));
             if (logger.isLoggable(Level.FINE))
                 logger.fine("type 2 message: " + toHex(type2));
 
@@ -447,11 +430,7 @@ public class Ntlm {
                 logger.fine("type 3 message: " + toHex(msg));
 
             String result = null;
-            try {
-                result = new String(Base64.getEncoder().encode(msg), "iso-8859-1");
-            } catch (UnsupportedEncodingException e) {
-                assert false;
-            }
+            result = new String(Base64.getEncoder().encode(msg), StandardCharsets.ISO_8859_1);
             return result;
 
         } catch (GeneralSecurityException ex) {

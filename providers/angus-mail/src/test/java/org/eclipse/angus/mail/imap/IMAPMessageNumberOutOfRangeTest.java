@@ -52,7 +52,7 @@ public final class IMAPMessageNumberOutOfRangeTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 

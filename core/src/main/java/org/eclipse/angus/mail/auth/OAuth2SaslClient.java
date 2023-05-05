@@ -16,8 +16,6 @@
 
 package org.eclipse.angus.mail.auth;
 
-import org.eclipse.angus.mail.util.ASCIIUtility;
-
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
@@ -26,7 +24,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.sasl.SaslClient;
 import javax.security.sasl.SaslException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -83,12 +81,7 @@ public class OAuth2SaslClient implements SaslClient {
         pcb.clearPassword();
         String resp = "user=" + user + "\001auth=Bearer " + token + "\001\001";
         byte[] response;
-        try {
-            response = resp.getBytes("utf-8");
-        } catch (UnsupportedEncodingException ex) {
-            // fall back to ASCII
-            response = ASCIIUtility.getBytes(resp);
-        }
+        response = resp.getBytes(StandardCharsets.UTF_8);
         complete = true;
         return response;
     }

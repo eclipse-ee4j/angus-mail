@@ -122,8 +122,7 @@ public class ResponseInputStream {
                 int avail = buffer.length - idx; // available space in buffer
                 if (count + incrementSlop > avail) {
                     // need count-avail more bytes
-                    ba.grow(minIncrement > count + incrementSlop - avail ?
-                            minIncrement : count + incrementSlop - avail);
+                    ba.grow(Math.max(minIncrement, count + incrementSlop - avail));
                     buffer = ba.getBytes();
                 }
 

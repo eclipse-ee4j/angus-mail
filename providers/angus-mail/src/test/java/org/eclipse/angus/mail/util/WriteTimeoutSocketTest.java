@@ -199,7 +199,7 @@ public final class WriteTimeoutSocketTest {
             server = new TestServer(handler, isSSL);
             server.start();
 
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 

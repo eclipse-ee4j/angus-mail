@@ -37,7 +37,7 @@ public class namespace {
     static boolean debug = false;
     static String suser = "other";
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         int msgnum = -1;
         int optind;
 

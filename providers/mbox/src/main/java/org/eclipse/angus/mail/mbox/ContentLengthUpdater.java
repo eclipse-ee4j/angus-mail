@@ -19,6 +19,7 @@ package org.eclipse.angus.mail.mbox;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Update the Content-Length header in the message written to the stream.
@@ -60,8 +61,8 @@ class ContentLengthUpdater extends FilterOutputStream {
             // If we're no longer in the header, and we haven't seen
             // a Content-Length header yet, it's time to put one out.
             if (!inHeader && !sawContentLength) {
-                out.write(contentLength.getBytes("iso-8859-1"));
-                out.write(eol.getBytes("iso-8859-1"));
+                out.write(contentLength.getBytes(StandardCharsets.ISO_8859_1));
+                out.write(eol.getBytes(StandardCharsets.ISO_8859_1));
             }
 
             // If we have a full line, see if it's a Content-Length header.
@@ -71,10 +72,10 @@ class ContentLengthUpdater extends FilterOutputStream {
                     // yup, got it
                     sawContentLength = true;
                     // put out the new version
-                    out.write(contentLength.getBytes("iso-8859-1"));
+                    out.write(contentLength.getBytes(StandardCharsets.ISO_8859_1));
                 } else {
                     // not a Content-Length header, just write it out
-                    out.write(line.toString().getBytes("iso-8859-1"));
+                    out.write(line.toString().getBytes(StandardCharsets.ISO_8859_1));
                 }
                 line.setLength(0);    // clear buffer for next line
             }
@@ -107,7 +108,7 @@ class ContentLengthUpdater extends FilterOutputStream {
     }
 
     // for testing
-    public static void main(String argv[]) throws Exception {
+    public static void main(String[] argv) throws Exception {
         int b;
         ContentLengthUpdater os =
                 new ContentLengthUpdater(System.out, Long.parseLong(argv[0]));

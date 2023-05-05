@@ -45,7 +45,7 @@ public class SMTPSaslLoginTest {
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             //properties.setProperty("mail.debug.auth", "true");
             Session session = Session.getInstance(properties);
             //session.setDebug(true);
@@ -82,7 +82,7 @@ public class SMTPSaslLoginTest {
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             //properties.setProperty("mail.debug.auth", "true");
             Session session = Session.getInstance(properties);
             //session.setDebug(true);
@@ -122,7 +122,7 @@ public class SMTPSaslLoginTest {
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.smtp.sasl.enable", "true");
             properties.setProperty("mail.smtp.sasl.mechanisms", "DIGEST-MD5");
             properties.setProperty("mail.smtp.auth.digest-md5.disable", "true");
@@ -162,7 +162,7 @@ public class SMTPSaslLoginTest {
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.smtp.sasl.enable", "true");
             properties.setProperty("mail.smtp.sasl.mechanisms", "DIGEST-MD5");
             properties.setProperty("mail.smtp.auth.digest-md5.disable", "true");
@@ -211,7 +211,7 @@ public class SMTPSaslLoginTest {
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             //properties.setProperty("mail.debug.auth", "true");
             Session session = Session.getInstance(properties);
             //session.setDebug(true);
@@ -261,7 +261,7 @@ public class SMTPSaslLoginTest {
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             //properties.setProperty("mail.debug.auth", "true");
             Session session = Session.getInstance(properties);
             //session.setDebug(true);

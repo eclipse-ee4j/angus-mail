@@ -50,7 +50,7 @@ public final class POP3MessageTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.pop3.host", "localhost");
-            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            properties.setProperty("mail.pop3.port", String.valueOf(server.getPort()));
             if (cached)
                 properties.setProperty("mail.pop3.filecache.enable", "true");
             final Session session = Session.getInstance(properties);

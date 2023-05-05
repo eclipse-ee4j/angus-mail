@@ -290,7 +290,7 @@ public class Rights implements Cloneable {
         for (int i = 0; i < this.rights.length; i++)
             if (this.rights[i])
                 v.add(Right.getInstance((char) i));
-        return v.toArray(new Right[v.size()]);
+        return v.toArray(new Right[0]);
     }
 
     /**

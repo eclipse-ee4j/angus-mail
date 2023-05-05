@@ -32,7 +32,7 @@ import jakarta.mail.URLName;
 
 public class copier {
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         boolean debug = false;    // change to get more errors
 
         if (argv.length != 5) {

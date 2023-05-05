@@ -50,7 +50,7 @@ public class SMTPOutputStream extends CRLFOutputStream {
      * This method has been added to improve performance.
      */
     @Override
-    public void write(byte b[], int off, int len) throws IOException {
+    public void write(byte[] b, int off, int len) throws IOException {
         int lastc = (lastb == -1) ? '\n' : lastb;
         int start = off;
 

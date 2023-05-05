@@ -129,16 +129,16 @@ public class DigestMD5 {
         md5.update(ASCIIUtility.getBytes(clientResponse + toHex(md5.digest())));
 
         // build response text (order not critical)
-        result.append("username=\"" + user + "\"");
-        result.append(",realm=\"" + realm + "\"");
-        result.append(",qop=" + qop);
-        result.append(",nc=" + nc);
-        result.append(",nonce=\"" + nonce + "\"");
-        result.append(",cnonce=\"" + cnonce + "\"");
-        result.append(",digest-uri=\"" + uri + "\"");
+        result.append("username=\"").append(user).append("\"");
+        result.append(",realm=\"").append(realm).append("\"");
+        result.append(",qop=").append(qop);
+        result.append(",nc=").append(nc);
+        result.append(",nonce=\"").append(nonce).append("\"");
+        result.append(",cnonce=\"").append(cnonce).append("\"");
+        result.append(",digest-uri=\"").append(uri).append("\"");
         if (utf8)
             result.append(",charset=\"utf-8\"");
-        result.append(",response=" + toHex(md5.digest()));
+        result.append(",response=").append(toHex(md5.digest()));
 
         if (logger.isLoggable(Level.FINE))
             logger.fine("Response => " + result.toString());
@@ -178,7 +178,7 @@ public class DigestMD5 {
     private Map<String, String> tokenize(String serverResponse)
             throws IOException {
         Map<String, String> map = new HashMap<>();
-        byte[] bytes = serverResponse.getBytes("iso-8859-1");    // really ASCII?
+        byte[] bytes = serverResponse.getBytes(StandardCharsets.ISO_8859_1);    // really ASCII?
         String key = null;
         int ttype;
         StreamTokenizer tokens
@@ -186,7 +186,7 @@ public class DigestMD5 {
                 new InputStreamReader(
                         new BASE64DecoderStream(
                                 new ByteArrayInputStream(bytes, 4, bytes.length - 4)
-                        ), "iso-8859-1"    // really ASCII?
+                        ), StandardCharsets.ISO_8859_1    // really ASCII?
                 )
         );
 

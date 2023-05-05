@@ -46,7 +46,7 @@ public final class SMTPCloseTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.smtp.timeout", "100");
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);

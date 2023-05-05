@@ -45,7 +45,7 @@ public class uidmsgshow {
     static String url = null;
     static boolean verbose = false;
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         long uid = -1;
         int optind;
 

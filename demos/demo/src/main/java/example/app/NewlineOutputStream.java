@@ -13,7 +13,7 @@ package example.app.internal;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Convert the various newline conventions to the local platform's
@@ -33,12 +33,7 @@ public class NewlineOutputStream extends FilterOutputStream {
             String s = System.lineSeparator();
             if (s == null || s.length() <= 0)
                 s = "\n";
-            try {
-                newline = s.getBytes("iso-8859-1");    // really us-ascii
-            } catch (UnsupportedEncodingException ex) {
-                // should never happen
-                newline = new byte[]{(byte) '\n'};
-            }
+            newline = s.getBytes(StandardCharsets.ISO_8859_1);    // really us-ascii
         }
     }
 
@@ -54,11 +49,11 @@ public class NewlineOutputStream extends FilterOutputStream {
         lastb = b;
     }
 
-    public void write(byte b[]) throws IOException {
+    public void write(byte[] b) throws IOException {
         write(b, 0, b.length);
     }
 
-    public void write(byte b[], int off, int len) throws IOException {
+    public void write(byte[] b, int off, int len) throws IOException {
         for (int i = 0; i < len; i++) {
             write(b[off + i]);
         }

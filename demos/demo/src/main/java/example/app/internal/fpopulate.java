@@ -41,7 +41,7 @@ public class fpopulate {
 
     static Session session;
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         String srcdir = null;
         String dstURL = null;
         boolean debug = false;
@@ -114,12 +114,9 @@ public class fpopulate {
             // Close the respective stores.
             dstFolder.getStore().close();
 
-        } catch (MessagingException mex) {
+        } catch (MessagingException | IOException mex) {
             System.out.println(mex.getMessage());
             mex.printStackTrace();
-        } catch (IOException ioex) {
-            System.out.println(ioex.getMessage());
-            ioex.printStackTrace();
         }
     }
 

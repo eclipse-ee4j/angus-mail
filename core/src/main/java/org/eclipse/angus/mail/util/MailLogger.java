@@ -228,7 +228,7 @@ public final class MailLogger {
      */
     public void log(Level level, String msg, Object param1) {
         if (debug) {
-            msg = MessageFormat.format(msg, new Object[]{param1});
+            msg = MessageFormat.format(msg, param1);
             debugOut(msg);
         }
 
@@ -395,7 +395,7 @@ public final class MailLogger {
      */
     private StackTraceElement inferCaller() {
         // Get the stack trace.
-        StackTraceElement stack[] = (new Throwable()).getStackTrace();
+        StackTraceElement[] stack = (new Throwable()).getStackTrace();
         // First, search back to a method in the Logger class.
         int ix = 0;
         while (ix < stack.length) {

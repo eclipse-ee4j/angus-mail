@@ -95,7 +95,7 @@ public class BODYSTRUCTURE implements Item {
             } while (r.peekByte() == '(');
 
             // setup bodies.
-            bodies = v.toArray(new BODYSTRUCTURE[v.size()]);
+            bodies = v.toArray(new BODYSTRUCTURE[0]);
 
             subtype = r.readString(); // subtype
             if (parseDebug)

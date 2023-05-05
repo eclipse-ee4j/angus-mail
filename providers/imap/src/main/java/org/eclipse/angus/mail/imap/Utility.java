@@ -100,7 +100,7 @@ public final class Utility {
         if (v.isEmpty()) // No valid messages
             return null;
         else {
-            return v.toArray(new MessageSet[v.size()]);
+            return v.toArray(new MessageSet[0]);
         }
     }
 
@@ -187,7 +187,7 @@ public final class Utility {
         if (v.isEmpty()) // No valid messages
             return null;
         else {
-            return v.toArray(new UIDSet[v.size()]);
+            return v.toArray(new UIDSet[0]);
         }
     }
 

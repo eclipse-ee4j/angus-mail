@@ -51,7 +51,7 @@ public final class POP3StoreTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.pop3.host", "localhost");
-            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            properties.setProperty("mail.pop3.port", String.valueOf(server.getPort()));
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
@@ -90,7 +90,7 @@ public final class POP3StoreTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.pop3.host", "localhost");
-            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            properties.setProperty("mail.pop3.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.pop3.apop.enable", "true");
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
@@ -126,7 +126,7 @@ public final class POP3StoreTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.pop3.host", "localhost");
-            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            properties.setProperty("mail.pop3.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.pop3.auth.mechanisms", "XOAUTH2");
 
             final Session session = Session.getInstance(properties);
@@ -167,7 +167,7 @@ public final class POP3StoreTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.pop3.host", "localhost");
-            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            properties.setProperty("mail.pop3.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.pop3.auth.mechanisms", "XOAUTH2");
             properties.setProperty("mail.pop3.disablecapa", "false");
             properties.setProperty("mail.pop3.auth.xoauth2.two.line.authentication.format", "false");
@@ -209,7 +209,7 @@ public final class POP3StoreTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.pop3.host", "localhost");
-            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            properties.setProperty("mail.pop3.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.pop3.auth.mechanisms", "XOAUTH2");
             properties.setProperty("mail.pop3.disablecapa", "false");
             properties.setProperty("mail.pop3.auth.xoauth2.two.line.authentication.format", "true");

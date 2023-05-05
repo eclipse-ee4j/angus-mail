@@ -54,7 +54,7 @@ public final class POP3FolderClosedExceptionTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.pop3.host", "localhost");
-            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            properties.setProperty("mail.pop3.port", String.valueOf(server.getPort()));
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
@@ -126,7 +126,7 @@ public final class POP3FolderClosedExceptionTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.pop3.host", "localhost");
-            properties.setProperty("mail.pop3.port", "" + server.getPort());
+            properties.setProperty("mail.pop3.port", String.valueOf(server.getPort()));
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 

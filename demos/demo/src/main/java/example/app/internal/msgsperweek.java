@@ -56,7 +56,7 @@ public class msgsperweek {
     static boolean doPop3 = false;
     static Calendar cal = null;
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         int optind;
 
         for (optind = 0; optind < argv.length; optind++) {

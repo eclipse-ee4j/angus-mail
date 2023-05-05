@@ -112,9 +112,7 @@ public class SunV3Multipart extends MimeMultipart {
             if (!(in instanceof ByteArrayInputStream) &&
                     !(in instanceof BufferedInputStream))
                 in = new BufferedInputStream(in);
-        } catch (IOException ex) {
-            throw new MessagingException("No inputstream from datasource");
-        } catch (RuntimeException ex) {
+        } catch (IOException | RuntimeException ex) {
             throw new MessagingException("No inputstream from datasource");
         }
 

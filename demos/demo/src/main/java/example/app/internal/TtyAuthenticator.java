@@ -99,7 +99,7 @@ public class TtyAuthenticator extends Authenticator {
 
     // main program, for debugging.
     // Usage: java TtyAuthenticator host port protocol prompt defaultUser
-    public static void main(String argv[]) throws Exception {
+    public static void main(String[] argv) throws Exception {
         Session sess = Session.getInstance(System.getProperties(),
                 new TtyAuthenticator());
         PasswordAuthentication pw = sess.requestPasswordAuthentication(

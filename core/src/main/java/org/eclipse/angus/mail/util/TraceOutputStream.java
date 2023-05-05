@@ -109,7 +109,7 @@ public class TraceOutputStream extends FilterOutputStream {
      * @exception IOException    for I/O errors
      */
     @Override
-    public void write(byte b[], int off, int len) throws IOException {
+    public void write(byte[] b, int off, int len) throws IOException {
         if (trace) {
             if (quote) {
                 for (int i = 0; i < len; i++)

@@ -105,7 +105,7 @@ public final class SocketFetcherTest {
         message.append("More things\r\n");
         message.append("\r\n");
         message.append(imapResponse).append("\r\n");
-        InputStream proxyResponse = new ByteArrayInputStream(message.toString().getBytes("UTF-8"));
+        InputStream proxyResponse = new ByteArrayInputStream(message.toString().getBytes(StandardCharsets.UTF_8));
         assertTrue(SocketFetcher.readProxyResponse(proxyResponse, new StringBuilder()));
         LineInputStream r = new LineInputStream(proxyResponse, true);
         /* IMAP response was not read yet.
@@ -122,7 +122,7 @@ public final class SocketFetcherTest {
         message.append(errorMessage).append("\r\n");
         message.append("More things\r\n");
         message.append("\r\n");
-        InputStream proxyResponse = new ByteArrayInputStream(message.toString().getBytes("UTF-8"));
+        InputStream proxyResponse = new ByteArrayInputStream(message.toString().getBytes(StandardCharsets.UTF_8));
         StringBuilder error = new StringBuilder();
         assertFalse(SocketFetcher.readProxyResponse(proxyResponse, error));
         assertEquals(errorMessage, error.toString());
@@ -145,7 +145,7 @@ public final class SocketFetcherTest {
             ProxyHandler handler = new ProxyHandler(type.equals("proxy"));
             server = new TestServer(handler);
             server.start();
-            String sport = "" + server.getPort();
+            String sport = String.valueOf(server.getPort());
 
             //System.setProperty("mail.socket.debug", "true");
             Properties properties = new Properties();

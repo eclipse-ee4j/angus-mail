@@ -50,7 +50,7 @@ public final class IMAPConnectFailureTest {
 
             Properties properties = new Properties();
             properties.setProperty("mail.imap.host", HOST);
-            properties.setProperty("mail.imap.port", "" + port);
+            properties.setProperty("mail.imap.port", String.valueOf(port));
             properties.setProperty("mail.imap.connectiontimeout", "" + CTO);
             Session session = Session.getInstance(properties);
             //session.setDebug(true);
@@ -104,7 +104,7 @@ public final class IMAPConnectFailureTest {
 
             Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 

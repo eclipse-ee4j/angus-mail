@@ -628,7 +628,7 @@ public class IMAPProtocol extends Protocol {
             resumeTracing();
         }
 
-        Response[] responses = v.toArray(new Response[v.size()]);
+        Response[] responses = v.toArray(new Response[0]);
 
         // handle an illegal but not uncommon untagged CAPABILTY response
         handleCapabilityResponse(responses);
@@ -743,7 +743,7 @@ public class IMAPProtocol extends Protocol {
             resumeTracing();
         }
 
-        Response[] responses = v.toArray(new Response[v.size()]);
+        Response[] responses = v.toArray(new Response[0]);
 
         // handle an illegal but not uncommon untagged CAPABILTY response
         handleCapabilityResponse(responses);
@@ -846,7 +846,7 @@ public class IMAPProtocol extends Protocol {
             resumeTracing();
         }
 
-        Response[] responses = v.toArray(new Response[v.size()]);
+        Response[] responses = v.toArray(new Response[0]);
 
         // handle an illegal but not uncommon untagged CAPABILTY response
         handleCapabilityResponse(responses);
@@ -944,7 +944,7 @@ public class IMAPProtocol extends Protocol {
             resumeTracing();
         }
 
-        Response[] responses = v.toArray(new Response[v.size()]);
+        Response[] responses = v.toArray(new Response[0]);
 
         // handle an illegal but not uncommon untagged CAPABILTY response
         handleCapabilityResponse(responses);
@@ -991,13 +991,11 @@ public class IMAPProtocol extends Protocol {
             try {
                 Class<?> sac = Class.forName(
                         "org.eclipse.angus.mail.imap.protocol.IMAPSaslAuthenticator");
-                Constructor<?> c = sac.getConstructor(new Class<?>[]{
-                        IMAPProtocol.class,
+                Constructor<?> c = sac.getConstructor(IMAPProtocol.class,
                         String.class,
                         Properties.class,
                         MailLogger.class,
-                        String.class
-                });
+                        String.class);
                 saslAuthenticator = (SaslAuthenticator) c.newInstance(
                         new Object[]{
                                 this,
@@ -1025,7 +1023,7 @@ public class IMAPProtocol extends Protocol {
             // everything is allowed
             v = authmechs;
         }
-        String[] mechs = v.toArray(new String[v.size()]);
+        String[] mechs = v.toArray(new String[0]);
 
         try {
 
@@ -1245,7 +1243,7 @@ public class IMAPProtocol extends Protocol {
         Response response = r[r.length - 1];
 
         if (response.isOK()) { // command succesful
-            if (response.toString().indexOf("READ-ONLY") != -1)
+            if (response.toString().contains("READ-ONLY"))
                 minfo.mode = Folder.READ_ONLY;
             else
                 minfo.mode = Folder.READ_WRITE;
@@ -1565,7 +1563,7 @@ public class IMAPProtocol extends Protocol {
                 }
             }
             if (v.size() > 0) {
-                linfo = v.toArray(new ListInfo[v.size()]);
+                linfo = v.toArray(new ListInfo[0]);
             }
         }
 
@@ -2532,10 +2530,8 @@ public class IMAPProtocol extends Protocol {
             } catch (IOException ioex) {
                 /* Charset conversion failed. Try the next one */
                 continue;
-            } catch (ProtocolException pex) {
+            } catch (ProtocolException | SearchException pex) {
                 throw pex;
-            } catch (SearchException sex) {
-                throw sex;
             }
         }
 
@@ -2793,7 +2789,7 @@ public class IMAPProtocol extends Protocol {
         notifyResponseHandlers(r);
         handleResult(response);
 
-        return tab.values().toArray(new Quota[tab.size()]);
+        return tab.values().toArray(new Quota[0]);
     }
 
     /**
@@ -2838,7 +2834,7 @@ public class IMAPProtocol extends Protocol {
         // dispatch remaining untagged responses
         notifyResponseHandlers(r);
         handleResult(response);
-        return v.toArray(new Quota[v.size()]);
+        return v.toArray(new Quota[0]);
     }
 
     /**
@@ -2923,7 +2919,7 @@ public class IMAPProtocol extends Protocol {
                 v.add(res);
             }
         }
-        q.resources = v.toArray(new Quota.Resource[v.size()]);
+        q.resources = v.toArray(new Quota.Resource[0]);
         return q;
     }
 
@@ -3029,7 +3025,7 @@ public class IMAPProtocol extends Protocol {
         // dispatch remaining untagged responses
         notifyResponseHandlers(r);
         handleResult(response);
-        return v.toArray(new ACL[v.size()]);
+        return v.toArray(new ACL[0]);
     }
 
     /**
@@ -3079,7 +3075,7 @@ public class IMAPProtocol extends Protocol {
         // dispatch remaining untagged responses
         notifyResponseHandlers(r);
         handleResult(response);
-        return v.toArray(new Rights[v.size()]);
+        return v.toArray(new Rights[0]);
     }
 
     /**
@@ -3186,7 +3182,7 @@ public class IMAPProtocol extends Protocol {
                 done = true;
         }
 
-        Response[] responses = v.toArray(new Response[v.size()]);
+        Response[] responses = v.toArray(new Response[0]);
         r = responses[responses.length - 1];
 
         // dispatch remaining untagged responses
@@ -3211,12 +3207,9 @@ public class IMAPProtocol extends Protocol {
         Response r = null;
         try {
             r = readResponse();
-        } catch (IOException ioex) {
+        } catch (IOException | ProtocolException ioex) {
             // convert this into a BYE response
             r = Response.byeResponse(ioex);
-        } catch (ProtocolException pex) {
-            // convert this into a BYE response
-            r = Response.byeResponse(pex);
         }
         return r;
     }

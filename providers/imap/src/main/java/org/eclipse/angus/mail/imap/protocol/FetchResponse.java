@@ -201,7 +201,7 @@ public class FetchResponse extends IMAPResponse {
                                 index + ", starts with \"" + next20() + "\"");
         } while (!isNextNonSpace(')'));
 
-        items = v.toArray(new Item[v.size()]);
+        items = v.toArray(new Item[0]);
     }
 
     /**

@@ -236,7 +236,7 @@ public class IMAPInputStream extends InputStream {
      * requisite number of bytes.
      */
     @Override
-    public synchronized int read(byte b[], int off, int len)
+    public synchronized int read(byte[] b, int off, int len)
             throws IOException {
 
         int avail = bufcount - bufpos;
@@ -246,7 +246,7 @@ public class IMAPInputStream extends InputStream {
             if (avail <= 0)
                 return -1; // EOF
         }
-        int cnt = (avail < len) ? avail : len;
+        int cnt = Math.min(avail, len);
         System.arraycopy(buf, bufpos, b, off, cnt);
         bufpos += cnt;
         return cnt;
@@ -267,7 +267,7 @@ public class IMAPInputStream extends InputStream {
      * requisite number of bytes.
      */
     @Override
-    public int read(byte b[]) throws IOException {
+    public int read(byte[] b) throws IOException {
         return read(b, 0, b.length);
     }
 

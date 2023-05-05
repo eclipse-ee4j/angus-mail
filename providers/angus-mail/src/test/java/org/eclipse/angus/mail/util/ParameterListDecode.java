@@ -75,7 +75,7 @@ public class ParameterListDecode {
                 ParameterListDecode.class.getResourceAsStream(paramData))));
     }
 
-    public static void main(String argv[]) throws Exception {
+    public static void main(String[] argv) throws Exception {
         System.getProperties().put("mail.mime.decodeparameters", "true");
         int optind;
         for (optind = 0; optind < argv.length; optind++) {
@@ -248,7 +248,7 @@ public class ParameterListDecode {
     /**
      * Test the header's value to see if we can parse it as expected.
      */
-    public static void test(String header, String value, String expect[])
+    public static void test(String header, String value, String[] expect)
             throws Exception {
         PrintStream out = System.out;
         ByteArrayOutputStream bos = null;

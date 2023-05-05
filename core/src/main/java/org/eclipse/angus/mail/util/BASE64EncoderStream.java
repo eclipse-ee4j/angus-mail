@@ -192,7 +192,7 @@ public class BASE64EncoderStream extends FilterOutputStream {
     /**
      * This array maps the characters to their 6 bit values
      */
-    private final static char pem_array[] = {
+    private final static char[] pem_array = {
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', // 0
             'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', // 1
             'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', // 2

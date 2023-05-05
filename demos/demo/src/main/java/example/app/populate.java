@@ -35,7 +35,7 @@ public class populate {
     static boolean dontPreserveFlags = false;
     static boolean warn = false;
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         String srcURL = null;
         String dstURL = null;
         boolean debug = false;

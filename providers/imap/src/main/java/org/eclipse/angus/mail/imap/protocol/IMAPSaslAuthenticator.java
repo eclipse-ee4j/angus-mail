@@ -254,7 +254,7 @@ public class IMAPSaslAuthenticator implements SaslAuthenticator {
                 }
             }
 
-            Response[] responses = v.toArray(new Response[v.size()]);
+            Response[] responses = v.toArray(new Response[0]);
 
             // handle an illegal but not uncommon untagged CAPABILTY response
             pr.handleCapabilityResponse(responses);

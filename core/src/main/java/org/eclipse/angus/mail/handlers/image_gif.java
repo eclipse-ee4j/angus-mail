@@ -48,17 +48,14 @@ public class image_gif extends handler_base {
         InputStream is = ds.getInputStream();
         int pos = 0;
         int count;
-        byte buf[] = new byte[1024];
+        byte[] buf = new byte[1024];
 
         while ((count = is.read(buf, pos, buf.length - pos)) != -1) {
             pos += count;
             if (pos >= buf.length) {
                 int size = buf.length;
-                if (size < 256 * 1024)
-                    size += size;
-                else
-                    size += 256 * 1024;
-                byte tbuf[] = new byte[size];
+                size += Math.min(size, 256 * 1024);
+                byte[] tbuf = new byte[size];
                 System.arraycopy(buf, 0, tbuf, 0, pos);
                 buf = tbuf;
             }

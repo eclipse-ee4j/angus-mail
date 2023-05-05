@@ -111,17 +111,14 @@ public class text_rfc822headers implements DataContentHandler {
         try {
             int pos = 0;
             int count;
-            char buf[] = new char[1024];
+            char[] buf = new char[1024];
 
             while ((count = is.read(buf, pos, buf.length - pos)) != -1) {
                 pos += count;
                 if (pos >= buf.length) {
                     int size = buf.length;
-                    if (size < 256 * 1024)
-                        size += size;
-                    else
-                        size += 256 * 1024;
-                    char tbuf[] = new char[size];
+                    size += Math.min(size, 256 * 1024);
+                    char[] tbuf = new char[size];
                     System.arraycopy(buf, 0, tbuf, 0, pos);
                     buf = tbuf;
                 }

@@ -103,7 +103,7 @@ public class TraceInputStream extends FilterInputStream {
      * trace mode is <code>true</code>
      */
     @Override
-    public int read(byte b[], int off, int len) throws IOException {
+    public int read(byte[] b, int off, int len) throws IOException {
         int count = in.read(b, off, len);
         if (trace && count != -1) {
             if (quote) {

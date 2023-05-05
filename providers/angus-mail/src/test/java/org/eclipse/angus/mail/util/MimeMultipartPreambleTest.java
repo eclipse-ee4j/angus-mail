@@ -23,6 +23,7 @@ import jakarta.mail.internet.MimeMultipart;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
@@ -96,7 +97,7 @@ public class MimeMultipartPreambleTest {
     private void doThreePartMailTest(String text) throws Exception {
         Session session = Session.getDefaultInstance(new Properties());
         MimeMessage mimeMessage = new MimeMessage(session,
-                new ByteArrayInputStream(text.getBytes("US-ASCII")));
+                new ByteArrayInputStream(text.getBytes(StandardCharsets.US_ASCII)));
 
         MimeMultipart topMultipart = (MimeMultipart) mimeMessage.getContent();
         assertEquals("Wrong preamble",

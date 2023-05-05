@@ -51,7 +51,7 @@ public class SMTPUknownCodeTest {
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.smtp.auth.mechanisms", "LOGIN");
 //            properties.setProperty("mail.debug.auth", "true");
             Session session = Session.getInstance(properties);

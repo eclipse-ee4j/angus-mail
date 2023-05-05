@@ -68,7 +68,7 @@ public final class SMTPIOExceptionTest {
 
             final Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.smtp.timeout", "" + TIMEOUT);
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);

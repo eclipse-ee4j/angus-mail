@@ -56,7 +56,7 @@ public class SMTPUtf8Test {
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.smtp.auth.mechanisms", "LOGIN");
             properties.setProperty("mail.mime.allowutf8", "true");
             //properties.setProperty("mail.debug.auth", "true");
@@ -103,7 +103,7 @@ public class SMTPUtf8Test {
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.smtp.auth.mechanisms", "LOGIN");
             //properties.setProperty("mail.debug.auth", "true");
             Session session = Session.getInstance(properties);
@@ -149,7 +149,7 @@ public class SMTPUtf8Test {
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.smtp.auth.mechanisms", "PLAIN");
             //properties.setProperty("mail.debug.auth", "true");
             Session session = Session.getInstance(properties);
@@ -224,7 +224,7 @@ public class SMTPUtf8Test {
 
             Properties properties = new Properties();
             properties.setProperty("mail.smtp.host", "localhost");
-            properties.setProperty("mail.smtp.port", "" + server.getPort());
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.mime.allowutf8", "true");
             //properties.setProperty("mail.debug.auth", "true");
             Session session = Session.getInstance(properties);

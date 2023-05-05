@@ -159,7 +159,7 @@ public class BASE64MailboxDecoder {
      */
 
     // shared with BASE64MailboxEncoder
-    static final char pem_array[] = {
+    static final char[] pem_array = {
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', // 0
             'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', // 1
             'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', // 2
@@ -170,7 +170,7 @@ public class BASE64MailboxDecoder {
             '4', '5', '6', '7', '8', '9', '+', ','  // 7
     };
 
-    private static final byte pem_convert_array[] = new byte[256];
+    private static final byte[] pem_convert_array = new byte[256];
 
     static {
         for (int i = 0; i < 255; i++)

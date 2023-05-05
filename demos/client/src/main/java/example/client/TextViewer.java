@@ -69,7 +69,7 @@ public class TextViewer extends JPanel implements CommandObject {
         int bytes_read = 0;
         // check that we can actually read
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte data[] = new byte[1024];
+        byte[] data = new byte[1024];
 
         try {
             while ((bytes_read = ins.read(data)) > 0)

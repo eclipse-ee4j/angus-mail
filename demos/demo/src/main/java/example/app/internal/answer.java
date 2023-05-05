@@ -66,7 +66,7 @@ public class answer {
     static boolean update = false;
     static boolean markAll = false;
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         int optind;
 
         for (optind = 0; optind < argv.length; optind++) {

@@ -51,7 +51,7 @@ public class search {
     static String url = null;
     static boolean debug = false;
 
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         int optind;
 
         String subject = null;

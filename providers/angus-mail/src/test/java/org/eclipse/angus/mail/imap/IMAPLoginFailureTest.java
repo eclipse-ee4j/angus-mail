@@ -55,7 +55,7 @@ public final class IMAPLoginFailureTest {
             SavedSocketFactory ssf = new SavedSocketFactory();
             Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
-            properties.setProperty("mail.imap.port", "" + server.getPort());
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             properties.put("mail.imap.socketFactory", ssf);
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
