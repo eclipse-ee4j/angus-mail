@@ -51,8 +51,8 @@ jobs:
         run: |
           export ANGUS_MAIL_VERSION=`curl -s https://repo1.maven.org/maven2/org/eclipse/angus/angus-mail/maven-metadata.xml | tac | grep -o -m 1 "<version>[[:digit:]]\.[[:digit:]]\.[[:digit:]]</version" | cut -f 2 -d ">" | cut -f 1 -d "<" | tr -d '[:space:]'`
           echo Building javadoc for Angus Mail version: $ANGUS_MAIL_VERSION
-          export ACTIVATION_API_VERSION=`mvn -B -U -C org.apache.maven.plugins:maven-dependency-plugin:3.4.0:tree -f doc/pom.xml -Dincludes=\*:jakarta.activation-api:\* -Dangus-mail.version=$ANGUS_MAIL_VERSION | grep activation-api | cut -d ':' -f 4 | tr -d '[:space:]'`
-          export MAIL_API_VERSION=`mvn -B -U -C org.apache.maven.plugins:maven-dependency-plugin:3.4.0:tree -f doc/pom.xml -Dincludes=\*:jakarta.mail-api:\* -Dangus-mail.version=$ANGUS_MAIL_VERSION | grep mail-api | cut -d ':' -f 4 | tr -d '[:space:]'`
+          export ACTIVATION_API_VERSION=`mvn -B -U -C org.apache.maven.plugins:maven-dependency-plugin:3.4.0:tree -Pstaging -f doc/pom.xml -Dincludes=\*:jakarta.activation-api:\* -Dangus-mail.version=$ANGUS_MAIL_VERSION | grep activation-api | cut -d ':' -f 4 | tr -d '[:space:]'`
+          export MAIL_API_VERSION=`mvn -B -U -C org.apache.maven.plugins:maven-dependency-plugin:3.4.0:tree -Pstaging -f doc/pom.xml -Dincludes=\*:jakarta.mail-api:\* -Dangus-mail.version=$ANGUS_MAIL_VERSION | grep mail-api | cut -d ':' -f 4 | tr -d '[:space:]'`
           export ANGUS_ACTIVATION_VERSION=`curl -s https://repo1.maven.org/maven2/org/eclipse/angus/all/$ANGUS_MAIL_VERSION/all-$ANGUS_MAIL_VERSION.pom | grep -o -m 1 "<angus.activation.version>[[:digit:]]\.[[:digit:]]\.[[:digit:]]</angus.activation.version" | cut -f 2 -d ">" | cut -f 1 -d "<" | tr -d '[:space:]'`
           echo Activation API version: $ACTIVATION_API_VERSION
           echo Angus Activation version: $ANGUS_ACTIVATION_VERSION
