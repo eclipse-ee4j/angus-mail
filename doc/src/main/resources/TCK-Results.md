@@ -17,7 +17,7 @@ following is a summary of the TCK results for releases of Jakarta Mail.
   [Jakarta Mail TCK 2.1.1](https://download.eclipse.org/jakartaee/mail/2.1/jakarta-mail-tck-2.1.1.zip), SHA-256:
   c749d4245acc51a53c8c3058782f3da6dfd87384a4485ce3fee3c8d36bd0df1b
 - [x] Public URL of TCK Results Summary:\
-  [TCK results summary](https://github.com/eclipse-ee4j/angus-mail/blob/master/doc/CR-1.0.0-SUMMARY-6f02a9.TXT)
+  [TCK results summary](https://eclipse-ee4j.github.io/angus-mail/TCK-Results)
 - [x] Any Additional Specification Certification Requirements:\
   None
 - [x] Java runtime used to run the implementation:\
