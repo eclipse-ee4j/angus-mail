@@ -5,6 +5,42 @@ As required by the
 [Eclipse Foundation Technology Compatibility Kit License](https://www.eclipse.org/legal/tck.php),
 following is a summary of the TCK results for releases of Jakarta Mail.
 
+# 2.0.2 Certification Request
+
+- [x] Organization Name ("Organization") and, if applicable, URL:\
+  [Eclipse Foundation](https://www.eclipse.org/)
+- [x] Product Name, Version and download URL (if applicable):\
+  [Angus Mail 2.0.2](https://eclipse-ee4j.github.io/angus-mail/)
+- [x] Specification Name, Version and download URL:\
+  [Jakarta Mail 2.1](https://jakarta.ee/specifications/mail/2.1/)
+- [x] TCK Version, digital SHA-256 fingerprint and download URL:\
+  [Jakarta Mail TCK 2.1.1](https://download.eclipse.org/jakartaee/mail/2.1/jakarta-mail-tck-2.1.1.zip), SHA-256:
+  c749d4245acc51a53c8c3058782f3da6dfd87384a4485ce3fee3c8d36bd0df1b
+- [x] Public URL of TCK Results Summary:\
+  [TCK results summary](https://github.com/eclipse-ee4j/angus-mail/blob/master/doc/CR-1.0.0-SUMMARY-6f02a9.TXT)
+- [x] Any Additional Specification Certification Requirements:\
+  None
+- [x] Java runtime used to run the implementation:\
+  Oracle JDK 11.0.10
+- [x] Summary of the information for the certification environment, operating system, cloud, ...:
+  Apache James mail server 3.0.1, Linux
+- [x] By checking this box I acknowledge that the Organization I represent accepts the terms of
+  the [EFTL](https://www.eclipse.org/legal/tck.php).
+- [x] By checking this box I attest that all TCK requirements have been met, including any compatibility rules.
+
+Test results:
+
+```
+[javatest.batch] ***************************************************************
+[javatest.batch] Completed running 322 tests.
+[javatest.batch] Number of Tests Passed      = 322
+[javatest.batch] Number of Tests Failed      = 0
+[javatest.batch] Number of Tests with Errors = 0
+[javatest.batch] Number of Tests Not Run     = 0
+[javatest.batch] ---------------------------------------------------------------
+```
+
+
 # 2.0.0 Certification Request
 
 - [x] Organization Name ("Organization") and, if applicable, URL:\
