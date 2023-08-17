@@ -1,6 +1,6 @@
 For changes related to mail you can refer to this file:
 
-    https://raw.githubusercontent.com/eclipse-ee4j/angus-mail/master/doc/src/main/resources/CHANGES.txt
+    https://raw.githubusercontent.com/eclipse-ee4j/angus-mail/master/doc/src/main/resources/docs/CHANGES.txt
 
 Bug IDs can be found in the GitHub Issue Tracker
 for the Eclipse EE4J Angus Mail project:

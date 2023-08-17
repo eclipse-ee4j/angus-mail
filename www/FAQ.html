@@ -1,8 +1,8 @@
 ---
 layout: default
-title: Jakarta Mail FAQ
+title: Angus Mail FAQ
 ---
-<H1>Jakarta Mail FAQ</H1>
+<H1>Angus Mail FAQ</H1>
 <!-- content goes here -->
 
 <!-- BEGIN INDEX -->
@@ -18,7 +18,7 @@ title: Jakarta Mail FAQ
         operating system?</A>
         <BR>
     <LI><A HREF="#browsers">Do the Jakarta Mail APIs work in web browsers?</A><BR>
-    <LI><A HREF="#webmail">Can I use Jakarta Mail to read mail from my web mail account
+    <LI><A HREF="#webmail">Can I use Angus Mail to read mail from my web mail account
         (such as Yahoo or Hotmail)?
     </A>
         <BR>
@@ -32,12 +32,11 @@ title: Jakarta Mail FAQ
         <BR>
     <LI><A HREF="#sundocs">Where do I find documentation on the protocol providers?</A>
         <BR>
-    <LI><A HREF="#free">Is the Jakarta Mail API implementation completely free?
+    <LI><A HREF="#free">Is Angus Mail completely free?
         Can I ship it along with my product?</A><BR>
-    <LI><A HREF="#source">Can I get the source code for the Jakarta Mail API
-        implementation?</A>
+    <LI><A HREF="#source">Can I get the source code for Angus Mail?</A>
         <BR>
-    <LI><A HREF="#y2k">Is Jakarta Mail Y2K compliant?</A><BR>
+    <LI><A HREF="#y2k">Is Angus Mail Y2K compliant?</A><BR>
     <LI><A HREF="#more">The answer to my question isn't here, where else should I look?
     </A>
         <BR>
@@ -57,19 +56,19 @@ title: Jakarta Mail FAQ
     <LI><A HREF="#classpathwin">How do I set my CLASSPATH on Windows?
     </A>
         <BR>
-    <LI><A HREF="#libnetbeans">How do I add the Jakarta Mail library to my NetBeans Java Project?
+    <LI><A HREF="#libnetbeans">How do I add the Angus Mail library to my NetBeans Java Project?
     </A>
         <BR>
-    <LI><A HREF="#libeclipse">How do I add the Jakarta Mail library to my Eclipse Java Project?
+    <LI><A HREF="#libeclipse">How do I add the Angus Mail library to my Eclipse Java Project?
     </A>
         <BR>
-    <LI><A HREF="#incservers">Does Jakarta Mail include all the necessary mail servers? </A>
+    <LI><A HREF="#incservers">Does Angus Mail include all the necessary mail servers? </A>
         <BR>
     <LI><A HREF="#servers">Where can I get the necessary mail servers?</A>
         <BR>
     <LI><A HREF="#whichserver">What host name, user name, or password should I use?</A>
         <BR>
-    <LI><A HREF="#proxy">How do I configure Jakarta Mail to work through my proxy server?</A>
+    <LI><A HREF="#proxy">How do I configure Angus Mail to work through my proxy server?</A>
         <IMG SRC="assets/images/updated.gif" ALT="[updated!]" TITLE="Updated 11/6/2017">
         <BR>
     <LI><A HREF="#installcert">When connecting to my mail server over SSL I get an exception like
@@ -78,16 +77,16 @@ title: Jakarta Mail FAQ
         <BR>
     <LI><A HREF="#linuxzip">While trying to run my program on Linux I get a very strange
         error message and the program fails. What did I do wrong?</A><BR>
-    <LI><A HREF="#securityManager">How do I use Jakarta Mail in an application run under a SecurityManager;
-        what permissions must I grant to the application and to Jakarta Mail?
+    <LI><A HREF="#securityManager">How do I use Angus Mail in an application run under a SecurityManager;
+        what permissions must I grant to the application and to Angus Mail?
     </A>
         <BR>
-    <LI><A HREF="#tomcatconfig">How do I configure Tomcat to allow me to use Jakarta Mail in my
+    <LI><A HREF="#tomcatconfig">How do I configure Tomcat to allow me to use Angus Mail in my
         web application?
     </A>
         <BR>
-    <LI><A HREF="#servletcp">When using Jakarta Mail in my servlet, it is unable to find any of
-        the Jakarta Mail classes. I've added jakarta.mail.jar to the server's CLASSPATH.
+    <LI><A HREF="#servletcp">When using Angus Mail in my servlet, it is unable to find any of
+        the Angus Mail classes. I've added angus-mail.jar to the server's CLASSPATH.
     </A>
         <BR>
     <LI><A HREF="#dupcp">I'm sure I've set my CLASSPATH correctly, but I'm still getting
@@ -95,12 +94,12 @@ title: Jakarta Mail FAQ
         classes.
     </A>
         <BR>
-    <LI><A HREF="#servletSecurityManager">My servlet can find the Jakarta Mail classes, but Jakarta Mail complains
+    <LI><A HREF="#servletSecurityManager">My servlet can find the Angus Mail classes, but Angus Mail complains
         that it can't find a service provider for "smtp" or "imap" or address
         type "rfc822".
     </A>
         <BR>
-    <LI><A HREF="#gmail">How do I access Gmail with Jakarta Mail? </A>
+    <LI><A HREF="#gmail">How do I access Gmail with Angus Mail? </A>
         <BR>
     <LI><A HREF="#gmailauth">Why do I get AuthenticationFailedException when
         accessing Gmail? </A>
@@ -115,11 +114,11 @@ title: Jakarta Mail FAQ
     </A>
         <IMG SRC="assets/images/new.gif" ALT="[new!]" TITLE="New 9/21/2016">
         <BR>
-    <LI><A HREF="#yahoomail">How do I access Yahoo! Mail with Jakarta Mail? </A>
+    <LI><A HREF="#yahoomail">How do I access Yahoo! Mail with Angus Mail? </A>
         <BR>
-    <LI><A HREF="#hotmail">How do I access Hotmail (Windows Live mail) with Jakarta Mail? </A>
+    <LI><A HREF="#hotmail">How do I access Hotmail (Windows Live mail) with Angus Mail? </A>
         <BR>
-    <LI><A HREF="#outlook">How do I access Outlook.com with Jakarta Mail? </A>
+    <LI><A HREF="#outlook">How do I access Outlook.com with Angus Mail? </A>
         <BR>
 </UL>
 <BR>
@@ -127,12 +126,12 @@ title: Jakarta Mail FAQ
 <H2><STRONG>Programming</STRONG></H2>
 <UL>
     <LI><A HREF="#basics">Where can I learn the basics about Internet email that
-        I'll need to know to program Jakarta Mail effectively? </A>
+        I'll need to know to program Angus Mail effectively? </A>
         <BR>
-    <LI><A HREF="#examples">Where can I find some example programs that show how to use Jakarta Mail? </A>
+    <LI><A HREF="#examples">Where can I find some example programs that show how to use Angus Mail? </A>
         <BR>
     <LI><A HREF="#commonmistakes">What are some of the most common mistakes people make
-        when using Jakarta Mail? </A>
+        when using Angus Mail? </A>
         <BR>
     <LI><A HREF="#attach">How do I send a message with an attachment?</A>
         <BR>
@@ -169,7 +168,7 @@ title: Jakarta Mail FAQ
         MIME type I choose?</A>
         <BR>
     <LI><A HREF="#readofficedoc">Can I read or send a Microsoft Office document using
-        Jakarta Mail? </A>
+        Angus Mail? </A>
         <BR>
     <LI><A HREF="#ical">How do I create or process calendar appointments?</A>
         <BR>
@@ -215,14 +214,14 @@ title: Jakarta Mail FAQ
     </A>
         <BR>
     <LI><A HREF="#preencoded">I have data that's already encoded in (e.g.) base64, how do I
-        tell Jakarta Mail to send this data without re-encoding it?
+        tell Angus Mail to send this data without re-encoding it?
     </A>
         <BR>
-    <LI><A HREF="#howencode">Even though Jakarta Mail does all the encoding and decoding for me,
+    <LI><A HREF="#howencode">Even though Angus Mail does all the encoding and decoding for me,
         I need to manually control the encoding for some body parts.
     </A>
         <BR>
-    <LI><A HREF="#encodefilename">Why doesn't Jakarta Mail properly encode and decode filenames in
+    <LI><A HREF="#encodefilename">Why doesn't Angus Mail properly encode and decode filenames in
         non-ASCII character sets?
     </A>
         <BR>
@@ -251,9 +250,9 @@ title: Jakarta Mail FAQ
         but I get an error.</A>
         <BR>
     <LI><A HREF="#imapserverbug">I can read messages from my IMAP server with other mail clients,
-        but even though I can connect to the server using Jakarta Mail, when I use
-        Jakarta Mail to read some messages it fails. Doesn't that mean there's a bug
-        in Jakarta Mail?
+        but even though I can connect to the server using Angus Mail, when I use
+        Angus Mail to read some messages it fails. Doesn't that mean there's a bug
+        in Angus Mail?
     </A>
         <BR>
     <LI><A HREF="#fetch">The IMAP provider seems to lose data when I fetch messages with large
@@ -396,24 +395,24 @@ title: Jakarta Mail FAQ
 </UL>
 <BR>
 <BR>
-<H2><STRONG>Jakarta Mail in servlets</STRONG></H2>
+<H2><STRONG>Angus Mail in servlets</STRONG></H2>
 <UL>
-    <LI><A HREF="#servlethow">Can I use Jakarta Mail in servlets?
+    <LI><A HREF="#servlethow">Can I use Angus Mail in servlets?
     </A>
         <BR>
-    <LI><A HREF="#fileupload">My web application uses Jakarta Mail to attach and send a file that
+    <LI><A HREF="#fileupload">My web application uses Angus Mail to attach and send a file that
         the user specifies, but my application can't find the file.
     </A>
         <BR>
 </UL>
 <BR>
 <BR>
-<H2><STRONG>Jakarta Mail in applets</STRONG></H2>
+<H2><STRONG>Angus Mail in applets</STRONG></H2>
 <UL>
-    <LI><A HREF="#applets">Can I use Jakarta Mail in applets?
+    <LI><A HREF="#applets">Can I use Angus Mail in applets?
     </A>
         <BR>
-    <LI><A HREF="#appletsecurity">What are the security implications of using Jakarta Mail in an applet?
+    <LI><A HREF="#appletsecurity">What are the security implications of using Angus Mail in an applet?
     </A>
         <BR>
     <LI><A HREF="#appletalt">Ok, maybe I really don't want to use an applet, what should I
@@ -448,7 +447,7 @@ title: Jakarta Mail FAQ
     used on JDK 1.4 and later on any operating system.
     The Jakarta Mail API is also a required part of the
     <A HREF="https://jakarta.ee">Jakarta EE Platform</A> and the
-    <A HREF="http://www.oracle.com/technetwork/java/javaee/overview/javaee-135128.html">
+    <A HREF="https://www.oracle.com/java/technologies/javaee6-glance.html">
         Java Platform,
         Enterprise Edition (Java EE)</A>.
 </P>
@@ -459,7 +458,7 @@ title: Jakarta Mail FAQ
     <strong>A:</strong> Eclipse provides an open source
     implementation that developers may use and ship.
     The implementation
-    includes the core Jakarta Mail packages and IMAP, POP3, and SMTP service providers.
+    includes the core Angus Mail packages and IMAP, POP3, and SMTP service providers.
     The implementation may be downloaded
     <A href="https://eclipse-ee4j.github.io/angus-mail">here</A>.
 </P>
@@ -468,8 +467,8 @@ title: Jakarta Mail FAQ
     <A NAME="feedback">
         <strong>Q:</strong> How do I send feedback or comments?</A>
     <BR>
-    <strong>A:</strong> Send email to <A href="https://accounts.eclipse.org/mailing-list/mail-dev">
-    mail-dev@eclipse.org</A>.
+    <strong>A:</strong> Send email to <A href="https://accounts.eclipse.org/mailing-list/angus-dev">
+    angus-dev@eclipse.org</A>.
 </P>
 
 <P>
@@ -488,19 +487,19 @@ title: Jakarta Mail FAQ
     <strong>A:</strong> The Jakarta Mail API requires JDK/JRE 1.7 or higher.
     The Jakarta Mail API is a Java
     optional package, it is not part of the core
-    <A HREF="https://www.oracle.com/technetwork/java/javase/downloads/index.html">Java SE</A>
+    <A HREF="https://www.oracle.com/java/technologies/downloads/">Java SE</A>
     but <strong>is</strong> included in
-    <A HREF="https://www.oracle.com/technetwork/java/javaee/downloads/index.html">Java EE</A>
+    <A HREF="https://www.oracle.com/java/technologies/javaee-8-sdk-downloads.html">Java EE</A>
     and
     <A HREF="https://jakarta.ee/">Jakarta EE</A>.
 </P>
 
 <P>
     <A NAME="ossup">
-        <strong>Q:</strong> Where can I find a version of Jakarta Mail for my favorite
+        <strong>Q:</strong> Where can I find a version of Angus Mail for my favorite
         operating system?</A>
     <BR>
-    <strong>A:</strong> Jakarta Mail is completely written in Java and will run on
+    <strong>A:</strong> Angus Mail is completely written in Java and will run on
     any operating system that supports the required version of the JDK.
     No special version is needed for different operating systems.
 </P>
@@ -508,27 +507,26 @@ title: Jakarta Mail FAQ
 <P>
     <A NAME="browsers">
         <strong>Q:</strong> Do the Jakarta Mail APIs work in web browsers?</A><BR>
-    <strong>A:</strong> Jakarta Mail will work in any browser that supports the
+    <strong>A:</strong> Angus Mail will work in any browser that supports the
     required JDK version.
-    The <A HREF="http://docs.oracle.com/javase/7/docs/technotes/guides/jweb/applet/a
-pplet_dev_guide.html">
+    The <A HREF="https://docs.oracle.com/javase/7/docs/technotes/guides/jweb/applet/applet_dev_guide.html">
     Java Plug-in</A> may be required to provide such support.
 </P>
 
 <P>
     <A NAME="webmail">
-        <strong>Q:</strong> Can I use Jakarta Mail to read mail from my web mail account
+        <strong>Q:</strong> Can I use Angus Mail to read mail from my web mail account
         (such as Yahoo or Hotmail)?
     </A>
     <BR>
     <strong>A:</strong> It depends. Many web-based email services provide access only
-    using a browser with HTTP. These services cannot be accessed using Jakarta Mail.
-    If the service also provides POP3 or IMAP access, Jakarta Mail can probably
+    using a browser with HTTP. These services cannot be accessed using Angus Mail.
+    If the service also provides POP3 or IMAP access, Angus Mail can probably
     be used to access it.
     Contact your web email service provider for details.
     Another helpful tool is MrPostman, a proxy server that provides POP3 access
     to Hotmail and Yahoo! Mail, available at
-    <A HREF="http://sourceforge.net/projects/mrpostman/">http://sourceforge.net/projects/mrpostman/</A>
+    <A HREF="https://sourceforge.net/projects/mrpostman/">https://sourceforge.net/projects/mrpostman/</A>
 </P>
 
 <P>
@@ -538,7 +536,7 @@ pplet_dev_guide.html">
     method of accessing electronic mail messages stored on a (possibly shared)
     mail server. In other words, it permits a "client" email program to
     access remote message stores as if they were local. IMAP is defined
-    by <A href="http://www.ietf.org/rfc/rfc2060.txt">RFC2060</A>.
+    by <A href="https://www.ietf.org/rfc/rfc2060.txt">RFC2060</A>.
 </P>
 
 <P>
@@ -548,21 +546,21 @@ pplet_dev_guide.html">
     to transfer RFC822-style messages between different mail hosts as
     well as to submit new messages to a host for delivery. SMTP is in
     very wide use (it originated in 1982) and is defined by
-    <A href="http://www.ietf.org/rfc/rfc821.txt">RFC821</A>.
+    <A href="https://www.ietf.org/rfc/rfc821.txt">RFC821</A>.
 </P>
 
 <P>
     <A NAME="mime">
         <strong>Q:</strong> What is MIME?</A><BR>
     <strong>A:</strong> MIME and
-    <A href="http://www.ietf.org/rfc/rfc822.txt">RFC822</A>
+    <A href="https://www.ietf.org/rfc/rfc822.txt">RFC822</A>
     are the standards for describing email
     messages that are sent across the Internet. The javax.mail.internet
     subpackage (which is part of the Jakarta Mail APIs) provides a complete
     implementation of these two packages. MIME is specified by the
-    following RFCs: <A href="http://www.ietf.org/rfc/rfc2045.txt">RFC2045</A>,
-    <A href="http://www.ietf.org/rfc/rfc2046.txt">RFC2046</A>,
-    <A href="http://www.ietf.org/rfc/rfc2047.txt">RFC2047</A>.
+    following RFCs: <A href="https://www.ietf.org/rfc/rfc2045.txt">RFC2045</A>,
+    <A href="https://www.ietf.org/rfc/rfc2046.txt">RFC2046</A>,
+    <A href="https://www.ietf.org/rfc/rfc2047.txt">RFC2047</A>.
 </P>
 
 <P>
@@ -572,7 +570,7 @@ pplet_dev_guide.html">
     POP3 is a very limited protocol for accessing a single mailbox.
     It is much less capable than IMAP.
     POP3 is very widely used and is defined by
-    <A href="http://www.ietf.org/rfc/rfc1939.txt">RFC1939</A>.
+    <A href="https://www.ietf.org/rfc/rfc1939.txt">RFC1939</A>.
 </P>
 
 <P>
@@ -581,7 +579,7 @@ pplet_dev_guide.html">
         and other service providers?</A><BR>
     <strong>A:</strong> We have no current plans to implement any of these
     providers. However, the architecture of the Jakarta Mail APIs provides
-    for being able to easily plug-in third-party service providers. It is
+    for being able to easily plug in third-party service providers. It is
     our hope that third-parties will embrace the Jakarta Mail APIs by writing
     providers for other standard and proprietary protocols.
     See our <A HREF="ThirdPartyProducts">Third Party Products</A> page
@@ -594,7 +592,7 @@ pplet_dev_guide.html">
     <BR>
     <strong>A:</strong> A "local store provider" can be used to store mail messages
     on a local disk. The Jakarta Mail API download does not include such a provider
-    but a provider that supports the Unix mbox format is available in the Jakarta Mail
+    but a provider that supports the Unix mbox format is available in the Angus Mail
     source repository that you can build yourself. See
     <A HREF="Mbox-Store">this page</A>
     for details.
@@ -610,14 +608,14 @@ pplet_dev_guide.html">
     <BR>
     <strong>A:</strong> The protocol providers for IMAP, POP3, and SMTP support
     many features that are not part of the Jakarta Mail API specification. The
-    documentation for these protocol providers is included in the Jakarta Mail
+    documentation for these protocol providers is included in the Angus Mail
     javadocs. The package level documentation for each protocol provider
     package describes the properties that are supported by the protocol
     proivder. In addition, the protocol providers include some classes and
     methods that applications can use to take advantage of
     provider-specific features. Note that use of these properties,
     classes, and methods renders a program <b>non-portable</b>; it may
-    only work with Oracle's implementation of the Jakarta Mail API.
+    only work with Eclipse's implementation of the Jakarta Mail API.
     See the
     <A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/imap/package-summary.html">IMAP</A>,
     <A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/pop3/package-summary.html">POP3</A>, and
@@ -627,33 +625,32 @@ pplet_dev_guide.html">
 
 <P>
     <A NAME="free">
-        <strong>Q:</strong> Is the Jakarta Mail API implementation completely free?
+        <strong>Q:</strong> Is Angus Mail completely free?
         Can I ship it along with my product?</A><BR>
-    <strong>A:</strong> Yes. The Jakarta Mail API implementation
-    is completely free and open source and you can include it in your product.
+    <strong>A:</strong> Yes. Angus Mail
+    is completely free and open source, and you can include it in your product.
     This release includes IMAP, POP3, and SMTP providers as well. Please do
     read the license and ensure that you understand it.
-    The Jakarta Mail license is described
+    The Angus Mail license is described
     <A HREF="AngusMail-License">here</A>.
 </P>
 
 <P>
     <A NAME="source">
-        <strong>Q:</strong> Can I get the source code for the Jakarta Mail API
-        implementation?</A>
+    <strong>Q:</strong> Can I get the source code for Angus Mail?</A>
     <BR>
     <strong>A:</strong> Starting with Jakarta Mail 1.4.2, the source code for the
     Jakarta Mail API
     Reference Implementation is available under the CDDL or GPL open source licenses
-    in the <A HREF="https://jakartaee.github.io/mail-api">Jakarta Mail project</A>.
+    in the <A HREF="https://eclipse-ee4j.github.io/angus-mail">Angus Mail project</A>.
 </P>
 
 <P>
     <A NAME="y2k">
-        <strong>Q:</strong> Is Jakarta Mail Y2K compliant?</A><BR>
-    <strong>A:</strong> Yes. Oracle's Jakarta Mail implementation is Option-3 Y2K compliant. Please
+        <strong>Q:</strong> Is Angus Mail Y2K compliant?</A><BR>
+    <strong>A:</strong> Yes. Angus Mail implementation is Option-3 Y2K compliant. Please
     see the <A HREF="docs/NOTES.txt">NOTES.txt</A>
-    file in the Jakarta Mail package for more information.
+    file in the Angus Mail package for more information.
 </P>
 
 <P>
@@ -663,28 +660,28 @@ pplet_dev_guide.html">
     <BR>
     <strong>A:</strong> In addition to the Jakarta Mail API spec and javadocs
     (available from
-    <A HREF="https://eclipse-ee4j.github.io/angus-mail"">our main web page</A>),
+    <A HREF="https://eclipse-ee4j.github.io/angus-mail">our main web page</A>),
     don't forget to check the
     <A HREF="docs/README.txt">README.txt</A> and
     <A HREF="docs/NOTES.txt">NOTES.txt</A> files
     for additional important information.
 </P>
 <P>
-    You can reach the Jakarta Mail team directly at
-    <A HREF="https://accounts.eclipse.org/mailing-list/mail-dev">mail-dev@eclipse.org</A>.
+    You can reach the Angus Mail team directly at
+    <A HREF="https://accounts.eclipse.org/mailing-list/angus-dev">angus-dev@eclipse.org</A>.
     You can use this address to report bugs.
     Bugs can also be reported using the Issue Tracker at the
-    <A HREF="https://jakartaee.github.io/mail-api">Jakarta Mail project</A>.
+    <A HREF="https://eclipse-ee4j.github.io/angus-mail">Angus Mail project</A>.
 </P>
 <P>
-    The Oracle Technology Network maintains a Jakarta Mail forum, see the
-    <A HREF="http://forums.oracle.com/forums/forum.jspa?forumID=975">
+    The Oracle Technology Network maintained a Jakarta Mail forum, see the
+    <A HREF="https://forums.oracle.com/forums/forum.jspa?forumID=975">
         Jakarta Mail Forum</A>.
 </P>
 <P>
     jGuru also maintains a Jakarta Mail FAQ, which you'll find at
-    <A HREF="http://www.jguru.com/faq/Jakarta Mail">
-        http://www.jguru.com/faq/Jakarta Mail</A>,
+    <A HREF="https://www.jguru.com/faq/Jakarta Mail">
+        https://www.jguru.com/faq/Jakarta Mail</A>,
     although it hasn't been updated in several years.
 </P>
 
@@ -696,11 +693,11 @@ pplet_dev_guide.html">
 
 <P>
     <A NAME="install">
-        <strong>Q:</strong> How do I install the Jakarta Mail API implementation?</A>
+        <strong>Q:</strong> How do I install Angus Mail?</A>
     <BR>
     <strong>A:</strong> Download the
-    [Jakarta Mail jar file](https://github.com/eclipse-ee4j/mail/releases/download/1.6.4/jakarta.mail.jar)
-    and edit your CLASSPATH environment variable to include the jakarta.mail.jar file.
+    [Angus Mail jar file](https://repo1.maven.org/maven2/org/eclipse/angus/angus-mail/2.0.0/angus-mail-2.0.0.jar)
+    and edit your CLASSPATH environment variable to include the angus-mail-2.0.0.jar file.
     You will also need an implementation of the
     JavaBeans Activation Framework (see below) unless you're using JDK 1.6
     through JDK 10 (which includes JAF).
@@ -714,18 +711,18 @@ pplet_dev_guide.html">
         <strong>Q:</strong> I get a ClassNotFoundException when I run my program.</A>
     <BR>
     <strong>A:</strong> You haven't set CLASSPATH properly. See
-    <A HREF="http://docs.oracle.com/javase/7/docs/technotes/tools/windows/classpath.html">
+    <A HREF="https://docs.oracle.com/javase/7/docs/technotes/tools/windows/classpath.html">
         Setting the class path (Windows)</A> or
-    <A HREF="http://docs.oracle.com/javase/7/docs/technotes/tools/solaris/classpath.html">
+    <A HREF="https://docs.oracle.com/javase/7/docs/technotes/tools/solaris/classpath.html">
         Setting the class path (Solaris/Linux)</A> in the JDK documentation.
     Note that if you're running your program using "java -jar", the CLASSPATH
     environment variable setting is ignored. In that case you'll need to
     add the "-classpath" argument to the java command, or add the
     <CODE>Class-Path</CODE> header to the manifest file of your jar file.
     See the
-    <A HREF="http://docs.oracle.com/javase/tutorial/deployment/jar/">Java Tutorial</A>
+    <A HREF="https://docs.oracle.com/javase/tutorial/deployment/jar/">Java Tutorial</A>
     and this
-    <A HREF="http://en.wikipedia.org/wiki/Classpath_(Java)">Wikipedia article</A>
+    <A HREF="https://en.wikipedia.org/wiki/Classpath">Wikipedia article</A>
     for more information.
 </P>
 
@@ -738,7 +735,7 @@ pplet_dev_guide.html">
     <strong>A:</strong> JDK 9 and 10 hide many of the javax.* classes by default.
     You need to use the java command line option
     <code>--add-modules java.activation</code>
-    to enable access the the javax.activation (JAF) classes.
+    to enable access the javax.activation (JAF) classes.
     (Note that there's no "x" in the module name.)
     Or, you need to include the
     <A HREF="https://repo1.maven.org/maven2/com/sun/activation/jakarta.activation/1.2.1/jakarta.activation-1.2.1.jar">jakarta.activation.jar</A>
@@ -756,7 +753,7 @@ pplet_dev_guide.html">
 
 <P>
     <A NAME="libnetbeans">
-        <strong>Q:</strong> How do I add the Jakarta Mail library to my NetBeans Java Project?
+        <strong>Q:</strong> How do I add the Angus Mail library to my NetBeans Java Project?
     </A>
     <BR>
     <strong>A:</strong>
@@ -767,24 +764,24 @@ pplet_dev_guide.html">
         main menu bar).
     </LI>
     <LI>Select &lt;New Library...&gt;</LI>
-    <LI>Enter a library name, e.g., "Jakarta Mail", and hit &lt;OK&gt;. Do not
+    <LI>Enter a library name, e.g., "Angus Mail", and hit &lt;OK&gt;. Do not
         check server library.
     </LI>
     <LI>Make sure the new library is selected under "Libraries" on the left.</LI>
     <LI>Select the "Classpath" tab on the right and choose
         &lt;Add Jar/Folder...&gt;
     </LI>
-    <LI>Using the file browser, select the jakarta.mail.jar that you downloaded,
+    <LI>Using the file browser, select the angus-mail.jar that you downloaded,
         and hit &lt;Add Jar/Folder&gt; to accept.
     </LI>
     <LI>Select the "Javadoc" tab and choose &lt;Add ZIP/Folder...&gt;</LI>
-    <LI>Using the file browser, select the folder where the Jakarta Mail javadoc
+    <LI>Using the file browser, select the folder where the Angus Mail javadoc
         index files are, and hit &lt;Add ZIP/Folder&gt; to accept.
     </LI>
-    <LI>If you downloaded the <A href="#source">Jakarta Mail source code</A>, you
+    <LI>If you downloaded the <A href="#source">Angus Mail source code</A>, you
         can set the source code reference on the "Sources" tab. This can be helpful
         for debugging. Using the file browser, select the source root for the
-        Jakarta Mail sources and hit &lt;Add Jar/Folder&gt; to accept.
+        Angus Mail sources and hit &lt;Add Jar/Folder&gt; to accept.
     </LI>
 </OL>
 </P>
@@ -819,11 +816,11 @@ pplet_dev_guide.html">
 
 <P>
     <A NAME="libeclipse">
-        <strong>Q:</strong> How do I add the Jakarta Mail library to my Eclipse Java Project?
+        <strong>Q:</strong> How do I add the Angus Mail library to my Eclipse Java Project?
     </A>
     <BR>
     <strong>A:</strong>
-    Create a "user library" for Jakarta Mail and add a reference to that library to
+    Create a "user library" for Angus Mail and add a reference to that library to
     your project.
 <OL>
     <LI>From the Eclipse main menu, open Window &gt; Preferences</LI>
@@ -831,20 +828,20 @@ pplet_dev_guide.html">
         the &lt;User Libraries&gt; node.
     </LI>
     <LI>Choose &lt;New...&gt; from the panel on the right</LI>
-    <LI>In the new library dialog, enter a user library name, e.g. "Jakarta Mail",
+    <LI>In the new library dialog, enter a user library name, e.g. "Angus Mail",
         and hit &lt;OK&gt;. Do not check system library.
     </LI>
     <LI>Make sure the new library is selected and choose &lt;Add Jars...&gt;</LI>
-    <LI>Browse to where Jakarta Mail is installed and select jakarta.mail.jar</LI>
+    <LI>Browse to where Angus Mail is installed and select angus-mail.jar</LI>
     <LI>Select &lt;Javadoc location: (None)&gt; and hit &lt;Edit...&gt; to
         add a reference to the javadoc location. This can be found at docs/javadocs
-        under the same folder where you installed Jakarta Mail.
+        under the same folder where you installed Angus Mail.
     </LI>
     <LI>You can also set the source code reference here if you downloaded the
-        <A href="#source">Jakarta Mail source code</A>. Use
+        <A href="#source">Angus Mail source code</A>. Use
         ".../jakartamail-1.6.4/mail/src/main/java" as the source root for 1.6.4.
     </LI>
-    <LI>Choose &lt;OK&gt; to close the Preferences dialog. Jakarta Mail is now
+    <LI>Choose &lt;OK&gt; to close the Preferences dialog. Angus Mail is now
         installed as a Library in Eclipse.
     </LI>
 </OL>
@@ -857,7 +854,7 @@ pplet_dev_guide.html">
     the above, or just add activation.jar (and javadoc/source references
     if desired) to this library definition.
 </P>
-<P>Now use the Jakarta Mail library in your Eclipse Java Project (Eclipse 3.4)
+<P>Now use the Angus Mail library in your Eclipse Java Project (Eclipse 3.4)
 </P>
 <OL>
     <LI>Open your project in Eclipse and be in the Java Perspective</LI>
@@ -869,23 +866,23 @@ pplet_dev_guide.html">
     </LI>
     <LI>Click &lt;Add Library...&gt;</LI>
     <LI>Select "User Library", then click &lt;Next&gt;</LI>
-    <LI>Locate and select the Jakarta Mail library added in the previous step,
+    <LI>Locate and select the Angus Mail library added in the previous step,
         click "Finish", and you're done.
     </LI>
 </OL>
 </P>
 <P>
-    <A HREF="http://stackoverflow.com/questions/16212026/how-to-add-javamail-api-source-code-in-eclise-project">
+    <A HREF="https://stackoverflow.com/questions/16212026/how-to-add-javamail-api-source-code-in-eclipse-project">
         This article</A>
-    explains how to make the Jakarta Mail source code available to your Eclipse project.
+    explains how to make the Jakarta Mail API source code available to your Eclipse project.
 </P>
 
 <P>
     <A NAME="incservers">
-        <strong>Q:</strong> Does Jakarta Mail include all the necessary mail servers? </A>
+        <strong>Q:</strong> Does Angus Mail include all the necessary mail servers? </A>
     <BR>
-    <strong>A:</strong> No, the Jakarta Mail API package does not include any mail servers.
-    To use the Jakarta Mail API package, you'll need to have access to an IMAP
+    <strong>A:</strong> No, the Angus Mail package does not include any mail servers.
+    To use the Angus Mail package, you'll need to have access to an IMAP
     or POP3 mail server (for reading mail) and/or an SMTP mail server (for
     sending mail).
     These mail servers are usually provided by your Internet Service Provider
@@ -899,13 +896,13 @@ pplet_dev_guide.html">
     <BR>
     <strong>A:</strong>
     The University of Washington IMAP server supports multiple platforms
-    (UNIX, Windows 32bit, etc).
+    (UNIX, Windows 32bit, etc.).
     Get the source code from
-    <A href="http://www.washington.edu/imap/">http://www.washington.edu/imap/</A>.
+    <A href="https://www.washington.edu/imap/">https://www.washington.edu/imap/</A>.
     There are several free, all Java mail servers available, including
-    <A HREF="http://james.apache.org/">Apache James</A> and
-    <A HREF="http://www.ericdaugherty.com/java/mailserver/">Java Email Server</A>.
-    <A HREF="http://sendmail.com/">Sendmail</A> is a popular (non-Java) SMTP server.
+    <A HREF="https://james.apache.org/">Apache James</A> and
+    <A HREF="https://www.ericdaugherty.com/java/mailserver/">Java Email Server</A>.
+    <A HREF="https://www.proofpoint.com/us/products/email-protection/open-source-email-solution">Sendmail</A> is a popular (non-Java) SMTP server.
     <A HREF="http://subethasmtp.tigris.org/">SubEthaSMTP</A>
     is a Java library for implementing SMTP server functionality;
     their web page also references other mail servers.
@@ -921,15 +918,15 @@ pplet_dev_guide.html">
     <strong>A:</strong> We do not provide a mail server for you to use. You must use your
     own mail server, or one provided by your Internet Service Provider
     or the company you work for. Your network administrator can give you
-    the information necessary to configure Jakarta Mail to work with your mail server.
+    the information necessary to configure Angus Mail to work with your mail server.
 </P>
 
 <P>
     <A NAME="proxy">
-        <strong>Q:</strong> How do I configure Jakarta Mail to work through my proxy server?</A>
+        <strong>Q:</strong> How do I configure Angus Mail to work through my proxy server?</A>
     <IMG SRC="assets/images/updated.gif" ALT="[updated!]" TITLE="Updated 11/6/2017">
     <BR>
-    <strong>A:</strong> Starting with Jakarta Mail 1.6.0, Jakarta Mail supports accessing
+    <strong>A:</strong> Starting with Jakarta Mail 1.6.0, Angus Mail supports accessing
     mail servers through a web proxy server.
     Set the "mail.<i>protocol</i>.proxy.host" and "mail.<i>protocol</i>.proxy.port"
     properties for the proxy server.
@@ -940,13 +937,13 @@ pplet_dev_guide.html">
 <P>
     In addition, if your proxy server supports the SOCKS V4 or V5 protocol
     (<A HREF="http://www.socks.nec.com/aboutsocks.html">http://www.socks.nec.com/aboutsocks.html</A>,
-    <A HREF="http://www.ietf.org/rfc/rfc1928.txt">RFC1928</A>)
+    <A HREF="https://www.ietf.org/rfc/rfc1928.txt">RFC1928</A>)
     and allows anonymous connections, and
     you're using JDK 1.5 or newer and Jakarta Mail 1.4.5 or newer, you can
     configure a SOCKS proxy on a per-session, per-protocol basis by setting the
     "mail.smtp.socks.host" property as described in the javadocs for the
     <A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html">
-        com.sun.mail.smtp package</A>.
+        org.eclipse.angus.mail.smtp package</A>.
     Similar properties exist for the "imap" and "pop3" protocols.
     Authentication for SOCKS servers is supported by the JDK by setting the
     "java.net.socks.username" and "java.net.socks.password" System properties
@@ -955,28 +952,28 @@ pplet_dev_guide.html">
         Properties</A> documentation.
 </P>
 <P>
-    If you're using older versions of the JDK or Jakarta Mail, you can tell the Java
+    If you're using older versions of the JDK or Angus Mail, you can tell the Java
     runtime to direct all TCP socket connections to the SOCKS server.
-    See the <A HREF="http://docs.oracle.com/javase/7/docs/technotes/guides/net/properties.html">
+    See the <A HREF="https://docs.oracle.com/javase/7/docs/technotes/guides/net/properties.html">
     Networking Properties guide</A>
     for the latest documentation of the <code>socksProxyHost</code> and
     <code>socksProxyPort</code> properties. These are system-level properties,
-    not Jakarta Mail session properties. They can be set from the command line
+    not Angus Mail session properties. They can be set from the command line
     when the application is invoked, for example:
     <code>java -DsocksProxyHost=myproxy ...</code>.
     This facility can be used to direct the SMTP, IMAP, and POP3
-    communication from Jakarta Mail to the SOCKS proxy server. Note that
+    communication from Angus Mail to the SOCKS proxy server. Note that
     setting these properties directs <b>all</b> TCP sockets to the SOCKS
     proxy, which may have negative impact on other aspects of your
     application.
 </P>
 <P>
-    When using older versions of Jakarta Mail, and without such a SOCKS server,
-    if you want to use Jakarta Mail to access mail servers
+    When using older versions of Angus Mail, and without such a SOCKS server,
+    if you want to use Angus Mail to access mail servers
     outside the firewall indirectly, you might be able to use a program such as
     <A HREF="https://bitbucket.org/gotoh/connect/wiki/Home">connect</A>
     to tunnel TCP connections through an HTTP proxy server.
-    Configure Jakarta Mail to use the connect instance as the SOCKS server.
+    Configure Angus Mail to use the connect instance as the SOCKS server.
 </P>
 
 <P>
@@ -998,7 +995,7 @@ pplet_dev_guide.html">
     The <A HREF="InstallCert">
     InstallCert</A> program will help.
     A
-    <A HREF="http://s-n-ushakov.blogspot.com/2013/11/yet-another-installcert-for-java-now.html">
+    <A HREF="https://s-n-ushakov.blogspot.com/2013/11/yet-another-installcert-for-java-now.html">
         newer version of InstallCert is available here</A>.
 </P>
 <P>
@@ -1035,20 +1032,20 @@ Illegal use of nonvirtual function call
 </P>
 <P>
     The problem is due to a buggy version of the unzip command used to unzip
-    the Jakarta Mail download package on Linux. The unzip command corrupts the
-    jakarta.mail.jar file. Get a newer version of the unzip command, or use the
+    the Angus Mail download package on Linux. The unzip command corrupts the
+    angus-mail.jar file. Get a newer version of the unzip command, or use the
     JDK's jar command to unzip the package.
 </P>
 
 <P>
     <A NAME="securityManager">
-        <strong>Q:</strong> How do I use Jakarta Mail in an application run under a SecurityManager;
-        what permissions must I grant to the application and to Jakarta Mail?
+        <strong>Q:</strong> How do I use Angus Mail in an application run under a SecurityManager;
+        what permissions must I grant to the application and to Angus Mail?
     </A>
     <BR>
-    <strong>A:</strong> When using Jakarta Mail in an environment with a
-    SecurityManager, Jakarta Mail will sometimes fail to read the configuration
-    files in the jakarta.mail.jar file. The JavaBeans Activation Framework may
+    <strong>A:</strong> When using Angus Mail in an environment with a
+    SecurityManager, Angus Mail will sometimes fail to read the configuration
+    files in the angus-mail.jar file. The JavaBeans Activation Framework may
     have the same problem reading configuration files from the jakarta.activation.jar
     file. These default configuration files are stored as "resource" files
     in the META-INF directory in the jar file.
@@ -1056,7 +1053,7 @@ Illegal use of nonvirtual function call
 <P>
     There are a number of debugging techniques that can be used to determine
     if this is the problem. Setting the Session property "mail.debug" to
-    true (or calling <code>session.setDebug(true)</code>) will cause Jakarta Mail
+    true (or calling <code>session.setDebug(true)</code>) will cause Angus Mail
     to print debugging messages as it attempts to load each configuration
     file. A message of the form "DEBUG: can't load default providers file"
     indicates that this problem might exist. Similarly, setting the System
@@ -1071,19 +1068,19 @@ Illegal use of nonvirtual function call
 </P>
 <P>
     In addition to the permissions necessary to read the configuration files,
-    the application (and Jakarta Mail) will also need permission to connect to the
+    the application (and Angus Mail) will also need permission to connect to the
     mail servers it uses. If the application uses System properties to
-    configure Jakarta Mail (e.g., by passing the Properties object returned from
+    configure Angus Mail (e.g., by passing the Properties object returned from
     <code>System.getProperties()</code> to the Session constructor, as many
-    of the Jakarta Mail demo programs do), it will also need permission to use
+    of the Angus Mail demo programs do), it will also need permission to use
     the System Properties object. Alternatively, the application can use
     its own Properties object and be sure to set the "mail.from" property
     or the "mail.user" and "mail.host" properties (see the
     InternetAddress.getLocalAddress() method).
 </P>
 <P>
-    To allow an application to use Jakarta Mail under a SecurityManager,
-    the application, Jakarta Mail, and JAF will need permissions such as the
+    To allow an application to use Angus Mail under a SecurityManager,
+    the application, Angus Mail, and JAF will need permissions such as the
     following (be sure to replace the host and path names with appropriate
     values); add these to the security policy file used by the application:
 </P>
@@ -1094,7 +1091,7 @@ grant {
     // following two permissions allow
     // access to default config files
     permission java.io.FilePermission
-		"/path/to/jakarta.mail.jar", "read";
+		"/path/to/angus-mail.jar", "read";
     permission java.io.FilePermission
 		"/path/to/activation.jar", "read";
     // following to use SMTP
@@ -1134,31 +1131,31 @@ grant {
 
 <P>
     <A NAME="tomcatconfig">
-        <strong>Q:</strong> How do I configure Tomcat to allow me to use Jakarta Mail in my
+        <strong>Q:</strong> How do I configure Tomcat to allow me to use Angus Mail in my
         web application?
     </A>
     <BR>
     <strong>A:</strong>
-    To run a web application using Jakarta Mail, you can add the Jakarta Mail
-    jakarta.mail.jar file and, if you're not using JDK 1.6 or newer, the JavaBeans
+    To run a web application using Angus Mail, you can add the Angus Mail
+    angus-mail.jar file and, if you're not using JDK 1.6 or newer, the JavaBeans
     Activation Framework
     <A HREF="https://repo1.maven.org/maven2/com/sun/activation/jakarta.activation/1.2.1/jakarta.activation-1.2.1.jar">jakarta.activation.jar</A>
     file to the lib directory under the
     directory in which you installed Tomcat. This will cause Tomcat to
     include these jar files in its classpath automatically.
     For details, see
-    <A HREF="http://tomcat.apache.org/tomcat-6.0-doc/jndi-resources-howto.html">
+    <A HREF="https://tomcat.apache.org/tomcat-6.0-doc/jndi-resources-howto.html">
         JNDI Resources HOW-TO</A> in the Tomcat documentation.
 </P>
 <P>
-    Alternatively, you can package the jakarta.mail.jar file and jakarta.activation.jar
+    Alternatively, you can package the angus-mail.jar file and jakarta.activation.jar
     files in the lib directory of your web application package (war file).
 </P>
 
 <P>
     <A NAME="servletcp">
-        <strong>Q:</strong> When using Jakarta Mail in my servlet, it is unable to find any of
-        the Jakarta Mail classes. I've added jakarta.mail.jar to the server's CLASSPATH.
+        <strong>Q:</strong> When using Angus Mail in my servlet, it is unable to find any of
+        the Angus Mail classes. I've added angus-mail.jar to the server's CLASSPATH.
     </A>
     <BR>
     <strong>A:</strong> It is often necessary to completely restart the web server
@@ -1173,38 +1170,38 @@ grant {
     </A>
     <BR>
     <strong>A:</strong> The most common cause of problems like this is having more than
-    one copy of jakarta.mail.jar in your CLASSPATH or available to your application.
+    one copy of angus-mail.jar in your CLASSPATH or available to your application.
     In addition to checking your CLASSPATH setting, also look for copies in
     the <code>jre/lib/ext</code> directory of your JDK installation.
     If you're running in a web server or application server, it may be
-    providing its own version of jakarta.mail.jar in one of its directories.
-    You should only have one version of jakarta.mail.jar available to your
+    providing its own version of angus-mail.jar in one of its directories.
+    You should only have one version of angus-mail.jar available to your
     application.
 </P>
 
 <P>
     <A NAME="servletSecurityManager">
-        <strong>Q:</strong> My servlet can find the Jakarta Mail classes, but Jakarta Mail complains
+        <strong>Q:</strong> My servlet can find the Angus Mail classes, but Angus Mail complains
         that it can't find a service provider for "smtp" or "imap" or address
         type "rfc822".
     </A>
     <BR>
-    <strong>A:</strong> Usually this is because Jakarta Mail can't access the configuration
-    files in jakarta.mail.jar, possibly because of a security permission problem;
+    <strong>A:</strong> Usually this is because Angus Mail can't access the configuration
+    files in angus-mail.jar, possibly because of a security permission problem;
     see <A HREF="#securityManager">this item</A> for more details.
-    Also, make sure that you haven't extracted the jakarta.mail.jar contents;
-    you should include the unmodified jakarta.mail.jar file in the server's CLASSPATH.
+    Also, make sure that you haven't extracted the angus-mail.jar contents;
+    you should include the unmodified angus-mail.jar file in the server's CLASSPATH.
 </P>
 
 <P>
     <A NAME="gmail">
-        <strong>Q:</strong> How do I access Gmail with Jakarta Mail? </A>
+        <strong>Q:</strong> How do I access Gmail with Angus Mail? </A>
     <BR>
     <strong>A:</strong>
-    Jakarta Mail is capable of sending and reading messages using Gmail.
-    All that's required is to properly configure Jakarta Mail. I'll
+    Angus Mail is capable of sending and reading messages using Gmail.
+    All that's required is to properly configure Angus Mail. I'll
     illustrate the proper configuration using the
-    <A HREF="#examples">demo programs</A> that come with Jakarta Mail -
+    <A HREF="#examples">demo programs</A> that come with Angus Mail -
     <code>msgshow.java</code> and <code>smtpsend.java</code>.
     You can use these programs for basic testing to ensure that
     your networking is working properly, that you can connect to
@@ -1317,7 +1314,7 @@ java smtpsend -d -S -A -M smtp.gmail.com -U user -P passwd someone@example.com
     <strong>A:</strong>
     Gmail has settings that control which of your messages are available via
     the POP3 protocol. See the
-    <A HREF="http://mail.google.com/mail/?shva=1#settings/fwdandpop">
+    <A HREF="https://mail.google.com/mail/u/0/?shva=1#settings/fwdandpop">
         Gmail settings page</A> to change the configuration of your Gmail account.
 </P>
 
@@ -1328,7 +1325,7 @@ java smtpsend -d -S -A -M smtp.gmail.com -U user -P passwd someone@example.com
     <BR>
     <strong>A:</strong>
     Gmail does not fully support all IMAP features. For details see
-    <A HREF="https://mail.google.com/support/bin/answer.py?hl=en&answer=78761">
+    <A HREF="https://support.google.com/mail/answer/78892?hl=en">
         this Gmail Help page</A>.
 </P>
 
@@ -1352,13 +1349,13 @@ java smtpsend -d -S -A -M smtp.gmail.com -U user -P passwd someone@example.com
 
 <P>
     <A NAME="yahoomail">
-        <strong>Q:</strong> How do I access Yahoo! Mail with Jakarta Mail? </A>
+        <strong>Q:</strong> How do I access Yahoo! Mail with Angus Mail? </A>
     <BR>
     <strong>A:</strong>
-    Jakarta Mail is capable of sending and reading messages using Yahoo! Mail.
-    All that's required is to properly configure Jakarta Mail. I'll
+    Angus Mail is capable of sending and reading messages using Yahoo! Mail.
+    All that's required is to properly configure Angus Mail. I'll
     illustrate the proper configuration using the
-    <A HREF="#examples">demo programs</A> that come with Jakarta Mail -
+    <A HREF="#examples">demo programs</A> that come with Angus Mail -
     <code>msgshow.java</code> and <code>smtpsend.java</code>.
 </P>
 <P>
@@ -1412,13 +1409,13 @@ java smtpsend -d -S -A -M smtp.mail.yahoo.com -U user@yahoo.com -P passwd someon
 
 <P>
     <A NAME="hotmail">
-        <strong>Q:</strong> How do I access Hotmail (Windows Live mail) with Jakarta Mail? </A>
+        <strong>Q:</strong> How do I access Hotmail (Windows Live mail) with Angus Mail? </A>
     <BR>
     <strong>A:</strong>
-    Jakarta Mail is capable of sending and reading messages using Hotmail.
-    All that's required is to properly configure Jakarta Mail. I'll
+    Angus Mail is capable of sending and reading messages using Hotmail.
+    All that's required is to properly configure Angus Mail. I'll
     illustrate the proper configuration using the
-    <A HREF="#examples">demo programs</A> that come with Jakarta Mail -
+    <A HREF="#examples">demo programs</A> that come with Angus Mail -
     <code>msgshow.java</code> and <code>smtpsend.java</code>.
 </P>
 <P>
@@ -1459,8 +1456,8 @@ java -Dmail.smtp.starttls.enable=true -Dmail.smtp.port=587
 </P>
 <P>
     The smtpsend program uses the System properties
-    when creating the Jakarta Mail Session, so the properties set on the
-    command line will be available to the Jakarta Mail Session.
+    when creating the Angus Mail Session, so the properties set on the
+    command line will be available to the Angus Mail Session.
 </P>
 <P>
     The smtpsend program will prompt for a subject and message body text.
@@ -1478,19 +1475,19 @@ java -Dmail.smtp.starttls.enable=true -Dmail.smtp.port=587
 </P>
 <P>
     For more details, search
-    <A HREF="http://help.live.com/help.aspx?mkt=en-us&project=MailClassic">
+    <A HREF="https://help.live.com/help.aspx?mkt=en-us&project=MailClassic">
         Windows Live Hotmail help</A> for "POP3".
 </P>
 
 <P>
     <A NAME="outlook">
-        <strong>Q:</strong> How do I access Outlook.com with Jakarta Mail? </A>
+        <strong>Q:</strong> How do I access Outlook.com with Angus Mail? </A>
     <BR>
     <strong>A:</strong>
-    Jakarta Mail is capable of sending and reading messages using Outlook.com.
-    All that's required is to properly configure Jakarta Mail. I'll
+    Angus Mail is capable of sending and reading messages using Outlook.com.
+    All that's required is to properly configure Angus Mail. I'll
     illustrate the proper configuration using the
-    <A HREF="#examples">demo programs</A> that come with Jakarta Mail -
+    <A HREF="#examples">demo programs</A> that come with Angus Mail -
     <code>msgshow.java</code> and <code>smtpsend.java</code>.
 </P>
 <P>
@@ -1536,8 +1533,8 @@ java -Dmail.smtp.starttls.enable=true
 </P>
 <P>
     The smtpsend program uses the System properties
-    when creating the Jakarta Mail Session, so the properties set on the
-    command line will be available to the Jakarta Mail Session.
+    when creating the Angus Mail Session, so the properties set on the
+    command line will be available to the Angus Mail Session.
 </P>
 <P>
     The smtpsend program will prompt for a subject and message body text.
@@ -1567,7 +1564,7 @@ java -Dmail.smtp.starttls.enable=true
     the same goal. This should help you understand the essential
     configuration parameters necessary to use Outlook.com.
     For more details, see the
-    <A HREF="http://blogs.office.com/b/microsoft-outlook/archive/2013/09/12/outlook-com-now-with-imap.aspx
+    <A HREF="https://blogs.office.com/b/microsoft-outlook/archive/2013/09/12/outlook-com-now-with-imap.aspx
 ">
         Outlook Blog</A>.
 </P>
@@ -1581,7 +1578,7 @@ java -Dmail.smtp.starttls.enable=true
 <P>
     <A NAME="basics">
         <strong>Q:</strong> Where can I learn the basics about Internet email that
-        I'll need to know to program Jakarta Mail effectively? </A>
+        I'll need to know to program Angus Mail effectively? </A>
     <BR>
     <strong>A:</strong> See one of the
     <A HREF="community/books/index.html">books</A>
@@ -1591,11 +1588,11 @@ java -Dmail.smtp.starttls.enable=true
 
 <P>
     <A NAME="examples">
-        <strong>Q:</strong> Where can I find some example programs that show how to use Jakarta Mail? </A>
+        <strong>Q:</strong> Where can I find some example programs that show how to use Angus Mail? </A>
     <BR>
     <strong>A:</strong> There are many example programs available for download
     on the
-    <A HREF="https://eclipse-ee4j.github.io/angus-mail/">Jakarta Mail project page</A>,
+    <A HREF="https://eclipse-ee4j.github.io/angus-mail/">Angus Mail project page</A>,
     including simple command line programs illustrating various aspects of
     the Jakarta Mail API, a Swing-based GUI application, a simple servlet-based
     application, and a complete web application using JSP pages and a tag
@@ -1605,7 +1602,7 @@ java -Dmail.smtp.starttls.enable=true
 <P>
     <A NAME="commonmistakes">
         <strong>Q:</strong> What are some of the most common mistakes people make
-        when using Jakarta Mail? </A>
+        when using Angus Mail? </A>
     <BR>
     <strong>A:</strong> Unfortunately, the internet is full of copy and paste
     programmers who don't understand the code they're using, which has resulted
@@ -1624,11 +1621,11 @@ java -Dmail.smtp.starttls.enable=true
     </LI>
     <LI>
         Setting various <code>socketFactory</code> properties.
-        Long, long ago Jakarta Mail didn't have built in support for SSL connections,
+        Long, long ago Angus Mail didn't have built in support for SSL connections,
         so it was necessary to set these properties to use SSL.
         This hasn't been the case for years; remove these properties and simplify
         your code.
-        The easiest way to enable SSL support in current versions of Jakarta Mail is
+        The easiest way to enable SSL support in current versions of Angus Mail is
         to set the property "mail.smtp.ssl.enable" to "true".
         (Replace "smtp" with "imap" or "pop3" as appropriate.)
     </LI>
@@ -1652,7 +1649,7 @@ java -Dmail.smtp.starttls.enable=true
     MIME multipart message where the first part is the main body of the
     message and the other parts are the attachments.
     There are numerous examples showing how to construct such a message
-    in the demo programs included in the Jakarta Mail download package.
+    in the demo programs included in the Angus Mail download package.
     To attach a file use the
     <code>attachFile</code> method of <code>MimeBodyPart</code>.
 </P>
@@ -1872,12 +1869,12 @@ java -Dmail.smtp.starttls.enable=true
     <BR>
     <strong>A:</strong> This usually happens because the JavaBeans Activation
     Framework (JAF) can't find the mailcap configuration file included in the
-    jakarta.mail.jar file.
+    angus-mail.jar file.
     JAF uses the thread's context class loader to look for the configuration file.
     If the context class loader is not set properly, this can fail.
     Most application servers should set the context class loader properly, but
     at least some versions of Tomcat do not.
-    One workaround is to put the jakarta.mail.jar file in Tomcat's lib directory
+    One workaround is to put the angus-mail.jar file in Tomcat's lib directory
     instead of including it in the war file.
     Another workaround is to add code such as the following to the beginning of
     your application:
@@ -1958,11 +1955,11 @@ application/msword doc
     <BR>
     <strong>A:</strong> The Jakarta Mail API includes builtin support for the most
     common MIME types, but to create a message that includes data in
-    a MIME type that Jakarta Mail does not already understand, you'll
-    need to supply that data to Jakarta Mail in a byte stream format.
+    a MIME type that Angus Mail does not already understand, you'll
+    need to supply that data to Angus Mail in a byte stream format.
     The <code>ByteArrayDataSource</code> class in the <code>javax.mail.util</code>
-    pacakge in Jakarta Mail 1.4 and later, or included in source code in the demo
-    directory of older versions of the Jakarta Mail download package, can help.
+    package in Jakarta Mail 1.4 and later, or included in source code in the demo
+    directory of older versions of the Angus Mail download package, can help.
     This class
     will take a <code>String</code>, byte array, or <code>InputStream</code>
     and create a <code>DataSource</code> object that you can use as follows:
@@ -1988,7 +1985,7 @@ application/msword doc
     <code>InputStream</code>, it first copies all of the data in the stream
     into memory. This is necessary because a <code>DataSource</code> needs
     to be able to supply multiple <code>InputStream</code> objects so that
-    Jakarta Mail can read the data once to determine what
+    Angus Mail can read the data once to determine what
     Content-Transfer-Encoding is appropriate, and then read the data again
     to include the data in the message.
 </P>
@@ -1996,29 +1993,29 @@ application/msword doc
 <P>
     <A NAME="readofficedoc">
         <strong>Q:</strong> Can I read or send a Microsoft Office document using
-        Jakarta Mail? </A>
+        Angus Mail? </A>
     <BR>
-    <strong>A:</strong> Jakarta Mail can read a Microsoft Office document as an
-    attachment and save that document in a file. Likewise, Jakarta Mail can attach a
+    <strong>A:</strong> Angus Mail can read a Microsoft Office document as an
+    attachment and save that document in a file. Likewise, Angus Mail can attach a
     Microsoft Office document to a message and send it as an attachment.
     Use the <A href="">MimeBodyPart</A>
     <A href="">saveFile</A> and
     <A href="">attachFile</A> methods.
     To process the content of a Microsoft Office document you'll need a
     separate library such as
-    <A href="http://poi.apache.org/">Apache POI</A>.
+    <A href="https://poi.apache.org/">Apache POI</A>.
 </P>
 
 <P>
     <A NAME="ical">
         <strong>Q:</strong> How do I create or process calendar appointments?</A>
     <BR>
-    <strong>A:</strong> The <A HREF="http://ical4j.sourceforge.net/">iCal4j project</A>
+    <strong>A:</strong> The <A HREF="https://www.ical4j.org/">iCal4j project</A>
     provides an API that might be useful.
     More information about how different products, such as Microsoft Outlook,
     support calendar appointments is available
-    <A HREF="http://microformats.org/wiki/icalendar-implementations">here</A>.
-    This <A HREF="http://valermicle.blogspot.com/2009/02/i-was-searching-for-documentations-on.html">blog entry</A>
+    <A HREF="https://microformats.org/wiki/icalendar-implementations">here</A>.
+    This <A HREF="https://valermicle.blogspot.com/2009/02/i-was-searching-for-documentations-on.html">blog entry</A>
     might also be helpful.
 </P>
 
@@ -2057,8 +2054,8 @@ application/msword doc
     to "send" messages when there is no connection to the server, with
     the messages being queued until a connection to the server is
     available. See also
-    <A href="http://www.ietf.org/rfc/rfc1733.txt">RFC 1733</A> and
-    <A href="http://www.ietf.org/rfc/rfc4549.txt">RFC 4549</A>.
+    <A href="https://www.ietf.org/rfc/rfc1733.txt">RFC 1733</A> and
+    <A href="https://www.ietf.org/rfc/rfc4549.txt">RFC 4549</A>.
 </P>
 
 <P>
@@ -2097,10 +2094,10 @@ application/msword doc
     FilterOutputStream will need to accept lines with any of the common
     line terminators and write out lines with only the desired line
     terminator. The following are examples of such filters.
-    <A href="https://github.com/eclipse-ee4j/mail/blob/master/demo/src/main/java/NewlineOutputStream.java"><code>NewlineOutputStream</code></A>
+    <A href="https://github.com/eclipse-ee4j/angus-mail/blob/master/demos/demo/src/main/java/example/app/NewlineOutputStream.java"><code>NewlineOutputStream</code></A>
     converts to the local platform's line terminator and is useful when
     writing a message to a file.
-    <A href="https://github.com/eclipse-ee4j/mail/blob/master/demo/src/main/java/CRLFOutputStream.java"><code>CRLFOutputStream</code></A>
+    <A href="https://github.com/eclipse-ee4j/angus-mail/blob/master/demos/demo/src/main/java/example/app/CRLFOutputStream.java"><code>CRLFOutputStream</code></A>
     converts to the MIME canonical CRLF line terminator and is useful
     when the canonical MIME format is needed (e.g., to compute a digital
     signature).
@@ -2114,7 +2111,7 @@ application/msword doc
     mail server.
     Nonetheless, some of the utility classes, such as the MIME
     message parsing classes, might be of use to you.
-    In general you'll find that the Jakarta Mail API errs on the side
+    In general, you'll find that the Jakarta Mail API errs on the side
     of "simple" instead of "robust". That's appropriate for a mail
     client, but a mail server would likely make different tradeoffs.
 </P>
@@ -2161,7 +2158,7 @@ application/msword doc
     of the message, and not the object itself, the <CODE>writeTo</CODE>
     method of a message gives you everything you need.
     If you want to create an entire email system based on serialized messages,
-    you should be able to subclass Message et. al. and implement Serializable
+    you should be able to subclass Message et al. and implement Serializable
     in your subclass.
 </P>
 <P>
@@ -2184,9 +2181,8 @@ application/msword doc
     <code>javax.mail.Message</code> and a few others. Then you add
     the entry describing your provider to the <code>javamail.providers</code>
     registry. If you're interested in writing a service provider for a protocol
-    or messaging system not currently supported by the Jakarta Mail API
-    implementation, please contact us at <A href="https://accounts.eclipse.org/mailing-list/mail-dev">
-    mail-dev@eclipse.org</A>.
+    or messaging system not currently supported by Angus Mail, please contact us at <A href="https://accounts.eclipse.org/mailing-list/angus-dev">
+    angus-dev@eclipse.org</A>.
 </P>
 
 <P>
@@ -2201,14 +2197,14 @@ application/msword doc
     is "J.User@server.com", your Windows NT login name is "juser", your
     NT domain name is "dom", and your Exchange mailbox name is "Joe User",
     then you would need to use a username of "dom\juser\J.User" when logging
-    in using Jakarta Mail.
+    in using Angus Mail.
 </P>
 <P>
     Note also that there's a bug in Exchange 2007. The Exchange server
     advertises that it supports AUTH=PLAIN, even though
-    <A HREF="http://technet.microsoft.com/en-us/library/cc540463.aspx">
+    <A HREF="https://learn.microsoft.com/en-us/previous-versions/office/exchange-server-2007/cc540463(v=exchg.80)">
         this Exchange documentation</A> claims that it's not supported.
-    This causes Jakarta Mail to choose PLAIN authentication, which will always fail.
+    This causes Angus Mail to choose PLAIN authentication, which will always fail.
     To work around this Exchange bug, set the session property
     "mail.imap.auth.plain.disable" to "true". (Change "imap" to "imaps" if
     you're using the "imaps" protocol.)
@@ -2220,7 +2216,7 @@ application/msword doc
         decode it when I receive it?
     </A>
     <BR>
-    <strong>A:</strong> You don't need to! Jakarta Mail will automatically determine an
+    <strong>A:</strong> You don't need to! Angus Mail will automatically determine an
     appropriate encoding to use for your message parts before sending the
     message, and will automatically decode message parts when reading them.
     The <code>getInputStream</code> method will return the <strong>decoded</strong>
@@ -2234,7 +2230,7 @@ application/msword doc
     </A>
     <BR>
     <strong>A:</strong> The <code>MimeUtility</code> methods are useful in cases that
-    Jakarta Mail doesn't handle automatically for you. One such case that
+    Angus Mail doesn't handle automatically for you. One such case that
     occurs frequently is encoding of filenames. The base MIME spec does not
     allow header parameter values (such as the filename parameter) to be
     encoded in the same way that (e.g.) the Subject header may be encoded.
@@ -2251,7 +2247,7 @@ application/msword doc
 <P>
     <A NAME="preencoded">
         <strong>Q:</strong> I have data that's already encoded in (e.g.) base64, how do I
-        tell Jakarta Mail to send this data without re-encoding it?
+        tell Angus Mail to send this data without re-encoding it?
     </A>
     <BR>
     <strong>A:</strong> Use the <code>PreencodedMimeBodyPart</code> class,
@@ -2260,12 +2256,12 @@ application/msword doc
 
 <P>
     <A NAME="howencode">
-        <strong>Q:</strong> Even though Jakarta Mail does all the encoding and decoding for me,
+        <strong>Q:</strong> Even though Angus Mail does all the encoding and decoding for me,
         I need to manually control the encoding for some body parts.
     </A>
     <BR>
     <strong>A:</strong> In the rare case that you need to control the encoding, there
-    are several ways to override Jakarta Mail's default behavior. A simple
+    are several ways to override Angus Mail's default behavior.  A simple
     approach is as follows. After creating the entire message, call
     <code>msg.saveChanges()</code> and then use something like
     <code>mbp.setHeader("Content-Transfer-Encoding", "base64")</code>
@@ -2280,7 +2276,7 @@ application/msword doc
 
 <P>
     <A NAME="encodefilename">
-        <strong>Q:</strong> Why doesn't Jakarta Mail properly encode and decode filenames in
+        <strong>Q:</strong> Why doesn't Angus Mail properly encode and decode filenames in
         non-ASCII character sets?
     </A>
     <BR>
@@ -2288,7 +2284,7 @@ application/msword doc
     Encoded filenames of the form <CODE>=?ISO-8859-15?B?5OTkLUluZm8ucGRm?=</CODE>
     are <strong>not</strong> part of the MIME spec. A filename of
     the form <CODE>=?A?B?C?=</CODE> is a perfectly valid filename,
-    not an incorrectly encoded filename. Jakarta Mail does
+    not an incorrectly encoded filename. Angus Mail does
     not encode and decode filenames by default because <strong>doing so
     would violate the MIME spec</strong>.
 </P>
@@ -2297,25 +2293,25 @@ application/msword doc
     RFC 2231 defines a new way to include encoded paramters,
     including filenames, in MIME headers. It is <strong>not</strong>
     compatible with the de facto way that many older applications
-    illegally encode filenames. Even though Jakarta Mail supports RFC 2231, that
-    alone does not allow Jakarta Mail to interoperate with these older
-    programs. Most recent email programs support RFC 2231 and Jakarta Mail
+    illegally encode filenames. Even though Angus Mail supports RFC 2231, that
+    alone does not allow Angus Mail to interoperate with these older
+    programs. Most recent email programs support RFC 2231 and Angus Mail
     enables support for it by default starting in Jakarta Mail 1.5.
-    To enable RFC 2231 support in older Jakarta Mail releases for encoded parameters,
+    To enable RFC 2231 support in older Angus Mail releases for encoded parameters,
     set the System properties "mail.mime.encodeparameters" and
     "mail.mime.decodeparameters" to "true".
 </P>
 <P>
     If you choose to violate the MIME spec, in order to
     interoperate with other programs that also violate the
-    MIME spec, Jakarta Mail gives you all the tools you need to
+    MIME spec, Angus Mail gives you all the tools you need to
     do so. Starting with Jakarta Mail 1.4, setting the System properties
     "mail.mime.encodefilename" and "mail.mime.decodefilename" to "true"
-    will cause Jakarta Mail to encode and decode the filename parameter
+    will cause Angus Mail to encode and decode the filename parameter
     using the non-RFC 2231 MIME encoding.
 </P>
 <P>
-    Applications using earlier versions of Jakarta Mail can use the following
+    Applications using earlier versions of Angus Mail can use the following
     workaround to encode a filename:
 </P>
 <P>
@@ -2328,7 +2324,7 @@ application/msword doc
     <CODE>String filename = MimeUtility.decodeText(part.getFileName());</CODE>
 </P>
 <P>
-    Again, this is primarily for applications using old versions of Jakarta Mail.
+    Again, this is primarily for applications using old versions of Angus Mail.
     Most applications should <strong>never</strong> need to use these methods.
 </P>
 
@@ -2362,7 +2358,7 @@ application/msword doc
     If you passed the System properties to the Session when you created it,
     you can simply run your program with <code>java -Dmail.debug=true ...</code>
     <BR>
-    If you think that you found a bug in Jakarta Mail,
+    If you think that you found a bug in Angus Mail,
     send us this trace along with a test case that reproduces the problem,
     the platform you are using, the version of the JDK you are using, and
     the name and version of the mail servers (IMAP, SMTP) that you are using.
@@ -2401,7 +2397,7 @@ application/msword doc
     If telnet complains that it doesn't know the host name that
     you're using, most likely your name service (e.g., DNS) isn't
     properly configured to resolve internet host names.
-    None of these problems are Jakarta Mail or Java problems.
+    None of these problems are Angus Mail or Java problems.
 </P>
 <P>
     Usually, when you get a low level SocketException
@@ -2411,7 +2407,7 @@ application/msword doc
 <P>
     If you've succeeded in connecting with telnet, the next thing
     to do is to turn on Session debugging and get the protocol
-    trace when Jakarta Mail tries to connect to the remote machine,
+    trace when Angus Mail tries to connect to the remote machine,
     as described <A href="#debug">above</A>.
     This will often include more detailed error messages from the
     server that will indicate the real source of the problem.
@@ -2466,9 +2462,9 @@ application/msword doc
 <P>
     <A NAME="imapserverbug">
         <strong>Q:</strong> I can read messages from my IMAP server with other mail clients,
-        but even though I can connect to the server using Jakarta Mail, when I use
-        Jakarta Mail to read some messages it fails. Doesn't that mean there's a bug
-        in Jakarta Mail?
+        but even though I can connect to the server using Angus Mail, when I use
+        Angus Mail to read some messages it fails. Doesn't that mean there's a bug
+        in Angus Mail?
     </A>
     <BR>
     <strong>A:</strong> No, not usually. Most other mail clients make very little
@@ -2485,7 +2481,7 @@ application/msword doc
 <P>
     The best approach when running into server bugs of this sort is to contact
     the vendor of the server and get them to fix their product. Contact
-    <A HREF="https://accounts.eclipse.org/mailing-list/mail-dev">mail-dev@eclipse.org</A> and we'll help you
+    <A HREF="https://accounts.eclipse.org/mailing-list/angus-dev">angus-dev@eclipse.org</A> and we'll help you
     pinpoint the problem so that you can report it to the server vendor.
     If you can't get a fix from the server vendor, the following technique
     will often allow you to work around these server bugs:
@@ -2543,10 +2539,10 @@ application/msword doc
         <strong>Q:</strong> The IMAP provider seems to lose data when I fetch messages with large
         attachments.</A><BR>
     <strong>A:</strong> This is due to bugs in the partial fetch implementation of your
-    IMAP server. To workaround this server bug, set the
+    IMAP server. To work around this server bug, set the
     "mail.imap.partialfetch" property to "false".
     Refer to <A HREF="docs/NOTES.txt">NOTES.txt</A> from
-    the Jakarta Mail package for more information.
+    the Angus Mail package for more information.
 </P>
 
 <P>
@@ -2627,7 +2623,7 @@ application/msword doc
     return Unicode String objects when <code>getContent()</code> is used.
     Typically,
     such bodyparts internally hold their textual data in some non Unicode
-    charset. Jakarta Mail (through the corresponding DataContentHandler)
+    charset. Angus Mail (through the corresponding DataContentHandler)
     attempts to convert that data into a Unicode string.
     The underlying JDK's charset converters are used to do this.
     If the JDK does not support a particular charset, then the
@@ -2661,8 +2657,8 @@ application/msword doc
     There are some commonly used charsets that the JDK does not yet support.
     You can find support for some of these additional charsets in the JCharset
     package at
-    <A HREF="http://www.freeutils.net/source/jcharset/">
-        http://www.freeutils.net/source/jcharset/</A>.
+    <A HREF="https://www.freeutils.net/source/jcharset/">
+        https://www.freeutils.net/source/jcharset/</A>.
 </P>
 <P>
     You can also add an alias for an existing charset already supported
@@ -2719,10 +2715,11 @@ UnknownCharsetProvider
 <P>
     Part of the key to understanding how this works is understanding when
     the server is allowed to notify the client of new messages, and when
-    Jakarta Mail will see those notifications. Between getting the number of
-    messages and adding the listener, Jakarta Mail won't see any notifications
+    Angus Mail will see those notifications. Between getting the number of
+    messages and adding the listener, Angus Mail won't see any notifications
     of new messages. By the time you do an operation that will allow
-    Jakarta Mail to see the notification, the listener will be in place.
+    Angus Mail to see the notification, the listener will be in place.
+
 </P>
 <P>
     The following code illustrates the general approach. Many details have
@@ -2881,7 +2878,7 @@ UnknownCharsetProvider
     second part in the multipart.
     You'll need to construct the plain and html parts yourself to have
     appropriate content.
-    See <A HREF="http://www.ietf.org/rfc/rfc2046.txt">RFC2046</A>
+    See <A HREF="https://www.ietf.org/rfc/rfc2046.txt">RFC2046</A>
     for details of the structure of such a message.
 </P>
 
@@ -2910,7 +2907,7 @@ UnknownCharsetProvider
 </P>
 <P>
     Alternatively, you can construct a MIME <code>multipart/related</code>
-    message. See <A HREF="http://www.ietf.org/rfc/rfc2387.txt">RFC2387</A>
+    message. See <A HREF="https://www.ietf.org/rfc/rfc2387.txt">RFC2387</A>
     for details of the structure of such a message.
     A simple example follows:
 </P>
@@ -2983,7 +2980,7 @@ UnknownCharsetProvider
     <strong>A:</strong> You need to authenticate to your SMTP server. The package
     javadocs for the
     <A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html">
-        com.sun.mail.smtp package</A> describe several methods to do this.
+        org.ecliplse.angus.mail.smtp package</A> describe several methods to do this.
     The easiest is to replace the call <code>Transport.send(msg);</code> with
     <code>Transport.send(msg, username, password);</code>.
 </P>
@@ -3103,7 +3100,7 @@ class MyMessage extends MimeMessage {
     with its own Properties object. The <code>mail.smtp.from</code> property
     can then be set on each Properties object for each Session (and thus
     each thread) independently.
-    Alternatively, each thread can use the <code>com.sun.mail.SMTPMessage</code>
+    Alternatively, each thread can use the <code>org.eclipse.angus.mail.SMTPMessage</code>
     class. The <code>setEnvelopeFrom</code> method on that class can be used
     to set this value. With this approach, all threads can use the same Session.
 </P>
@@ -3163,7 +3160,7 @@ class MyMessage extends MimeMessage {
     <A HREF="docs/SSLNOTES.txt">SSLNOTES.txt</A>
     for additional information.
     Also, the javadocs for the
-    <A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html">com.sun.mail.smtp</A>
+    <A HREF="docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html">org.eclipse.angus.mail.smtp</A>
     package has more information on the properties that can be set.
 </P>
 <P>
@@ -3192,9 +3189,9 @@ class MyMessage extends MimeMessage {
     <BR>
     <strong>A:</strong> While there is an Internet standard for reporting such errors
     (the multipart/report MIME type, see
-    <A href="http://www.ietf.org/rfc/rfc1892.txt">RFC1892</A>),
+    <A href="https://www.ietf.org/rfc/rfc1892.txt">RFC1892</A>),
     it is not widely implemented yet.
-    <A href="http://www.ietf.org/rfc/rfc1211.txt">RFC1211</A>
+    <A href="https://www.ietf.org/rfc/rfc1211.txt">RFC1211</A>
     discusses this problem in depth, including numerous examples.
 </P>
 <P>
@@ -3209,18 +3206,18 @@ class MyMessage extends MimeMessage {
     using ad hoc techniques for returning such failure messages. This makes
     it very difficult to correlate a "bounced" message with the original message
     that caused the problem. (Note that this problem is completely independent
-    of Jakarta Mail.)
-    Jakarta Mail now includes support for parsing Delivery Status Notifications;
+    of Angus Mail.)
+    Angus Mail now includes support for parsing Delivery Status Notifications;
     see the <A HREF="docs/NOTES.txt">NOTES.txt</A>
-    file in the Jakarta Mail package for details.
+    file in the Angus Mail package for details.
 </P>
 <P>
     There are a number of techniques and heuristics for dealing with this
     problem - none of them perfect. One technique is Variable Envelope
     Return Paths, described at
-    <A HREF="http://cr.yp.to/proto/verp.txt">http://cr.yp.to/proto/verp.txt</A>.
-    The use of VERP with Jakarta Mail and Apache James is described
-    <A HREF="http://cephas.net/blog/2006/06/09/using-apache-james-and-javamail-to-implement-variable-envelope-return-paths/">here</A>.
+    <A HREF="https://cr.yp.to/proto/verp.txt">https://cr.yp.to/proto/verp.txt</A>.
+    The use of VERP with Angus Mail and Apache James is described
+    <A HREF="https://cephas.net/blog/2006/06/09/using-apache-james-and-javamail-to-implement-variable-envelope-return-paths/">here</A>.
 </P>
 
 <P>
@@ -3242,7 +3239,7 @@ class MyMessage extends MimeMessage {
         <CODE>javax.mail.SendFailedException: 550 Unable to relay for
             <I>my-address</I></CODE>?</A>
     <BR>
-    <strong>A:</strong> This is not a Jakarta Mail problem. This is an error reply from
+    <strong>A:</strong> This is not a Angus Mail problem. This is an error reply from
     your SMTP mail server. It indicates that your mail server is not
     configured to allow you to send mail through it. Typically, mail servers
     for an organization will be configured to allow mail from within the
@@ -3271,8 +3268,8 @@ class MyMessage extends MimeMessage {
     mail server. Instead, you'll need to learn the name of the host
     running the required mail server; contact your web mail provider for
     this information. You can find this information for Yahoo at
-    <A HREF="http://help.yahoo.com/help/us/mail/pop/pop-02.html">
-        http://help.yahoo.com/help/us/mail/pop/pop-02.html</A>.
+    <A HREF="https://help.yahoo.com/kb/pop-access-settings-instructions-yahoo-mail-sln4724.html">
+        https://help.yahoo.com/kb/pop-access-settings-instructions-yahoo-mail-sln4724.html</A>.
     Note that some web mail providers don't offer this service, instead
     allowing you to access your mail only through a browser.
 </P>
@@ -3295,9 +3292,9 @@ class MyMessage extends MimeMessage {
     </A>
     <BR>
     <strong>A:</strong> In order to prevent their use to send spam, some mail servers
-    will require you to have a valid POP3 account and require you to login
+    will require you to have a valid POP3 account and require you to log in
     to that account before they'll let you send mail through that mail server.
-    This is simple to handle in Jakarta Mail. When you know that you're dealing
+    This is simple to handle in Angus Mail. When you know that you're dealing
     with such a mail server, make sure you connect to your POP3 Store on that
     mail server before sending mail.
 </P>
@@ -3326,14 +3323,14 @@ class MyMessage extends MimeMessage {
         <strong>Q:</strong> How can I retrieve POP3 UIDLs in messages obtained from the POP3
         provider?</A><BR>
     <strong>A:</strong> This is possible with the POP3 provider. See
-    the <CODE>com.sun.mail.pop3</CODE> package documentation for details.
+    the <CODE>org.eclipse.angus.mail.pop3</CODE> package documentation for details.
 </P>
 
 <P>
     <A NAME="newmsgs">
         <strong>Q:</strong> How can I tell which messages are new with POP3?</A><BR>
     <strong>A:</strong> The POP3 protocol doesn't provide support for any permanent flags
-    so the RECENT flag is of no use. The <CODE>com.sun.mail.pop3</CODE> package
+    so the RECENT flag is of no use. The <CODE>org.eclipse.angus.mail.pop3</CODE> package
     documentation discusses several strategies for dealing with this problem.
 </P>
 
@@ -3355,7 +3352,7 @@ class MyMessage extends MimeMessage {
     The application must close the INBOX and reopen it in order to see any
     new messages. You will never be notified of new mail using the
     <code>MessageCountListener</code> interface with POP3. See the
-    <code>com.sun.mail.pop3</code> package documentation
+    <code>org.eclipse.angus.mail.pop3</code> package documentation
     for more information.
 </P>
 
@@ -3375,7 +3372,7 @@ class MyMessage extends MimeMessage {
     </A>
     <BR>
     <strong>A:</strong> Most likely you
-    have more than one version of pop3.jar or jakarta.mail.jar in your CLASSPATH.
+    have more than one version of pop3.jar or angus-mail.jar in your CLASSPATH.
     Check the setting of CLASSPATH and
     check the "jre/lib/ext" directory in the JDK.
 </P>
@@ -3396,8 +3393,8 @@ com.sun.mail.pop3.POP3Message.getContentStream(POP3Message.java:115)
 </P>
 <P>
     As <A HREF="#pop3111">above</A>, you've mixed versions of the POP3
-    provider and jakarta.mail.jar. You probably have an older version of
-    jakarta.mail.jar in your CLASSPATH before the newer version that includes
+    provider and angus-mail.jar. You probably have an older version of
+    angus-mail.jar in your CLASSPATH before the newer version that includes
     the POP3 provider.
 </P>
 
@@ -3439,10 +3436,10 @@ com.sun.mail.pop3.POP3Message.getContentStream(POP3Message.java:115)
     <strong>A:</strong> Some versions of Microsoft Exchange do not implement the
     POP3 protocol properly. They return different headers from the
     <code>TOP</code> command than they do from the <code>RETR</code>
-    command. This can cause all sorts of strange failures in Jakarta Mail.
+    command. This can cause all sorts of strange failures in Angus Mail.
     One solution is to disable use of the <code>TOP</code> command,
     as described <A href="#pop3size">above</A>. Another approach
-    that works in some cases os to tell Jakarta Mail to forget about the
+    that works in some cases os to tell Angus Mail to forget about the
     headers it retrieved using the <code>TOP</code> command after
     retrieving the entire message using the <code>RETR</code> command.
     To do this, set the property "mail.pop3.forgettopheaders" to "true".
@@ -3450,69 +3447,69 @@ com.sun.mail.pop3.POP3Message.getContentStream(POP3Message.java:115)
 
 <BR>
 <BR>
-<H2><STRONG>Jakarta Mail in servlets</STRONG></H2>
+<H2><STRONG>Angus Mail in servlets</STRONG></H2>
 <BR/>
 <BR/>
 
 <P>
     <A NAME="servlethow">
-        <strong>Q:</strong> Can I use Jakarta Mail in servlets?
+        <strong>Q:</strong> Can I use Angus Mail in servlets?
     </A>
     <BR>
     <strong>A:</strong>
     Yes, see the Installation and Configuration section above for more details.
     The Jakarta Mail API is also a required part of the
-    <A HREF="http://www.oracle.com/technetwork/java/javaee/overview/javaee-135128.html">
+    <A HREF="https://www.oracle.com/java/technologies/javaee6-glance.html">
         Java Platform, Enterprise Edition (Java EE)</A>.
-    No installation or configuration is necessary when using Jakarta Mail
+    No installation or configuration is necessary when using Angus Mail
     in a Java EE product, <EM>it's just there</EM>!
 </P>
 
 <P>
     <A NAME="fileupload">
-        <strong>Q:</strong> My web application uses Jakarta Mail to attach and send a file that
+        <strong>Q:</strong> My web application uses Angus Mail to attach and send a file that
         the user specifies, but my application can't find the file.
     </A>
     <BR>
     <strong>A:</strong> If the user species the filename in an HTML form in the browser,
     the filename is normally the name of a file on the user's machine, not on
     the server. The file will need to be uploaded to the server before
-    Jakarta Mail can access it.
-    The <A HREF="http://jakarta.apache.org/commons/fileupload/">
-    Apache Jakarta Commons FileUpload package</A> can help.
+    Angus Mail can access it.
+    The <A HREF="https://commons.apache.org/proper/commons-fileupload/">
+    Apache Commons FileUpload package</A> can help.
 </P>
 
 <BR>
 <BR>
-<H2><STRONG>Jakarta Mail in applets</STRONG></H2>
+<H2><STRONG>Angus Mail in applets</STRONG></H2>
 <BR/>
 <BR/>
 
 <P>
     <A NAME="applets">
-        <strong>Q:</strong> Can I use Jakarta Mail in applets?
+        <strong>Q:</strong> Can I use Angus Mail in applets?
     </A>
     <BR>
     <strong>A:</strong>
-    Yes, Jakarta Mail will work in applets in browsers that support the
+    Yes, Angus Mail will work in applets in browsers that support the
     required JDK version.
-    The <A HREF="http://docs.oracle.com/javase/7/docs/technotes/guides/jweb/applet/applet_dev_guide.html">
+    The <A HREF="https://docs.oracle.com/javase/7/docs/technotes/guides/jweb/applet/applet_dev_guide.html">
     Java Plug-in</A> may be required to provide such support.
 </P>
 
 <P>
     <A NAME="appletsecurity">
-        <strong>Q:</strong> What are the security implications of using Jakarta Mail in an applet?
+        <strong>Q:</strong> What are the security implications of using Angus Mail in an applet?
     </A>
     <BR>
     <strong>A:</strong> One of the biggest
-    issues with using Jakarta Mail in applets is the default applet security
+    issues with using Angus Mail in applets is the default applet security
     restrictions. These restrictions only allow applets to connect to the
-    host from which they were loaded. Thus, for such applets to use Jakarta Mail,
+    host from which they were loaded. Thus, for such applets to use Angus Mail,
     the mail server will need to be located on the same machine as the web
     server from which the applet is loaded. You can find more information
     on the applet security model
-    <A HREF="http://docs.oracle.com/javase/tutorial/deployment/applet/security.html">
+    <A HREF="https://docs.oracle.com/javase/tutorial/deployment/applet/security.html">
         here</A>.
 </P>
 
@@ -3523,9 +3520,9 @@ com.sun.mail.pop3.POP3Message.getContentStream(POP3Message.java:115)
     </A>
     <BR>
     <strong>A:</strong> In general, we recommend use of a web application to collect
-    a mail message and send it using Jakarta Mail. The demo servlet included in
-    the Jakarta Mail download package illustrates this approach. The
-    <A HREF="http://www.oracle.com/technetwork/articles/javase/emailapps-141091.html">
+    a mail message and send it using Angus Mail. The demo servlet included in
+    the Angus Mail download package illustrates this approach. The
+    <A HREF="https://www.oracle.com/technetwork/articles/javase/emailapps-141091.html">
         Email Web Application demo program</A> on the Oracle Technology Network
     illustrates another approach using JavaServer Pages.
 </P>	

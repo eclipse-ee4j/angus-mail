@@ -1,4 +1,4 @@
-# Contributing to Eclipse Project for Jakarta Mail
+# Contributing to Eclipse Project for Angus Mail
 
 Thanks for your interest in this project.
 
@@ -16,21 +16,21 @@ included in the Java EE platform.
 Information regarding source code management, builds, coding standards, and
 more.
 
-* [https://eclipse-ee4j.github.io/mail/Contributions](https://eclipse-ee4j.github.io/mail/Contributions)
+* [https://eclipse-ee4j.github.io/angus-mail/Contributions](https://eclipse-ee4j.github.io/angus-mail/Contributions)
 * [https://projects.eclipse.org/projects/ee4j.mail/developer](https://projects.eclipse.org/projects/ee4j.mail/developer)
 
 The project maintains the following source code repositories
 
-* [https://github.com/eclipse-ee4j/mail](https://github.com/eclipse-ee4j/mail)
-* [https://github.com/eclipse-ee4j/mail-spec](https://github.com/eclipse-ee4j/mail-spec)
-* [https://github.com/eclipse-ee4j/mail-tck](https://github.com/eclipse-ee4j/mail-tck)
+* [https://github.com/eclipse-ee4j/angus-mail](https://github.com/eclipse-ee4j/angus-mail)
+* [https://github.com/jakartaee/mail-spec](https://github.com/jakartaee/mail-spec)
+* [https://github.com/jakartaee/mail-tck](https://github.com/jakartaee/mail-tck)
 
 ## Eclipse Contributor Agreement
 
 Before your contribution can be accepted by the project team contributors must
 electronically sign the Eclipse Contributor Agreement (ECA).
 
-* [http://www.eclipse.org/legal/ECA.php](http://www.eclipse.org/legal/ECA.php)
+* [https://www.eclipse.org/legal/ECA.php](https://www.eclipse.org/legal/ECA.php)
 
 Commits that are provided by non-committers must have a Signed-off-by field in
 the footer indicating that the author is aware of the terms by which the
@@ -60,4 +60,4 @@ Jakarta EE specification projects.
 
 Contact the project developers via the project's "dev" list.
 
-* [https://accounts.eclipse.org/mailing-list/mail-dev](https://accounts.eclipse.org/mailing-list/mail-dev)
+* [https://accounts.eclipse.org/mailing-list/angus-dev](https://accounts.eclipse.org/mailing-list/angus-dev)

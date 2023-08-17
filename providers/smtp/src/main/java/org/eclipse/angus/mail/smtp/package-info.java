@@ -17,7 +17,7 @@
 /**
  * An SMTP protocol provider for the Jakarta Mail API
  * that provides access to an SMTP server.
- * Refer to <A HREF="http://www.ietf.org/rfc/rfc821.txt" TARGET="_top">RFC 821</A>
+ * Refer to <A HREF="https://www.ietf.org/rfc/rfc821.txt" TARGET="_top">RFC 821</A>
  * for more information.
  * <P>
  * When sending a message, detailed information on each address that
@@ -37,12 +37,12 @@
  * </P>
  * <P>
  * The SMTP provider also supports ESMTP
- * (<A HREF="http://www.ietf.org/rfc/rfc1651.txt" TARGET="_top">RFC 1651</A>).
+ * (<A HREF="https://www.ietf.org/rfc/rfc1651.txt" TARGET="_top">RFC 1651</A>).
  * It can optionally use SMTP Authentication
- * (<A HREF="http://www.ietf.org/rfc/rfc2554.txt" TARGET="_top">RFC 2554</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc2554.txt" TARGET="_top">RFC 2554</A>)
  * using the LOGIN, PLAIN, DIGEST-MD5, and NTLM mechanisms
- * (<A HREF="http://www.ietf.org/rfc/rfc4616.txt" TARGET="_top">RFC 4616</A>
- * and <A HREF="http://www.ietf.org/rfc/rfc2831.txt" TARGET="_top">RFC 2831</A>).
+ * (<A HREF="https://www.ietf.org/rfc/rfc4616.txt" TARGET="_top">RFC 4616</A>
+ * and <A HREF="https://www.ietf.org/rfc/rfc2831.txt" TARGET="_top">RFC 2831</A>).
  * </P>
  * <P>
  * To use SMTP authentication you'll need to set the <code>mail.smtp.auth</code>
@@ -98,14 +98,14 @@
  * </P>
  * <P>
  * The SMTP protocol provider can use SASL
- * (<A HREF="http://www.ietf.org/rfc/rfc2222.txt" TARGET="_top">RFC 2222</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc2222.txt" TARGET="_top">RFC 2222</A>)
  * authentication mechanisms on systems that support the
  * <CODE>javax.security.sasl</CODE> APIs, such as J2SE 5.0.
  * In addition to the SASL mechanisms that are built into
  * the SASL implementation, users can also provide additional
  * SASL mechanisms of their own design to support custom authentication
  * schemes.  See the
- * <A HREF="http://java.sun.com/j2se/1.5.0/docs/guide/security/sasl/sasl-refguide.html" TARGET="_top">
+ * <A HREF="https://docs.oracle.com/javase/1.5.0/docs/guide/security/sasl/sasl-refguide.html" TARGET="_top">
  * Java SASL API Programming and Deployment Guide</A> for details.
  * Note that the current implementation doesn't support SASL mechanisms
  * that provide their own integrity or confidentiality layer.
@@ -117,17 +117,17 @@
  * support described above or as a built-in authentication mechanism in the
  * SMTP provider.
  * The OAuth 2.0 Access Token should be passed as the password for this mechanism.
- * See <A HREF="https://eclipse-ee4j.github.io/mail/OAuth2" TARGET="_top">
+ * See <A HREF="https://eclipse-ee4j.github.io/angus-mail/OAuth2" TARGET="_top">
  * OAuth2 Support</A> for details.
  * </P>
  * <P>
  * SMTP can also optionally request Delivery Status Notifications
- * (<A HREF="http://www.ietf.org/rfc/rfc1891.txt" TARGET="_top">RFC 1891</A>).
+ * (<A HREF="https://www.ietf.org/rfc/rfc1891.txt" TARGET="_top">RFC 1891</A>).
  * The delivery status will typically be reported using
  * a "multipart/report"
- * (<A HREF="http://www.ietf.org/rfc/rfc1892.txt" TARGET="_top">RFC 1892</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc1892.txt" TARGET="_top">RFC 1892</A>)
  * message type with a "message/delivery-status"
- * (<A HREF="http://www.ietf.org/rfc/rfc1894.txt" TARGET="_top">RFC 1894</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc1894.txt" TARGET="_top">RFC 1894</A>)
  * part.
  * You can use the classes in the <code>org.eclipse.angus.mail.dsn</code> package to
  * handle these MIME types.
@@ -146,7 +146,7 @@
  * </P>
  * <P>
  * The SMTP protocol provider supports the CHUNKING extension defined in
- * <A HREF="http://www.ietf.org/rfc/rfc3030.txt" TARGET="_top">RFC 3030</A>.
+ * <A HREF="https://www.ietf.org/rfc/rfc3030.txt" TARGET="_top">RFC 3030</A>.
  * Set the <code>mail.smtp.chunksize</code> property to the desired chunk
  * size in bytes.
  * If the server supports the CHUNKING extension, the BDAT command will be
@@ -358,8 +358,8 @@
  * <TD>int</TD>
  * <TD>
  * NTLM protocol-specific flags.
- * See <A HREF="http://curl.haxx.se/rfc/ntlm.html#theNtlmFlags" TARGET="_top">
- * http://curl.haxx.se/rfc/ntlm.html#theNtlmFlags</A> for details.
+ * See <A HREF="https://curl.se/rfc/ntlm.html#theNtlmFlags" TARGET="_top">
+ * https://curl.se/rfc/ntlm.html#theNtlmFlags</A> for details.
  * </TD>
  * </TR>
  *
@@ -379,8 +379,8 @@
  * <TD>int</TD>
  * <TD>
  * Sets the LM compatibility level, as described here:
- * <A HREF="http://curl.haxx.se/rfc/ntlm.html#ntlmVersion2" TARGET="_top">
- * http://curl.haxx.se/rfc/ntlm.html#ntlmVersion2</A>
+ * <A HREF="https://curl.se/rfc/ntlm.html#ntlmVersion2" TARGET="_top">
+ * https://curl.se/rfc/ntlm.html#ntlmVersion2</A>
  * Defaults to "3".  Currently not used.
  * </TD>
  * </TR>
@@ -587,7 +587,7 @@
  * <TD>boolean</TD>
  * <TD>
  * If set to false, it does not check the server identity as specified by
- * <A HREF="http://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
+ * <A HREF="https://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
  * These additional checks based on the content of the server's certificate
  * are intended to prevent man-in-the-middle attacks.
  * Defaults to true.
@@ -753,7 +753,7 @@
  * method {@link org.eclipse.angus.mail.smtp.SMTPTransport#supportsExtension
  * supportsExtension}
  * to verify that the server supports the desired service extension.
- * See <A HREF="http://www.ietf.org/rfc/rfc1869.txt" TARGET="_top">RFC 1869</A>
+ * See <A HREF="https://www.ietf.org/rfc/rfc1869.txt" TARGET="_top">RFC 1869</A>
  * and other RFCs that define specific extensions.
  * </TD>
  * </TR>
