@@ -4,6 +4,17 @@
 		    Angus Mail ${angus-mail.version} release
 		    ------------------------------
 
+-- Angus Mail 2.0.3 --
+
+- MailHandler public methods no longer hostile to invalid arguments
+
+    Public methods that are contractually owned by MailHandler are no longer
+    hostile to invalid input such as zero and null.  When invalid or out of
+    range values are used the MailHandler will use the same default that the
+    LogManager would have chosen during creation.  This allows bean style
+    configurators to remove properties from the MailHandler without knowing the
+    valid defaults for each property.
+
 -- Angus Mail 2.0.0 --
 
 - Java package and java module names changed

@@ -178,6 +178,21 @@ public class CompactFormatterTest extends AbstractLogging {
     }
 
     @Test
+    public void testGetSetFormat() {
+        CompactFormatter cf = new CompactFormatter();
+        final String init = cf.getFormat();
+        String pattern = "foo";
+        assertNotEquals(pattern, cf.getFormat());
+        cf.setFormat(pattern);
+        assertEquals(pattern, cf.getFormat());
+        LogRecord r = new LogRecord(Level.SEVERE, "bar");
+        assertEquals(pattern, cf.format(r));
+
+        cf.setFormat((String) null);
+        assertEquals(init, cf.getFormat());
+    }
+
+    @Test
     public void testFormat() throws Exception {
         final String p = CompactFormatter.class.getName();
         Properties props = new Properties();

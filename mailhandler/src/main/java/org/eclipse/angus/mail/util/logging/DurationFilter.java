@@ -71,13 +71,13 @@ public class DurationFilter implements Filter {
     /**
      * The number of expected records per duration.
      */
-    private final long records;
+    private long records;
     /**
      * The duration in milliseconds used to determine the rate. The duration is
      * also used as the amount of time that the filter will not allow records
      * when saturated.
      */
-    private final long duration;
+    private long duration;
     /**
      * The number of records seen for the current duration. This value negative
      * if saturated. Zero is considered saturated but is reserved for recording
@@ -130,26 +130,23 @@ public class DurationFilter implements Filter {
             return false;
         }
 
-        final DurationFilter other = (DurationFilter) obj;
-        if (this.records != other.records) {
-            return false;
-        }
-
-        if (this.duration != other.duration) {
-            return false;
-        }
-
+        final long r;
+        final long d;
         final long c;
         final long p;
         final long s;
         synchronized (this) {
+            r = this.records;
+            d = this.duration;
             c = this.count;
             p = this.peak;
             s = this.start;
         }
 
+        final DurationFilter other = (DurationFilter) obj;
         synchronized (other) {
-            if (c != other.count || p != other.peak || s != other.start) {
+            if (r != other.records || d != other.duration || c != other.count
+                    || p != other.peak || s != other.start) {
                 return false;
             }
         }
@@ -174,10 +171,10 @@ public class DurationFilter implements Filter {
      * @return hash code for this filter.
      */
     @Override
-    public int hashCode() {
+    public synchronized int hashCode() {
         int hash = 3;
-        hash = 89 * hash + (int) (this.records ^ (this.records >>> 32));
-        hash = 89 * hash + (int) (this.duration ^ (this.duration >>> 32));
+        hash = 89 * hash + Long.hashCode(records);
+        hash = 89 * hash + Long.hashCode(duration);
         return hash;
     }
 
@@ -203,7 +200,63 @@ public class DurationFilter implements Filter {
      * @return true if the filter is not saturated; false otherwise.
      */
     public boolean isLoggable() {
-        return test(records, System.currentTimeMillis());
+        final long r;
+        synchronized (this) {
+            r = records;
+        }
+        return test(r, System.currentTimeMillis());
+    }
+
+    /**
+     * Gets the max number of records per duration.
+     *
+     * @return the max number of records per duration.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public synchronized long getRecords() {
+        LogManagerProperties.checkLogManagerAccess();
+        return this.records;
+    }
+
+    /**
+     * Sets the max number of records per duration.
+     *
+     * @param records the max number of records per duration.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public synchronized void setRecords(long records) {
+        LogManagerProperties.checkLogManagerAccess();
+        this.records = checkRecords(records);
+    }
+
+    /**
+     * Sets the duration in milliseconds used to determine the log record rate.
+     *
+     * @param duration in milliseconds to determine the log record rate.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public synchronized void setDurationMillis(long duration) {
+        LogManagerProperties.checkLogManagerAccess();
+        this.duration = checkDuration(duration);
+    }
+
+    /**
+     * Gets the duration in milliseconds used to determine the log record rate.
+     *
+     * @return duration in milliseconds used to determine the log record rate.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public synchronized long getDurationMillis() {
+        LogManagerProperties.checkLogManagerAccess();
+        return this.duration;
     }
 
     /**
@@ -215,16 +268,20 @@ public class DurationFilter implements Filter {
      */
     @Override
     public String toString() {
+        long r;
+        long d;
         boolean idle;
         boolean loggable;
         synchronized (this) {
+            r = this.records;
+            d = this.duration;
             final long millis = System.currentTimeMillis();
             idle = test(0L, millis);
-            loggable = test(records, millis);
+            loggable = test(r, millis);
         }
 
-        return getClass().getName() + "{records=" + records
-                + ", duration=" + duration
+        return getClass().getName() + "{records=" + r
+                + ", duration=" + d
                 + ", idle=" + idle
                 + ", loggable=" + loggable + '}';
     }
@@ -256,15 +313,17 @@ public class DurationFilter implements Filter {
      */
     private boolean test(final long limit, final long millis) {
         assert limit >= 0L : limit;
+        final long d;
         final long c;
         final long s;
         synchronized (this) {
+            d = duration;
             c = count;
             s = start;
         }
 
         if (c > 0L) { //If not saturated.
-            if ((millis - s) >= duration || c < limit) {
+            if ((millis - s) >= d || c < limit) {
                 return true;
             }
         } else {  //Subtraction is used to deal with numeric overflow.
@@ -348,7 +407,7 @@ public class DurationFilter implements Filter {
                         if (s.endsWith("L") || s.endsWith("l")) {
                             s = s.substring(0, s.length() - 1);
                         }
-                        result = multiplyExact(result, Long.parseLong(s));
+                        result = Math.multiplyExact(result, Long.parseLong(s));
                     }
                 } catch (final RuntimeException ignore) {
                     result = Long.MIN_VALUE;
@@ -398,26 +457,6 @@ public class DurationFilter implements Filter {
             e = new String[]{value};
         }
         return e;
-    }
-
-    /**
-     * Multiply and check for overflow. This can be replaced with
-     * {@code java.lang.Math.multiplyExact} when Jakarta Mail requires JDK 8.
-     *
-     * @param x the first value.
-     * @param y the second value.
-     * @return x times y.
-     * @throws ArithmeticException if overflow is detected.
-     */
-    private static long multiplyExact(final long x, final long y) {
-        long r = x * y;
-        if (((Math.abs(x) | Math.abs(y)) >>> 31L != 0L)) {
-            if (((y != 0L) && (r / y != x))
-                    || (x == Long.MIN_VALUE && y == -1L)) {
-                throw new ArithmeticException();
-            }
-        }
-        return r;
     }
 
     /**

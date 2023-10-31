@@ -36,6 +36,7 @@ import java.util.logging.Logger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -624,6 +625,51 @@ public class DurationFilterTest extends AbstractLogging {
         assertTrue(s.contains("duration="));
         assertTrue(s.contains("idle="));
         assertTrue(s.contains("loggable="));
+    }
+
+    @Test
+    public void testRecords() {
+        DurationFilter one = new DurationFilter();
+        DurationFilter two = new DurationFilter();
+        final long records = 1000L;
+        assertEquals(records, one.getRecords());
+        assertEquals(records, two.getRecords());
+        assertEquals(one, two);
+
+        one.setRecords(1L);
+        assertEquals(1L, one.getRecords());
+        assertNotEquals(one, two);
+
+        two.setRecords(one.getRecords());
+        assertEquals(one, two);
+
+        one.setRecords(-1L);
+        assertEquals(records, one.getRecords());
+        one.setRecords(0L);
+        assertEquals(records, one.getRecords());
+    }
+
+    @Test
+    public void testDurationMillis() {
+        DurationFilter one = new DurationFilter();
+        DurationFilter two = new DurationFilter();
+        final long duration = 15L * 60L * 1000L;
+        assertEquals(duration, one.getDurationMillis());
+        assertEquals(duration, two.getDurationMillis());
+        assertEquals(one, two);
+
+        one.setDurationMillis(1L);
+        assertEquals(1L, one.getDurationMillis());
+        assertNotEquals(one, two);
+
+        two.setDurationMillis(one.getDurationMillis());
+        assertEquals(one, two);
+
+        one.setDurationMillis(-1L);
+        assertEquals(duration, one.getDurationMillis());
+
+        one.setDurationMillis(0L);
+        assertEquals(duration, one.getDurationMillis());
     }
 
     @Test

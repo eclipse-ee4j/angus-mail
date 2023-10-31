@@ -16,10 +16,13 @@
  */
 package org.eclipse.angus.mail.util.logging;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Date;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.LogRecord;
+import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogManager;
 
 /**
  * A plain text formatter that can produce fixed width output. By default this
@@ -67,14 +70,14 @@ public class CompactFormatter extends java.util.logging.Formatter {
     /**
      * Holds the java.util.Formatter pattern.
      */
-    private final String fmt;
+    private volatile String fmt;
 
     /**
      * Creates an instance with a default format pattern.
      */
     public CompactFormatter() {
         String p = getClass().getName();
-        this.fmt = initFormat(p);
+        setFormat0(fromLogManager(p.concat(".format")));
     }
 
     /**
@@ -85,8 +88,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
      *               {@linkplain #format(java.util.logging.LogRecord) format} method.
      */
     public CompactFormatter(final String format) {
-        String p = getClass().getName();
-        this.fmt = format == null ? initFormat(p) : format;
+        setFormat0(format);
     }
 
     /**
@@ -216,9 +218,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
     @Override
     public String format(final LogRecord record) {
         //LogRecord is mutable so define local vars.
-        ResourceBundle rb = record.getResourceBundle();
-        Locale l = rb == null ? null : rb.getLocale();
-
+        Locale l = getLocale(record);
         String msg = formatMessage(record);
         String thrown = formatThrown(record);
         String err = formatError(record);
@@ -256,9 +256,29 @@ public class CompactFormatter extends java.util.logging.Formatter {
      */
     @Override
     public String formatMessage(final LogRecord record) {
-        String msg = super.formatMessage(record);
+        String msg;
+        try {
+            msg = super.formatMessage(record);
+        } catch (RuntimeException ignore) {
+            msg = record.getMessage();
+        }
+
         msg = replaceClassName(msg, record.getThrown());
-        msg = replaceClassName(msg, record.getParameters());
+
+        //Render any String.format patterns in the message.
+        final Object[] params = record.getParameters();
+        if (params != null && params.length != 0) {
+            msg = replaceClassName(msg, params);
+            Locale l = getLocale(record);
+            try {
+                if (l == null) { //BUG ID 6282094
+                    msg = String.format(msg, params);
+                } else {
+                    msg = String.format(l, msg, params);
+                }
+            } catch (RuntimeException ignore) {
+            }
+        }
         return msg;
     }
 
@@ -616,18 +636,42 @@ public class CompactFormatter extends java.util.logging.Formatter {
     }
 
     /**
-     * Creates the format pattern for this formatter.
+     * Gets the format pattern for this formatter.
      *
-     * @param p the class name prefix.
-     * @return the java.util.Formatter format string.
-     * @throws NullPointerException if the given class name is null.
+     * @return the format pattern.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
      */
-    private String initFormat(final String p) {
-        String v = LogManagerProperties.fromLogManager(p.concat(".format"));
-        if (isNullOrSpaces(v)) {
-            v = "%7$#.160s%n"; //160 chars split between message and thrown.
+    public String getFormat() {
+        LogManagerProperties.checkLogManagerAccess();
+        return fmt;
+    }
+
+    /**
+     * Sets the format pattern for this formatter.
+     *
+     * @param format the format pattern. If null, the default pattern is used.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public void setFormat(String format) {
+        LogManagerProperties.checkLogManagerAccess();
+        setFormat0(format);
+    }
+
+    /**
+     * Sets the format pattern but doesn't check for permissions.
+     *
+     * @param format the format pattern. If null, the default pattern is used.
+     * @since Angus Mail 2.0.3
+     */
+    private void setFormat0(String format) {
+        if (isNullOrSpaces(format)) {
+            format = "%7$#.160s%n"; //160 chars split between message and thrown.
         }
-        return v;
+        this.fmt = format;
     }
 
     /**
@@ -762,6 +806,17 @@ public class CompactFormatter extends java.util.logging.Formatter {
     }
 
     /**
+     * Gets the locale of the LogRecord.
+     * @param record a non null record.
+     * @return the locale or null.
+     * @since Angus Mail 2.0.3
+     */
+    private Locale getLocale(final LogRecord record) {
+        ResourceBundle rb = record.getResourceBundle();
+        return rb == null ? null : rb.getLocale();
+    }
+
+    /**
      * Used to format two arguments as fixed length message.
      */
     private class Alternate implements java.util.Formattable {
@@ -835,11 +890,15 @@ public class CompactFormatter extends java.util.logging.Formatter {
                 }
             }
 
-            formatter.format(l);
-            if (!l.isEmpty() && !r.isEmpty()) {
-                formatter.format("|");
+            try {
+                formatter.out().append(l);
+                if (!l.isEmpty() && !r.isEmpty()) {
+                    formatter.out().append("|");
+                }
+                formatter.out().append(r);
+            } catch (IOException ioe) {
+                throw new UncheckedIOException(ioe);
             }
-            formatter.format(r);
         }
 
         /**

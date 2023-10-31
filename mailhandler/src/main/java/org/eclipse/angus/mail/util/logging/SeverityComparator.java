@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2023 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -235,9 +236,9 @@ public class SeverityComparator implements Comparator<LogRecord>, Serializable {
         if (cmp == 0) {
             cmp = applyThenCompare(o1.getThrown(), o2.getThrown());
             if (cmp == 0) {
-                cmp = compare(o1.getSequenceNumber(), o2.getSequenceNumber());
+                cmp = Long.compare(o1.getSequenceNumber(), o2.getSequenceNumber());
                 if (cmp == 0) {
-                    cmp = compare(o1.getMillis(), o2.getMillis());
+                    cmp = Long.compare(o1.getMillis(), o2.getMillis());
                 }
             }
         }
@@ -312,7 +313,7 @@ public class SeverityComparator implements Comparator<LogRecord>, Serializable {
      * argument is less than, equal to, or greater than the second.
      */
     private int compare(final Level a, final Level b) {
-        return a == b ? 0 : compare(a.intValue(), b.intValue());
+        return a == b ? 0 : Integer.compare(a.intValue(), b.intValue());
     }
 
     /**
@@ -324,17 +325,5 @@ public class SeverityComparator implements Comparator<LogRecord>, Serializable {
      */
     private static String toString(final Object o1, final Object o2) {
         return o1 + ", " + o2;
-    }
-
-    /**
-     * Compare two longs. Can be removed when JDK 1.7 is required.
-     *
-     * @param x the first long.
-     * @param y the second long.
-     * @return a negative integer, zero, or a positive integer as the first
-     * argument is less than, equal to, or greater than the second.
-     */
-    private int compare(final long x, final long y) {
-        return x < y ? -1 : x > y ? 1 : 0;
     }
 }
