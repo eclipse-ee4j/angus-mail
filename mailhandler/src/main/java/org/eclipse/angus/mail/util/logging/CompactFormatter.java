@@ -265,7 +265,8 @@ public class CompactFormatter extends java.util.logging.Formatter {
 
         //Render any String.format patterns in the message.
         final Object[] params = record.getParameters();
-        if (params != null && params.length != 0 && msg != null) {
+        if (msg != null && ((params != null && params.length != 0)
+                || msg.contains("%n"))) {
             Locale l = getLocale(record);
             try {
                 if (l == null) { //BUG ID 6282094
