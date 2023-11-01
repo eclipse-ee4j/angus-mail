@@ -3639,30 +3639,22 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testCapacity() {
-        try {
-            MailHandler h = new MailHandler(-1);
-            h.getCapacity();
-            fail("Negative capacity was allowed.");
-        } catch (IllegalArgumentException pass) {
-        } catch (RuntimeException RE) {
-            fail(RE.toString());
-        }
+        MailHandler h = new MailHandler(-1);
+        assertEquals(1000, h.getCapacity());
 
-        try {
-            MailHandler h = new MailHandler(0);
-            h.getCapacity();
-            fail("Zero capacity was allowed.");
-        } catch (IllegalArgumentException pass) {
-        } catch (RuntimeException RE) {
-            fail(RE.toString());
-        }
+        h = new MailHandler(0);
+        assertEquals(1000, h.getCapacity());
 
-        try {
-            MailHandler h = new MailHandler(1);
-            h.getCapacity();
-        } catch (RuntimeException RE) {
-            fail(RE.toString());
-        }
+        h = new MailHandler(1);
+        assertEquals(1, h.getCapacity());
+
+        h.setCapacity(10);
+        assertEquals(10, h.getCapacity());
+        h.close();
+        assertEquals(10, h.getCapacity());
+
+        h.setCapacity(1000);
+        assertEquals(1000, h.getCapacity());
 
         final int expResult = 20;
         MailHandler instance = new MailHandler(20);

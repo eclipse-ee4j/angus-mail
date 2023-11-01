@@ -349,7 +349,7 @@ public class DurationFilter implements Filter {
             }
 
             //Under the rate if the count has not been reached.
-            if (count != records) {
+            if ((records - count) > 0L) {
                 ++count;
                 allow = true;
             } else {

@@ -593,9 +593,6 @@ public class MailHandler extends Handler {
     public MailHandler(final int capacity) {
         init((Properties) null);
         sealed = true;
-        if (capacity <=0 ) {
-           throw new IllegalArgumentException();
-        }
         setCapacity0(capacity);
     }
 
@@ -605,15 +602,11 @@ public class MailHandler extends Handler {
      * documentation.  This <code>Handler</code> will also search the
      * <code>LogManager</code> for defaults if needed.
      *
-     * @param props a non <code>null</code> properties object.
-     * @throws NullPointerException if <code>props</code> is <code>null</code>.
+     * @param props a properties object or null.
      * @throws SecurityException    if a security manager exists and the
      *                              caller does not have <code>LoggingPermission("control")</code>.
      */
-    public MailHandler(final Properties props) {
-        if (props == null) {
-            throw new NullPointerException();
-        }
+    public MailHandler(Properties props) {
         init(props);
         sealed = true;
         setMailProperties0(props);

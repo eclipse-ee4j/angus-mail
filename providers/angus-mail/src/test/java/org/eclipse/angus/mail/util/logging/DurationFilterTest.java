@@ -650,6 +650,19 @@ public class DurationFilterTest extends AbstractLogging {
     }
 
     @Test
+    public void testCountExceedsRecords() {
+        DurationFilter one = new DurationFilter(10L, 15L * 60L * 1000L);
+        LogRecord r = new LogRecord(Level.INFO, "");
+        final long now = r.getMillis();
+        for (long i = 1L; i <= one.getRecords() / 2L; ++i) {
+            assertTrue(one.isLoggable(r));
+            setEpochMilli(r, now + i);
+        }
+        one.setRecords(1L);
+        assertFalse(one.isLoggable(r));
+    }
+
+    @Test
     public void testDurationMillis() {
         DurationFilter one = new DurationFilter();
         DurationFilter two = new DurationFilter();
