@@ -1713,7 +1713,7 @@ public class MailHandler extends Handler {
             this.alignAttachmentFormatters(formatters.length);
             this.alignAttachmentFilters(formatters.length);
             for (int i = 0; i < formatters.length; ++i) {
-                String name = names[i];
+                String name = names != null ? names[i] : null;
                 if (isEmpty(name)) {
                     name = toString(this.attachmentFormatters[i]);
                 }
