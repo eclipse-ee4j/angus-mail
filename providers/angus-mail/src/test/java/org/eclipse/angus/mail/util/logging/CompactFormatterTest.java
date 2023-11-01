@@ -770,6 +770,14 @@ public class CompactFormatterTest extends AbstractLogging {
     }
 
     @Test
+    public void testFormatMessageWithNullMessage() {
+        CompactFormatter cf = new CompactFormatter();
+        LogRecord r = new LogRecord(Level.INFO, (String) null);
+        r.setParameters(new Object[]{null, null});
+        assertNull(cf.formatMessage(r));
+    }
+
+    @Test
     public void testFormatMessageLocale() throws Exception {
         String msg = "message";
         CompactFormatter cf = new CompactFormatter("%5$s");
