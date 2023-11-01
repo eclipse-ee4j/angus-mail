@@ -263,12 +263,9 @@ public class CompactFormatter extends java.util.logging.Formatter {
             msg = record.getMessage();
         }
 
-        msg = replaceClassName(msg, record.getThrown());
-
         //Render any String.format patterns in the message.
         final Object[] params = record.getParameters();
         if (params != null && params.length != 0) {
-            msg = replaceClassName(msg, params);
             Locale l = getLocale(record);
             try {
                 if (l == null) { //BUG ID 6282094
@@ -278,7 +275,9 @@ public class CompactFormatter extends java.util.logging.Formatter {
                 }
             } catch (RuntimeException ignore) {
             }
+            msg = replaceClassName(msg, params);
         }
+        msg = replaceClassName(msg, record.getThrown());
         return msg;
     }
 
