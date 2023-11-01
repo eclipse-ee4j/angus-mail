@@ -1919,7 +1919,9 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Calls log manager checkAccess if this is sealed.
+     * Checks logging permissions if this handler has been sealed.
+     * @throws SecurityException if a security manager exists and the caller
+     *                           does not have {@code LoggingPermission("control")}.
      */
     private void checkAccess() {
         if (sealed) {
@@ -4602,18 +4604,6 @@ public class MailHandler extends Handler {
      */
     private static RuntimeException attachmentMismatch(final String msg) {
         return new IndexOutOfBoundsException(msg);
-    }
-
-    /**
-     * Outline the attachment mismatch message. See Bug ID 6533165.
-     *
-     * @param expected the expected array length.
-     * @param found    the array length that was given.
-     * @return a RuntimeException populated with a message.
-     */
-    private static RuntimeException attachmentMismatch(int expected, int found) {
-        return attachmentMismatch("Attachments mismatched, expected "
-                + expected + " but given " + found + '.');
     }
 
     /**
