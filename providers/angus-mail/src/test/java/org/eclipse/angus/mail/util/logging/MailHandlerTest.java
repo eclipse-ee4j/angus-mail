@@ -3726,6 +3726,33 @@ public class MailHandlerTest extends AbstractLogging {
     }
 
     @Test
+    public void testAuthentication() {
+        MailHandler instance = new MailHandler(createInitProperties(""));
+        InternalErrorManager em = new InternalErrorManager();
+        instance.setErrorManager(em);
+
+        instance.setAuthentication((String) null);
+        assertNull(instance.getAuthenticator());
+
+        instance.setAuthentication(EmptyAuthenticator.class.getName());
+        assertEquals(EmptyAuthenticator.class,
+                instance.getAuthenticator().getClass());
+
+        instance.setAuthentication("");
+        assertTrue(instance.getAuthenticator().getClass().getName()
+                .contains("DefaultAuthenticator"));
+
+        instance.setAuthentication("foo");
+        assertTrue(instance.getAuthenticator().getClass().getName()
+                .contains("DefaultAuthenticator"));
+
+        for (Exception t : em.exceptions) {
+            dump(t);
+        }
+        assertTrue(em.exceptions.isEmpty());
+    }
+
+    @Test
     public void testAuthenticator_Authenticator_Arg() {
         Authenticator auth = new EmptyAuthenticator();
 
