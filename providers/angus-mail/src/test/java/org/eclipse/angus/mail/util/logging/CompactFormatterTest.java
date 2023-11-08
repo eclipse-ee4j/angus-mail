@@ -178,6 +178,21 @@ public class CompactFormatterTest extends AbstractLogging {
     }
 
     @Test
+    public void testGetSetFormat() {
+        CompactFormatter cf = new CompactFormatter();
+        final String init = cf.getFormat();
+        String pattern = "foo";
+        assertNotEquals(pattern, cf.getFormat());
+        cf.setFormat(pattern);
+        assertEquals(pattern, cf.getFormat());
+        LogRecord r = new LogRecord(Level.SEVERE, "bar");
+        assertEquals(pattern, cf.format(r));
+
+        cf.setFormat((String) null);
+        assertEquals(init, cf.getFormat());
+    }
+
+    @Test
     public void testFormat() throws Exception {
         final String p = CompactFormatter.class.getName();
         Properties props = new Properties();
@@ -752,6 +767,14 @@ public class CompactFormatterTest extends AbstractLogging {
     public void testFormatMessageNull() {
         CompactFormatter cf = new CompactFormatter();
         assertNotNull(cf.formatMessage((LogRecord) null));
+    }
+
+    @Test
+    public void testFormatMessageWithNullMessage() {
+        CompactFormatter cf = new CompactFormatter();
+        LogRecord r = new LogRecord(Level.INFO, (String) null);
+        r.setParameters(new Object[]{null, null});
+        assertNull(cf.formatMessage(r));
     }
 
     @Test

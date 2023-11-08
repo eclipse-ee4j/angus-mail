@@ -77,18 +77,17 @@ public class CollectorFormatter extends Formatter {
     /**
      * The message format string used as the formatted output.
      */
-    private final String fmt;
+    private String fmt;
     /**
      * The formatter used to format the chosen log record.
      */
-    private final Formatter formatter;
+    private Formatter formatter;
     /**
      * The comparator used to pick the log record to format.
      */
-    private final Comparator<? super LogRecord> comparator;
+    private Comparator<? super LogRecord> comparator;
     /**
-     * The last accepted record. Synchronized access is preferred over volatile
-     * for this class.
+     * The last accepted record.
      */
     private LogRecord last;
     /**
@@ -116,14 +115,12 @@ public class CollectorFormatter extends Formatter {
     /**
      * Creates the formatter using the LogManager defaults.
      *
-     * @throws SecurityException            if a security manager exists and the caller
-     *                                      does not have <code>LoggingPermission("control")</code>.
      * @throws UndeclaredThrowableException if there are problems loading from
      *                                      the LogManager.
      */
     public CollectorFormatter() {
         final String p = getClass().getName();
-        this.fmt = initFormat(p);
+        setFormat0(fromLogManager(p.concat(".format")));
         this.formatter = initFormatter(p);
         this.comparator = initComparator(p);
     }
@@ -132,14 +129,12 @@ public class CollectorFormatter extends Formatter {
      * Creates the formatter using the given format.
      *
      * @param format the message format or null to use the LogManager default.
-     * @throws SecurityException            if a security manager exists and the caller
-     *                                      does not have <code>LoggingPermission("control")</code>.
      * @throws UndeclaredThrowableException if there are problems loading from
      *                                      the LogManager.
      */
     public CollectorFormatter(String format) {
         final String p = getClass().getName();
-        this.fmt = format == null ? initFormat(p) : format;
+        setFormat0(format);
         this.formatter = initFormatter(p);
         this.comparator = initComparator(p);
     }
@@ -152,17 +147,14 @@ public class CollectorFormatter extends Formatter {
      *               specify no formatter.
      * @param c      the comparator used to determine which log record to format or
      *               null to specify no comparator.
-     * @throws SecurityException            if a security manager exists and the caller
-     *                                      does not have <code>LoggingPermission("control")</code>.
      * @throws UndeclaredThrowableException if there are problems loading from
      *                                      the LogManager.
      */
     public CollectorFormatter(String format, Formatter f,
                               Comparator<? super LogRecord> c) {
-        final String p = getClass().getName();
-        this.fmt = format == null ? initFormat(p) : format;
-        this.formatter = f;
-        this.comparator = c;
+        setFormat0(format);
+        setFormatter0(f);
+        setComparator0(c);
     }
 
     /**
@@ -339,8 +331,9 @@ public class CollectorFormatter extends Formatter {
             throw new NullPointerException();
         }
 
-        if (comparator != null) {
-            return comparator.compare(t, u) >= 0 ? t : u;
+        Comparator<? super LogRecord> c = getComparator0();
+        if (c != null) {
+            return c.compare(t, u) >= 0 ? t : u;
         } else {
             return u;
         }
@@ -407,6 +400,8 @@ public class CollectorFormatter extends Formatter {
      * @see #getTail(java.util.logging.Handler)
      */
     private String formatRecord(final Handler h, final boolean reset) {
+        final String p;
+        final Formatter f;
         final LogRecord record;
         final long c;
         final long t;
@@ -415,6 +410,8 @@ public class CollectorFormatter extends Formatter {
         long msh;
         long now;
         synchronized (this) {
+            p = fmt;
+            f = formatter;
             record = last;
             c = count;
             g = generation;
@@ -434,7 +431,6 @@ public class CollectorFormatter extends Formatter {
         final String head;
         final String msg;
         final String tail;
-        final Formatter f = this.formatter;
         if (f != null) {
             synchronized (f) {
                 head = f.getHead(h);
@@ -455,9 +451,9 @@ public class CollectorFormatter extends Formatter {
 
         final MessageFormat mf;
         if (l == null) { //BUG ID 8039165
-            mf = new MessageFormat(fmt);
+            mf = new MessageFormat(p);
         } else {
-            mf = new MessageFormat(fmt, l);
+            mf = new MessageFormat(p, l);
         }
 
         /**
@@ -466,6 +462,136 @@ public class CollectorFormatter extends Formatter {
         return mf.format(new Object[]{finish(head), finish(msg), finish(tail),
                 c, (c - 1L), t, (c - t), msl, msh, (msh - msl), INIT_TIME, now,
                 (now - INIT_TIME), g});
+    }
+
+    /**
+     * Sets the message format string for this formatter.
+     *
+     * @param format the format pattern or null for default pattern.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public void setFormat(String format) {
+        LogManagerProperties.checkLogManagerAccess();
+        setFormat0(format);
+    }
+
+    /**
+     * Sets the message format string for this formatter.
+     *
+     * @param v the format pattern or null for default pattern.
+     * @since Angus Mail 2.0.3
+     */
+    private synchronized void setFormat0(String v) {
+        if (v == null || v.isEmpty()) {
+            v = "{0}{1}{2}{4,choice,-1#|0#|0<... {4,number,integer} more}\n";
+        }
+        this.fmt = v;
+    }
+
+    /**
+     * Gets the message format string for this formatter.
+     *
+     * @return a non null format pattern.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public synchronized String getFormat() {
+        LogManagerProperties.checkLogManagerAccess();
+        return this.fmt;
+    }
+
+    /**
+     * Sets the target formatter.
+     *
+     * @param f the target formatter or null to use a LogManager default.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public void setFormatter(Formatter f) {
+        LogManagerProperties.checkLogManagerAccess();
+        setFormatter0(f);
+    }
+
+    /**
+     * Sets the target formatter.
+     *
+     * @param f the target formatter or null to use a LogManager default.
+     * @since Angus Mail 2.0.3
+     */
+    private synchronized void setFormatter0(Formatter f) {
+        if (f == null) {
+            //Don't force the byte code verifier to load the formatter.
+            f = Formatter.class.cast(new CompactFormatter());
+        }
+        this.formatter = f;
+    }
+
+
+    /**
+     * Gets the target formatter.
+     *
+     * @return a non null formatter.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public synchronized Formatter getFormatter() {
+        LogManagerProperties.checkLogManagerAccess();
+        return this.formatter;
+    }
+
+    /**
+     * Sets the LogRecord comparator for this formatter.
+     *
+     * @param c the comparator used to order LogRecords. A null value can be
+     * used to specify choosing the last seen record.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public void setComparator(Comparator<? super LogRecord> c) {
+        LogManagerProperties.checkLogManagerAccess();
+        setComparator0(c);
+    }
+
+    /**
+     * Sets the LogRecord comparator for this formatter.
+     *
+     * @param c the comparator used to order LogRecords. A null value can be
+     * used to specify choosing the last seen record.
+     * @since Angus Mail 2.0.3
+     */
+    private synchronized void setComparator0(Comparator<? super LogRecord> c) {
+        this.comparator = c;
+    }
+
+    /**
+     * Gets the LogRecord comparator for this formatter.
+     *
+     * @return the comparator used to order LogRecords or null if choosing the
+     * most recent record.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public Comparator<? super LogRecord> getComparator() {
+        LogManagerProperties.checkLogManagerAccess();
+        return getComparator0();
+    }
+
+    /**
+     * Gets the LogRecord comparator for this formatter.
+     *
+     * @return the comparator used to order LogRecords or null if choosing the
+     * most recent record.
+     * @since Angus Mail 2.0.3
+     */
+    private synchronized Comparator<? super LogRecord> getComparator0() {
+        return this.comparator;
     }
 
     /**
@@ -508,22 +634,6 @@ public class CollectorFormatter extends Formatter {
     }
 
     /**
-     * Gets the message format string from the LogManager or creates the default
-     * message format string.
-     *
-     * @param p the class name prefix.
-     * @return the format string.
-     * @throws NullPointerException if the given argument is null.
-     */
-    private String initFormat(final String p) {
-        String v = fromLogManager(p.concat(".format"));
-        if (v == null || v.length() == 0) {
-            v = "{0}{1}{2}{4,choice,-1#|0#|0<... {4,number,integer} more}\n";
-        }
-        return v;
-    }
-
-    /**
      * Gets and creates the formatter from the LogManager or creates the default
      * formatter.
      *
@@ -535,7 +645,7 @@ public class CollectorFormatter extends Formatter {
     private Formatter initFormatter(final String p) {
         Formatter f;
         String v = fromLogManager(p.concat(".formatter"));
-        if (v != null && v.length() != 0) {
+        if (v != null && !v.isEmpty()) {
             if (!"null".equalsIgnoreCase(v)) {
                 try {
                     f = LogManagerProperties.newFormatter(v);

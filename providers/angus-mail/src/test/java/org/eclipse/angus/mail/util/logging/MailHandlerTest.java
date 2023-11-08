@@ -2366,6 +2366,109 @@ public class MailHandlerTest extends AbstractLogging {
     }
 
     @Test
+    public void testEnabled() {
+        MailHandler instance = new MailHandler(createInitProperties(""));
+        InternalErrorManager em = new InternalErrorManager();
+        instance.setErrorManager(em);
+
+        assertEquals(true, instance.isEnabled());
+        final Level[] lvls = getAllLevels();
+        for (Level lvl : lvls) {
+            instance.setEnabled(false);
+            instance.setLevel(lvl);
+            assertEquals(Level.OFF, instance.getLevel());
+            assertEquals(false, instance.isEnabled());
+
+            instance.setEnabled(true);
+            assertEquals(instance.getLevel(), lvl);
+
+            //2nd enable must not produce a null level.
+            instance.setEnabled(true);
+            assertEquals(instance.getLevel(), lvl);
+
+            //2nd disable must not produce OFF on re-enable.
+            if (!Level.OFF.equals(lvl)) {
+                instance.setEnabled(false);
+                instance.setEnabled(false);
+                instance.setEnabled(true);
+                assertEquals(instance.getLevel(), lvl);
+            }
+
+        }
+
+        instance.setLevel(Level.WARNING);
+        instance.close();
+        assertEquals(Level.OFF, instance.getLevel());
+        assertEquals(false, instance.isEnabled());
+        for (Level lvl : lvls) {
+            instance.setLevel(lvl);
+            assertEquals(Level.OFF, instance.getLevel());
+            assertEquals(false, instance.isEnabled());
+
+            instance.setEnabled(true);
+            assertEquals(false, instance.isEnabled());
+            assertEquals(Level.OFF, instance.getLevel());
+
+            instance.setEnabled(false);
+            assertEquals(false, instance.isEnabled());
+            assertEquals(Level.OFF, instance.getLevel());
+        }
+        assertEquals(true, em.exceptions.isEmpty());
+    }
+
+    @Test
+    public void testInitEnabled() throws Exception {
+        LogManager manager = LogManager.getLogManager();
+        try {
+            manager.reset();
+
+            final String p = MailHandler.class.getName();
+            Properties props = createInitProperties(p);
+            props.put(p.concat(".enabled"), "false");
+            read(manager, props);
+
+            MailHandler instance = new MailHandler();
+            InternalErrorManager em = internalErrorManagerFrom(instance);
+
+            assertEquals(InternalErrorManager.class, em.getClass());
+            assertFalse(instance.isEnabled());
+            assertEquals(Level.OFF, instance.getLevel());
+            instance.setEnabled(true);
+            assertEquals(Level.WARNING, instance.getLevel());
+            assertTrue(instance.isEnabled());
+
+            for (Exception exception : em.exceptions) {
+                dump(exception);
+            }
+            instance.close();
+            assertTrue(em.exceptions.isEmpty());
+
+            for (String v : new String[]{"true", null, "", "null"}) {
+                if (v != null) {
+                    props.put(p.concat(".enabled"), v);
+                } else {
+                    props.remove(p.concat(".enabled"));
+                }
+
+                read(manager, props);
+
+                instance = new MailHandler();
+                em = internalErrorManagerFrom(instance);
+                assertTrue(instance.isEnabled());
+                assertEquals(Level.WARNING, instance.getLevel());
+
+                for (Exception exception : em.exceptions) {
+                    dump(exception);
+                }
+                instance.close();
+                assertTrue(em.exceptions.isEmpty());
+            }
+        } finally {
+            manager.reset();
+        }
+    }
+
+    @Test
     public void testLevel() {
         MailHandler instance = new MailHandler(createInitProperties(""));
         InternalErrorManager em = new InternalErrorManager();
@@ -2636,14 +2739,8 @@ public class MailHandlerTest extends AbstractLogging {
         instance.setErrorManager(em);
 
         assertNotNull(instance.getPushLevel());
-
-        try {
-            instance.setPushLevel((Level) null);
-            fail("Null level was allowed");
-        } catch (NullPointerException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+        instance.setPushLevel((Level) null);
+        assertEquals(Level.OFF, instance.getPushLevel());
 
         final Level[] lvls = getAllLevels();
         for (Level lvl : lvls) {
@@ -3542,30 +3639,22 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testCapacity() {
-        try {
-            MailHandler h = new MailHandler(-1);
-            h.getCapacity();
-            fail("Negative capacity was allowed.");
-        } catch (IllegalArgumentException pass) {
-        } catch (RuntimeException RE) {
-            fail(RE.toString());
-        }
+        MailHandler h = new MailHandler(-1);
+        assertEquals(1000, h.getCapacity());
 
-        try {
-            MailHandler h = new MailHandler(0);
-            h.getCapacity();
-            fail("Zero capacity was allowed.");
-        } catch (IllegalArgumentException pass) {
-        } catch (RuntimeException RE) {
-            fail(RE.toString());
-        }
+        h = new MailHandler(0);
+        assertEquals(1000, h.getCapacity());
 
-        try {
-            MailHandler h = new MailHandler(1);
-            h.getCapacity();
-        } catch (RuntimeException RE) {
-            fail(RE.toString());
-        }
+        h = new MailHandler(1);
+        assertEquals(1, h.getCapacity());
+
+        h.setCapacity(10);
+        assertEquals(10, h.getCapacity());
+        h.close();
+        assertEquals(10, h.getCapacity());
+
+        h.setCapacity(1000);
+        assertEquals(1000, h.getCapacity());
 
         final int expResult = 20;
         MailHandler instance = new MailHandler(20);
@@ -3634,6 +3723,33 @@ public class MailHandlerTest extends AbstractLogging {
                 return MAX_CAPACITY;
             }
         }
+    }
+
+    @Test
+    public void testAuthentication() {
+        MailHandler instance = new MailHandler(createInitProperties(""));
+        InternalErrorManager em = new InternalErrorManager();
+        instance.setErrorManager(em);
+
+        instance.setAuthentication((String) null);
+        assertNull(instance.getAuthenticator());
+
+        instance.setAuthentication(EmptyAuthenticator.class.getName());
+        assertEquals(EmptyAuthenticator.class,
+                instance.getAuthenticator().getClass());
+
+        instance.setAuthentication("");
+        assertTrue(instance.getAuthenticator().getClass().getName()
+                .contains("DefaultAuthenticator"));
+
+        instance.setAuthentication("foo");
+        assertTrue(instance.getAuthenticator().getClass().getName()
+                .contains("DefaultAuthenticator"));
+
+        for (Exception t : em.exceptions) {
+            dump(t);
+        }
+        assertTrue(em.exceptions.isEmpty());
     }
 
     @Test
@@ -3740,13 +3856,9 @@ public class MailHandlerTest extends AbstractLogging {
         assertNotNull(instance.getMailProperties());
         assertEquals(Properties.class, instance.getMailProperties().getClass());
 
-        try {
-            instance.setMailProperties((Properties) null);
-            fail("Null was allowed.");
-        } catch (NullPointerException pass) {
-        } catch (RuntimeException RE) {
-            fail(RE.toString());
-        }
+
+        instance.setMailProperties((Properties) null);
+        assertTrue(instance.getMailProperties().isEmpty());
 
         instance.setMailProperties(props);
         Properties stored = instance.getMailProperties();
@@ -3799,6 +3911,90 @@ public class MailHandlerTest extends AbstractLogging {
         }
         assertEquals(0, failed);
         assertFalse(em.exceptions.isEmpty());
+    }
+
+
+    @Test
+    public void testMailEntries() throws Exception {
+        Properties props = new Properties();
+        MailHandler instance = new MailHandler();
+        InternalErrorManager em = new InternalErrorManager();
+        instance.setErrorManager(em);
+
+        assertNotNull(instance.getMailProperties());
+        assertEquals(Properties.class, instance.getMailProperties().getClass());
+
+        instance.setMailEntries(
+                "mail.from=localhost@localdomain\n"
+                + "mail.to=remotehost@remotedomain#!"
+                + "mail.host=localhost#!"
+                + "mail.user=mailuser");
+
+        Properties stored = instance.getMailProperties();
+
+        assertNotNull(stored);
+        assertNotSame(props, stored);
+        assertEquals(props.getClass(), stored.getClass());
+
+        assertEquals(true, em.exceptions.isEmpty());
+        assertEquals("localhost@localdomain", stored.getProperty("mail.from"));
+        assertEquals("remotehost@remotedomain", stored.getProperty("mail.to"));
+        assertEquals("localhost", stored.getProperty("mail.host"));
+        assertEquals("mailuser", stored.getProperty("mail.user"));
+
+        assertEquals(false, stored.isEmpty());
+        instance.setMailEntries((String) null);
+        assertEquals(true, instance.getMailProperties().isEmpty());
+
+        instance.setMailEntries(
+                "mail.from:localhost@localdomain\n"
+                + "mail.to:remotehost@remotedomain#!"
+                + "mail.host:localhost#!"
+                + "mail.user:remoteuser");
+        stored = instance.getMailProperties();
+
+        //Ensure properties are not cleared.
+        assertEquals("localhost@localdomain", stored.getProperty("mail.from"));
+        assertEquals("remotehost@remotedomain", stored.getProperty("mail.to"));
+        assertEquals("localhost", stored.getProperty("mail.host"));
+        assertEquals("remoteuser", stored.getProperty("mail.user"));
+
+        instance.setMailEntries(""); //Clears all properties
+        assertEquals(true, instance.getMailProperties().isEmpty());
+
+        instance.setMailProperties(stored);
+        assertEquals(false, instance.getMailProperties().isEmpty());
+
+        instance.setMailEntries("null"); //null literal is treated as empty
+        assertEquals(true, instance.getMailProperties().isEmpty());
+
+        instance.setMailProperties(stored);
+        assertEquals(false, stored.isEmpty());
+        instance.setMailEntries("mail.user"); //key with empty value
+        stored = instance.getMailProperties();
+
+        //Ensure properties are not cleared.
+        assertEquals(1, stored.size());
+        assertEquals("", stored.getProperty("mail.user"));
+
+        final String test = "test\u03b1";
+        final String saddr = test + '@' + UNKNOWN_HOST;
+        instance.setMailEntries("mail.user="+ saddr
+                + "#!mail.mime.allowutf8=true");
+
+        stored = instance.getMailProperties();
+        assertEquals("true", stored.getProperty("mail.mime.allowutf8"));
+        assertEquals(saddr, stored.getProperty("mail.user"));
+
+        instance.setMailEntries(instance.getMailEntries());
+        assertEquals(stored, instance.getMailProperties());
+
+        instance.close();
+
+        for (Exception exception : em.exceptions) {
+            dump(exception);
+        }
+        assertTrue(em.exceptions.isEmpty());
     }
 
     @Test
@@ -4003,13 +4199,10 @@ public class MailHandlerTest extends AbstractLogging {
             instance.setAttachmentFormatters();
         }
 
-        try {
-            instance.setAttachmentFilters((Filter[]) null);
-            fail("Null allowed.");
-        } catch (NullPointerException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+
+        instance.setAttachmentFilters((Filter[]) null);
+        assertEquals(instance.getAttachmentFilters().length, 0);
+
 
         try {
             instance.setAttachmentFilters();
@@ -4017,28 +4210,21 @@ public class MailHandlerTest extends AbstractLogging {
             fail(re.toString());
         }
 
-        try {
-            assertEquals(0, instance.getAttachmentFormatters().length);
-
-            instance.setAttachmentFilters(BooleanFilter.TRUE);
-            fail("Filter to formatter mismatch.");
-        } catch (IndexOutOfBoundsException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+        assertEquals(0, instance.getAttachmentFormatters().length);
+        instance.setAttachmentFilters(BooleanFilter.TRUE);
+        assertEquals(1, instance.getAttachmentFormatters().length);
 
         instance.setAttachmentFormatters(
                 new SimpleFormatter(), new XMLFormatter());
 
-        try {
-            assertEquals(2, instance.getAttachmentFormatters().length);
+        assertEquals(2, instance.getAttachmentFormatters().length);
 
-            instance.setAttachmentFilters(BooleanFilter.TRUE);
-            fail("Filter to formatter mismatch.");
-        } catch (IndexOutOfBoundsException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+        instance.setAttachmentFilters(BooleanFilter.TRUE);
+        assertEquals(1, instance.getAttachmentFormatters().length);
+
+        instance.setAttachmentFormatters(
+                new SimpleFormatter(), new XMLFormatter());
+
 
         try {
             assertEquals(2, instance.getAttachmentFormatters().length);
@@ -4059,15 +4245,12 @@ public class MailHandlerTest extends AbstractLogging {
             fail(re.toString());
         }
 
-        try {
-            assertEquals(2, instance.getAttachmentFormatters().length);
-            instance.setAttachmentFilters();
-            fail("Filter to formatter mismatch.");
-        } catch (IndexOutOfBoundsException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+        assertEquals(2, instance.getAttachmentFormatters().length);
+        instance.setAttachmentFilters();
+        assertEquals(0, instance.getAttachmentFormatters().length);
 
+        instance.setAttachmentFormatters(
+                new SimpleFormatter(), new XMLFormatter());
         try {
             assertEquals(instance.getAttachmentFormatters().length, 2);
             Filter[] filters = new Filter[]{null, null};
@@ -4143,22 +4326,17 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(result[0].getClass(),
                 instance.getAttachmentFormatters()[1].getClass());
 
-        try {
-            instance.setAttachmentFormatters((Formatter[]) null);
-            fail("Null was allowed.");
-        } catch (NullPointerException NPE) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+
+        instance.setAttachmentFormatters((Formatter[]) null);
+        assertEquals(0, instance.getAttachmentFormatters().length);
 
         result[0] = null;
-        try {
-            instance.setAttachmentFormatters(result);
-            fail("Null index was allowed.");
-        } catch (NullPointerException NPE) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+        instance.setAttachmentFormatters(result);
+
+        result = instance.getAttachmentFormatters();
+        assertEquals(SimpleFormatter.class, result[0].getClass());
+        assertEquals(SimpleFormatter.class, result[1].getClass());
+
 
         result = new Formatter[0];
         try {
@@ -4188,48 +4366,30 @@ public class MailHandlerTest extends AbstractLogging {
         names = instance.getAttachmentNames();
         assertNotNull(names);
 
-        try {
-            instance.setAttachmentNames((String[]) null);
-            fail("Null was allowed.");
-        } catch (RuntimeException re) {
-            assertEquals(NullPointerException.class, re.getClass());
-        }
+        instance.setAttachmentNames((String[]) null);
+        assertEquals(0, instance.getAttachmentNames().length);
 
-        if (instance.getAttachmentFormatters().length > 0) {
-            instance.setAttachmentFormatters();
-        }
-
+        instance.setAttachmentFormatters();
         try {
             instance.setAttachmentNames(new String[0]);
         } catch (RuntimeException re) {
             fail(re.toString());
         }
 
-        try {
-            instance.setAttachmentNames(new String[1]);
-            fail("Mismatch with attachment formatters.");
-        } catch (NullPointerException | IndexOutOfBoundsException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
 
-        try {
-            instance.setAttachmentNames("foo.txt", "");
-            fail("Empty name was allowed.");
-        } catch (IllegalArgumentException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+        instance.setAttachmentNames(new String[1]);
+        assertEquals(instance.getAttachmentFormatters().length, 1);
+        assertNotNull(instance.getAttachmentNames()[0]);
+
+
+        instance.setAttachmentNames("foo.txt", "");
+        assertFalse(instance.getAttachmentNames()[1].toString().isEmpty());
+
 
         instance.setAttachmentFormatters(
                 new SimpleFormatter(), new XMLFormatter());
-        try {
-            instance.setAttachmentNames(new String[2]);
-            fail("Null index was allowed.");
-        } catch (NullPointerException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+
+        instance.setAttachmentNames(new String[2]);
 
         Formatter[] formatters = instance.getAttachmentFormatters();
         names = instance.getAttachmentNames();
@@ -4246,14 +4406,9 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(stringNames[0].equals(
                 instance.getAttachmentNames()[0].toString()), false);
 
-        try {
-            instance.setAttachmentNames(new String[0]);
-            fail("Names mismatch formatters.");
-        } catch (IndexOutOfBoundsException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
 
+        instance.setAttachmentNames(new String[0]);
+        assertEquals(0, instance.getAttachmentNames().length);
         assertEquals(true, em.exceptions.isEmpty());
     }
 
@@ -4266,23 +4421,16 @@ public class MailHandlerTest extends AbstractLogging {
 
         assertNotNull(instance.getAttachmentNames());
 
-        try {
-            instance.setAttachmentNames((Formatter[]) null);
-            fail("Null was allowed.");
-        } catch (NullPointerException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+
+        instance.setAttachmentNames((Formatter[]) null);
+        assertEquals(0, instance.getAttachmentNames().length);
+
 
         instance.setAttachmentFormatters();
+        instance.setAttachmentNames(new Formatter[2]);
+        assertEquals(2, instance.getAttachmentNames().length);
+        assertEquals(2, instance.getAttachmentFormatters().length);
 
-        try {
-            instance.setAttachmentNames(new Formatter[2]);
-            fail("formatter mismatch.");
-        } catch (NullPointerException | IndexOutOfBoundsException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
 
         instance.setAttachmentFormatters(
                 new SimpleFormatter(), new XMLFormatter());
@@ -4300,13 +4448,9 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(em.exceptions.isEmpty(), true);
         instance.close();
 
-        try {
-            instance.setAttachmentNames(new Formatter[0]);
-            fail("formatter mismatch.");
-        } catch (NullPointerException | IndexOutOfBoundsException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+
+        instance.setAttachmentNames(new Formatter[0]);
+        assertEquals(0, instance.getAttachmentFormatters().length);
     }
 
     @Test
@@ -4317,14 +4461,8 @@ public class MailHandlerTest extends AbstractLogging {
         instance.setErrorManager(em);
 
         assertNotNull(instance.getSubject());
-
-        try {
-            instance.setSubject((String) null);
-            fail("Null subject was allowed.");
-        } catch (NullPointerException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+        instance.setSubject((String) null);
+        assertEquals(CollectorFormatter.class, instance.getSubject().getClass());
 
         instance.setSubject(subject);
         assertEquals(subject, instance.getSubject().toString());
@@ -4392,16 +4530,14 @@ public class MailHandlerTest extends AbstractLogging {
         InternalErrorManager em = new InternalErrorManager();
         instance.setErrorManager(em);
 
-        assertNotNull(instance.getSubject());
+        Formatter firstSubject = instance.getSubject();
+        assertNotNull(firstSubject);
         assertEquals(CollectorFormatter.class, instance.getSubject().getClass());
 
-        try {
-            instance.setSubject((Formatter) null);
-            fail("Null subject was allowed.");
-        } catch (NullPointerException pass) {
-        } catch (RuntimeException re) {
-            fail(re.toString());
-        }
+        instance.setSubject((Formatter) null);
+
+        assertEquals(CollectorFormatter.class, instance.getSubject().getClass());
+        assertNotSame(firstSubject, instance.getSubject());
 
         instance.setSubject(format);
         assertEquals(format, instance.getSubject());
@@ -6477,17 +6613,15 @@ public class MailHandlerTest extends AbstractLogging {
             target = new MailHandler();
             try {
                 em = internalErrorManagerFrom(target);
-                for (Exception exception : em.exceptions) {
-                    if (!(exception instanceof NullPointerException)) {
-                        dump(exception);
-                    }
-                }
                 assertEquals(1, target.getAttachmentFormatters().length);
                 assertEquals(SimpleFormatter.class, target.getAttachmentFormatters()[0].getClass());
                 assertEquals(1, target.getAttachmentNames().length);
                 String name = target.getAttachmentNames()[0].toString();
                 assertTrue(name, name.contains(SimpleFormatter.class.getName()));
-                assertEquals(2, em.exceptions.size());
+                for (Exception exception : em.exceptions) {
+                    dump(exception);
+                }
+                assertEquals(0, em.exceptions.size());
             } finally {
                 target.close();
             }
