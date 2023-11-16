@@ -11,6 +11,7 @@ for the Eclipse EE4J Angus Mail project:
           ----------------------------
 The following bugs have been fixed in the 2.0.3 release.
 
+107: java.io.UnsupportedEncodingException: en_US.iso885915 if charset is "en_US.iso885915"
 110: WildFly support for MailHandler
 
           CHANGES IN THE 2.0.2 RELEASE
