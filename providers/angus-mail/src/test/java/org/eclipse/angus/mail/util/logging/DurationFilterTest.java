@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2015, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2015, 2023 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2015, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -727,6 +727,11 @@ public class DurationFilterTest extends AbstractLogging {
         testInitDuration("1024", 1024);
     }
 
+     @Test
+    public void testInitDurationLiteralNull() throws Exception {
+        testInitDuration("null", 15L * 60L * 1000L);
+    }
+
     @Test
     public void testInitDurationZero() throws Exception {
         testInitDuration("0", 15L * 60L * 1000L);
@@ -753,6 +758,8 @@ public class DurationFilterTest extends AbstractLogging {
         testInitDuration("15 *", 15L * 60L * 1000L);
         testInitDuration(" * 15", 15L * 60L * 1000L);
         testInitDuration("15 * ", 15L * 60L * 1000L);
+        testInitDuration("*", 15L * 60L * 1000L);
+        testInitDuration(" * ", 15L * 60L * 1000L);
     }
 
     @Test
@@ -853,6 +860,21 @@ public class DurationFilterTest extends AbstractLogging {
             testInitDuration("P2DT3H4M20.345S", (2L * 24L * 60L * 60L * 1000L)
                     + (3L * 60L * 60L * 1000L) + (4L * 60L * 1000L)
                     + ((20L * 1000L) + 345));
+        }
+    }
+
+     @Test
+    public void testInitDurationIso8601OverFlow() throws Exception {
+        if (hasJavaTimeModule()) {
+            testInitDuration("PT2562047788015H12M55.808S", 15L * 60L * 1000L);
+        }
+    }
+
+    @Test
+    public void testInitDurationIso8601UnderFlow() throws Exception {
+        if (hasJavaTimeModule()) {
+            testInitDuration("PT-2562047788015H-12M-55.809S",
+                    15L * 60L * 1000L);
         }
     }
 

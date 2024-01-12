@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2013, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2013, 2023 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2013, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -367,21 +367,22 @@ public class CompactFormatter extends java.util.logging.Formatter {
     }
 
     /**
-     * Formats the thread id property of the given log record. By default this
-     * is formatted as a {@code long} by an unsigned conversion.
+     * Formats the thread id property of the given log record.  Long thread ids
+     * are preferred if supported.  Otherwise, the integer thread id is
+     * formatted as a {@code long} by an unsigned conversion.
      *
      * @param record the record.
      * @return the formatted thread id as a number.
      * @throws NullPointerException if the given record is null.
      * @since JavaMail 1.5.4
      */
+    @SuppressWarnings("deprecation") //See JDK-8245302
     public Number formatThreadID(final LogRecord record) {
-        /**
-         * Thread.getID is defined as long and LogRecord.getThreadID is defined
-         * as int. Convert to unsigned as a means to better map the two types of
-         * thread identifiers.
-         */
-        return (((long) record.getThreadID()) & 0xffffffffL);
+        Long id = LogManagerProperties.getLongThreadID(record);
+        if (id == null) {
+            id = Integer.toUnsignedLong(record.getThreadID());
+        }
+        return id;
     }
 
     /**
