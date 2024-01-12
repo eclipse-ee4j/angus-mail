@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2016, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2016, 2023 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2016, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -156,6 +156,48 @@ abstract class AbstractLogging {
         } catch (final ClassNotFoundException | LinkageError notSupported) {
         }
         return false;
+    }
+
+    /**
+     * Sets the int thread id for the given log record.
+     *
+     * @param record a non null log record.
+     * @param id the thread id.
+     * @throws NullPointerException if the given record is null.
+     */
+    @SuppressWarnings("deprecation") //See JDK-8245302
+    static void setIntThreadID(final LogRecord record, int id) {
+        record.setThreadID(id);
+    }
+
+    /**
+     * Gets the int thread id for the given log record.
+     *
+     * @param record a non null log record.
+     * @param id the thread id.
+     * @throws NullPointerException if the given record is null.
+     */
+    @SuppressWarnings("deprecation") //See JDK-8245302
+    static int getIntThreadID(final LogRecord record) {
+        return record.getThreadID();
+    }
+
+    /**
+     * Sets the long thread id for the given log record if it is supported.
+     *
+     * @param record a non-null record.
+     * @param id the long thread id.
+     * @throws Exception if there is a problem.
+     * @throws NoSuchMethodException if JDK is older than JDK 16.
+     * @throws NullPointerException if the given record is null.
+     */
+    static void setLongThreadID(final LogRecord record, long id)
+                                                        throws Exception {
+        if (record == null) {
+            throw new NullPointerException();
+        }
+        LogRecord.class.getMethod("setLongThreadID", Long.TYPE)
+                .invoke(record, id);
     }
 
     /**

@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2023 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -77,6 +77,12 @@ final class LogManagerProperties extends Properties {
     private static final Method LR_GET_INSTANT;
 
     /**
+     * Holds the method used to get the long thread id if running on JDK 16 or
+     * later.
+     */
+    private static final Method LR_GET_LONG_TID;
+
+    /**
      * Holds the method used to get the default time zone if running on JDK 9 or
      * later.
      */
@@ -88,7 +94,21 @@ final class LogManagerProperties extends Properties {
      */
     private static final Method ZDT_OF_INSTANT;
 
-    static {
+    /**
+     * MethodHandle is available starting at JDK7 and Android API 26.
+     */
+    static { //Added in JDK16 see JDK-8245302
+        Method lrtid = null;
+        try {
+            lrtid = LogRecord.class.getMethod("getLongThreadID");
+        } catch (final RuntimeException ignore) {
+        } catch (final Exception ignore) { //No need for specific catch.
+        } catch (final LinkageError ignore) {
+        }
+        LR_GET_LONG_TID = lrtid;
+    }
+
+    static { //Added in JDK9 see JDK-8072645
         Method lrgi = null;
         Method zisd = null;
         Method zdtoi = null;
@@ -340,6 +360,39 @@ final class LogManagerProperties extends Properties {
     }
 
     /**
+     * Gets the long thread id from the given log record.
+     *
+     * @param record used to get the long thread id.
+     * @return null if LogRecord doesn't support long thread ids.
+     * @throws NullPointerException if record is null.
+     * @since Angus Mail 2.0.3
+     */
+    static Long getLongThreadID(final LogRecord record) {
+        if (record == null) {
+           throw new NullPointerException();
+        }
+
+        final Method m = LR_GET_LONG_TID;
+        if (m != null) {
+            try {
+                return (Long) m.invoke(record);
+            } catch (final InvocationTargetException ite) {
+                final Throwable cause = ite.getCause();
+                if (cause instanceof Error) {
+                    throw (Error) cause;
+                } else if (cause instanceof RuntimeException) {
+                    throw (RuntimeException) cause;
+                } else { //Should never happen.
+                    throw new UndeclaredThrowableException(ite);
+                }
+            } catch (final RuntimeException ignore) {
+            } catch (final Exception ignore) {
+            }
+        }
+        return null;
+    }
+
+    /**
      * Gets the local host name from the given service.
      *
      * @param s the service to examine.
@@ -376,6 +429,7 @@ final class LogManagerProperties extends Properties {
      *
      * @param value an ISO-8601 duration character sequence.
      * @return the number of milliseconds parsed from the duration.
+     * @throws ArithmeticException         if the duration is too large or too small.
      * @throws ClassNotFoundException      if the java.time classes are not present.
      * @throws IllegalAccessException      if the method is inaccessible.
      * @throws InvocationTargetException   if the method throws an exception.
@@ -389,6 +443,10 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.5.5
      */
     static long parseDurationToMillis(final CharSequence value) throws Exception {
+        if (value == null) {
+           throw new NullPointerException();
+        }
+
         try {
             final Class<?> k = findClass("java.time.Duration");
             final Method parse = k.getMethod("parse", CharSequence.class);
@@ -406,7 +464,12 @@ final class LogManagerProperties extends Properties {
         } catch (final ExceptionInInitializerError EIIE) {
             throw wrapOrThrow(EIIE);
         } catch (final InvocationTargetException ite) {
-            throw paramOrError(ite);
+            final Throwable cause = ite.getCause();
+            if (cause instanceof ArithmeticException) {
+                throw (ArithmeticException) cause;
+            } else {
+                throw paramOrError(ite);
+            }
         }
     }
 
@@ -528,9 +591,9 @@ final class LogManagerProperties extends Properties {
         }
 
         Comparator<T> reverse = null;
-        //Comparator in Java 1.8 has 'reversed' as a default method.
+        //Comparator in JDK8 has 'reversed' as a default method.
         //This code calls that method first to allow custom
-        //code to define what reverse order means.
+        //code to define what reverse order means in versions older than JDK8.
         try {
             //assert Modifier.isPublic(c.getClass().getModifiers()) :
             //        Modifier.toString(c.getClass().getModifiers());
@@ -651,6 +714,8 @@ final class LogManagerProperties extends Properties {
         final Class<?> thisClass = LogManagerProperties.class;
         assert Modifier.isFinal(thisClass.getModifiers()) : thisClass;
         try {
+            //This code must use reflection to capture extra frames.
+            //The invoke API doesn't produce the frames needed.
             final HashSet<String> traces = new HashSet<>();
             Throwable t = Throwable.class.getConstructor().newInstance();
             for (StackTraceElement ste : t.getStackTrace()) {
@@ -661,6 +726,8 @@ final class LogManagerProperties extends Properties {
                 }
             }
 
+            //This code must use reflection to capture extra frames.
+            //The invoke API doesn't produce the frames needed.
             Throwable.class.getMethod("fillInStackTrace").invoke(t);
             for (StackTraceElement ste : t.getStackTrace()) {
                 if (!thisClass.getName().equals(ste.getClassName())) {
@@ -765,10 +832,10 @@ final class LogManagerProperties extends Properties {
     }
 
     /**
-     * This code is modified from the LogManager, which explictly states
+     * This code is modified from the LogManager, which explicitly states
      * searching the system class loader first, then the context class loader.
      * There is resistance (compatibility) to change this behavior to simply
-     * searching the context class loader.
+     * searching the context class loader. See JDK-6878454.
      *
      * @param name full class name
      * @return the class.
