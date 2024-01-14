@@ -308,7 +308,7 @@ abstract class AbstractLogging {
     /**
      * Checks that the given class is not dependent on the
      * {@code javax.annotation} classes as they are not present in all
-     * environments.
+     * environments and were present in JDK.
      *
      * @param k the class to inspect.
      * @throws Exception if there is a problem.

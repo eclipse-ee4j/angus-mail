@@ -27,7 +27,6 @@ import jakarta.mail.internet.InternetAddress;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -35,6 +34,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
@@ -47,7 +48,6 @@ import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
-import java.util.logging.LoggingPermission;
 import java.util.logging.SimpleFormatter;
 
 import static org.junit.Assert.assertEquals;
@@ -55,6 +55,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -69,11 +70,6 @@ public class LogManagerPropertiesTest extends AbstractLogging {
      * Holder used to inject Throwables into other APIs.
      */
     private final static ThreadLocal<Throwable> PENDING = new ThreadLocal<>();
-
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-        Assert.assertNull(System.getSecurityManager());
-    }
 
     private static void fullFence() {
         LogManager.getLogManager().getProperty("");
@@ -96,32 +92,101 @@ public class LogManagerPropertiesTest extends AbstractLogging {
     }
 
     @Test
-    public void testCheckAccessPresent() {
-        LogManager m = LogManager.getLogManager();
-        m.checkAccess();
-        LogManagerProperties.checkLogManagerAccess();
-
-        LogPermSecurityManager sm = new LogPermSecurityManager();
-        sm.secure = false;
-        System.setSecurityManager(sm);
+    public void testCheckLogManagerAccess() {
         try {
-            sm.secure = true;
-            try {
-                m.checkAccess();
-                fail(m.toString());
-            } catch (SecurityException expect) {
-            }
-
-            try {
-                LogManagerProperties.checkLogManagerAccess();
-                fail(LogManagerProperties.class.getName());
-            } catch (SecurityException expect) {
-            }
-        } finally {
-            sm.secure = false;
-            System.setSecurityManager((SecurityManager) null);
+            LogManagerProperties.checkLogManagerAccess();
+            //okay if we return normally, this is a weak test.
+        } catch (SecurityException allowed) {
         }
     }
+
+    private static boolean isAccessController() {
+        for (StackTraceElement frame : new Throwable().getStackTrace()) {
+            if ("invokeAccessController".equals(frame.getMethodName())
+                    && LogManagerProperties.class.getName().equals(frame.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Test
+    public void testRun() {
+        PrivilegedAction<Boolean> p = () -> {
+            assertFalse(isAccessController());
+            return true;
+        };
+        assertTrue(LogManagerProperties.runOrDoPrivileged(p));
+    }
+
+    @Test
+    public void testDoPrivileged() {
+        PrivilegedAction<Boolean> p = () -> {
+            if (isAccessController()) {
+                return true;
+            }
+            throw new SecurityException();
+        };
+
+        try {
+            assertTrue(LogManagerProperties.runOrDoPrivileged(p));
+        } catch (UndeclaredThrowableException removed) {
+            assertTrue(removed.getCause() instanceof ClassNotFoundException);
+        } catch (UnsupportedOperationException terminal) {
+        }
+    }
+
+    @Test
+    public void testDoPrivilegedRuntimeException() {
+        RuntimeException cause = new RuntimeException();
+        PrivilegedAction<Boolean> p = () -> {
+            if (isAccessController()) {
+                throw cause;
+            }
+            throw new SecurityException();
+        };
+
+        boolean ran = false;
+        try {
+            LogManagerProperties.runOrDoPrivileged(p);
+            ran = true;
+        } catch (UndeclaredThrowableException removed) {
+            assertTrue(removed.getCause() instanceof ClassNotFoundException);
+        } catch (UnsupportedOperationException terminal) {
+        } catch (RuntimeException re) {
+            assertSame(re, cause);
+        }
+        assertFalse(ran);
+    }
+
+    @Test
+    public void testDoPrivilegedError() {
+        Error cause = new Error();
+        PrivilegedAction<Boolean> p = () -> {
+            if (isAccessController()) {
+                throw cause;
+            }
+            throw new SecurityException();
+        };
+
+        boolean ran = false;
+        try {
+            LogManagerProperties.runOrDoPrivileged(p);
+            ran = true;
+        } catch (UndeclaredThrowableException removed) {
+            assertTrue(removed.getCause() instanceof ClassNotFoundException);
+        } catch (UnsupportedOperationException terminal) {
+        } catch (Error e) {
+            assertSame(e, cause);
+        }
+        assertFalse(ran);
+    }
+
+    @Test(expected=NullPointerException.class)
+    public void testRunOrDoPrivilegedNull() {
+        LogManagerProperties.runOrDoPrivileged((PrivilegedAction<?>) null);
+    }
+
 
     @Test
     public void testFromLogManagerPresent() throws Exception {
@@ -1317,40 +1382,6 @@ public class LogManagerPropertiesTest extends AbstractLogging {
 
         public String getLocalHost() {
             throw new SecurityException();
-        }
-    }
-
-    private static final class LogPermSecurityManager extends SecurityManager {
-
-        volatile boolean secure = false;
-
-        LogPermSecurityManager() {
-        }
-
-        @Override
-        public void checkPermission(java.security.Permission perm) {
-            try { //Call super class always for java.security.debug tracing.
-                super.checkPermission(perm);
-                checkPermission(perm, new SecurityException(perm.toString()));
-            } catch (SecurityException se) {
-                checkPermission(perm, se);
-            }
-        }
-
-        @Override
-        public void checkPermission(java.security.Permission perm, Object context) {
-            try { //Call super class always for java.security.debug tracing.
-                super.checkPermission(perm, context);
-                checkPermission(perm, new SecurityException(perm.toString()));
-            } catch (SecurityException se) {
-                checkPermission(perm, se);
-            }
-        }
-
-        private void checkPermission(java.security.Permission perm, SecurityException se) {
-            if (secure && perm instanceof LoggingPermission) {
-                throw se;
-            }
         }
     }
 }
