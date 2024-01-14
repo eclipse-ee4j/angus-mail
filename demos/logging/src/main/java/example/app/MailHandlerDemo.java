@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2023 Jason Mehrens. All Rights Reserved.
+ * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2024 Jason Mehrens. All Rights Reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at

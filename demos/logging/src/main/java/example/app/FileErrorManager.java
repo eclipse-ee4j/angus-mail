@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2024Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2009, 2024 Jason Mehrens. All Rights Reserved.
  *
  * This program and the accompanying materials are made available under the
