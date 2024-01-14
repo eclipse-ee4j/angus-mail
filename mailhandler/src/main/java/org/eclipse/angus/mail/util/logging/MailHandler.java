@@ -59,7 +59,6 @@ import java.net.InetAddress;
 import java.net.URLConnection;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -4589,7 +4588,7 @@ public class MailHandler extends Handler {
                 } else {
                     pa = new GetAndSetContext(ccl);
                 }
-                return AccessController.doPrivileged(pa);
+                return LogManagerProperties.runOrDoPrivileged(pa);
             } catch (final SecurityException ignore) {
             }
         }
