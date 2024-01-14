@@ -885,12 +885,13 @@ final class LogManagerProperties extends Properties {
     }
 
     /**
-     * Dynamic bind to the access controller for sandbox environments.
+     * Reflective call to access controller for sandbox environments.
      * Any unchecked exceptions from the action are passed through this API.
      *
      * @param <T> the return type of the action.
      * @param a a non-null action.
      * @return the result.
+     * @throws UnsupportedOperationException if not allowed.
      * @throws UndeclaredThrowableException if a checked exception is thrown.
      * @since Angus Mail 2.0.3
      */
