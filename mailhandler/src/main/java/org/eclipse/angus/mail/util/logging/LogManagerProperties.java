@@ -36,11 +36,9 @@ import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
-import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import java.util.logging.LoggingPermission;
 
 /**
  * An adapter class to allow the Mail API to access the LogManager properties.
