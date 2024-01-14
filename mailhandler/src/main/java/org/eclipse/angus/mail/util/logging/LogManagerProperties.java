@@ -195,11 +195,8 @@ final class LogManagerProperties extends Properties {
             String n = System.getProperty("java.util.logging.config.file");
             if (n != null) {
                 final File f = new File(n).getCanonicalFile();
-                final InputStream in = new FileInputStream(f);
-                try {
+                try (InputStream in = new FileInputStream(f)) {
                     props.load(in);
-                } finally {
-                    in.close();
                 }
             }
         } catch (final LinkageError | Exception permissionsOrMalformed) {
@@ -249,6 +246,35 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.5.3
      */
     static void checkLogManagerAccess() {
+        boolean checked = false;
+        final Object m = LOG_MANAGER;
+        if (m != null) {
+            try {
+                if (m instanceof LogManager) {
+                    try {
+                        LogManager.class.getMethod("checkAccess").invoke(m);
+                        checked = true;
+                    } catch (InvocationTargetException ite) {
+                        Throwable cause = ite.getCause();
+                        if (cause instanceof SecurityException) {
+                            checked = true;
+                            throw (SecurityException) cause;
+                        }
+
+                        if (cause instanceof UnsupportedOperationException) {
+                           checked = true;
+                        }
+                    } catch (ReflectiveOperationException ignore) {
+                    }
+                }
+            } catch (final SecurityException notAllowed) {
+                if (checked) {
+                    throw notAllowed;
+                }
+            } catch (final LinkageError | RuntimeException restricted) {
+            }
+        }
+
         /**
          * Some environments selectively enforce logging permissions by allowing
          * access to loggers but not allowing access to handlers. This is an
@@ -257,10 +283,13 @@ final class LogManagerProperties extends Properties {
          * logger is used instead as it is a known named logger with well
          * defined behavior.  Contractually, Logger::remove will check
          * permission before checking if the argument is null.
+         * See JDK-8023168
          */
-        try {
-            Logger.getGlobal().removeHandler((Handler) null);
-        } catch (final NullPointerException unexpected) {
+        if (!checked) {
+            try {
+                Logger.getGlobal().removeHandler((Handler) null);
+            } catch (final NullPointerException unexpected) {
+            }
         }
     }
 
