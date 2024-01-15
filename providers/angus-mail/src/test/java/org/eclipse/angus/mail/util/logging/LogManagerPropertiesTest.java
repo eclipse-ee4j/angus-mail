@@ -100,7 +100,7 @@ public class LogManagerPropertiesTest extends AbstractLogging {
         }
     }
 
-    private static boolean isAccessController() {
+    private static boolean isInvokeAccessController() {
         for (StackTraceElement frame : new Throwable().getStackTrace()) {
             if ("invokeAccessController".equals(frame.getMethodName())
                     && LogManagerProperties.class.getName().equals(frame.getClassName())) {
@@ -110,9 +110,21 @@ public class LogManagerPropertiesTest extends AbstractLogging {
         return false;
     }
 
+    private static boolean isAccessController() {
+        for (StackTraceElement frame : new Throwable().getStackTrace()) {
+            if ("doPrivileged".equals(frame.getMethodName())
+                    && "java.security.AccessController".equals(
+                            frame.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Test
     public void testRun() {
         PrivilegedAction<Boolean> p = () -> {
+            assertFalse(isInvokeAccessController());
             assertFalse(isAccessController());
             return true;
         };
@@ -122,8 +134,8 @@ public class LogManagerPropertiesTest extends AbstractLogging {
     @Test
     public void testDoPrivileged() {
         PrivilegedAction<Boolean> p = () -> {
-            if (isAccessController()) {
-                return true;
+            if (isInvokeAccessController()) {
+                return isAccessController();
             }
             throw new SecurityException();
         };
@@ -140,7 +152,7 @@ public class LogManagerPropertiesTest extends AbstractLogging {
     public void testDoPrivilegedRuntimeException() {
         RuntimeException cause = new RuntimeException();
         PrivilegedAction<Boolean> p = () -> {
-            if (isAccessController()) {
+            if (isInvokeAccessController()) {
                 throw cause;
             }
             throw new SecurityException();
@@ -163,7 +175,7 @@ public class LogManagerPropertiesTest extends AbstractLogging {
     public void testDoPrivilegedError() {
         Error cause = new Error();
         PrivilegedAction<Boolean> p = () -> {
-            if (isAccessController()) {
+            if (isInvokeAccessController()) {
                 throw cause;
             }
             throw new SecurityException();
@@ -1033,11 +1045,11 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             a = LogManagerProperties.newObjectFrom(k.getName(), Authenticator.class);
             assertEquals(k, a.getClass());
 
-            setPending(new ThreadDeath());
+            setPending(new StackOverflowError());
             try {
                 a = LogManagerProperties.newObjectFrom(k.getName(), Authenticator.class);
                 fail(String.valueOf(a));
-            } catch (ThreadDeath expect) {
+            } catch (StackOverflowError expect) {
             }
 
             setPending(new OutOfMemoryError());
@@ -1060,11 +1072,11 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             c = LogManagerProperties.newComparator(k.getName());
             assertEquals(k, c.getClass());
 
-            setPending(new ThreadDeath());
+            setPending(new StackOverflowError());
             try {
                 c = LogManagerProperties.newComparator(k.getName());
                 fail(String.valueOf(c));
-            } catch (ThreadDeath expect) {
+            } catch (StackOverflowError expect) {
             }
 
             setPending(new OutOfMemoryError());
@@ -1087,11 +1099,11 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             f = LogManagerProperties.newErrorManager(k.getName());
             assertEquals(k, f.getClass());
 
-            setPending(new ThreadDeath());
+            setPending(new StackOverflowError());
             try {
                 f = LogManagerProperties.newErrorManager(k.getName());
                 fail(String.valueOf(f));
-            } catch (ThreadDeath expect) {
+            } catch (StackOverflowError expect) {
             }
 
             setPending(new OutOfMemoryError());
@@ -1114,11 +1126,11 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             f = LogManagerProperties.newFilter(k.getName());
             assertEquals(k, f.getClass());
 
-            setPending(new ThreadDeath());
+            setPending(new StackOverflowError());
             try {
                 f = LogManagerProperties.newFilter(k.getName());
                 fail(String.valueOf(f));
-            } catch (ThreadDeath expect) {
+            } catch (StackOverflowError expect) {
             }
 
             setPending(new OutOfMemoryError());
@@ -1141,11 +1153,11 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             f = LogManagerProperties.newFormatter(k.getName());
             assertEquals(k, f.getClass());
 
-            setPending(new ThreadDeath());
+            setPending(new StackOverflowError());
             try {
                 f = LogManagerProperties.newFormatter(k.getName());
                 fail(String.valueOf(f));
-            } catch (ThreadDeath expect) {
+            } catch (StackOverflowError expect) {
             }
 
             setPending(new OutOfMemoryError());

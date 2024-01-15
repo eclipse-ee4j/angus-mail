@@ -768,18 +768,12 @@ final class LogManagerProperties extends Properties {
      * @param ite any invocation target.
      * @return the exception.
      * @throws VirtualMachineError if present as cause.
-     * @throws ThreadDeath         if present as cause.
      * @since JavaMail 1.4.5
      */
     private static Exception paramOrError(InvocationTargetException ite) {
         final Throwable cause = ite.getCause();
-        if (cause != null) {
-            //Bitwise inclusive OR produces tighter bytecode for instanceof
-            //and matches with multicatch syntax.
-            if (cause instanceof VirtualMachineError
-                    | cause instanceof ThreadDeath) {
-                throw (Error) cause;
-            }
+        if (cause instanceof VirtualMachineError) {
+            throw (Error) cause;
         }
         return ite;
     }
