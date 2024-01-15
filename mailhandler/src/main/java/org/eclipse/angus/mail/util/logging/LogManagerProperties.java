@@ -264,7 +264,9 @@ final class LogManagerProperties extends Properties {
                         if (cause instanceof UnsupportedOperationException) {
                            checked = true;
                         }
-                    } catch (ReflectiveOperationException ignore) {
+                    } catch (NoSuchMethodException removed) {
+                        checked = true;
+                    } catch (ReflectiveOperationException fallthrough) {
                     }
                 }
             } catch (final SecurityException notAllowed) {
