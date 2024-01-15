@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2023 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -65,6 +65,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.ErrorManager;
@@ -1009,9 +1010,7 @@ public class MailHandler extends Handler {
      */
     @Override
     public void setLevel(final Level newLevel) {
-        if (newLevel == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(newLevel);
         checkAccess();
 
         //Don't allow a closed handler to be opened (half way).
@@ -1079,9 +1078,7 @@ public class MailHandler extends Handler {
      * @since JavaMail 1.5.6
      */
     private void setErrorManager0(final ErrorManager em) {
-        if (em == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(em);
         try {
             synchronized (this) { //Wait for writeLogRecords.
                 this.errorManager = em;
@@ -1201,10 +1198,7 @@ public class MailHandler extends Handler {
     @Override
     public synchronized void setFormatter(Formatter newFormatter) throws SecurityException {
         checkAccess();
-        if (newFormatter == null) {
-            throw new NullPointerException();
-        }
-        this.formatter = newFormatter;
+        this.formatter = Objects.requireNonNull(newFormatter);
     }
 
     /**
@@ -4657,9 +4651,7 @@ public class MailHandler extends Handler {
      * @since JavaMail 1.5.3
      */
     private Session getSession(final Message msg) {
-        if (msg == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(msg);
         return new MessageContext(msg).getSession();
     }
 

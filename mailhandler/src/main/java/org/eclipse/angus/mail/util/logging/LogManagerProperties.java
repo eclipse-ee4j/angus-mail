@@ -31,6 +31,7 @@ import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
@@ -169,7 +170,7 @@ final class LogManagerProperties extends Properties {
         try {
             m = LogManager.getLogManager();
         } catch (final LinkageError | RuntimeException restricted) {
-            m = readConfiguration();
+            m = readConfiguration(); //GAE will forbid access to LogManager
         }
         return m;
     }
@@ -214,10 +215,7 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.5.3
      */
     static String fromLogManager(final String name) {
-        if (name == null) {
-            throw new NullPointerException();
-        }
-
+        Objects.requireNonNull(name);
         final Object m = LOG_MANAGER;
         try {
             if (m instanceof Properties) {
@@ -232,7 +230,7 @@ final class LogManagerProperties extends Properties {
                     return ((LogManager) m).getProperty(name);
                 }
             } catch (final LinkageError | RuntimeException restricted) {
-            }
+            } //GAE will forbid access to LogManager
         }
         return null;
     }
@@ -274,7 +272,7 @@ final class LogManagerProperties extends Properties {
                     throw notAllowed;
                 }
             } catch (final LinkageError | RuntimeException restricted) {
-            }
+            } //GAE will forbid access to LogManager
         }
 
         /**
@@ -318,9 +316,7 @@ final class LogManagerProperties extends Properties {
      */
     @SuppressWarnings("UseSpecificCatch")
     static Comparable<?> getZonedDateTime(LogRecord record) {
-        if (record == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(record);
         final Method m = ZDT_OF_INSTANT;
         if (m != null) {
             try {
@@ -354,10 +350,7 @@ final class LogManagerProperties extends Properties {
      * @since Angus Mail 2.0.3
      */
     static Long getLongThreadID(final LogRecord record) {
-        if (record == null) {
-           throw new NullPointerException();
-        }
-
+        Objects.requireNonNull(record);
         final Method m = LR_GET_LONG_TID;
         if (m != null) {
             try {
@@ -395,6 +388,7 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.5.3
      */
     static String getLocalHost(final Object s) throws Exception {
+        Objects.requireNonNull(s);
         try {
             final Method m = s.getClass().getMethod("getLocalHost");
             if (!Modifier.isStatic(m.getModifiers())
@@ -429,10 +423,7 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.5.5
      */
     static long parseDurationToMillis(final CharSequence value) throws Exception {
-        if (value == null) {
-           throw new NullPointerException();
-        }
-
+        Objects.requireNonNull(value);
         try {
             final Class<?> k = findClass("java.time.Duration");
             final Method parse = k.getMethod("parse", CharSequence.class);
@@ -572,10 +563,7 @@ final class LogManagerProperties extends Properties {
      */
     @SuppressWarnings({"unchecked", "ThrowableResultIgnored"})
     static <T> Comparator<T> reverseOrder(final Comparator<T> c) {
-        if (c == null) {
-            throw new NullPointerException();
-        }
-
+        Objects.requireNonNull(c);
         Comparator<T> reverse = null;
         //Comparator in JDK8 has 'reversed' as a default method.
         //This code calls that method first to allow custom
@@ -902,10 +890,7 @@ final class LogManagerProperties extends Properties {
      * @since Angus Mail 2.0.3
      */
     static <T> T runOrDoPrivileged(final PrivilegedAction<T> a) {
-        if (a == null) {
-           throw new NullPointerException();
-        }
-
+        Objects.requireNonNull(a);
         try {
             return a.run();
         } catch (SecurityException sandbox) {
