@@ -2379,7 +2379,7 @@ public class MailHandler extends Handler {
      * @throws SecurityException if a security manager exists and the
      *                           caller does not have <code>LoggingPermission("control")</code>.
      */
-    private synchronized void init(Properties props) {
+    private synchronized void init(final Properties props) {
         assert this.errorManager != null;
         final String p = getClass().getName();
         this.mailProps = new Properties(); //See method param comments.
