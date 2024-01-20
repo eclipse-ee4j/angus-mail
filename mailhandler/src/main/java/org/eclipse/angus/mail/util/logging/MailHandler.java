@@ -1527,7 +1527,7 @@ public class MailHandler extends Handler {
      * @since Angus Mail 2.0.3
      */
     public final void setMailEntries(String entries) {
-        setMailProperties0(parseMailEntries(entries));
+        setMailProperties0(parseProperties(entries));
     }
 
     /**
@@ -2413,7 +2413,7 @@ public class MailHandler extends Handler {
 
         //Verification of all of the MailHandler properties starts here
         //That means setting new object members goes above this comment.
-        Properties entries = parseMailEntries(fromLogManager(p.concat(".mailEntries")));
+        Properties entries = parseProperties(fromLogManager(p.concat(".mailEntries")));
         if (props == null && (entries.isEmpty() || !setMailProperties0(entries))
                 && fromLogManager(p.concat(".verify")) != null) {
             verifySettings(initSession());
@@ -2786,8 +2786,7 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Parses the given properties lines then clears and sets all of the mail
-     * properties used for the session.  Any parsing errors are reported to the
+     * Parses the given properties lines. Any parsing errors are reported to the
      * error manager.
      *
      * @param entries one or more key/value pairs. An empty string, null value
@@ -2800,7 +2799,7 @@ public class MailHandler extends Handler {
      * @since Angus Mail 2.0.3
      * @see #setMailEntries(java.lang.String)
      */
-    private Properties parseMailEntries(String entries) {
+    private Properties parseProperties(String entries) {
         final Properties props = new Properties();
         if (hasValue(entries)) {
            /**
