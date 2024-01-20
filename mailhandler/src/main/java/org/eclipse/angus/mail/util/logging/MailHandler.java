@@ -2800,7 +2800,7 @@ public class MailHandler extends Handler {
      * @since Angus Mail 2.0.3
      * @see #setMailEntries(java.lang.String)
      */
-    public final Properties parseMailEntries(String entries) {
+    private Properties parseMailEntries(String entries) {
         final Properties props = new Properties();
         if (hasValue(entries)) {
            /**
