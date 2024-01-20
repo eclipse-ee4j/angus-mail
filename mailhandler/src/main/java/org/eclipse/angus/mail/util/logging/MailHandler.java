@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2023 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -66,6 +66,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.ErrorManager;
@@ -122,16 +123,16 @@ import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogMa
  *      com.foo.MyHandler.verify = local
  * </pre>
  *
- * All mail properties documented in the <code>Java Mail API</code> cascade to
- * the LogManager by prefixing a key using the fully qualified class name of
- * this <code>MailHandler</code> or the fully qualified derived class name dot
- * mail property.  If the prefixed property is not found, then the mail property
- * itself is searched in the LogManager. By default each
- * <code>MailHandler</code> is initialized using the following LogManager
- * configuration properties where <code>&lt;handler-name&gt;</code> refers to
- * the fully qualified class name of the handler.  If properties are not
- * defined, or contain invalid values, then the specified default values are
- * used.
+ * All mail <a id="top-level-properties">properties</a> documented in the
+ * <code>Jakarta Mail API</code> cascade to the LogManager by prefixing a key
+ * using the fully qualified class name of this <code>MailHandler</code> or the
+ * fully qualified derived class name dot mail property.  If the prefixed
+ * property is not found, then the mail property itself is searched in the
+ * LogManager. By default each <code>MailHandler</code> is initialized using the
+ * following LogManager configuration properties where
+ * <code>&lt;handler-name&gt;</code> refers to the fully qualified class name of
+ * the handler.  If properties are not defined, or contain invalid values, then
+ * the specified default values are used.
  *
  * <ul>
  * <li>&lt;handler-name&gt;.attachment.filters a comma
@@ -239,6 +240,14 @@ import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogMa
  * this is set to the email address identifying the application itself.  The
  * empty string can be used to specify no sender address.
  * (defaults to <code>null</code>, none)
+ *
+ * <li>&lt;handler-name&gt;.mailEntries specifies session properties for this
+ * <code>Handler</code>.  The format for the value is described in
+ * {@linkplain #setMailEntries(java.lang.String) setMailEntries} method.
+ * This property is eagerly loaded where as the
+ * <a href="#top-level-properties">top level properties</a> are lazily loaded.
+ * Prefer using this property when <a href="#verify">verification</a> is off.
+ * (defaults to <code>null</code>).
  *
  * <li>&lt;handler-name&gt;.subject the name of a
  * <code>Formatter</code> class or string literal used to create the subject
@@ -607,9 +616,9 @@ public class MailHandler extends Handler {
      *                              caller does not have <code>LoggingPermission("control")</code>.
      */
     public MailHandler(Properties props) {
-        init(props);
+        init(props); //Must pass null or original object
         sealed = true;
-        setMailProperties0(props);
+        setMailProperties0(cloneOrCreate(props));
     }
 
     /**
@@ -897,7 +906,8 @@ public class MailHandler extends Handler {
      * <p>
      * If this <code>Handler</code> is only implicitly closed by the
      * <code>LogManager</code>, then <a href="#verify">verification</a> should
-     * be turned on.
+     * be turned on and or <code>mailEntries</code> should be declared to define
+     * the mail properties.
      *
      * @throws SecurityException if a security manager exists and the
      *                           caller does not have <code>LoggingPermission("control")</code>.
@@ -1426,23 +1436,36 @@ public class MailHandler extends Handler {
      * @throws IllegalStateException if called from inside a push.
      */
     public final void setMailProperties(Properties props) {
-        this.setMailProperties0(props);
+        setMailProperties0(cloneOrCreate(props));
+    }
+
+    /**
+     * Copies or creates a properties object.
+     *
+     * @param props a properties object or null
+     * @return a copy of the properties object, never null.
+     * @since Angus Mail 2.0.3
+     */
+    private static Properties cloneOrCreate(Properties props) {
+        if (props != null) {
+            props = (Properties) props.clone(); //Allow subclass.
+        } else {
+            props = new Properties();
+        }
+        return props;
     }
 
     /**
      * A private hook to handle overrides when the public method is declared
      * non final. See public method for details.
      *
-     * @param props properties object or null.
+     * @param props a safe properties object.
+     * @return true if verified.
+     * @throws NullPointerException if props is null.
      */
-    private void setMailProperties0(Properties props) {
+    private boolean setMailProperties0(Properties props) {
+        Objects.requireNonNull(props);
         checkAccess();
-        if (props != null) {
-            props = (Properties) props.clone(); //Allow subclass.
-        } else {
-            props = new Properties();
-        }
-
         Session settings;
         synchronized (this) {
             if (isWriting) {
@@ -1451,7 +1474,7 @@ public class MailHandler extends Handler {
             this.mailProps = props;
             settings = updateSession();
         }
-        verifySettings(settings);
+        return verifySettings(settings);
     }
 
     /**
@@ -1483,9 +1506,9 @@ public class MailHandler extends Handler {
      * entry when escape characters are not supported.
      * <p>
      * The example from the <a href="#configuration">configuration</a>
-     * section would be formatted as the following:
+     * section would be formatted as the following string:
      * <pre>
-     * "mail.smtp.host:my-mail-server#!mail.to:me@example.com#!verify:local"
+     * mail.smtp.host:my-mail-server#!mail.to:me@example.com#!verify:local
      * </pre>
      * <p>
      * The key/value pairs are defined in the <code>Java Mail API</code>
@@ -1504,26 +1527,7 @@ public class MailHandler extends Handler {
      * @since Angus Mail 2.0.3
      */
     public final void setMailEntries(String entries) {
-        final Properties props = new Properties();
-        if (hasValue(entries)) {
-           /**
-            * The characters # and ! are used for comment lines in properties
-            * format.  The characters \r or \n are not allowed in WildFly form
-            * validation however, properties comment characters are allowed.
-            * Comment lines are useless for this handler therefore, "#!"
-            * characters are used to represent logical lines and are assumed to
-            * not be present together in a key or value.
-            */
-            try {
-                entries = entries.replace("#!", "\r\n");
-                //Dynamic cast used so byte code verifier doesn't load StringReader
-                props.load(Reader.class.cast(new StringReader(entries)));
-            } catch (IOException | RuntimeException ex) {
-                reportError(entries, ex, ErrorManager.OPEN_FAILURE);
-                //Allow a partial load of properties to be set
-            }
-        }
-        setMailProperties0(props);
+        setMailProperties0(parseMailEntries(entries));
     }
 
     /**
@@ -2375,7 +2379,7 @@ public class MailHandler extends Handler {
      * @throws SecurityException if a security manager exists and the
      *                           caller does not have <code>LoggingPermission("control")</code>.
      */
-    private synchronized void init(final Properties props) {
+    private synchronized void init(Properties props) {
         assert this.errorManager != null;
         final String p = getClass().getName();
         this.mailProps = new Properties(); //See method param comments.
@@ -2407,7 +2411,11 @@ public class MailHandler extends Handler {
         initAttachmentFilters(fromLogManager(p.concat(".attachment.filters")));
         initAttachmentNames(fromLogManager(p.concat(".attachment.names")));
 
-        if (props == null && fromLogManager(p.concat(".verify")) != null) {
+        //Verification of all of the MailHandler properties starts here
+        //That means setting new object members goes above this comment.
+        Properties entries = parseMailEntries(fromLogManager(p.concat(".mailEntries")));
+        if (props == null && (entries.isEmpty() || !setMailProperties0(entries))
+                && fromLogManager(p.concat(".verify")) != null) {
             verifySettings(initSession());
         }
         intern(); //Show verify warnings first.
@@ -2775,6 +2783,44 @@ public class MailHandler extends Handler {
             reportError(RE.getMessage(), RE, ErrorManager.OPEN_FAILURE);
             logLevel = Level.WARNING;
         }
+    }
+
+    /**
+     * Parses the given properties lines then clears and sets all of the mail
+     * properties used for the session.  Any parsing errors are reported to the
+     * error manager.
+     *
+     * @param entries one or more key/value pairs. An empty string, null value
+     * or, the literal null are all treated as empty properties and will simply
+     * clear all existing mail properties assigned to this handler.
+     * @return true if verified.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @throws IllegalStateException if called from inside a push.
+     * @since Angus Mail 2.0.3
+     * @see #setMailEntries(java.lang.String)
+     */
+    public final Properties parseMailEntries(String entries) {
+        final Properties props = new Properties();
+        if (hasValue(entries)) {
+           /**
+            * The characters # and ! are used for comment lines in properties
+            * format.  The characters \r or \n are not allowed in WildFly form
+            * validation however, properties comment characters are allowed.
+            * Comment lines are useless for this handler therefore, "#!"
+            * characters are used to represent logical lines and are assumed to
+            * not be present together in a key or value.
+            */
+            try {
+                entries = entries.replace("#!", "\r\n");
+                //Dynamic cast used so byte code verifier doesn't load StringReader
+                props.load(Reader.class.cast(new StringReader(entries)));
+            } catch (IOException | RuntimeException ex) {
+                reportError(entries, ex, ErrorManager.OPEN_FAILURE);
+                //Allow a partial load of properties to be set
+            }
+        }
+        return props;
     }
 
     /**
@@ -3355,9 +3401,10 @@ public class MailHandler extends Handler {
      * is called and at that time all of the settings have been cleared.
      *
      * @param session the current session or null.
+     * @return true if verified.
      * @since JavaMail 1.4.4
      */
-    private void verifySettings(final Session session) {
+    private boolean verifySettings(final Session session) {
         try {
             if (session != null) {
                 final Properties props = session.getProperties();
@@ -3367,6 +3414,7 @@ public class MailHandler extends Handler {
                     //Perform the verify if needed.
                     if (hasValue(value)) {
                         verifySettings0(session, value);
+                        return true;
                     }
                 } else {
                     if (check != null) { //Pass some invalid string.
@@ -3377,6 +3425,7 @@ public class MailHandler extends Handler {
         } catch (final LinkageError JDK8152515) {
             reportLinkageError(JDK8152515, ErrorManager.OPEN_FAILURE);
         }
+        return false;
     }
 
     /**

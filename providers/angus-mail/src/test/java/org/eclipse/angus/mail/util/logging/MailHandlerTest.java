@@ -3913,6 +3913,93 @@ public class MailHandlerTest extends AbstractLogging {
         assertFalse(em.exceptions.isEmpty());
     }
 
+    @Test
+    public void testInitMailEntries() throws Exception {
+        final String p = MailHandler.class.getName();
+        final LogManager manager = LogManager.getLogManager();
+        final Properties props = createInitProperties(p);
+        props.setProperty(p.concat(".mailEntries"),
+                "mail.from=localhost@localdomain\n"
+                + "mail.to=remotehost@remotedomain#!"
+                + "mail.host=localhost#!"
+                + "mail.user=mailuser");
+        read(manager, props);
+        try {
+            MailHandler target = new MailHandler();
+            InternalErrorManager em = internalErrorManagerFrom(target);
+            Properties stored = target.getMailProperties();
+            assertEquals(true, em.exceptions.isEmpty());
+            assertEquals("localhost@localdomain", stored.getProperty("mail.from"));
+            assertEquals("remotehost@remotedomain", stored.getProperty("mail.to"));
+            assertEquals("localhost", stored.getProperty("mail.host"));
+            assertEquals("mailuser", stored.getProperty("mail.user"));
+        } finally {
+            manager.reset();
+        }
+    }
+
+
+    @Test
+    public void testInitMailEntriesWithProperties() throws Exception {
+        final String p = MailHandler.class.getName();
+        final LogManager manager = LogManager.getLogManager();
+        final Properties props = createInitProperties(p);
+        props.setProperty(p.concat(".mailEntries"),
+                "mail.from=badentry@@@localdomain\n"
+                + "verify=local");
+        props.setProperty("mail.from","badmanager@@@localdomain");
+        props.setProperty("verify", "local");
+        read(manager, props);
+        try {
+            Properties given = new Properties();
+            given.setProperty("mail.from", "badgiven@@@localdomain");
+            given.setProperty("verify", "local");
+            MailHandler target = new MailHandler(given);
+            InternalErrorManager em = internalErrorManagerFrom(target);
+            Properties stored = target.getMailProperties();
+            assertEquals(given.getProperty("mail.from"),
+                    stored.getProperty("mail.from"));
+            for (Exception e : em.exceptions) {
+                if (e instanceof AddressException) {
+                    String s = e.toString();
+                    assertFalse(s.contains("badentry"));
+                    assertFalse(s.contains("badmanager"));
+                }
+            }
+            assertFalse(em.exceptions.isEmpty());
+        } finally {
+            manager.reset();
+        }
+    }
+
+    @Test
+    public void testInitMailEntriesCapacity() throws Exception {
+        final String p = MailHandler.class.getName();
+        final LogManager manager = LogManager.getLogManager();
+        final Properties props = createInitProperties(p);
+        props.setProperty(p.concat(".mailEntries"),
+                "mail.from=badentry@@@localdomain\n"
+                + "verify=local");
+        props.setProperty("mail.from","badmanager@@@localdomain");
+        props.setProperty("verify", "local");
+        read(manager, props);
+        try {
+            MailHandler target = new MailHandler(1000);
+            InternalErrorManager em = internalErrorManagerFrom(target);
+            Properties stored = target.getMailProperties();
+            assertEquals("badentry@@@localdomain",
+                    stored.getProperty("mail.from"));
+            for (Exception e : em.exceptions) {
+                if (e instanceof AddressException) {
+                    String s = e.toString();
+                    assertFalse(s.contains("badmanager"));
+                }
+            }
+            assertFalse(em.exceptions.isEmpty());
+        } finally {
+            manager.reset();
+        }
+    }
 
     @Test
     public void testMailEntries() throws Exception {
