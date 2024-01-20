@@ -3938,7 +3938,6 @@ public class MailHandlerTest extends AbstractLogging {
         }
     }
 
-
     @Test
     public void testInitMailEntriesWithProperties() throws Exception {
         final String p = MailHandler.class.getName();
