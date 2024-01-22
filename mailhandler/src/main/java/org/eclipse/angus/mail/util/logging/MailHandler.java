@@ -241,8 +241,8 @@ import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogMa
  * empty string can be used to specify no sender address.
  * (defaults to <code>null</code>, none)
  *
- * <li>&lt;handler-name&gt;.mailEntries specifies session properties for this
- * <code>Handler</code>.  The format for the value is described in
+ * <li>&lt;handler-name&gt;.mailEntries specifies mail session properties for
+ * this <code>Handler</code>.  The format for the value is described in
  * {@linkplain #setMailEntries(java.lang.String) setMailEntries} method.
  * This property is eagerly loaded where as the
  * <a href="#top-level-properties">top level properties</a> are lazily loaded.
@@ -1428,7 +1428,9 @@ public class MailHandler extends Handler {
      * trigger <a href="#verify">verification</a>.
      *
      * @param props properties object or null. A null value will supply the
-     * <code>mailEntries</code> from the <code>LogManager</code>.
+     * <code>mailEntries</code> from the <code>LogManager</code>.  An empty
+     * properties will clear all existing mail properties assigned to this
+     * handler.
      * @throws SecurityException     if a security manager exists and the
      *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
@@ -1495,16 +1497,11 @@ public class MailHandler extends Handler {
             props = this.mailProps;
         }
 
-        final Object clone = props.clone();
-        if (clone != null) {
-            try {
-                return (Properties) clone;
-            } catch (ClassCastException brokenClone) {
-                reportError(props.getClass().getName(),
-                        brokenClone, ErrorManager.GENERIC_FAILURE);
-            }
-        } else {
-            reportNullError(ErrorManager.GENERIC_FAILURE);
+        try {
+            return Objects.requireNonNull((Properties) props.clone());
+        } catch (RuntimeException brokenClone) {
+            reportError(props.getClass().getName(),
+                    brokenClone, ErrorManager.GENERIC_FAILURE);
         }
         return new Properties();
     }
