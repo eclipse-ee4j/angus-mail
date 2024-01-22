@@ -241,13 +241,13 @@ import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogMa
  * empty string can be used to specify no sender address.
  * (defaults to <code>null</code>, none)
  *
- * <li>&lt;handler-name&gt;.mailEntries specifies mail session properties for
- * this <code>Handler</code>.  The format for the value is described in
+ * <li>&lt;handler-name&gt;.mailEntries specifies the mail session properties
+ * for this <code>Handler</code>.  The format for the value is described in
  * {@linkplain #setMailEntries(java.lang.String) setMailEntries} method.
  * This property eagerly loads the assigned mail properties where as the
  * <a href="#top-level-properties">top level mail properties</a> are lazily
  * loaded.  Prefer using this property when <a href="#verify">verification</a>
- * is off or when verifcation does not force the provider to read a required
+ * is off or when verifcation does not force the provider to load required
  * mail property.  (defaults to <code>null</code>).
  *
  * <li>&lt;handler-name&gt;.subject the name of a
