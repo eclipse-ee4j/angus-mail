@@ -2825,9 +2825,6 @@ public class MailHandler extends Handler {
      * or, the literal null are all treated as empty properties and will simply
      * clear all existing mail properties assigned to this handler.
      * @return the parsed properties or null if entries was null.
-     * @throws SecurityException if a security manager exists and the caller
-     * does not have <code>LoggingPermission("control")</code>.
-     * @throws IllegalStateException if called from inside a push.
      * @since Angus Mail 2.0.3
      * @see #setMailEntries(java.lang.String)
      */
