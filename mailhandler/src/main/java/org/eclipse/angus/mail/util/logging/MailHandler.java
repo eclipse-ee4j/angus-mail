@@ -1497,13 +1497,8 @@ public class MailHandler extends Handler {
             props = this.mailProps;
         }
 
-        try {
-            return Objects.requireNonNull((Properties) props.clone());
-        } catch (RuntimeException brokenClone) {
-            reportError(props.getClass().getName(),
-                    brokenClone, ErrorManager.GENERIC_FAILURE);
-        }
-        return new Properties();
+        //Null check to force an error sooner rather than later.
+        return Objects.requireNonNull((Properties) props.clone());
     }
 
     /**
