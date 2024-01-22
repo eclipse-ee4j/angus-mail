@@ -1578,7 +1578,18 @@ public class MailHandler extends Handler {
             reportError(props.toString(), ex, ErrorManager.GENERIC_FAILURE);
             //partially constructed values are allowed to be returned
         }
-        return sw.toString();
+
+        //Properties.store will always write a date comment
+        //which is removed by this code.
+        String entries = sw.toString();
+        if (entries.startsWith("#")) {
+            String sep = System.lineSeparator();
+            int end = entries.indexOf(sep);
+            if (end > 0) {
+                entries = entries.substring(end + sep.length(), entries.length());
+            }
+        }
+        return entries;
     }
 
     /**

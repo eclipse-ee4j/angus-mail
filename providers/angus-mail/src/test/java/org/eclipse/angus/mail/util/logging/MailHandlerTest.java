@@ -4153,6 +4153,7 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(false, stored.isEmpty());
         instance.setMailEntries((String) null);
         assertEquals(true, instance.getMailProperties().isEmpty());
+        assertEquals("", instance.getMailEntries());
 
         instance.setMailEntries(
                 "mail.from:localhost@localdomain\n"
@@ -4168,22 +4169,32 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals("remoteuser", stored.getProperty("mail.user"));
 
         instance.setMailEntries(""); //Clears all properties
-        assertEquals(true, instance.getMailProperties().isEmpty());
+        assertTrue(instance.getMailProperties().isEmpty());
+        assertEquals("", instance.getMailEntries());
 
         instance.setMailProperties(stored);
         assertEquals(false, instance.getMailProperties().isEmpty());
 
         instance.setMailEntries("null"); //null literal is treated as empty
         assertEquals(true, instance.getMailProperties().isEmpty());
+        assertEquals("", instance.getMailEntries());
 
         instance.setMailProperties(stored);
         assertEquals(false, stored.isEmpty());
+
+        instance.setMailEntries("mail.user=root"); //single entry
+        stored = instance.getMailProperties();
+        assertEquals(1, stored.size());
+        assertEquals("root", stored.getProperty("mail.user"));
+        assertEquals("mail.user=root" + System.lineSeparator(), instance.getMailEntries());
+
         instance.setMailEntries("mail.user"); //key with empty value
         stored = instance.getMailProperties();
 
         //Ensure properties are not cleared.
         assertEquals(1, stored.size());
         assertEquals("", stored.getProperty("mail.user"));
+        assertEquals("mail.user=" + System.lineSeparator(), instance.getMailEntries());
 
         final String test = "test\u03b1";
         final String saddr = test + '@' + UNKNOWN_HOST;
