@@ -244,10 +244,11 @@ import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogMa
  * <li>&lt;handler-name&gt;.mailEntries specifies mail session properties for
  * this <code>Handler</code>.  The format for the value is described in
  * {@linkplain #setMailEntries(java.lang.String) setMailEntries} method.
- * This property is eagerly loaded where as the
- * <a href="#top-level-properties">top level properties</a> are lazily loaded.
- * Prefer using this property when <a href="#verify">verification</a> is off.
- * (defaults to <code>null</code>).
+ * This property eagerly loads the assigned mail properties where as the
+ * <a href="#top-level-properties">top level mail properties</a> are lazily
+ * loaded.  Prefer using this property when <a href="#verify">verification</a>
+ * is off or when verifcation does not cause force the provider to read a need
+ * mail property.  (defaults to <code>null</code>).
  *
  * <li>&lt;handler-name&gt;.subject the name of a
  * <code>Formatter</code> class or string literal used to create the subject
