@@ -3913,6 +3913,128 @@ public class MailHandlerTest extends AbstractLogging {
         assertFalse(em.exceptions.isEmpty());
     }
 
+
+    @Test
+    public void testInitMailEntriesNullMailProperties() throws Exception {
+        final String p = MailHandler.class.getName();
+        final LogManager manager = LogManager.getLogManager();
+        final Properties props = createInitProperties(p);
+        props.setProperty(p.concat(".mailEntries"),
+                "mail.from=localhost@localdomain\n"
+                + "verify=local");
+        props.setProperty("mail.from","logmanager@localdomain");
+        props.setProperty("verify", "limited");
+        read(manager, props);
+        try {
+            MailHandler target = new MailHandler();
+            InternalErrorManager em = internalErrorManagerFrom(target);
+            Properties stored = target.getMailProperties();
+            assertEquals("localhost@localdomain",
+                    stored.getProperty("mail.from"));
+            assertEquals("local",stored.getProperty("verify"));
+            for (Exception e : em.exceptions) {
+                if (e instanceof AddressException) {
+                   if (e.toString().contains("badAddress")) {
+                       continue;
+                   }
+                }
+                dump(e);
+                fail(e.toString());
+            }
+            assertFalse(em.exceptions.isEmpty());
+
+            target.setMailProperties((Properties) null);
+            stored = target.getMailProperties();
+            assertEquals("localhost@localdomain",
+                    stored.getProperty("mail.from"));
+            assertEquals("local", stored.getProperty("verify"));
+            for (Exception e : em.exceptions) {
+                if (e instanceof AddressException) {
+                   if (e.toString().contains("badAddress")) {
+                       continue;
+                   }
+                }
+                dump(e);
+                fail(e.toString());
+            }
+            assertFalse(em.exceptions.isEmpty());
+
+            target = new MailHandler((Properties) null);
+            em = internalErrorManagerFrom(target);
+            for (Exception e : em.exceptions) {
+                if (e instanceof AddressException) {
+                   if (e.toString().contains("badAddress")) {
+                       continue;
+                   }
+                }
+                dump(e);
+                fail(e.toString());
+            }
+            assertFalse(em.exceptions.isEmpty());
+
+            stored = target.getMailProperties();
+            assertEquals("localhost@localdomain",
+                    stored.getProperty("mail.from"));
+            assertEquals("local", stored.getProperty("verify"));
+
+            target = new MailHandler(new Properties());
+            em = internalErrorManagerFrom(target);
+            assertTrue(em.exceptions.isEmpty());
+            assertTrue(target.getMailProperties().isEmpty());
+            assertFalse(target.getMailEntries().contains("mail.from"));
+
+            target = new MailHandler();
+            em = internalErrorManagerFrom(target);
+            em.exceptions.clear();
+            target.setMailProperties(new Properties());
+            assertTrue(em.exceptions.isEmpty());
+            assertTrue(target.getMailProperties().isEmpty());
+            assertFalse(target.getMailEntries().contains("mail.from"));
+        } finally {
+            manager.reset();
+        }
+    }
+
+    @Test
+    public void testInitMailEntriesNullSetMailEntries() throws Exception {
+        final String p = MailHandler.class.getName();
+        final LogManager manager = LogManager.getLogManager();
+        final Properties props = createInitProperties(p);
+        props.setProperty(p.concat(".mailEntries"),
+                "mail.from=localhost@localdomain\n"
+                + "verify=local");
+        read(manager, props);
+        try {
+            MailHandler target = new MailHandler();
+            InternalErrorManager em = internalErrorManagerFrom(target);
+            target.setMailEntries((String) null);
+            Properties stored = target.getMailProperties();
+            for (Exception e : em.exceptions) {
+                if (e instanceof AddressException) {
+                   if (e.toString().contains("badAddress")) {
+                       continue;
+                   }
+                }
+                dump(e);
+                fail(e.toString());
+            }
+            assertFalse(em.exceptions.isEmpty());
+            assertEquals("localhost@localdomain",
+                    stored.getProperty("mail.from"));
+            assertEquals("local",stored.getProperty("verify"));
+
+            target.setMailEntries("");
+            assertTrue(target.getMailProperties().isEmpty());
+            assertFalse(target.getMailEntries().contains("mail.from"));
+
+            target.setMailEntries("null");
+            assertTrue(target.getMailProperties().isEmpty());
+            assertFalse(target.getMailEntries().contains("mail.from"));
+        } finally {
+            manager.reset();
+        }
+    }
+
     @Test
     public void testInitMailEntries() throws Exception {
         final String p = MailHandler.class.getName();
@@ -6367,16 +6489,15 @@ public class MailHandlerTest extends AbstractLogging {
 
             read(manager, props);
 
-            //Use empty properties to prove fallback to LogManager.
+            //Use empty properties to prove no fallback to LogManager.
             MailHandler instance = new MailHandler(new Properties());
             InternalErrorManager em = internalErrorManagerFrom(instance);
             assertEquals(InternalErrorManager.class, em.getClass());
             instance.close();
 
+            //No remote connection, so no remote connection error.
             for (Exception exception : em.exceptions) {
-                final Throwable t = exception;
-                dump(t);
-                fail(t.toString());
+                dump(exception);
             }
             assertTrue(em.exceptions.isEmpty());
         } finally {

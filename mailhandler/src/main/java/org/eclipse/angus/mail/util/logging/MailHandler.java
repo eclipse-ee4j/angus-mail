@@ -586,8 +586,6 @@ public class MailHandler extends Handler {
      */
     public MailHandler() {
         init((Properties) null);
-        sealed = true;
-        checkAccess();
     }
 
     /**
@@ -601,7 +599,6 @@ public class MailHandler extends Handler {
      */
     public MailHandler(final int capacity) {
         init((Properties) null);
-        sealed = true;
         setCapacity0(capacity);
     }
 
@@ -611,14 +608,13 @@ public class MailHandler extends Handler {
      * documentation.  This <code>Handler</code> will also search the
      * <code>LogManager</code> for defaults if needed.
      *
-     * @param props a properties object or null.
+     * @param props a properties object or null. A null value will supply the
+     * <code>mailEntries</code> from the <code>LogManager</code>.
      * @throws SecurityException    if a security manager exists and the
      *                              caller does not have <code>LoggingPermission("control")</code>.
      */
     public MailHandler(Properties props) {
         init(props); //Must pass null or original object
-        sealed = true;
-        setMailProperties0(cloneOrCreate(props));
     }
 
     /**
@@ -1428,31 +1424,39 @@ public class MailHandler extends Handler {
      * Sets the mail properties used for the session.  The key/value pairs
      * are defined in the <code>Java Mail API</code> documentation.  This
      * <code>Handler</code> will also search the <code>LogManager</code> for
-     * defaults if needed.
+     * defaults if needed.  A key named <code>verify</code> can be declared to
+     * trigger <a href="#verify">verification</a>.
      *
-     * @param props properties object or null.
+     * @param props properties object or null. A null value will supply the
+     * <code>mailEntries</code> from the <code>LogManager</code>.
      * @throws SecurityException     if a security manager exists and the
      *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
     public final void setMailProperties(Properties props) {
-        setMailProperties0(cloneOrCreate(props));
+        if (props == null) {
+            final String p = getClass().getName();
+            props = parseProperties(
+                    fromLogManager(p.concat(".mailEntries")));
+            setMailProperties0(props != null ? props : new Properties());
+        } else {
+            setMailProperties0(copyOf(props));
+        }
     }
 
     /**
-     * Copies or creates a properties object.
+     * Copies a properties object.  Checks that given properties clone
+     * returns the a Properties object and that it is not null.
      *
-     * @param props a properties object or null
-     * @return a copy of the properties object, never null.
+     * @param props a properties object
+     * @return a copy of the properties object.
+     * @throws ClassCastException if clone doesn't return a Properties object.
+     * @throws NullPointerExeption if props is null or if the copy was null.
      * @since Angus Mail 2.0.3
      */
-    private static Properties cloneOrCreate(Properties props) {
-        if (props != null) {
-            props = (Properties) props.clone(); //Allow subclass.
-        } else {
-            props = new Properties();
-        }
-        return props;
+    private Properties copyOf(Properties props) {
+        Properties copy = (Properties) props.clone(); //Allow subclass
+        return Objects.requireNonNull(copy); //Broken subclass
     }
 
     /**
@@ -1460,7 +1464,7 @@ public class MailHandler extends Handler {
      * non final. See public method for details.
      *
      * @param props a safe properties object.
-     * @return true if verified.
+     * @return true if verification key was present.
      * @throws NullPointerException if props is null.
      */
     private boolean setMailProperties0(Properties props) {
@@ -1490,7 +1494,19 @@ public class MailHandler extends Handler {
         synchronized (this) {
             props = this.mailProps;
         }
-        return (Properties) props.clone();
+
+        final Object clone = props.clone();
+        if (clone != null) {
+            try {
+                return (Properties) clone;
+            } catch (ClassCastException brokenClone) {
+                reportError(props.getClass().getName(),
+                        brokenClone, ErrorManager.GENERIC_FAILURE);
+            }
+        } else {
+            reportNullError(ErrorManager.GENERIC_FAILURE);
+        }
+        return new Properties();
     }
 
     /**
@@ -1513,10 +1529,13 @@ public class MailHandler extends Handler {
      * <p>
      * The key/value pairs are defined in the <code>Java Mail API</code>
      * documentation. This <code>Handler</code> will also search the
-     * <code>LogManager</code> for defaults if needed.
+     * <code>LogManager</code> for defaults if needed.  A key named
+     * <code>verify</code> can be declared to trigger
+     * <a href="#verify">verification</a>.
      *
-     * @param entries one or more key/value pairs. An empty string, null value
-     * or, the literal null are all treated as empty properties and will simply
+     * @param entries one or more key/value pairs. A null value will supply the
+     * <code>mailEntries</code> from the <code>LogManager</code>.  An empty
+     * string or the literal null are all treated as empty properties and will
      * clear all existing mail properties assigned to this handler.
      * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
@@ -1527,7 +1546,12 @@ public class MailHandler extends Handler {
      * @since Angus Mail 2.0.3
      */
     public final void setMailEntries(String entries) {
-        setMailProperties0(parseProperties(entries));
+        if (entries == null) {
+            final String p = getClass().getName();
+            entries = fromLogManager(p.concat(".mailEntries"));
+        }
+        final Properties props = parseProperties(entries);
+        setMailProperties0(props != null ? props : new Properties());
     }
 
     /**
@@ -2372,17 +2396,19 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Configures the handler properties from the log manager.
+     * Configures the handler properties from the log manager.  On normal return
+     * this object will be sealed.
      *
      * @param props the given mail properties.  Maybe null and are never
      *              captured by this handler.
      * @throws SecurityException if a security manager exists and the
      *                           caller does not have <code>LoggingPermission("control")</code>.
+     * @see #sealed
      */
     private synchronized void init(final Properties props) {
         assert this.errorManager != null;
         final String p = getClass().getName();
-        this.mailProps = new Properties(); //See method param comments.
+        this.mailProps = new Properties(); //ensure non-null on exception
         final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
         try {
             this.contentTypes = FileTypeMap.getDefaultFileTypeMap();
@@ -2413,9 +2439,23 @@ public class MailHandler extends Handler {
 
         //Verification of all of the MailHandler properties starts here
         //That means setting new object members goes above this comment.
+        //Entries are always parsed to report any errors.
         Properties entries = parseProperties(fromLogManager(p.concat(".mailEntries")));
-        if (props == null && (entries.isEmpty() || !setMailProperties0(entries))
-                && fromLogManager(p.concat(".verify")) != null) {
+        sealed = true;
+        boolean verified;
+        if (props != null) {
+            //Given properties do not fallback to log manager.
+            setMailProperties0(copyOf(props));
+            verified = true;
+        } else if (entries != null) {
+            //.mailEntries should fallback to log manager when verify key not present.
+            verified = setMailProperties0(entries);
+        } else {
+            checkAccess();
+            verified = false;
+        }
+
+        if (!verified && fromLogManager(p.concat(".verify")) != null) {
             verifySettings(initSession());
         }
         intern(); //Show verify warnings first.
@@ -2792,7 +2832,7 @@ public class MailHandler extends Handler {
      * @param entries one or more key/value pairs. An empty string, null value
      * or, the literal null are all treated as empty properties and will simply
      * clear all existing mail properties assigned to this handler.
-     * @return true if verified.
+     * @return the parsed properties or null if entries was null.
      * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
@@ -2800,8 +2840,12 @@ public class MailHandler extends Handler {
      * @see #setMailEntries(java.lang.String)
      */
     private Properties parseProperties(String entries) {
-        final Properties props = new Properties();
-        if (hasValue(entries)) {
+        if (entries != null) {
+           final Properties props = new Properties();
+           if (!hasValue(entries)) {
+              return props;
+           }
+
            /**
             * The characters # and ! are used for comment lines in properties
             * format.  The characters \r or \n are not allowed in WildFly form
@@ -2818,8 +2862,9 @@ public class MailHandler extends Handler {
                 reportError(entries, ex, ErrorManager.OPEN_FAILURE);
                 //Allow a partial load of properties to be set
             }
+            return props;
         }
-        return props;
+        return null;
     }
 
     /**
@@ -3400,26 +3445,30 @@ public class MailHandler extends Handler {
      * is called and at that time all of the settings have been cleared.
      *
      * @param session the current session or null.
-     * @return true if verified.
+     * @return true if verification key was present.
      * @since JavaMail 1.4.4
      */
     private boolean verifySettings(final Session session) {
         try {
-            if (session != null) {
-                final Properties props = session.getProperties();
-                final Object check = props.put("verify", "");
-                if (check instanceof String) {
-                    String value = (String) check;
-                    //Perform the verify if needed.
-                    if (hasValue(value)) {
-                        verifySettings0(session, value);
-                        return true;
-                    }
-                } else {
-                    if (check != null) { //Pass some invalid string.
-                        verifySettings0(session, check.getClass().toString());
-                    }
+            if (session == null) {
+                return false;
+            }
+
+            final Properties props = session.getProperties();
+            final Object check = props.put("verify", "");
+            if (check == null) {
+                return false;
+            }
+
+            if (check instanceof String) {
+                String value = (String) check;
+                //Perform the verify if needed.
+                if (hasValue(value)) {
+                    verifySettings0(session, value);
                 }
+                return true;
+            } else { //Pass some invalid string.
+                verifySettings0(session, check.getClass().toString());
             }
         } catch (final LinkageError JDK8152515) {
             reportLinkageError(JDK8152515, ErrorManager.OPEN_FAILURE);
