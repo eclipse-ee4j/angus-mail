@@ -247,8 +247,8 @@ import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogMa
  * This property eagerly loads the assigned mail properties where as the
  * <a href="#top-level-properties">top level mail properties</a> are lazily
  * loaded.  Prefer using this property when <a href="#verify">verification</a>
- * is off or when verifcation does not force the provider to load required
- * mail property.  (defaults to <code>null</code>).
+ * is off or when verification does not force the provider to load required
+ * mail properties.  (defaults to <code>null</code>).
  *
  * <li>&lt;handler-name&gt;.subject the name of a
  * <code>Formatter</code> class or string literal used to create the subject
