@@ -25,13 +25,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.UndeclaredThrowableException;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
@@ -40,7 +40,6 @@ import java.util.logging.Handler;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import java.util.logging.LoggingPermission;
 
 /**
  * An adapter class to allow the Mail API to access the LogManager properties.
@@ -171,7 +170,7 @@ final class LogManagerProperties extends Properties {
         try {
             m = LogManager.getLogManager();
         } catch (final LinkageError | RuntimeException restricted) {
-            m = readConfiguration();
+            m = readConfiguration(); //GAE will forbid access to LogManager
         }
         return m;
     }
@@ -197,11 +196,8 @@ final class LogManagerProperties extends Properties {
             String n = System.getProperty("java.util.logging.config.file");
             if (n != null) {
                 final File f = new File(n).getCanonicalFile();
-                final InputStream in = new FileInputStream(f);
-                try {
+                try (InputStream in = new FileInputStream(f)) {
                     props.load(in);
-                } finally {
-                    in.close();
                 }
             }
         } catch (final LinkageError | Exception permissionsOrMalformed) {
@@ -219,10 +215,7 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.5.3
      */
     static String fromLogManager(final String name) {
-        if (name == null) {
-            throw new NullPointerException();
-        }
-
+        Objects.requireNonNull(name);
         final Object m = LOG_MANAGER;
         try {
             if (m instanceof Properties) {
@@ -237,7 +230,7 @@ final class LogManagerProperties extends Properties {
                     return ((LogManager) m).getProperty(name);
                 }
             } catch (final LinkageError | RuntimeException restricted) {
-            }
+            } //GAE will forbid access to LogManager
         }
         return null;
     }
@@ -256,55 +249,46 @@ final class LogManagerProperties extends Properties {
         if (m != null) {
             try {
                 if (m instanceof LogManager) {
-                    checked = true;
-                    ((LogManager) m).checkAccess();
+                    try {
+                        LogManager.class.getMethod("checkAccess").invoke(m);
+                        checked = true;
+                    } catch (InvocationTargetException ite) {
+                        Throwable cause = ite.getCause();
+                        if (cause instanceof SecurityException) {
+                            checked = true;
+                            throw (SecurityException) cause;
+                        }
+
+                        if (cause instanceof UnsupportedOperationException) {
+                           checked = true;
+                        }
+                    } catch (NoSuchMethodException removed) {
+                        checked = true;
+                    } catch (ReflectiveOperationException fallthrough) {
+                    }
                 }
             } catch (final SecurityException notAllowed) {
                 if (checked) {
                     throw notAllowed;
                 }
             } catch (final LinkageError | RuntimeException restricted) {
-            }
+            } //GAE will forbid access to LogManager
         }
 
-        if (!checked) {
-            checkLoggingAccess();
-        }
-    }
-
-    /**
-     * Check that the current context is trusted to modify the logging
-     * configuration when the LogManager is not present. This requires
-     * LoggingPermission("control").
-     *
-     * @throws SecurityException if a security manager exists and the caller
-     *                           does not have {@code LoggingPermission("control")}.
-     * @since JavaMail 1.5.3
-     */
-    private static void checkLoggingAccess() {
         /**
          * Some environments selectively enforce logging permissions by allowing
          * access to loggers but not allowing access to handlers. This is an
          * indirect way of checking for LoggingPermission when the LogManager is
          * not present. The root logger will lazy create handlers so the global
          * logger is used instead as it is a known named logger with well
-         * defined behavior. If the global logger is a subclass then fallback to
-         * using the SecurityManager.
+         * defined behavior.  Contractually, Logger::remove will check
+         * permission before checking if the argument is null.
+         * See JDK-8023168
          */
-        boolean checked = false;
-        final Logger global = Logger.getLogger("global");
-        try {
-            if (Logger.class == global.getClass()) {
-                global.removeHandler((Handler) null);
-                checked = true;
-            }
-        } catch (final NullPointerException unexpected) {
-        }
-
         if (!checked) {
-            final SecurityManager sm = System.getSecurityManager();
-            if (sm != null) {
-                sm.checkPermission(new LoggingPermission("control", null));
+            try {
+                Logger.getGlobal().removeHandler((Handler) null);
+            } catch (final NullPointerException unexpected) {
             }
         }
     }
@@ -332,9 +316,7 @@ final class LogManagerProperties extends Properties {
      */
     @SuppressWarnings("UseSpecificCatch")
     static Comparable<?> getZonedDateTime(LogRecord record) {
-        if (record == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(record);
         final Method m = ZDT_OF_INSTANT;
         if (m != null) {
             try {
@@ -368,10 +350,7 @@ final class LogManagerProperties extends Properties {
      * @since Angus Mail 2.0.3
      */
     static Long getLongThreadID(final LogRecord record) {
-        if (record == null) {
-           throw new NullPointerException();
-        }
-
+        Objects.requireNonNull(record);
         final Method m = LR_GET_LONG_TID;
         if (m != null) {
             try {
@@ -409,6 +388,7 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.5.3
      */
     static String getLocalHost(final Object s) throws Exception {
+        Objects.requireNonNull(s);
         try {
             final Method m = s.getClass().getMethod("getLocalHost");
             if (!Modifier.isStatic(m.getModifiers())
@@ -443,10 +423,7 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.5.5
      */
     static long parseDurationToMillis(final CharSequence value) throws Exception {
-        if (value == null) {
-           throw new NullPointerException();
-        }
-
+        Objects.requireNonNull(value);
         try {
             final Class<?> k = findClass("java.time.Duration");
             final Method parse = k.getMethod("parse", CharSequence.class);
@@ -586,10 +563,7 @@ final class LogManagerProperties extends Properties {
      */
     @SuppressWarnings({"unchecked", "ThrowableResultIgnored"})
     static <T> Comparator<T> reverseOrder(final Comparator<T> c) {
-        if (c == null) {
-            throw new NullPointerException();
-        }
-
+        Objects.requireNonNull(c);
         Comparator<T> reverse = null;
         //Comparator in JDK8 has 'reversed' as a default method.
         //This code calls that method first to allow custom
@@ -794,18 +768,12 @@ final class LogManagerProperties extends Properties {
      * @param ite any invocation target.
      * @return the exception.
      * @throws VirtualMachineError if present as cause.
-     * @throws ThreadDeath         if present as cause.
      * @since JavaMail 1.4.5
      */
     private static Exception paramOrError(InvocationTargetException ite) {
         final Throwable cause = ite.getCause();
-        if (cause != null) {
-            //Bitwise inclusive OR produces tighter bytecode for instanceof
-            //and matches with multicatch syntax.
-            if (cause instanceof VirtualMachineError
-                    | cause instanceof ThreadDeath) {
-                throw (Error) cause;
-            }
+        if (cause instanceof VirtualMachineError) {
+            throw (Error) cause;
         }
         return ite;
     }
@@ -881,7 +849,7 @@ final class LogManagerProperties extends Properties {
      * @return any array of class loaders. Indexes may be null.
      */
     private static ClassLoader[] getClassLoaders() {
-        return AccessController.doPrivileged(new PrivilegedAction<ClassLoader[]>() {
+        return runOrDoPrivileged(new PrivilegedAction<ClassLoader[]>() {
 
             @SuppressWarnings("override") //JDK-6954234
             public ClassLoader[] run() {
@@ -900,6 +868,58 @@ final class LogManagerProperties extends Properties {
                 return loaders;
             }
         });
+    }
+
+    /**
+     * Executes a PrivilegedAction without permissions then falling back to
+     * running with elevated permissions.
+     *
+     * Any unchecked exceptions from the action are passed through this API.
+     *
+     * @param <T> the action return type.
+     * @param a the PrivilegedAction object.
+     * @return the result.
+     * @throws NullPointerException if the given action is null.
+     * @throws UndeclaredThrowableException if a checked exception is thrown.
+     * @since Angus Mail 2.0.3
+     */
+    static <T> T runOrDoPrivileged(final PrivilegedAction<T> a) {
+        Objects.requireNonNull(a);
+        try {
+            return a.run();
+        } catch (SecurityException sandbox) {
+            return invokeAccessController(a);
+        }
+    }
+
+    /**
+     * Reflective call to access controller for sandbox environments.
+     * Any unchecked exceptions from the action are passed through this API.
+     *
+     * @param <T> the return type of the action.
+     * @param a a non-null action.
+     * @return the result.
+     * @throws UnsupportedOperationException if not allowed.
+     * @throws UndeclaredThrowableException if a checked exception is thrown.
+     * @since Angus Mail 2.0.3
+     */
+    @SuppressWarnings("unchecked")
+    private static <T> T invokeAccessController(final PrivilegedAction<T> a) {
+        assert a != null;
+        try {
+            Class<?> c = Class.forName("java.security.AccessController");
+            return (T) c.getMethod("doPrivileged", PrivilegedAction.class)
+                    .invoke((Object) null, a);
+        } catch (ReflectiveOperationException roe) {
+            Throwable cause = roe.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            } else if (cause instanceof Error) {
+                throw (Error) cause;
+            } else {
+                throw new UndeclaredThrowableException(roe);
+            }
+        }
     }
 
     /**

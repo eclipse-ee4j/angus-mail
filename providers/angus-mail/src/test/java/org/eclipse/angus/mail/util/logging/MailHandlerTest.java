@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2023 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -79,6 +79,8 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
@@ -88,7 +90,6 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import java.util.logging.LoggingPermission;
 import java.util.logging.MemoryHandler;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.XMLFormatter;
@@ -260,41 +261,47 @@ public class MailHandlerTest extends AbstractLogging {
         Object ccl = Thread.currentThread().getContextClassLoader();
         if (expect != ccl) {
             AssertionError ae = new AssertionError(expect + " != " + ccl
-                    + ", sm=" + System.getSecurityManager());
+                    + ", thread=" + Thread.currentThread());
             dump(ae);
             throw ae;
         }
     }
 
     @Test
-    public void testChildClassLoader() {
-        assertNull(System.getSecurityManager());
-        final Thread thread = Thread.currentThread();
-        final ClassLoader ccl = thread.getContextClassLoader();
-        try {
-            URLClassLoader child = new URLClassLoader(new URL[0], ccl);
+    public void testChildClassLoader() throws Exception {
+        Callable<Void> c = () -> {
+            final Thread thread = Thread.currentThread();
+            final ClassLoader ccl = thread.getContextClassLoader();
+            try {
+                URLClassLoader child = new URLClassLoader(new URL[0], ccl);
 
-            thread.setContextClassLoader(child);
-            testCallingClassLoader((ClassLoaderSecurityManager) null, child);
+                thread.setContextClassLoader(child);
+                testCallingClassLoader(false, child);
 
-            thread.setContextClassLoader(child);
-            testCallingClassLoader(new ClassLoaderSecurityManager(), child);
-        } finally {
-            thread.setContextClassLoader(ccl);
-        }
-        assertNull(System.getSecurityManager());
+                thread.setContextClassLoader(child);
+                testCallingClassLoader(true, child);
+            } finally {
+                thread.setContextClassLoader(ccl);
+            }
+            return null;
+        };
+
+        FutureTask<Void> f = new FutureTask<>(c);
+        Thread t = new ClassLoaderThread(f);
+        t.start();
+        assertNull(f.get());
     }
 
-    private void testCallingClassLoader(
-            ClassLoaderSecurityManager sm, ClassLoader expect) {
+    private void testCallingClassLoader(boolean secure, ClassLoader expect) {
+        Thread clt = Thread.currentThread();
+        assertEquals(ClassLoaderThread.class, clt.getClass());
+        assert clt instanceof ClassLoaderThread : clt;
+
         InternalErrorManager em = new ClassLoaderErrorManager(expect);
         try {
             MailHandler instance = new MailHandler(createInitProperties(""));
             try {
-                if (sm != null) {
-                    System.setSecurityManager(sm);
-                    sm.secure = true;
-                }
+                ((ClassLoaderThread) clt).secure = secure;
                 instance.setErrorManager(em);
                 instance.setLevel(Level.ALL);
                 instance.setPushLevel(Level.SEVERE);
@@ -313,10 +320,7 @@ public class MailHandlerTest extends AbstractLogging {
                 instance.close();
             }
         } finally {
-            if (sm != null) {
-                sm.secure = false;
-                System.setSecurityManager((SecurityManager) null);
-            }
+            ((ClassLoaderThread) clt).secure = false;
         }
 
         assert em != null;
@@ -332,21 +336,27 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testVerifyClassLoader() throws Exception {
-        assertNull(System.getSecurityManager());
-        final Thread thread = Thread.currentThread();
-        final ClassLoader ccl = thread.getContextClassLoader();
-        try {
-            URLClassLoader child = new URLClassLoader(new URL[0], ccl);
+        Callable<Void> c = () -> {
+            final Thread thread = Thread.currentThread();
+            final ClassLoader ccl = thread.getContextClassLoader();
+            try {
+                URLClassLoader child = new URLClassLoader(new URL[0], ccl);
 
-            thread.setContextClassLoader(child);
-            testVerify((ClassLoaderSecurityManager) null, child);
+                thread.setContextClassLoader(child);
+                testVerify(false, child);
 
-            thread.setContextClassLoader(child);
-            testVerify(new ClassLoaderSecurityManager(), child);
-        } finally {
-            thread.setContextClassLoader(ccl);
-        }
-        assertNull(System.getSecurityManager());
+                thread.setContextClassLoader(child);
+                testVerify(true, child);
+            } finally {
+                thread.setContextClassLoader(ccl);
+            }
+            return null;
+        };
+
+        FutureTask<Void> f = new FutureTask<>(c);
+        Thread t = new ClassLoaderThread(f);
+        t.start();
+        assertNull(f.get());
     }
 
     @Test
@@ -369,7 +379,11 @@ public class MailHandlerTest extends AbstractLogging {
         testWebappClassLoaderFieldNames(MailHandler.class);
     }
 
-    private void testVerify(ClassLoaderSecurityManager sm, ClassLoader expect) throws Exception {
+    private void testVerify(boolean secure, ClassLoader expect) throws Exception {
+        Thread clt = Thread.currentThread();
+        assertEquals(ClassLoaderThread.class, clt.getClass());
+        assert clt instanceof ClassLoaderThread : clt;
+
         final LogManager manager = LogManager.getLogManager();
         InternalErrorManager em = null;
         set(expect);
@@ -384,11 +398,8 @@ public class MailHandlerTest extends AbstractLogging {
 
             read(manager, props);
 
-            if (sm != null) {
-                System.setSecurityManager(sm);
-                sm.secure = true;
-            }
 
+            ((ClassLoaderThread) clt).secure = secure;
             MailHandler instance = new MailHandler();
             try {
                 em = internalErrorManagerFrom(instance);
@@ -396,10 +407,7 @@ public class MailHandlerTest extends AbstractLogging {
                 instance.close();
             }
         } finally {
-            if (sm != null) {
-                sm.secure = false;
-                System.setSecurityManager((SecurityManager) null);
-            }
+            ((ClassLoaderThread) clt).secure = false;
             set((ClassLoader) null);
             manager.reset();
         }
@@ -416,33 +424,40 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testSetMailPropertiesClassLoader() throws Exception {
-        assertNull(System.getSecurityManager());
-        final Thread thread = Thread.currentThread();
-        final ClassLoader ccl = thread.getContextClassLoader();
-        try {
-            URLClassLoader child = new URLClassLoader(new URL[0], ccl);
+        Callable<Void> c = () -> {
+            final Thread thread = Thread.currentThread();
+            final ClassLoader ccl = thread.getContextClassLoader();
+            try {
+                URLClassLoader child = new URLClassLoader(new URL[0], ccl);
 
-            thread.setContextClassLoader(child);
-            testSetMailProperties((ClassLoaderSecurityManager) null, child);
+                thread.setContextClassLoader(child);
+                testSetMailProperties(false, child);
 
-            thread.setContextClassLoader(child);
-            testSetMailProperties(new ClassLoaderSecurityManager(), child);
-        } finally {
-            thread.setContextClassLoader(ccl);
-        }
-        assertNull(System.getSecurityManager());
+                thread.setContextClassLoader(child);
+                testSetMailProperties(true, child);
+            } finally {
+                thread.setContextClassLoader(ccl);
+            }
+            return null;
+        };
+
+        FutureTask<Void> f = new FutureTask<>(c);
+        Thread t = new ClassLoaderThread(f);
+        t.start();
+        assertNull(f.get());
     }
 
-    private void testSetMailProperties(ClassLoaderSecurityManager sm, ClassLoader expect) throws Exception {
+    private void testSetMailProperties(boolean secure, ClassLoader expect) throws Exception {
+        Thread clt = Thread.currentThread();
+        assertEquals(ClassLoaderThread.class, clt.getClass());
+        assert clt instanceof ClassLoaderThread : clt;
+
         InternalErrorManager em = new ClassLoaderErrorManager(expect);
         try {
             Properties props = createInitProperties("");
             props.put("verify", "local");
 
-            if (sm != null) {
-                System.setSecurityManager(sm);
-                sm.secure = true;
-            }
+            ((ClassLoaderThread) clt).secure = secure;
 
             MailHandler instance = new MailHandler();
             try {
@@ -458,10 +473,7 @@ public class MailHandlerTest extends AbstractLogging {
                 instance.close();
             }
         } finally {
-            if (sm != null) {
-                sm.secure = false;
-                System.setSecurityManager((SecurityManager) null);
-            }
+            ((ClassLoaderThread) clt).secure = false;
         }
 
         assert em != null;
@@ -2327,7 +2339,6 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testCloseContextClassLoader() {
-        assertNull(System.getSecurityManager());
         final Thread thread = Thread.currentThread();
         final ClassLoader ccl = thread.getContextClassLoader();
         try {
@@ -2335,7 +2346,6 @@ public class MailHandlerTest extends AbstractLogging {
         } finally {
             thread.setContextClassLoader(ccl);
         }
-        assertNull(System.getSecurityManager());
     }
 
     private void testCloseContextClassLoader0() {
@@ -3043,12 +3053,6 @@ public class MailHandlerTest extends AbstractLogging {
 
         type = getInlineContentType(new XMLFormatter());
         assertEquals(expected, type);
-    }
-
-    private ErrorManager getSuperErrorManager(MailHandler h) throws Exception {
-        Method hem = MailHandler.class.getDeclaredMethod("defaultErrorManager");
-        hem.setAccessible(true);
-        return (ErrorManager) hem.invoke(h);
     }
 
     private String getInlineContentType(Formatter f) throws Exception {
@@ -5202,85 +5206,6 @@ public class MailHandlerTest extends AbstractLogging {
     }
 
     @Test
-    public void testReportErrorSuper() throws Exception {
-        assertNull(System.getSecurityManager());
-        Field mhem = MailHandler.class.getDeclaredField("errorManager");
-        mhem.setAccessible(true);
-
-        InternalErrorManager superEm = new InternalErrorManager();
-        InternalErrorManager em = new InternalErrorManager();
-        MailHandler h = new MailHandler();
-        try {
-            Exception tester = new Exception();
-            synchronized (h) {
-                assertSame(h.getErrorManager(), getSuperErrorManager(h));
-
-                h.setErrorManager(superEm);
-                assertSame(superEm, getSuperErrorManager(h));
-                assertSame(superEm, mhem.get(h));
-
-                mhem.set(h, em);
-                assertSame(em, h.getErrorManager());
-                assertSame(superEm, getSuperErrorManager(h));
-                assertNotSame(h.getErrorManager(), getSuperErrorManager(h));
-                h.reportError("", tester, ErrorManager.GENERIC_FAILURE);
-            }
-
-            assertEquals(1, em.exceptions.size());
-            assertSame(tester, em.exceptions.get(0));
-            assertTrue(superEm.exceptions.toString(),
-                    superEm.exceptions.isEmpty());
-        } finally {
-            h.close();
-        }
-    }
-
-    @Test
-    public void testGaeReportErrorSuper() throws Exception {
-        Field mhem = MailHandler.class.getDeclaredField("errorManager");
-        mhem.setAccessible(true);
-
-        InternalErrorManager em = new InternalErrorManager();
-        GaeSecurityManager sm = new GaeSecurityManager();
-        System.setSecurityManager(sm);
-        sm.secure = true;
-        try {
-            MailHandler h = new MailHandler();
-            try {
-                Exception tester = new Exception();
-                synchronized (h) {
-                    sm.secure = false;
-                    final Object def = getSuperErrorManager(h);
-                    assertSame(def, getSuperErrorManager(h));
-                    sm.secure = true;
-
-                    assertEquals(h.getErrorManager().getClass(), def.getClass());
-                    assertNotSame(h.getErrorManager(), def);
-
-                    h.setErrorManager(em);
-                    sm.secure = false;
-                    final Object sem = getSuperErrorManager(h);
-                    sm.secure = true;
-                    assertSame(def, sem);
-                    assertNotSame(h.getErrorManager(), def);
-                    assertNotSame(h.getErrorManager(), sem);
-                    assertSame(h.getErrorManager(), em);
-
-                    h.reportError("", tester, ErrorManager.GENERIC_FAILURE);
-                }
-
-                assertEquals(1, em.exceptions.size());
-                assertSame(tester, em.exceptions.get(0));
-            } finally {
-                h.close();
-            }
-        } finally {
-            sm.secure = false;
-            System.setSecurityManager((SecurityManager) null);
-        }
-    }
-
-    @Test
     public void testReportErrorLinkageWithStack() throws Exception {
         testReportErrorLinkageWithStack(new LinkageErrorStream());
     }
@@ -5373,470 +5298,6 @@ public class MailHandlerTest extends AbstractLogging {
         } catch (PrintThrowsRuntimeException unexpected) {
             unexpected.dump();
             fail(unexpected.getMessage());
-        }
-    }
-
-    /**
-     * Test logging permissions of the MailHandler. Must run by itself or run in
-     * isolated VM. Use system property java.security.debug=all to troubleshoot
-     * failures.
-     */
-    @Test
-    public void testSecurityManager() {
-        InternalErrorManager em;
-        MailHandler h = null;
-        final ThrowSecurityManager manager = new ThrowSecurityManager();
-        System.setSecurityManager(manager);
-        try {
-            manager.secure = false;
-            h = new MailHandler(createInitProperties(""));
-            em = new InternalErrorManager();
-            h.setErrorManager(em);
-            manager.secure = true;
-            assertEquals(manager, System.getSecurityManager());
-
-            try {
-                assertEquals(0, h.getAttachmentFormatters().length);
-                h.setAttachmentNames("error.txt");
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                assertEquals(0, h.getAttachmentFormatters().length);
-                h.setAttachmentNames(new ThrowFormatter());
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                assertEquals(0, h.getAttachmentFormatters().length);
-                h.setAttachmentFilters(new ThrowFilter());
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setAttachmentFormatters(new ThrowFormatter());
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            manager.secure = false;
-            try {
-                h.setAttachmentFormatters(new ThrowFormatter());
-            } catch (SecurityException fail) {
-                fail("Unexpected secure check.");
-            } catch (Exception fail) {
-                fail(fail.toString());
-            } finally {
-                manager.secure = true;
-            }
-
-            try {
-                assertEquals(1, h.getAttachmentFormatters().length);
-                h.setAttachmentFilters(new ThrowFilter());
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                assertEquals(1, h.getAttachmentFormatters().length);
-                h.setAttachmentFilters((Filter[]) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                assertEquals(1, h.getAttachmentFormatters().length);
-                h.setAttachmentNames("error.txt");
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                assertEquals(1, h.getAttachmentFormatters().length);
-                h.setAttachmentNames((String[]) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                assertEquals(1, h.getAttachmentFormatters().length);
-                h.setAttachmentNames((Formatter[]) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                assertEquals(1, h.getAttachmentFormatters().length);
-                h.setAttachmentNames(new ThrowFormatter());
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            manager.secure = false;
-            try {
-                assertEquals(1, h.getAttachmentFormatters().length);
-                h.setAttachmentFormatters();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            } finally {
-                manager.secure = true;
-            }
-
-            try {
-                assertEquals(0, h.getAttachmentFormatters().length);
-                assertEquals(0, h.getAttachmentFilters().length);
-                assertEquals(0, h.getAttachmentNames().length);
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setAuthenticator((Authenticator) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setComparator((Comparator<? super LogRecord>) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.getComparator();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setLevel(Level.ALL);
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setLevel((Level) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.getLevel();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setFilter(BooleanFilter.FALSE);
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setFilter((Filter) null);
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.getFilter();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setFormatter(new EmptyFormatter());
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setFormatter((Formatter) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.getFormatter();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                assertNotNull(h.getErrorManager());
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setErrorManager(new ErrorManager());
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setErrorManager((ErrorManager) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setEncoding((String) null);
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.getEncoding();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.flush();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.push();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setMailProperties(new Properties());
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setMailProperties((Properties) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setPushFilter((Filter) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.getPushFilter();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setPushLevel(Level.OFF);
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setPushLevel((Level) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.getPushLevel();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setSubject((Formatter) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setSubject((String) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setSubject(new ThrowFormatter());
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.setSubject("test");
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.getSubject();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                assertTrue(h.getCapacity() > 0);
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.getAuthenticator();
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.getMailProperties();
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.close();
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                h.publish(new LogRecord(Level.SEVERE, ""));
-                h.flush();
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            //check for internal exceptions caused by security manager.
-            next:
-            for (Exception e : em.exceptions) {
-                for (Throwable t = e; t != null; t = t.getCause()) {
-                    if (t instanceof SecurityException) {
-                        continue next; //expected
-                    } else if (t instanceof RuntimeException) {
-                        throw (RuntimeException) t; //fail
-                    }
-                }
-            }
-            em.exceptions.clear();
-
-            try {
-                hardRef = new MailHandler();
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                hardRef = new MailHandler(100);
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                hardRef = new MailHandler(new Properties());
-                fail("Missing secure check.");
-            } catch (SecurityException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                hardRef = new MailHandler(-100);
-                fail("Missing secure check.");
-            } catch (SecurityException | IllegalArgumentException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-
-            try {
-                hardRef = new MailHandler((Properties) null);
-                fail("Missing secure check.");
-            } catch (SecurityException | NullPointerException pass) {
-            } catch (Exception fail) {
-                fail(fail.toString());
-            }
-        } finally {
-            hardRef = null;
-            manager.secure = false;
-            System.setSecurityManager((SecurityManager) null);
-            if (h != null) {
-                h.close();
-            }
         }
     }
 
@@ -5934,7 +5395,6 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testIntern() throws Exception {
-        assertNull(System.getSecurityManager());
         final String p = MailHandler.class.getName();
         Properties props = createInitProperties(p);
         props.put(p.concat(".errorManager"),
@@ -6033,7 +5493,6 @@ public class MailHandlerTest extends AbstractLogging {
 
     @Test
     public void testInternNonDiscriminating() throws Exception {
-        assertNull(System.getSecurityManager());
         final String p = MailHandler.class.getName();
         Properties props = createInitProperties(p);
         props.put(p.concat(".attachment.formatters"),
@@ -8143,46 +7602,6 @@ public class MailHandlerTest extends AbstractLogging {
         }
     }
 
-    public static final class ThrowSecurityManager extends SecurityManager {
-
-        boolean secure = false;
-        private final boolean debug;
-
-        public ThrowSecurityManager() {
-            debug = isSecurityDebug();
-        }
-
-        @Override
-        public void checkPermission(java.security.Permission perm) {
-            try { //Call super class always for java.security.debug tracing.
-                super.checkPermission(perm);
-                checkPermission(perm, new SecurityException(perm.toString()));
-            } catch (SecurityException se) {
-                checkPermission(perm, se);
-            }
-        }
-
-        @Override
-        public void checkPermission(java.security.Permission perm, Object context) {
-            try { //Call super class always for java.security.debug tracing.
-                super.checkPermission(perm, context);
-                checkPermission(perm, new SecurityException(perm.toString()));
-            } catch (SecurityException se) {
-                checkPermission(perm, se);
-            }
-        }
-
-        private void checkPermission(java.security.Permission perm, SecurityException se) {
-            if (secure && perm instanceof LoggingPermission) {
-                throw se;
-            } else {
-                if (debug) {
-                    securityDebugPrint(se);
-                }
-            }
-        }
-    }
-
     public static final class GaeErrorManager extends MessageErrorManager {
 
         public GaeErrorManager(MailHandler h) {
@@ -8199,53 +7618,6 @@ public class MailHandlerTest extends AbstractLogging {
             } catch (Exception ME) {
                 dump(ME);
                 fail(ME.toString());
-            }
-        }
-    }
-
-    public static final class GaeSecurityManager extends SecurityManager {
-
-        boolean secure = false;
-        private final boolean debug;
-
-        public GaeSecurityManager() {
-            debug = isSecurityDebug();
-        }
-
-        @Override
-        public void checkPermission(java.security.Permission perm) {
-            try { //Call super class always for java.security.debug tracing.
-                super.checkPermission(perm);
-                checkPermission(perm, new SecurityException(perm.toString()));
-            } catch (SecurityException se) {
-                checkPermission(perm, se);
-            }
-        }
-
-        @Override
-        public void checkPermission(java.security.Permission perm, Object context) {
-            try { //Call super class always for java.security.debug tracing.
-                super.checkPermission(perm, context);
-                checkPermission(perm, new SecurityException(perm.toString()));
-            } catch (SecurityException se) {
-                checkPermission(perm, se);
-            }
-        }
-
-        private void checkPermission(java.security.Permission perm, SecurityException se) {
-            if (secure && perm instanceof LoggingPermission) {
-                final StackTraceElement[] stack = se.getStackTrace();
-                if (stack.length == 0) {
-                    Assume.assumeNoException(se);
-                }
-                for (StackTraceElement e : stack) {
-                    if (Handler.class.getName().equals(e.getClassName())) {
-                        throw se;
-                    }
-                }
-            }
-            if (debug) {
-                securityDebugPrint(se);
             }
         }
     }
@@ -8963,53 +8335,34 @@ public class MailHandlerTest extends AbstractLogging {
         }
     }
 
-    private final static class ClassLoaderSecurityManager extends SecurityManager {
-
-        volatile boolean secure = false;
+    private final static class ClassLoaderThread extends Thread {
+        volatile boolean secure;
         private final boolean debug;
 
-        public ClassLoaderSecurityManager() {
+        public ClassLoaderThread(Runnable r) {
+            super(r);
             debug = isSecurityDebug();
         }
 
         @Override
-        public void checkPermission(java.security.Permission perm) {
-            try { //Call super class always for java.security.debug tracing.
-                super.checkPermission(perm);
-                checkPermission(perm, new SecurityException(perm.toString()));
-            } catch (SecurityException se) {
-                checkPermission(perm, se);
+        public void setContextClassLoader(ClassLoader cl) {
+            if (secure) {
+                throw new SecurityException();
             }
+
+            if (debug) {
+                securityDebugPrint(new SecurityException());
+            }
+            super.setContextClassLoader(cl);
         }
 
         @Override
-        public void checkPermission(java.security.Permission perm, Object context) {
-            try { //Call super class always for java.security.debug tracing.
-                super.checkPermission(perm, context);
-                checkPermission(perm, new SecurityException(perm.toString()));
-            } catch (SecurityException se) {
-                checkPermission(perm, se);
+        public ClassLoader getContextClassLoader() {
+            //It is too strict to enforce security here
+            if (debug) {
+                securityDebugPrint(new SecurityException());
             }
-        }
-
-        @Override
-        public void checkRead(String file, Object context) {
-        }
-
-        @Override
-        public void checkRead(String file) {
-        }
-
-        private void checkPermission(java.security.Permission perm, SecurityException se) {
-            //Check for set and get context class loader.
-            String name = perm.getName();
-            if (secure && name.contains("ContextClassLoader")) {
-                throw se;
-            } else {
-                if (debug) {
-                    securityDebugPrint(se);
-                }
-            }
+            return super.getContextClassLoader();
         }
     }
 
