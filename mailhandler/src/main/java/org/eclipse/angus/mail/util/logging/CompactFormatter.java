@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2013, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2013, 2023 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2013, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -16,10 +16,13 @@
  */
 package org.eclipse.angus.mail.util.logging;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Date;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.LogRecord;
+import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogManager;
 
 /**
  * A plain text formatter that can produce fixed width output. By default this
@@ -67,14 +70,14 @@ public class CompactFormatter extends java.util.logging.Formatter {
     /**
      * Holds the java.util.Formatter pattern.
      */
-    private final String fmt;
+    private volatile String fmt;
 
     /**
      * Creates an instance with a default format pattern.
      */
     public CompactFormatter() {
         String p = getClass().getName();
-        this.fmt = initFormat(p);
+        setFormat0(fromLogManager(p.concat(".format")));
     }
 
     /**
@@ -85,8 +88,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
      *               {@linkplain #format(java.util.logging.LogRecord) format} method.
      */
     public CompactFormatter(final String format) {
-        String p = getClass().getName();
-        this.fmt = format == null ? initFormat(p) : format;
+        setFormat0(format);
     }
 
     /**
@@ -216,9 +218,7 @@ public class CompactFormatter extends java.util.logging.Formatter {
     @Override
     public String format(final LogRecord record) {
         //LogRecord is mutable so define local vars.
-        ResourceBundle rb = record.getResourceBundle();
-        Locale l = rb == null ? null : rb.getLocale();
-
+        Locale l = getLocale(record);
         String msg = formatMessage(record);
         String thrown = formatThrown(record);
         String err = formatError(record);
@@ -256,9 +256,29 @@ public class CompactFormatter extends java.util.logging.Formatter {
      */
     @Override
     public String formatMessage(final LogRecord record) {
-        String msg = super.formatMessage(record);
+        String msg;
+        try {
+            msg = super.formatMessage(record);
+        } catch (RuntimeException ignore) {
+            msg = record.getMessage();
+        }
+
+        //Render any String.format patterns in the message.
+        final Object[] params = record.getParameters();
+        if (msg != null && ((params != null && params.length != 0)
+                || msg.contains("%n"))) {
+            Locale l = getLocale(record);
+            try {
+                if (l == null) { //BUG ID 6282094
+                    msg = String.format(msg, params);
+                } else {
+                    msg = String.format(l, msg, params);
+                }
+            } catch (RuntimeException ignore) {
+            }
+            msg = replaceClassName(msg, params);
+        }
         msg = replaceClassName(msg, record.getThrown());
-        msg = replaceClassName(msg, record.getParameters());
         return msg;
     }
 
@@ -347,21 +367,22 @@ public class CompactFormatter extends java.util.logging.Formatter {
     }
 
     /**
-     * Formats the thread id property of the given log record. By default this
-     * is formatted as a {@code long} by an unsigned conversion.
+     * Formats the thread id property of the given log record.  Long thread ids
+     * are preferred if supported.  Otherwise, the integer thread id is
+     * formatted as a {@code long} by an unsigned conversion.
      *
      * @param record the record.
      * @return the formatted thread id as a number.
      * @throws NullPointerException if the given record is null.
      * @since JavaMail 1.5.4
      */
+    @SuppressWarnings("deprecation") //See JDK-8245302
     public Number formatThreadID(final LogRecord record) {
-        /**
-         * Thread.getID is defined as long and LogRecord.getThreadID is defined
-         * as int. Convert to unsigned as a means to better map the two types of
-         * thread identifiers.
-         */
-        return (((long) record.getThreadID()) & 0xffffffffL);
+        Long id = LogManagerProperties.getLongThreadID(record);
+        if (id == null) {
+            id = Integer.toUnsignedLong(record.getThreadID());
+        }
+        return id;
     }
 
     /**
@@ -616,18 +637,42 @@ public class CompactFormatter extends java.util.logging.Formatter {
     }
 
     /**
-     * Creates the format pattern for this formatter.
+     * Gets the format pattern for this formatter.
      *
-     * @param p the class name prefix.
-     * @return the java.util.Formatter format string.
-     * @throws NullPointerException if the given class name is null.
+     * @return the format pattern.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
      */
-    private String initFormat(final String p) {
-        String v = LogManagerProperties.fromLogManager(p.concat(".format"));
-        if (isNullOrSpaces(v)) {
-            v = "%7$#.160s%n"; //160 chars split between message and thrown.
+    public String getFormat() {
+        LogManagerProperties.checkLogManagerAccess();
+        return fmt;
+    }
+
+    /**
+     * Sets the format pattern for this formatter.
+     *
+     * @param format the format pattern. If null, the default pattern is used.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @since Angus Mail 2.0.3
+     */
+    public void setFormat(String format) {
+        LogManagerProperties.checkLogManagerAccess();
+        setFormat0(format);
+    }
+
+    /**
+     * Sets the format pattern but doesn't check for permissions.
+     *
+     * @param format the format pattern. If null, the default pattern is used.
+     * @since Angus Mail 2.0.3
+     */
+    private void setFormat0(String format) {
+        if (isNullOrSpaces(format)) {
+            format = "%7$#.160s%n"; //160 chars split between message and thrown.
         }
-        return v;
+        this.fmt = format;
     }
 
     /**
@@ -762,6 +807,17 @@ public class CompactFormatter extends java.util.logging.Formatter {
     }
 
     /**
+     * Gets the locale of the LogRecord.
+     * @param record a non null record.
+     * @return the locale or null.
+     * @since Angus Mail 2.0.3
+     */
+    private Locale getLocale(final LogRecord record) {
+        ResourceBundle rb = record.getResourceBundle();
+        return rb == null ? null : rb.getLocale();
+    }
+
+    /**
      * Used to format two arguments as fixed length message.
      */
     private class Alternate implements java.util.Formattable {
@@ -835,11 +891,15 @@ public class CompactFormatter extends java.util.logging.Formatter {
                 }
             }
 
-            formatter.format(l);
-            if (!l.isEmpty() && !r.isEmpty()) {
-                formatter.format("|");
+            try {
+                formatter.out().append(l);
+                if (!l.isEmpty() && !r.isEmpty()) {
+                    formatter.out().append("|");
+                }
+                formatter.out().append(r);
+            } catch (IOException ioe) {
+                throw new UncheckedIOException(ioe);
             }
-            formatter.format(r);
         }
 
         /**

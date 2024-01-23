@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2015, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2015, 2023 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2015, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -36,6 +36,7 @@ import java.util.logging.Logger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -627,6 +628,64 @@ public class DurationFilterTest extends AbstractLogging {
     }
 
     @Test
+    public void testRecords() {
+        DurationFilter one = new DurationFilter();
+        DurationFilter two = new DurationFilter();
+        final long records = 1000L;
+        assertEquals(records, one.getRecords());
+        assertEquals(records, two.getRecords());
+        assertEquals(one, two);
+
+        one.setRecords(1L);
+        assertEquals(1L, one.getRecords());
+        assertNotEquals(one, two);
+
+        two.setRecords(one.getRecords());
+        assertEquals(one, two);
+
+        one.setRecords(-1L);
+        assertEquals(records, one.getRecords());
+        one.setRecords(0L);
+        assertEquals(records, one.getRecords());
+    }
+
+    @Test
+    public void testCountExceedsRecords() {
+        DurationFilter one = new DurationFilter(10L, 15L * 60L * 1000L);
+        LogRecord r = new LogRecord(Level.INFO, "");
+        final long now = r.getMillis();
+        for (long i = 1L; i <= one.getRecords() / 2L; ++i) {
+            assertTrue(one.isLoggable(r));
+            setEpochMilli(r, now + i);
+        }
+        one.setRecords(1L);
+        assertFalse(one.isLoggable(r));
+    }
+
+    @Test
+    public void testDurationMillis() {
+        DurationFilter one = new DurationFilter();
+        DurationFilter two = new DurationFilter();
+        final long duration = 15L * 60L * 1000L;
+        assertEquals(duration, one.getDurationMillis());
+        assertEquals(duration, two.getDurationMillis());
+        assertEquals(one, two);
+
+        one.setDurationMillis(1L);
+        assertEquals(1L, one.getDurationMillis());
+        assertNotEquals(one, two);
+
+        two.setDurationMillis(one.getDurationMillis());
+        assertEquals(one, two);
+
+        one.setDurationMillis(-1L);
+        assertEquals(duration, one.getDurationMillis());
+
+        one.setDurationMillis(0L);
+        assertEquals(duration, one.getDurationMillis());
+    }
+
+    @Test
     public void testLinkage() throws Exception {
         testLinkage(DurationFilter.class);
     }
@@ -668,6 +727,11 @@ public class DurationFilterTest extends AbstractLogging {
         testInitDuration("1024", 1024);
     }
 
+     @Test
+    public void testInitDurationLiteralNull() throws Exception {
+        testInitDuration("null", 15L * 60L * 1000L);
+    }
+
     @Test
     public void testInitDurationZero() throws Exception {
         testInitDuration("0", 15L * 60L * 1000L);
@@ -694,6 +758,8 @@ public class DurationFilterTest extends AbstractLogging {
         testInitDuration("15 *", 15L * 60L * 1000L);
         testInitDuration(" * 15", 15L * 60L * 1000L);
         testInitDuration("15 * ", 15L * 60L * 1000L);
+        testInitDuration("*", 15L * 60L * 1000L);
+        testInitDuration(" * ", 15L * 60L * 1000L);
     }
 
     @Test
@@ -794,6 +860,21 @@ public class DurationFilterTest extends AbstractLogging {
             testInitDuration("P2DT3H4M20.345S", (2L * 24L * 60L * 60L * 1000L)
                     + (3L * 60L * 60L * 1000L) + (4L * 60L * 1000L)
                     + ((20L * 1000L) + 345));
+        }
+    }
+
+     @Test
+    public void testInitDurationIso8601OverFlow() throws Exception {
+        if (hasJavaTimeModule()) {
+            testInitDuration("PT2562047788015H12M55.808S", 15L * 60L * 1000L);
+        }
+    }
+
+    @Test
+    public void testInitDurationIso8601UnderFlow() throws Exception {
+        if (hasJavaTimeModule()) {
+            testInitDuration("PT-2562047788015H-12M-55.809S",
+                    15L * 60L * 1000L);
         }
     }
 

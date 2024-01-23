@@ -180,4 +180,9 @@ public class MimeUtilityTest {
         assertEquals("ms936", goodDecoded, MimeUtility.decodeWord(badms936));
         assertEquals("cp936", goodDecoded, MimeUtility.decodeWord(badcp936));
     }
+    
+    @Test
+    public void testLocaleISO885915() throws Exception {
+        assertEquals("ISO-8859-15", MimeUtility.javaCharset("en_US.iso885915"));
+    }
 }

@@ -631,6 +631,35 @@ public class CollectorFormatterTest extends AbstractLogging {
     }
 
     @Test
+    public void testGetSetFormat() {
+        CollectorFormatter cf = new CollectorFormatter();
+        final String init = cf.getFormat();
+        String pattern = "foo";
+        assertNotEquals(pattern, cf.getFormat());
+        cf.setFormat(pattern);
+        assertEquals(pattern, cf.getFormat());
+        LogRecord r = new LogRecord(Level.SEVERE, "bar");
+        cf.format(r);
+        assertEquals(pattern, cf.toString());
+
+        cf.setFormat((String) null);
+        assertEquals(init, cf.getFormat());
+    }
+
+    @Test
+    public void testGetSetFormatter() {
+        CollectorFormatter cf = new CollectorFormatter();
+        final Formatter init = cf.getFormatter();
+        Formatter target = new XMLFormatter();
+        assertNotEquals(target, cf.getFormatter());
+        cf.setFormatter(target);
+        assertEquals(target, cf.getFormatter());
+
+        cf.setFormatter((Formatter) null);
+        assertEquals(init.getClass(), cf.getFormatter().getClass());
+    }
+
+    @Test
     public void testGetTail() {
         CollectorFormatter f = new CollectorFormatter(
                 "{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}{10}{11}{12}{13}",
@@ -987,6 +1016,17 @@ public class CollectorFormatterTest extends AbstractLogging {
     @Test
     public void testComparatorEmpty() throws Exception {
         testComparatorNullOrEmpty("");
+    }
+
+    @Test
+    public void testComparatorGetSet() {
+        CollectorFormatter cf = new CollectorFormatter();
+        assertEquals(SeverityComparator.getInstance(), cf.getComparator());
+        cf.setComparator((Comparator<LogRecord>) null);
+        assertNull(cf.getComparator());
+
+        cf.setComparator(SeverityComparator.getInstance());
+        assertEquals(SeverityComparator.getInstance(), cf.getComparator());
     }
 
     @Test(expected = ClassCastException.class)

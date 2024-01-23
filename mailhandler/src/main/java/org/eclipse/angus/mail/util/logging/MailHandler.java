@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2023 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -49,19 +49,23 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.URLConnection;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.ErrorManager;
@@ -94,7 +98,7 @@ import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogMa
  * </pre>
  *
  * <p>
- * <b>Configuration:</b>
+ * <b><a id="configuration">Configuration:</a></b>
  * The LogManager should define at least one or more recipient addresses and a
  * mail host for outgoing email.  The code to setup this handler via the
  * logging properties can be as simple as the following:
@@ -118,16 +122,16 @@ import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogMa
  *      com.foo.MyHandler.verify = local
  * </pre>
  *
- * All mail properties documented in the <code>Java Mail API</code> cascade to
- * the LogManager by prefixing a key using the fully qualified class name of
- * this <code>MailHandler</code> or the fully qualified derived class name dot
- * mail property.  If the prefixed property is not found, then the mail property
- * itself is searched in the LogManager. By default each
- * <code>MailHandler</code> is initialized using the following LogManager
- * configuration properties where <code>&lt;handler-name&gt;</code> refers to
- * the fully qualified class name of the handler.  If properties are not
- * defined, or contain invalid values, then the specified default values are
- * used.
+ * All mail <a id="top-level-properties">properties</a> documented in the
+ * <code>Jakarta Mail API</code> cascade to the LogManager by prefixing a key
+ * using the fully qualified class name of this <code>MailHandler</code> or the
+ * fully qualified derived class name dot mail property.  If the prefixed
+ * property is not found, then the mail property itself is searched in the
+ * LogManager. By default each <code>MailHandler</code> is initialized using the
+ * following LogManager configuration properties where
+ * <code>&lt;handler-name&gt;</code> refers to the fully qualified class name of
+ * the handler.  If properties are not defined, or contain invalid values, then
+ * the specified default values are used.
  *
  * <ul>
  * <li>&lt;handler-name&gt;.attachment.filters a comma
@@ -165,6 +169,11 @@ import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogMa
  * <code>true</code> to reverse the order of the specified comparator or
  * <code>false</code> to retain the original order.
  * (defaults to <code>false</code>)
+ *
+ * <li>&lt;handler-name&gt;.enabled a boolean
+ * <code>true</code> to allow this handler to accept records or
+ * <code>false</code> to turn off this handler.
+ * (defaults to <code>true</code>)
  *
  * <li>&lt;handler-name&gt;.encoding the name of the Java
  * {@linkplain java.nio.charset.Charset#name() character set} to use for the
@@ -230,6 +239,15 @@ import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogMa
  * this is set to the email address identifying the application itself.  The
  * empty string can be used to specify no sender address.
  * (defaults to <code>null</code>, none)
+ *
+ * <li>&lt;handler-name&gt;.mailEntries specifies the mail session properties
+ * for this <code>Handler</code>.  The format for the value is described in
+ * {@linkplain #setMailEntries(java.lang.String) setMailEntries} method.
+ * This property eagerly loads the assigned mail properties where as the
+ * <a href="#top-level-properties">top level mail properties</a> are lazily
+ * loaded.  Prefer using this property when <a href="#verify">verification</a>
+ * is off or when verification does not force the provider to load required
+ * mail properties.  (defaults to <code>null</code>).
  *
  * <li>&lt;handler-name&gt;.subject the name of a
  * <code>Formatter</code> class or string literal used to create the subject
@@ -478,6 +496,11 @@ public class MailHandler extends Handler {
      */
     private int capacity;
     /**
+     * The level recorded at the time the handler was disabled.
+     * Null means enabled and non-null is disabled.
+     */
+    private Level disabledLevel;
+    /**
      * Used to order all log records prior to formatting.  The main email body
      * and all attachments use the order determined by this comparator.  If no
      * comparator is present the log records will be in no specified order.
@@ -563,8 +586,6 @@ public class MailHandler extends Handler {
      */
     public MailHandler() {
         init((Properties) null);
-        sealed = true;
-        checkAccess();
     }
 
     /**
@@ -573,13 +594,11 @@ public class MailHandler extends Handler {
      * <code>LogManager</code> capacity with the given capacity.
      *
      * @param capacity of the internal buffer.
-     * @throws IllegalArgumentException if <code>capacity</code> less than one.
      * @throws SecurityException        if a security manager exists and the
      *                                  caller does not have <code>LoggingPermission("control")</code>.
      */
     public MailHandler(final int capacity) {
         init((Properties) null);
-        sealed = true;
         setCapacity0(capacity);
     }
 
@@ -589,18 +608,13 @@ public class MailHandler extends Handler {
      * documentation.  This <code>Handler</code> will also search the
      * <code>LogManager</code> for defaults if needed.
      *
-     * @param props a non <code>null</code> properties object.
-     * @throws NullPointerException if <code>props</code> is <code>null</code>.
+     * @param props a properties object or null. A null value will supply the
+     * <code>mailEntries</code> from the <code>LogManager</code>.
      * @throws SecurityException    if a security manager exists and the
      *                              caller does not have <code>LoggingPermission("control")</code>.
      */
-    public MailHandler(final Properties props) {
-        if (props == null) {
-            throw new NullPointerException();
-        }
-        init(props);
-        sealed = true;
-        setMailProperties0(props);
+    public MailHandler(Properties props) {
+        init(props); //Must pass null or original object
     }
 
     /**
@@ -888,7 +902,8 @@ public class MailHandler extends Handler {
      * <p>
      * If this <code>Handler</code> is only implicitly closed by the
      * <code>LogManager</code>, then <a href="#verify">verification</a> should
-     * be turned on.
+     * be turned on and or <code>mailEntries</code> should be declared to define
+     * the mail properties.
      *
      * @throws SecurityException if a security manager exists and the
      *                           caller does not have <code>LoggingPermission("control")</code>.
@@ -904,6 +919,7 @@ public class MailHandler extends Handler {
                     msg = writeLogRecords(ErrorManager.CLOSE_FAILURE);
                 } finally {  //Change level after formatting.
                     this.logLevel = Level.OFF;
+                    this.disabledLevel = null; //free reference
                     /**
                      * The sign bit of the capacity is set to ensure that
                      * records that have passed isLoggable, but have yet to be
@@ -931,6 +947,62 @@ public class MailHandler extends Handler {
     }
 
     /**
+     * Gets the enabled status of this handler.
+     *
+     * @return true if this handler is accepting log records.
+     * @see #setEnabled(boolean)
+     * @see #setLevel(java.util.logging.Level)
+     * @since Angus Mail 2.0.3
+     */
+    public boolean isEnabled() {
+        return this.logLevel.intValue() != offValue; //Volatile read
+    }
+
+    /**
+     * Used to enable or disable this handler.
+     *
+     * Pushes any buffered records to the email server as normal priority.
+     * The internal buffer is then cleared.
+     *
+     * @param enabled true to enable and false to disable.
+     * @throws SecurityException if a security manager exists and if the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @see #flush()
+     * @see #isEnabled()
+     * @since Angus Mail 2.0.3
+     */
+    public void setEnabled(final boolean enabled) {
+        checkAccess();
+        setEnabled0(enabled);
+    }
+
+    /**
+     * Used to enable or disable this handler.
+     *
+     * Pushes any buffered records to the email server as normal priority.
+     * The internal buffer is then cleared.
+     *
+     * @param enabled true to enable and false to disable.
+     * @since Angus Mail 2.0.3
+     */
+    private synchronized void setEnabled0(final boolean enabled) {
+        if (this.capacity > 0) { //handler is open
+            this.push(false, ErrorManager.FLUSH_FAILURE);
+            if (enabled) {
+                if (disabledLevel != null) { //was disabled
+                    this.logLevel = this.disabledLevel;
+                    this.disabledLevel = null;
+                }
+            } else {
+                if (disabledLevel == null) {
+                    this.disabledLevel = this.logLevel;
+                    this.logLevel = Level.OFF;
+                }
+            }
+        }
+    }
+
+    /**
      * Set the log level specifying which message levels will be
      * logged by this <code>Handler</code>.  Message levels lower than this
      * value will be discarded.
@@ -944,16 +1016,19 @@ public class MailHandler extends Handler {
      */
     @Override
     public void setLevel(final Level newLevel) {
-        if (newLevel == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(newLevel);
         checkAccess();
 
         //Don't allow a closed handler to be opened (half way).
         synchronized (this) { //Wait for writeLogRecords.
             if (this.capacity > 0) {
-                this.logLevel = newLevel;
-            }
+                //if disabled then track the new level to be used when enabled.
+                if (this.disabledLevel != null) {
+                    this.disabledLevel = newLevel;
+                } else {
+                    this.logLevel = newLevel;
+                }
+           }
         }
     }
 
@@ -1009,9 +1084,7 @@ public class MailHandler extends Handler {
      * @since JavaMail 1.5.6
      */
     private void setErrorManager0(final ErrorManager em) {
-        if (em == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(em);
         try {
             synchronized (this) { //Wait for writeLogRecords.
                 this.errorManager = em;
@@ -1131,17 +1204,14 @@ public class MailHandler extends Handler {
     @Override
     public synchronized void setFormatter(Formatter newFormatter) throws SecurityException {
         checkAccess();
-        if (newFormatter == null) {
-            throw new NullPointerException();
-        }
-        this.formatter = newFormatter;
+        this.formatter = Objects.requireNonNull(newFormatter);
     }
 
     /**
      * Gets the push level.  The default is <code>Level.OFF</code> meaning that
      * this <code>Handler</code> will only push when the internal buffer is full.
      *
-     * @return the push level.
+     * @return a non-null push level.
      */
     public final synchronized Level getPushLevel() {
         return this.pushLevel;
@@ -1153,16 +1223,15 @@ public class MailHandler extends Handler {
      * the push level triggers a send, the resulting email is flagged as
      * high importance with urgent priority.
      *
-     * @param level Level object.
-     * @throws NullPointerException  if <code>level</code> is <code>null</code>.
+     * @param level any level object or null meaning off.
      * @throws SecurityException     if a security manager exists and the
      *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
-    public final synchronized void setPushLevel(final Level level) {
+    public final synchronized void setPushLevel(Level level) {
         checkAccess();
         if (level == null) {
-            throw new NullPointerException();
+            level = Level.OFF;
         }
 
         if (isWriting) {
@@ -1240,6 +1309,24 @@ public class MailHandler extends Handler {
     }
 
     /**
+     * Sets the capacity for this handler.
+     *
+     * Pushes any buffered records to the email server as normal priority.
+     * The internal buffer is then cleared.
+     *
+     * @param newCapacity the max number of records.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @throws IllegalArgumentException is the new capacity is less than one.
+     * @throws IllegalStateException if called from inside a push.
+     * @see #flush()
+     * @since Angus Mail 2.0.3
+     */
+    public final synchronized void setCapacity(int newCapacity) {
+        setCapacity0(newCapacity);
+    }
+
+    /**
      * Gets the <code>Authenticator</code> used to login to the email server.
      *
      * @return an <code>Authenticator</code> or <code>null</code> if none is
@@ -1286,6 +1373,25 @@ public class MailHandler extends Handler {
     }
 
     /**
+     * Sets the <code>Authenticator</code> class name or password used to login
+     * to the email server.
+     *
+     * @param auth the class name of the authenticator, literal password, or
+     * empty string can be used to only supply a user name set by
+     * <code>mail.user</code> property. A null value can be used if no
+     * credentials are required.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @throws IllegalStateException if called from inside a push.
+     * @see #getAuthenticator()
+     * @see #setAuthenticator(char...)
+     * @since Angus Mail 2.0.3
+     */
+    public final synchronized void setAuthentication(final String auth) {
+        setAuthenticator0(newAuthenticator(auth));
+    }
+
+    /**
      * A private hook to handle possible future overrides. See public method.
      *
      * @param auth see public method.
@@ -1311,27 +1417,54 @@ public class MailHandler extends Handler {
      * Sets the mail properties used for the session.  The key/value pairs
      * are defined in the <code>Java Mail API</code> documentation.  This
      * <code>Handler</code> will also search the <code>LogManager</code> for
-     * defaults if needed.
+     * defaults if needed.  A key named <code>verify</code> can be declared to
+     * trigger <a href="#verify">verification</a>.
      *
-     * @param props a non <code>null</code> properties object.
+     * @param props properties object or null. A null value will supply the
+     * <code>mailEntries</code> from the <code>LogManager</code>.  An empty
+     * properties will clear all existing mail properties assigned to this
+     * handler.
      * @throws SecurityException     if a security manager exists and the
      *                               caller does not have <code>LoggingPermission("control")</code>.
-     * @throws NullPointerException  if <code>props</code> is <code>null</code>.
      * @throws IllegalStateException if called from inside a push.
      */
     public final void setMailProperties(Properties props) {
-        this.setMailProperties0(props);
+        if (props == null) {
+            final String p = getClass().getName();
+            props = parseProperties(
+                    fromLogManager(p.concat(".mailEntries")));
+            setMailProperties0(props != null ? props : new Properties());
+        } else {
+            setMailProperties0(copyOf(props));
+        }
+    }
+
+    /**
+     * Copies a properties object.  Checks that given properties clone
+     * returns the a Properties object and that it is not null.
+     *
+     * @param props a properties object
+     * @return a copy of the properties object.
+     * @throws ClassCastException if clone doesn't return a Properties object.
+     * @throws NullPointerExeption if props is null or if the copy was null.
+     * @since Angus Mail 2.0.3
+     */
+    private Properties copyOf(Properties props) {
+        Properties copy = (Properties) props.clone(); //Allow subclass
+        return Objects.requireNonNull(copy); //Broken subclass
     }
 
     /**
      * A private hook to handle overrides when the public method is declared
      * non final. See public method for details.
      *
-     * @param props see public method.
+     * @param props a safe properties object.
+     * @return true if verification key was present.
+     * @throws NullPointerException if props is null.
      */
-    private void setMailProperties0(Properties props) {
+    private boolean setMailProperties0(Properties props) {
+        Objects.requireNonNull(props);
         checkAccess();
-        props = (Properties) props.clone(); //Allow subclass.
         Session settings;
         synchronized (this) {
             if (isWriting) {
@@ -1340,7 +1473,7 @@ public class MailHandler extends Handler {
             this.mailProps = props;
             settings = updateSession();
         }
-        verifySettings(settings);
+        return verifySettings(settings);
     }
 
     /**
@@ -1356,7 +1489,100 @@ public class MailHandler extends Handler {
         synchronized (this) {
             props = this.mailProps;
         }
-        return (Properties) props.clone();
+
+        //Null check to force an error sooner rather than later.
+        return Objects.requireNonNull((Properties) props.clone());
+    }
+
+    /**
+     * Parses the given properties lines then clears and sets all of the mail
+     * properties used for the session.  Any parsing errors are reported to the
+     * error manager.  This method provides bean style properties support.
+     * <p>
+     * The given string should be treated as lines of a properties file.  The
+     * character {@code '='} or {@code ':'} are used to separate an entry also
+     * known as a key/value pair.  The line terminator characters {@code \r} or
+     * {@code \n} or {@code \r\n} are used to separate each entry.  The
+     * characters {@code '#!'} together can be used to signal the end of an
+     * entry when escape characters are not supported.
+     * <p>
+     * The example from the <a href="#configuration">configuration</a>
+     * section would be formatted as the following string:
+     * <pre>
+     * mail.smtp.host:my-mail-server#!mail.to:me@example.com#!verify:local
+     * </pre>
+     * <p>
+     * The key/value pairs are defined in the <code>Java Mail API</code>
+     * documentation. This <code>Handler</code> will also search the
+     * <code>LogManager</code> for defaults if needed.  A key named
+     * <code>verify</code> can be declared to trigger
+     * <a href="#verify">verification</a>.
+     *
+     * @param entries one or more key/value pairs. A null value will supply the
+     * <code>mailEntries</code> from the <code>LogManager</code>.  An empty
+     * string or the literal null are all treated as empty properties and will
+     * clear all existing mail properties assigned to this handler.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @throws IllegalStateException if called from inside a push.
+     * @see #getMailProperties()
+     * @see java.io.StringReader
+     * @see java.util.Properties#load(Reader)
+     * @since Angus Mail 2.0.3
+     */
+    public final void setMailEntries(String entries) {
+        if (entries == null) {
+            final String p = getClass().getName();
+            entries = fromLogManager(p.concat(".mailEntries"));
+        }
+        final Properties props = parseProperties(entries);
+        setMailProperties0(props != null ? props : new Properties());
+    }
+
+    /**
+     * Formats the current mail properties as properties lines.  Any formatting
+     * errors are reported to the error manager.  The returned string should be
+     * treated as lines of a properties file.  The value of this string is
+     * reconstructed from the properties object and therefore may be different
+     * from what was originally set. This method provides bean style properties
+     * support.
+     *
+     * @return string representation of the mail properties.
+     * @throws SecurityException if a security manager exists and the caller
+     * does not have <code>LoggingPermission("control")</code>.
+     * @throws IllegalStateException if called from inside a push.
+     * @see #getMailProperties()
+     * @see java.io.StringWriter
+     * @see java.util.Properties#store(java.io.Writer, java.lang.String)
+     * @since Angus Mail 2.0.3
+     */
+    public final String getMailEntries() {
+        checkAccess();
+        final Properties props;
+        synchronized (this) {
+            props = this.mailProps;
+        }
+
+        final StringWriter sw = new StringWriter();
+        try {
+            //Dynamic cast used so byte code verifier doesn't load StringWriter
+            props.store(Writer.class.cast(sw), (String) null);
+        } catch (IOException | RuntimeException ex) {
+            reportError(props.toString(), ex, ErrorManager.GENERIC_FAILURE);
+            //partially constructed values are allowed to be returned
+        }
+
+        //Properties.store will always write a date comment
+        //which is removed by this code.
+        String entries = sw.toString();
+        if (entries.startsWith("#")) {
+            String sep = System.lineSeparator();
+            int end = entries.indexOf(sep);
+            if (end > 0) {
+                entries = entries.substring(end + sep.length(), entries.length());
+            }
+        }
+        return entries;
     }
 
     /**
@@ -1373,41 +1599,40 @@ public class MailHandler extends Handler {
     /**
      * Sets the attachment filters.
      *
-     * @param filters a non <code>null</code> array of filters.  A
-     *                <code>null</code> index value is allowed.  A <code>null</code> value
-     *                means that all records are allowed for the attachment at that index.
+     * @param filters array of filters.  A <code>null</code> array is treated
+     * the same as an empty array and will remove all attachments.  A
+     * <code>null</code> index value means that all records are allowed for the
+     * attachment at that index.
      * @throws SecurityException         if a security manager exists and the
      *                                   caller does not have <code>LoggingPermission("control")</code>.
-     * @throws NullPointerException      if <code>filters</code> is <code>null</code>
-     * @throws IndexOutOfBoundsException if the number of attachment
-     *                                   name formatters do not match the number of attachment formatters.
      * @throws IllegalStateException     if called from inside a push.
      */
     public final void setAttachmentFilters(Filter... filters) {
         checkAccess();
-        if (filters.length == 0) {
+        if (filters == null || filters.length == 0) {
             filters = emptyFilterArray();
         } else {
             filters = Arrays.copyOf(filters, filters.length, Filter[].class);
         }
-        synchronized (this) {
-            if (this.attachmentFormatters.length != filters.length) {
-                throw attachmentMismatch(this.attachmentFormatters.length, filters.length);
-            }
 
+        synchronized (this) {
             if (isWriting) {
                 throw new IllegalStateException();
             }
 
             if (size != 0) {
-                for (int i = 0; i < filters.length; ++i) {
+                final int len = Math.min(filters.length, attachmentFilters.length);
+                int i = 0;
+                for (; i < len; ++i) {
                     if (filters[i] != attachmentFilters[i]) {
-                        clearMatches(i);
                         break;
                     }
                 }
+                clearMatches(i);
             }
             this.attachmentFilters = filters;
+            this.alignAttachmentFormatters(filters.length);
+            this.alignAttachmentNames(filters.length);
         }
     }
 
@@ -1431,23 +1656,23 @@ public class MailHandler extends Handler {
      * email.  This method should be the first attachment method called.
      * To remove all attachments, call this method with empty array.
      *
-     * @param formatters a non null array of formatters.
+     * @param formatters an array of formatters.  A null array is treated as an
+     * empty array.  Any null indexes is replaced with a
+     * {@linkplain java.util.logging.SimpleFormatter SimpleFormatter}.
      * @throws SecurityException     if a security manager exists and the
      *                               caller does not have <code>LoggingPermission("control")</code>.
-     * @throws NullPointerException  if the given array or any array index is
-     *                               <code>null</code>.
      * @throws IllegalStateException if called from inside a push.
      */
     public final void setAttachmentFormatters(Formatter... formatters) {
         checkAccess();
-        if (formatters.length == 0) { //Null check and length check.
+        if (formatters == null || formatters.length == 0) { //Null check and length check.
             formatters = emptyFormatterArray();
         } else {
             formatters = Arrays.copyOf(formatters,
                     formatters.length, Formatter[].class);
             for (int i = 0; i < formatters.length; ++i) {
                 if (formatters[i] == null) {
-                    throw new NullPointerException(atIndexMsg(i));
+                    formatters[i] = createSimpleFormatter();
                 }
             }
         }
@@ -1458,8 +1683,8 @@ public class MailHandler extends Handler {
             }
 
             this.attachmentFormatters = formatters;
-            this.alignAttachmentFilters();
-            this.alignAttachmentNames();
+            this.alignAttachmentFilters(formatters.length);
+            this.alignAttachmentNames(formatters.length);
         }
     }
 
@@ -1484,48 +1709,40 @@ public class MailHandler extends Handler {
      * characters are removed from the attachment names.
      * This method will create a set of custom formatters.
      *
-     * @param names an array of names.
+     * @param names an array of names.  A null array is treated as an empty
+     * array.  Any null or empty indexes are replaced with the string
+     * representation of the attachment formatter.
      * @throws SecurityException         if a security manager exists and the
      *                                   caller does not have <code>LoggingPermission("control")</code>.
-     * @throws IndexOutOfBoundsException if the number of attachment
-     *                                   names do not match the number of attachment formatters.
-     * @throws IllegalArgumentException  if any name is empty.
-     * @throws NullPointerException      if any given array or name is
-     *                                   <code>null</code>.
      * @throws IllegalStateException     if called from inside a push.
      * @see Character#isISOControl(char)
      * @see Character#isISOControl(int)
      */
+
     public final void setAttachmentNames(final String... names) {
         checkAccess();
 
         final Formatter[] formatters;
-        if (names.length == 0) {
+        if (names == null || names.length == 0) {
             formatters = emptyFormatterArray();
         } else {
             formatters = new Formatter[names.length];
         }
 
-        for (int i = 0; i < names.length; ++i) {
-            final String name = names[i];
-            if (name != null) {
-                if (name.length() > 0) {
-                    formatters[i] = TailNameFormatter.of(name);
-                } else {
-                    throw new IllegalArgumentException(atIndexMsg(i));
-                }
-            } else {
-                throw new NullPointerException(atIndexMsg(i));
-            }
-        }
-
         synchronized (this) {
-            if (this.attachmentFormatters.length != names.length) {
-                throw attachmentMismatch(this.attachmentFormatters.length, names.length);
-            }
-
             if (isWriting) {
                 throw new IllegalStateException();
+            }
+
+            this.alignAttachmentFormatters(formatters.length);
+            this.alignAttachmentFilters(formatters.length);
+            for (int i = 0; i < formatters.length; ++i) {
+                //names is non-null if formatters length is not zero
+                String name = names[i];
+                if (isEmpty(name)) {
+                    name = toString(this.attachmentFormatters[i]);
+                }
+                formatters[i] = TailNameFormatter.of(name);
             }
             this.attachmentNames = formatters;
         }
@@ -1546,40 +1763,56 @@ public class MailHandler extends Handler {
      * @param formatters and array of attachment name formatters.
      * @throws SecurityException         if a security manager exists and the
      *                                   caller does not have <code>LoggingPermission("control")</code>.
-     * @throws IndexOutOfBoundsException if the number of attachment
-     *                                   name formatters do not match the number of attachment formatters.
-     * @throws NullPointerException      if any given array or name is
-     *                                   <code>null</code>.
      * @throws IllegalStateException     if called from inside a push.
      * @see Character#isISOControl(char)
      * @see Character#isISOControl(int)
      */
     public final void setAttachmentNames(Formatter... formatters) {
+        setAttachmentNameFormatters(formatters);
+    }
+
+    /**
+     * Sets the attachment file name formatters.  The format method of each
+     * attachment formatter will see only the <code>LogRecord</code> objects
+     * that passed its attachment filter during formatting. The format method
+     * will typically return an empty string. Instead of being used to format
+     * records, it is used to gather information about the contents of an
+     * attachment.  The <code>getTail</code> method should be used to construct
+     * the attachment file name and reset any formatter collected state.  All
+     * control characters will be removed from the output of the formatter.  The
+     * <code>toString</code> method of the given formatter should be overridden
+     * to provide a useful attachment file name, if possible.
+     *
+     * @param formatters and array of attachment name formatters.
+     * @throws SecurityException         if a security manager exists and the
+     *                                   caller does not have <code>LoggingPermission("control")</code>.
+     * @throws IllegalStateException     if called from inside a push.
+     * @see Character#isISOControl(char)
+     * @see Character#isISOControl(int)
+     * @since Angus Mail 2.0.3
+     */
+    public final void setAttachmentNameFormatters(Formatter... formatters) {
         checkAccess();
 
-        if (formatters.length == 0) {
+        if (formatters == null || formatters.length == 0) {
             formatters = emptyFormatterArray();
         } else {
             formatters = Arrays.copyOf(formatters, formatters.length,
                     Formatter[].class);
         }
 
-        for (int i = 0; i < formatters.length; ++i) {
-            if (formatters[i] == null) {
-                throw new NullPointerException(atIndexMsg(i));
-            }
-        }
-
         synchronized (this) {
-            if (this.attachmentFormatters.length != formatters.length) {
-                throw attachmentMismatch(this.attachmentFormatters.length,
-                        formatters.length);
-            }
-
             if (isWriting) {
                 throw new IllegalStateException();
             }
 
+            this.alignAttachmentFormatters(formatters.length);
+            this.alignAttachmentFilters(formatters.length);
+            for (int i = 0; i < formatters.length; ++i) {
+                if (formatters[i] == null) {
+                    formatters[i] = TailNameFormatter.of(toString(this.attachmentFormatters[i]));
+                }
+            }
             this.attachmentNames = formatters;
         }
     }
@@ -1592,12 +1825,24 @@ public class MailHandler extends Handler {
      * @return the formatter.
      */
     public final synchronized Formatter getSubject() {
+        return getSubjectFormatter();
+    }
+
+    /**
+     * Gets the formatter used to create the subject line.
+     * If the subject was created using a literal string then
+     * the <code>toString</code> method can be used to get the subject line.
+     *
+     * @return the formatter.
+     * @since Angus Mail 2.0.3
+     */
+    public final synchronized Formatter getSubjectFormatter() {
         return this.subjectFormatter;
     }
 
     /**
      * Sets a literal string for the email subject.  All control characters are
-     * removed from the subject line.
+     * removed from the subject line of the email
      *
      * @param subject a non <code>null</code> string.
      * @throws SecurityException     if a security manager exists and the
@@ -1608,12 +1853,12 @@ public class MailHandler extends Handler {
      * @see Character#isISOControl(char)
      * @see Character#isISOControl(int)
      */
-    public final void setSubject(final String subject) {
+    public synchronized final void setSubject(final String subject) {
         if (subject != null) {
-            this.setSubject(TailNameFormatter.of(subject));
+            this.setSubjectFormatter(TailNameFormatter.of(subject));
         } else {
             checkAccess();
-            throw new NullPointerException();
+            initSubject((String) null);
         }
     }
 
@@ -1629,25 +1874,46 @@ public class MailHandler extends Handler {
      * method of the given formatter should be overridden to provide a useful
      * subject, if possible.
      *
-     * @param format the subject formatter.
+     * @param format the subject formatter or null for default formatter.
      * @throws SecurityException     if a security manager exists and the
      *                               caller does not have <code>LoggingPermission("control")</code>.
-     * @throws NullPointerException  if <code>format</code> is <code>null</code>.
      * @throws IllegalStateException if called from inside a push.
      * @see Character#isISOControl(char)
      * @see Character#isISOControl(int)
      */
     public final void setSubject(final Formatter format) {
-        checkAccess();
-        if (format == null) {
-            throw new NullPointerException();
-        }
+        setSubjectFormatter(format);
+    }
 
-        synchronized (this) {
+    /**
+     * Sets the subject formatter for email.  The format method of the subject
+     * formatter will see all <code>LogRecord</code> objects that were published
+     * to this <code>Handler</code> during formatting and will typically return
+     * an empty string.  This formatter is used to gather information to create
+     * a summary about what information is contained in the email.  The
+     * <code>getTail</code> method should be used to construct the subject and
+     * reset any formatter collected state.  All control characters
+     * will be removed from the formatter output.  The <code>toString</code>
+     * method of the given formatter should be overridden to provide a useful
+     * subject, if possible.
+     *
+     * @param format the subject formatter or null for default formatter.
+     * @throws SecurityException     if a security manager exists and the
+     *                               caller does not have <code>LoggingPermission("control")</code>.
+     * @throws IllegalStateException if called from inside a push.
+     * @see Character#isISOControl(char)
+     * @see Character#isISOControl(int)
+     * @since Angus Mail 2.0.3
+     */
+    public synchronized final void setSubjectFormatter(final Formatter format) {
+        checkAccess();
+        if (format != null) {
             if (isWriting) {
                 throw new IllegalStateException();
             }
             this.subjectFormatter = format;
+        } else {
+            initSubject((String) null);
         }
     }
 
@@ -1669,7 +1935,7 @@ public class MailHandler extends Handler {
                 errorManager.error(Level.SEVERE.getName()
                         .concat(": ").concat(msg), ex, code);
             } else {
-                errorManager.error(null, ex, code);
+                errorManager.error((String) null, ex, code);
             }
         } catch (RuntimeException | LinkageError GLASSFISH_21258) {
             reportLinkageError(GLASSFISH_21258, code);
@@ -1677,7 +1943,9 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Calls log manager checkAccess if this is sealed.
+     * Checks logging permissions if this handler has been sealed.
+     * @throws SecurityException if a security manager exists and the caller
+     *                           does not have {@code LoggingPermission("control")}.
      */
     private void checkAccess() {
         if (sealed) {
@@ -1875,6 +2143,10 @@ public class MailHandler extends Handler {
      */
     private String getContentType(final String name) {
         assert Thread.holdsLock(this);
+        if (contentTypes == null) {
+            return null;
+        }
+
         final String type = contentTypes.getContentType(name);
         if ("application/octet-stream".equalsIgnoreCase(type)) {
             return null; //Formatters return strings, default to text/plain.
@@ -1943,20 +2215,17 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Sets the capacity for this handler.  This method is kept private
-     * because we would have to define a public policy for when the size is
-     * greater than the capacity.
-     * E.G. do nothing, flush now, truncate now, push now and resize.
+     * Sets the capacity for this handler.
      *
      * @param newCapacity the max number of records.
      * @throws SecurityException     if a security manager exists and the
      *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
-    private synchronized void setCapacity0(final int newCapacity) {
+    private synchronized void setCapacity0(int newCapacity) {
         checkAccess();
         if (newCapacity <= 0) {
-            throw new IllegalArgumentException("Capacity must be greater than zero.");
+            newCapacity = 1000;
         }
 
         if (isWriting) {
@@ -1966,7 +2235,12 @@ public class MailHandler extends Handler {
         if (this.capacity < 0) { //If closed, remain closed.
             this.capacity = -newCapacity;
         } else {
+            this.push(false, ErrorManager.FLUSH_FAILURE);
             this.capacity = newCapacity;
+            if (this.data != null && this.data.length > newCapacity) {
+                this.data = Arrays.copyOf(data, newCapacity, LogRecord[].class);
+                this.matched = Arrays.copyOf(matched, newCapacity);
+            }
         }
     }
 
@@ -2006,10 +2280,9 @@ public class MailHandler extends Handler {
      *
      * @return true if size was changed.
      */
-    private boolean alignAttachmentNames() {
+    private boolean alignAttachmentNames(int expect) {
         assert Thread.holdsLock(this);
         boolean fixed = false;
-        final int expect = this.attachmentFormatters.length;
         final int current = this.attachmentNames.length;
         if (current != expect) {
             this.attachmentNames = Arrays.copyOf(attachmentNames, expect,
@@ -2032,21 +2305,44 @@ public class MailHandler extends Handler {
         return fixed;
     }
 
+    private boolean alignAttachmentFormatters(int expect) {
+        assert Thread.holdsLock(this);
+        boolean fixed = false;
+        final int current = this.attachmentFormatters.length;
+        if (current != expect) {
+            this.attachmentFormatters = Arrays.copyOf(attachmentFormatters, expect,
+                    Formatter[].class);
+            fixed = current != 0;
+        }
+
+        //Copy of zero length array is cheap, warm up copyOf.
+        if (expect == 0) {
+            this.attachmentFormatters = emptyFormatterArray();
+            assert this.attachmentFormatters.length == 0;
+        } else {
+            for (int i = current; i < expect; ++i) {
+                if (this.attachmentFormatters[i] == null) {
+                    this.attachmentFormatters[i] = createSimpleFormatter();
+                }
+            }
+        }
+        return fixed;
+    }
+
     /**
      * Expand or shrink the attachment filters with the attachment formatters.
      *
      * @return true if the size was changed.
      */
-    private boolean alignAttachmentFilters() {
+    private boolean alignAttachmentFilters(int expect) {
         assert Thread.holdsLock(this);
 
         boolean fixed = false;
-        final int expect = this.attachmentFormatters.length;
         final int current = this.attachmentFilters.length;
         if (current != expect) {
             this.attachmentFilters = Arrays.copyOf(attachmentFilters, expect,
                     Filter[].class);
-            clearMatches(current);
+            clearMatches(Math.min(current, expect));
             fixed = current != 0;
 
             //Array elements default to null so skip filling if body filter
@@ -2096,17 +2392,19 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Configures the handler properties from the log manager.
+     * Configures the handler properties from the log manager.  On normal return
+     * this object will be sealed.
      *
      * @param props the given mail properties.  Maybe null and are never
      *              captured by this handler.
      * @throws SecurityException if a security manager exists and the
      *                           caller does not have <code>LoggingPermission("control")</code>.
+     * @see #sealed
      */
     private synchronized void init(final Properties props) {
         assert this.errorManager != null;
         final String p = getClass().getName();
-        this.mailProps = new Properties(); //See method param comments.
+        this.mailProps = new Properties(); //ensure non-null on exception
         final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
         try {
             this.contentTypes = FileTypeMap.getDefaultFileTypeMap();
@@ -2115,26 +2413,45 @@ public class MailHandler extends Handler {
         }
 
         //Assign any custom error manager first so it can detect all failures.
-        initErrorManager(p);
+        initErrorManager(fromLogManager(p.concat(".errorManager")));
+        initCapacity(fromLogManager(p.concat(".capacity")));
+        initLevel(fromLogManager(p.concat(".level")));
+        initEnabled(fromLogManager(p.concat(".enabled")));
+        initFilter(fromLogManager(p.concat(".filter")));
+        this.auth = newAuthenticator(fromLogManager(p.concat(".authenticator")));
 
-        initLevel(p);
-        initFilter(p);
-        initCapacity(p);
-        initAuthenticator(p);
+        initEncoding(fromLogManager(p.concat(".encoding")));
+        initFormatter(fromLogManager(p.concat(".formatter")));
+        initComparator(fromLogManager(p.concat(".comparator")));
+        initComparatorReverse(fromLogManager(p.concat(".comparator.reverse")));
+        initPushLevel(fromLogManager(p.concat(".pushLevel")));
+        initPushFilter(fromLogManager(p.concat(".pushFilter")));
 
-        initEncoding(p);
-        initFormatter(p);
-        initComparator(p);
-        initPushLevel(p);
-        initPushFilter(p);
+        initSubject(fromLogManager(p.concat(".subject")));
 
-        initSubject(p);
+        initAttachmentFormaters(fromLogManager(p.concat(".attachment.formatters")));
+        initAttachmentFilters(fromLogManager(p.concat(".attachment.filters")));
+        initAttachmentNames(fromLogManager(p.concat(".attachment.names")));
 
-        initAttachmentFormaters(p);
-        initAttachmentFilters(p);
-        initAttachmentNames(p);
+        //Verification of all of the MailHandler properties starts here
+        //That means setting new object members goes above this comment.
+        //Entries are always parsed to report any errors.
+        Properties entries = parseProperties(fromLogManager(p.concat(".mailEntries")));
+        sealed = true;
+        boolean verified;
+        if (props != null) {
+            //Given properties do not fallback to log manager.
+            setMailProperties0(copyOf(props));
+            verified = true;
+        } else if (entries != null) {
+            //.mailEntries should fallback to log manager when verify key not present.
+            verified = setMailProperties0(entries);
+        } else {
+            checkAccess();
+            verified = false;
+        }
 
-        if (props == null && fromLogManager(p.concat(".verify")) != null) {
+        if (!verified && fromLogManager(p.concat(".verify")) != null) {
             verifySettings(initSession());
         }
         intern(); //Show verify warnings first.
@@ -2330,14 +2647,12 @@ public class MailHandler extends Handler {
     /**
      * Parses LogManager string values into objects used by this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param list the list of attachment filter class names.
      * @throws SecurityException    if not allowed.
      */
-    private void initAttachmentFilters(final String p) {
+    private void initAttachmentFilters(final String list) {
         assert Thread.holdsLock(this);
         assert this.attachmentFormatters != null;
-        final String list = fromLogManager(p.concat(".attachment.filters"));
         if (!isEmpty(list)) {
             final String[] names = list.split(",");
             Filter[] a = new Filter[names.length];
@@ -2355,26 +2670,24 @@ public class MailHandler extends Handler {
             }
 
             this.attachmentFilters = a;
-            if (alignAttachmentFilters()) {
+            if (alignAttachmentFilters(attachmentFormatters.length)) {
                 reportError("Attachment filters.",
                         attachmentMismatch("Length mismatch."), ErrorManager.OPEN_FAILURE);
             }
         } else {
             this.attachmentFilters = emptyFilterArray();
-            alignAttachmentFilters();
+            alignAttachmentFilters(attachmentFormatters.length);
         }
     }
 
     /**
      * Parses LogManager string values into objects used by this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param list the list of attachment formatter class names or literal names.
      * @throws SecurityException    if not allowed.
      */
-    private void initAttachmentFormaters(final String p) {
+    private void initAttachmentFormaters(final String list) {
         assert Thread.holdsLock(this);
-        final String list = fromLogManager(p.concat(".attachment.formatters"));
         if (!isEmpty(list)) {
             final Formatter[] a;
             final String[] names = list.split(",");
@@ -2401,8 +2714,6 @@ public class MailHandler extends Handler {
                         a[i] = createSimpleFormatter();
                     }
                 } else {
-                    final Exception NPE = new NullPointerException(atIndexMsg(i));
-                    reportError("Attachment formatter.", NPE, ErrorManager.OPEN_FAILURE);
                     a[i] = createSimpleFormatter();
                 }
             }
@@ -2416,15 +2727,13 @@ public class MailHandler extends Handler {
     /**
      * Parses LogManager string values into objects used by this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param list of formatter class names or literals.
      * @throws SecurityException    if not allowed.
      */
-    private void initAttachmentNames(final String p) {
+    private void initAttachmentNames(final String list) {
         assert Thread.holdsLock(this);
         assert this.attachmentFormatters != null;
 
-        final String list = fromLogManager(p.concat(".attachment.names"));
         if (!isEmpty(list)) {
             final String[] names = list.split(",");
             final Formatter[] a = new Formatter[names.length];
@@ -2444,64 +2753,63 @@ public class MailHandler extends Handler {
                         reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
                     }
                 } else {
-                    final Exception NPE = new NullPointerException(atIndexMsg(i));
-                    reportError("Attachment names.", NPE, ErrorManager.OPEN_FAILURE);
+                    a[i] = TailNameFormatter.of(toString(attachmentFormatters[i]));
                 }
             }
 
             this.attachmentNames = a;
-            if (alignAttachmentNames()) { //Any null indexes are repaired.
+            if (alignAttachmentNames(attachmentFormatters.length)) {
                 reportError("Attachment names.",
                         attachmentMismatch("Length mismatch."), ErrorManager.OPEN_FAILURE);
             }
         } else {
             this.attachmentNames = emptyFormatterArray();
-            alignAttachmentNames();
+            alignAttachmentNames(attachmentFormatters.length);
         }
     }
 
     /**
      * Parses LogManager string values into objects used by this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param name the authenticator class name, literal password, or empty string.
      * @throws SecurityException    if not allowed.
      */
-    private void initAuthenticator(final String p) {
-        assert Thread.holdsLock(this);
-        String name = fromLogManager(p.concat(".authenticator"));
+    private Authenticator newAuthenticator(final String name) {
+        Authenticator a = null;
         if (name != null && !"null".equalsIgnoreCase(name)) {
-            if (name.length() != 0) {
+            if (!name.isEmpty()) {
                 try {
-                    this.auth = LogManagerProperties
+                    a = LogManagerProperties
                             .newObjectFrom(name, Authenticator.class);
                 } catch (final SecurityException SE) {
                     throw SE;
                 } catch (final ClassNotFoundException
                                | ClassCastException literalAuth) {
-                    this.auth = DefaultAuthenticator.of(name);
+                    a = DefaultAuthenticator.of(name);
                 } catch (final Exception E) {
                     reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+                } catch (final LinkageError JDK8152515) {
+                   reportLinkageError(JDK8152515, ErrorManager.OPEN_FAILURE);
                 }
             } else { //Authenticator is installed to provide the user name.
-                this.auth = DefaultAuthenticator.of(name);
+                a = DefaultAuthenticator.of(name);
             }
         }
+        return a;
     }
 
     /**
      * Parses LogManager string values into objects used by this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param nameOrNumber the level name or number.
      * @throws SecurityException    if not allowed.
      */
-    private void initLevel(final String p) {
+    private void initLevel(final String nameOrNumber) {
         assert Thread.holdsLock(this);
+        assert disabledLevel == null : disabledLevel;
         try {
-            final String val = fromLogManager(p.concat(".level"));
-            if (val != null) {
-                logLevel = Level.parse(val);
+            if (!isEmpty(nameOrNumber)) {
+                logLevel = Level.parse(nameOrNumber);
             } else {
                 logLevel = Level.WARNING;
             }
@@ -2514,18 +2822,74 @@ public class MailHandler extends Handler {
     }
 
     /**
+     * Parses the given properties lines. Any parsing errors are reported to the
+     * error manager.
+     *
+     * @param entries one or more key/value pairs. An empty string, null value
+     * or, the literal null are all treated as empty properties and will simply
+     * clear all existing mail properties assigned to this handler.
+     * @return the parsed properties or null if entries was null.
+     * @since Angus Mail 2.0.3
+     * @see #setMailEntries(java.lang.String)
+     */
+    private Properties parseProperties(String entries) {
+        if (entries != null) {
+           final Properties props = new Properties();
+           if (!hasValue(entries)) {
+              return props;
+           }
+
+           /**
+            * The characters # and ! are used for comment lines in properties
+            * format.  The characters \r or \n are not allowed in WildFly form
+            * validation however, properties comment characters are allowed.
+            * Comment lines are useless for this handler therefore, "#!"
+            * characters are used to represent logical lines and are assumed to
+            * not be present together in a key or value.
+            */
+            try {
+                entries = entries.replace("#!", "\r\n");
+                //Dynamic cast used so byte code verifier doesn't load StringReader
+                props.load(Reader.class.cast(new StringReader(entries)));
+            } catch (IOException | RuntimeException ex) {
+                reportError(entries, ex, ErrorManager.OPEN_FAILURE);
+                //Allow a partial load of properties to be set
+            }
+            return props;
+        }
+        return null;
+    }
+
+    /**
+     * Disables this handler if the property was specified in LogManager.
+     * Assumes that initLevel was called before this method.
+     *
+     * @param enabled the string false will only disable this handler.
+     * @since Angus Mail 2.0.3
+     */
+    private void initEnabled(final String enabled) {
+        assert Thread.holdsLock(this);
+        assert logLevel != null;
+        assert capacity != 0;
+        //By default the Handler is enabled so only need to disable it on init.
+        if (hasValue(enabled) && !Boolean.parseBoolean(enabled)) {
+            setEnabled0(false);
+        }
+    }
+
+    /**
      * Parses LogManager string values into objects used by this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param name the filter class name or null.
      * @throws SecurityException    if not allowed.
      */
-    private void initFilter(final String p) {
+    private void initFilter(final String name) {
         assert Thread.holdsLock(this);
         try {
-            String name = fromLogManager(p.concat(".filter"));
             if (hasValue(name)) {
                 filter = LogManagerProperties.newFilter(name);
+            } else {
+                filter = null;
             }
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
@@ -2537,15 +2901,13 @@ public class MailHandler extends Handler {
     /**
      * Parses LogManager string values into objects used by this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if argument is null.
+     * @param value the capacity value.
      * @throws SecurityException    if not allowed.
      */
-    private void initCapacity(final String p) {
+    private void initCapacity(final String value) {
         assert Thread.holdsLock(this);
         final int DEFAULT_CAPACITY = 1000;
         try {
-            final String value = fromLogManager(p.concat(".capacity"));
             if (value != null) {
                 this.setCapacity0(Integer.parseInt(value));
             } else {
@@ -2566,19 +2928,15 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Parses LogManager string values into objects used by this handler.
+     * Sets the encoding of this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param e the encoding name or null.
      * @throws SecurityException    if not allowed.
      */
-    private void initEncoding(final String p) {
+    private void initEncoding(final String e) {
         assert Thread.holdsLock(this);
         try {
-            String e = fromLogManager(p.concat(".encoding"));
-            if (e != null) {
-                setEncoding0(e);
-            }
+            setEncoding0(e);
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
         } catch (UnsupportedEncodingException | RuntimeException UEE) {
@@ -2608,16 +2966,14 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Parses LogManager string values into objects used by this handler.
+     * Creates the error manager for this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param name the error manager class name.
      * @throws SecurityException    if not allowed.
      */
-    private void initErrorManager(final String p) {
+    private void initErrorManager(final String name) {
         assert Thread.holdsLock(this);
         try {
-            String name = fromLogManager(p.concat(".errorManager"));
             if (name != null) {
                 setErrorManager0(LogManagerProperties.newErrorManager(name));
             }
@@ -2631,14 +2987,12 @@ public class MailHandler extends Handler {
     /**
      * Parses LogManager string values into objects used by this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param name the formatter class name or null.
      * @throws SecurityException    if not allowed.
      */
-    private void initFormatter(final String p) {
+    private void initFormatter(final String name) {
         assert Thread.holdsLock(this);
         try {
-            String name = fromLogManager(p.concat(".formatter"));
             if (hasValue(name)) {
                 final Formatter f
                         = LogManagerProperties.newFormatter(name);
@@ -2660,28 +3014,18 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Parses LogManager string values into objects used by this handler.
+     * Creates the comparator for this handler.
      *
      * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
      * @throws SecurityException    if not allowed.
      */
-    private void initComparator(final String p) {
+    private void initComparator(final String name) {
         assert Thread.holdsLock(this);
         try {
-            String name = fromLogManager(p.concat(".comparator"));
-            String reverse = fromLogManager(p.concat(".comparator.reverse"));
             if (hasValue(name)) {
                 comparator = LogManagerProperties.newComparator(name);
-                if (Boolean.parseBoolean(reverse)) {
-                    assert comparator != null : "null";
-                    comparator = LogManagerProperties.reverseOrder(comparator);
-                }
             } else {
-                if (!isEmpty(reverse)) {
-                    throw new IllegalArgumentException(
-                            "No comparator to reverse.");
-                }
+                comparator = null;
             }
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
@@ -2690,19 +3034,32 @@ public class MailHandler extends Handler {
         }
     }
 
+
+    private void initComparatorReverse(final String reverse) {
+        if (Boolean.parseBoolean(reverse)) {
+            if (comparator != null) {
+                comparator = LogManagerProperties.reverseOrder(comparator);
+            } else {
+                IllegalArgumentException E = new IllegalArgumentException(
+                            "No comparator to reverse.");
+                reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+            }
+        }
+    }
+
     /**
      * Parses LogManager string values into objects used by this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param nameOrNumber the level name, number, or null for OFF.
      * @throws SecurityException    if not allowed.
      */
-    private void initPushLevel(final String p) {
+    private void initPushLevel(final String nameOrNumber) {
         assert Thread.holdsLock(this);
         try {
-            final String val = fromLogManager(p.concat(".pushLevel"));
-            if (val != null) {
-                this.pushLevel = Level.parse(val);
+            if (!isEmpty(nameOrNumber)) {
+                this.pushLevel = Level.parse(nameOrNumber);
+            } else {
+                this.pushLevel = Level.OFF;
             }
         } catch (final RuntimeException RE) {
             reportError(RE.getMessage(), RE, ErrorManager.OPEN_FAILURE);
@@ -2716,16 +3073,16 @@ public class MailHandler extends Handler {
     /**
      * Parses LogManager string values into objects used by this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param name the push filter class name.
      * @throws SecurityException    if not allowed.
      */
-    private void initPushFilter(final String p) {
+    private void initPushFilter(final String name) {
         assert Thread.holdsLock(this);
         try {
-            String name = fromLogManager(p.concat(".pushFilter"));
             if (hasValue(name)) {
                 this.pushFilter = LogManagerProperties.newFilter(name);
+            } else {
+                this.pushFilter = null;
             }
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
@@ -2735,15 +3092,17 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Parses LogManager string values into objects used by this handler.
+     * Creates the subject formatter used by this handler.
      *
-     * @param p the handler class name used as the prefix.
-     * @throws NullPointerException if the given argument is null.
+     * @param name the formatter class name, string literal, or null.
      * @throws SecurityException    if not allowed.
      */
-    private void initSubject(final String p) {
+    private void initSubject(String name) {
         assert Thread.holdsLock(this);
-        String name = fromLogManager(p.concat(".subject"));
+        if (isWriting) {
+            throw new IllegalStateException();
+        }
+
         if (name == null) { //Soft dependency on CollectorFormatter.
             name = "org.eclipse.angus.mail.util.logging.CollectorFormatter";
         }
@@ -3056,7 +3415,7 @@ public class MailHandler extends Handler {
         String altType = contentTypeOf(bodyFormat);
         setContent(body, buf, altType == null ? contentType : altType);
         if (body != msg) {
-            final MimeMultipart multipart = new MimeMultipart();
+            final MimeMultipart multipart = createMultipart();
             //assert body instanceof BodyPart : body;
             multipart.addBodyPart((BodyPart) body);
 
@@ -3079,28 +3438,35 @@ public class MailHandler extends Handler {
      * is called and at that time all of the settings have been cleared.
      *
      * @param session the current session or null.
+     * @return true if verification key was present.
      * @since JavaMail 1.4.4
      */
-    private void verifySettings(final Session session) {
+    private boolean verifySettings(final Session session) {
         try {
-            if (session != null) {
-                final Properties props = session.getProperties();
-                final Object check = props.put("verify", "");
-                if (check instanceof String) {
-                    String value = (String) check;
-                    //Perform the verify if needed.
-                    if (hasValue(value)) {
-                        verifySettings0(session, value);
-                    }
-                } else {
-                    if (check != null) { //Pass some invalid string.
-                        verifySettings0(session, check.getClass().toString());
-                    }
+            if (session == null) {
+                return false;
+            }
+
+            final Properties props = session.getProperties();
+            final Object check = props.put("verify", "");
+            if (check == null) {
+                return false;
+            }
+
+            if (check instanceof String) {
+                String value = (String) check;
+                //Perform the verify if needed.
+                if (hasValue(value)) {
+                    verifySettings0(session, value);
                 }
+                return true;
+            } else { //Pass some invalid string.
+                verifySettings0(session, check.getClass().toString());
             }
         } catch (final LinkageError JDK8152515) {
             reportLinkageError(JDK8152515, ErrorManager.OPEN_FAILURE);
         }
+        return false;
     }
 
     /**
@@ -3560,8 +3926,13 @@ public class MailHandler extends Handler {
     private Session initSession() {
         assert Thread.holdsLock(this);
         final String p = getClass().getName();
-        LogManagerProperties proxy = new LogManagerProperties(mailProps, p);
-        session = Session.getInstance(proxy, auth);
+        final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+        try {
+            LogManagerProperties proxy = new LogManagerProperties(mailProps, p);
+            session = Session.getInstance(proxy, auth);
+        } finally {
+            getAndSetContextClassLoader(ccl);
+        }
         return session;
     }
 
@@ -3596,6 +3967,16 @@ public class MailHandler extends Handler {
         }
     }
 
+    private MimeMultipart createMultipart() throws MessagingException {
+        assert Thread.holdsLock(this);
+        final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+        try {
+            return new MimeMultipart();
+        } finally {
+            getAndSetContextClassLoader(ccl);
+        }
+    }
+
     /**
      * Factory to create the in-line body part.
      *
@@ -3604,12 +3985,17 @@ public class MailHandler extends Handler {
      */
     private MimeBodyPart createBodyPart() throws MessagingException {
         assert Thread.holdsLock(this);
-        final MimeBodyPart part = new MimeBodyPart();
-        part.setDisposition(Part.INLINE);
-        part.setDescription(descriptionFrom(getFormatter(),
+        final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+        try {
+            final MimeBodyPart part = new MimeBodyPart();
+            part.setDisposition(Part.INLINE);
+            part.setDescription(descriptionFrom(getFormatter(),
                 getFilter(), subjectFormatter));
-        setAcceptLang(part);
-        return part;
+            setAcceptLang(part);
+            return part;
+        } finally {
+            getAndSetContextClassLoader(ccl);
+        }
     }
 
     /**
@@ -3623,14 +4009,19 @@ public class MailHandler extends Handler {
      */
     private MimeBodyPart createBodyPart(int index) throws MessagingException {
         assert Thread.holdsLock(this);
-        final MimeBodyPart part = new MimeBodyPart();
-        part.setDisposition(Part.ATTACHMENT);
-        part.setDescription(descriptionFrom(
-                attachmentFormatters[index],
-                attachmentFilters[index],
-                attachmentNames[index]));
-        setAcceptLang(part);
-        return part;
+        final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+        try {
+            final MimeBodyPart part = new MimeBodyPart();
+            part.setDisposition(Part.ATTACHMENT);
+            part.setDescription(descriptionFrom(
+            attachmentFormatters[index],
+            attachmentFilters[index],
+            attachmentNames[index]));
+            setAcceptLang(part);
+            return part;
+        } finally {
+            getAndSetContextClassLoader(ccl);
+        }
     }
 
     /**
@@ -4288,7 +4679,7 @@ public class MailHandler extends Handler {
                 } else {
                     pa = new GetAndSetContext(ccl);
                 }
-                return AccessController.doPrivileged(pa);
+                return LogManagerProperties.runOrDoPrivileged(pa);
             } catch (final SecurityException ignore) {
             }
         }
@@ -4303,18 +4694,6 @@ public class MailHandler extends Handler {
      */
     private static RuntimeException attachmentMismatch(final String msg) {
         return new IndexOutOfBoundsException(msg);
-    }
-
-    /**
-     * Outline the attachment mismatch message. See Bug ID 6533165.
-     *
-     * @param expected the expected array length.
-     * @param found    the array length that was given.
-     * @return a RuntimeException populated with a message.
-     */
-    private static RuntimeException attachmentMismatch(int expected, int found) {
-        return attachmentMismatch("Attachments mismatched, expected "
-                + expected + " but given " + found + '.');
     }
 
     /**
@@ -4369,9 +4748,7 @@ public class MailHandler extends Handler {
      * @since JavaMail 1.5.3
      */
     private Session getSession(final Message msg) {
-        if (msg == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(msg);
         return new MessageContext(msg).getSession();
     }
 
@@ -4386,16 +4763,6 @@ public class MailHandler extends Handler {
         //Assume the environment is GAE if access to the LogManager is
         //forbidden.
         return LogManagerProperties.hasLogManager();
-    }
-
-    /**
-     * Outline the creation of the index error message. See JDK-6533165.
-     *
-     * @param i the index.
-     * @return the error message.
-     */
-    private static String atIndexMsg(final int i) {
-        return "At index: " + i + '.';
     }
 
     /**

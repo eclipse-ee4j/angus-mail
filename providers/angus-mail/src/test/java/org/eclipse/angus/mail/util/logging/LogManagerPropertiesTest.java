@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2023 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -27,7 +27,6 @@ import jakarta.mail.internet.InternetAddress;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -35,6 +34,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
@@ -47,7 +48,6 @@ import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
-import java.util.logging.LoggingPermission;
 import java.util.logging.SimpleFormatter;
 
 import static org.junit.Assert.assertEquals;
@@ -55,6 +55,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -69,11 +70,6 @@ public class LogManagerPropertiesTest extends AbstractLogging {
      * Holder used to inject Throwables into other APIs.
      */
     private final static ThreadLocal<Throwable> PENDING = new ThreadLocal<>();
-
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-        Assert.assertNull(System.getSecurityManager());
-    }
 
     private static void fullFence() {
         LogManager.getLogManager().getProperty("");
@@ -96,32 +92,113 @@ public class LogManagerPropertiesTest extends AbstractLogging {
     }
 
     @Test
-    public void testCheckAccessPresent() {
-        LogManager m = LogManager.getLogManager();
-        m.checkAccess();
-        LogManagerProperties.checkLogManagerAccess();
-
-        LogPermSecurityManager sm = new LogPermSecurityManager();
-        sm.secure = false;
-        System.setSecurityManager(sm);
+    public void testCheckLogManagerAccess() {
         try {
-            sm.secure = true;
-            try {
-                m.checkAccess();
-                fail(m.toString());
-            } catch (SecurityException expect) {
-            }
-
-            try {
-                LogManagerProperties.checkLogManagerAccess();
-                fail(LogManagerProperties.class.getName());
-            } catch (SecurityException expect) {
-            }
-        } finally {
-            sm.secure = false;
-            System.setSecurityManager((SecurityManager) null);
+            LogManagerProperties.checkLogManagerAccess();
+            //okay if we return normally, this is a weak test.
+        } catch (SecurityException allowed) {
         }
     }
+
+    private static boolean isInvokeAccessController() {
+        for (StackTraceElement frame : new Throwable().getStackTrace()) {
+            if ("invokeAccessController".equals(frame.getMethodName())
+                    && LogManagerProperties.class.getName().equals(frame.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isAccessController() {
+        for (StackTraceElement frame : new Throwable().getStackTrace()) {
+            if ("doPrivileged".equals(frame.getMethodName())
+                    && "java.security.AccessController".equals(
+                            frame.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Test
+    public void testRun() {
+        PrivilegedAction<Boolean> p = () -> {
+            assertFalse(isInvokeAccessController());
+            assertFalse(isAccessController());
+            return true;
+        };
+        assertTrue(LogManagerProperties.runOrDoPrivileged(p));
+    }
+
+    @Test
+    public void testDoPrivileged() {
+        PrivilegedAction<Boolean> p = () -> {
+            if (isInvokeAccessController()) {
+                return isAccessController();
+            }
+            throw new SecurityException();
+        };
+
+        try {
+            assertTrue(LogManagerProperties.runOrDoPrivileged(p));
+        } catch (UndeclaredThrowableException removed) {
+            assertTrue(removed.getCause() instanceof ClassNotFoundException);
+        } catch (UnsupportedOperationException terminal) {
+        }
+    }
+
+    @Test
+    public void testDoPrivilegedRuntimeException() {
+        RuntimeException cause = new RuntimeException();
+        PrivilegedAction<Boolean> p = () -> {
+            if (isInvokeAccessController()) {
+                throw cause;
+            }
+            throw new SecurityException();
+        };
+
+        boolean ran = false;
+        try {
+            LogManagerProperties.runOrDoPrivileged(p);
+            ran = true;
+        } catch (UndeclaredThrowableException removed) {
+            assertTrue(removed.getCause() instanceof ClassNotFoundException);
+        } catch (UnsupportedOperationException terminal) {
+        } catch (RuntimeException re) {
+            assertSame(re, cause);
+        }
+        assertFalse(ran);
+    }
+
+    @Test
+    public void testDoPrivilegedError() {
+        Error cause = new Error();
+        PrivilegedAction<Boolean> p = () -> {
+            if (isInvokeAccessController()) {
+                throw cause;
+            }
+            throw new SecurityException();
+        };
+
+        boolean ran = false;
+        try {
+            LogManagerProperties.runOrDoPrivileged(p);
+            ran = true;
+        } catch (UndeclaredThrowableException removed) {
+            assertTrue(removed.getCause() instanceof ClassNotFoundException);
+        } catch (UnsupportedOperationException terminal) {
+        } catch (Error e) {
+            assertSame(e, cause);
+        }
+        assertFalse(ran);
+    }
+
+    @Test(expected=NullPointerException.class)
+    public void testRunOrDoPrivilegedNull() {
+        LogManagerProperties.runOrDoPrivileged((PrivilegedAction<?>) null);
+    }
+
 
     @Test
     public void testFromLogManagerPresent() throws Exception {
@@ -319,15 +396,14 @@ public class LogManagerPropertiesTest extends AbstractLogging {
         }
     }
 
-    @Test
+    @Test(expected=NoSuchMethodException.class)
+    public void testGetLocalHostNoLoop() throws Exception {
+        LogManagerProperties.getLocalHost(new Object());
+    }
+
+    @Test(expected=NullPointerException.class)
     public void testGetLocalHostNull() throws Exception {
-        boolean fail = true;
-        try {
-            LogManagerProperties.getLocalHost((Service) null);
-        } catch (NullPointerException expected) {
-            fail = false;
-        }
-        Assert.assertFalse(fail);
+        LogManagerProperties.getLocalHost((Service) null);
     }
 
     @Test
@@ -390,6 +466,54 @@ public class LogManagerPropertiesTest extends AbstractLogging {
                     + ((20L * 1000L) + 345), ms);
         } catch (ClassNotFoundException | NoClassDefFoundError ignore) {
             assertFalse(ignore.toString(), hasJavaTimeModule());
+        }
+    }
+
+    @Test(expected=NullPointerException.class)
+    public void testParseDurationNull() throws Exception {
+        LogManagerProperties.parseDurationToMillis((CharSequence) null);
+    }
+
+    @Test
+    public void testParseDurationParseException() throws Exception {
+        try {
+            String name = LogManagerPropertiesTest.class.getName();
+            long ms = LogManagerProperties.parseDurationToMillis(name);
+            fail(Long.toString(ms));
+        } catch (ClassNotFoundException | NoClassDefFoundError ignore) {
+            assertFalse(ignore.toString(), hasJavaTimeModule());
+        } catch (InvocationTargetException expected) {
+            Throwable dtpe = expected.getCause();
+            //Allow subclasses of DTPE
+            Class<?> k = Class.forName(
+                    "java.time.format.DateTimeParseException");
+            assertTrue(k.getName(), k.isAssignableFrom(dtpe.getClass()));
+        }
+    }
+
+    @Test
+    public void testParseDurationParseOverflow() throws Exception {
+        testParseDurationNotExact("PT2562047788015H12M55.808S");
+    }
+
+    @Test
+    public void testParseDurationParseUnderflow() throws Exception {
+        testParseDurationNotExact("PT-2562047788015H-12M-55.809S");
+    }
+
+    public void testParseDurationNotExact(String underOrOver) throws Exception {
+        try {
+            long ms = LogManagerProperties.parseDurationToMillis(underOrOver);
+            fail(Long.toString(ms));
+        } catch (ClassNotFoundException | NoClassDefFoundError ignore) {
+            assertFalse(ignore.toString(), hasJavaTimeModule());
+        } catch (ArithmeticException expected) {
+        } catch (InvocationTargetException expected) {
+            Throwable dtpe = expected.getCause();
+            //Allow subclasses of DTPE
+            Class<?> k = Class.forName(
+                    "java.time.format.DateTimeParseException");
+            assertTrue(k.getName(), k.isAssignableFrom(dtpe.getClass()));
         }
     }
 
@@ -921,11 +1045,11 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             a = LogManagerProperties.newObjectFrom(k.getName(), Authenticator.class);
             assertEquals(k, a.getClass());
 
-            setPending(new ThreadDeath());
+            setPending(new StackOverflowError());
             try {
                 a = LogManagerProperties.newObjectFrom(k.getName(), Authenticator.class);
                 fail(String.valueOf(a));
-            } catch (ThreadDeath expect) {
+            } catch (StackOverflowError expect) {
             }
 
             setPending(new OutOfMemoryError());
@@ -948,11 +1072,11 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             c = LogManagerProperties.newComparator(k.getName());
             assertEquals(k, c.getClass());
 
-            setPending(new ThreadDeath());
+            setPending(new StackOverflowError());
             try {
                 c = LogManagerProperties.newComparator(k.getName());
                 fail(String.valueOf(c));
-            } catch (ThreadDeath expect) {
+            } catch (StackOverflowError expect) {
             }
 
             setPending(new OutOfMemoryError());
@@ -975,11 +1099,11 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             f = LogManagerProperties.newErrorManager(k.getName());
             assertEquals(k, f.getClass());
 
-            setPending(new ThreadDeath());
+            setPending(new StackOverflowError());
             try {
                 f = LogManagerProperties.newErrorManager(k.getName());
                 fail(String.valueOf(f));
-            } catch (ThreadDeath expect) {
+            } catch (StackOverflowError expect) {
             }
 
             setPending(new OutOfMemoryError());
@@ -1002,11 +1126,11 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             f = LogManagerProperties.newFilter(k.getName());
             assertEquals(k, f.getClass());
 
-            setPending(new ThreadDeath());
+            setPending(new StackOverflowError());
             try {
                 f = LogManagerProperties.newFilter(k.getName());
                 fail(String.valueOf(f));
-            } catch (ThreadDeath expect) {
+            } catch (StackOverflowError expect) {
             }
 
             setPending(new OutOfMemoryError());
@@ -1029,11 +1153,11 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             f = LogManagerProperties.newFormatter(k.getName());
             assertEquals(k, f.getClass());
 
-            setPending(new ThreadDeath());
+            setPending(new StackOverflowError());
             try {
                 f = LogManagerProperties.newFormatter(k.getName());
                 fail(String.valueOf(f));
-            } catch (ThreadDeath expect) {
+            } catch (StackOverflowError expect) {
             }
 
             setPending(new OutOfMemoryError());
@@ -1045,6 +1169,37 @@ public class LogManagerPropertiesTest extends AbstractLogging {
         } finally {
             setPending(null);
         }
+    }
+
+    @Test
+    public void testGetLongThreadID() throws Exception {
+        long id = Thread.currentThread().getId();
+        if (id <= Integer.MAX_VALUE) {
+           id = ((long) Integer.MAX_VALUE) + 1L;
+        } else {
+           id++;
+        }
+
+        LogRecord r1 = new LogRecord(Level.SEVERE, "");
+        LogRecord r2 = new LogRecord(Level.SEVERE, "");
+        try {
+            setLongThreadID(r1, id);
+            setLongThreadID(r2, id);
+            assertEquals(id, (long) LogManagerProperties.getLongThreadID(r1));
+            assertEquals(id, (long) LogManagerProperties.getLongThreadID(r2));
+        } catch (final NoSuchMethodException preJdkSixteen) {
+            try {
+              Method m = LogRecord.class.getMethod("getLongThreadID");
+              fail(m.toString());
+            } catch (NoSuchMethodException expect) {
+                assertNull(LogManagerProperties.getLongThreadID(r1));
+            }
+        }
+    }
+
+    @Test(expected=NullPointerException.class)
+    public void testGetLongThreadIDNull() throws Exception {
+        LogManagerProperties.getLongThreadID((LogRecord) null);
     }
 
     @Test
@@ -1239,40 +1394,6 @@ public class LogManagerPropertiesTest extends AbstractLogging {
 
         public String getLocalHost() {
             throw new SecurityException();
-        }
-    }
-
-    private static final class LogPermSecurityManager extends SecurityManager {
-
-        volatile boolean secure = false;
-
-        LogPermSecurityManager() {
-        }
-
-        @Override
-        public void checkPermission(java.security.Permission perm) {
-            try { //Call super class always for java.security.debug tracing.
-                super.checkPermission(perm);
-                checkPermission(perm, new SecurityException(perm.toString()));
-            } catch (SecurityException se) {
-                checkPermission(perm, se);
-            }
-        }
-
-        @Override
-        public void checkPermission(java.security.Permission perm, Object context) {
-            try { //Call super class always for java.security.debug tracing.
-                super.checkPermission(perm, context);
-                checkPermission(perm, new SecurityException(perm.toString()));
-            } catch (SecurityException se) {
-                checkPermission(perm, se);
-            }
-        }
-
-        private void checkPermission(java.security.Permission perm, SecurityException se) {
-            if (secure && perm instanceof LoggingPermission) {
-                throw se;
-            }
         }
     }
 }
