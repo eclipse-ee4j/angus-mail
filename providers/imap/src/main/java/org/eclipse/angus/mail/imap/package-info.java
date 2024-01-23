@@ -18,7 +18,7 @@
  * An IMAP protocol provider for the Jakarta Mail API
  * that provides access to an IMAP message store.
  * Both the IMAP4 and IMAP4rev1 protocols are supported.
- * Refer to <A HREF="http://www.ietf.org/rfc/rfc3501.txt" TARGET="_top">
+ * Refer to <A HREF="https://www.ietf.org/rfc/rfc3501.txt" TARGET="_top">
  * RFC 3501</A>
  * for more information.
  * The IMAP protocol provider also supports many IMAP extensions (described below).
@@ -32,7 +32,7 @@
  * <STRONG>UIDPLUS Support</STRONG>
  * <P>
  * The IMAP UIDPLUS extension
- * (<A HREF="http://www.ietf.org/rfc/rfc4315.txt" TARGET="_top">RFC 4315</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc4315.txt" TARGET="_top">RFC 4315</A>)
  * is supported via the IMAPFolder methods
  * {@link org.eclipse.angus.mail.imap.IMAPFolder#addMessages addMessages},
  * {@link org.eclipse.angus.mail.imap.IMAPFolder#appendUIDMessages appendUIDMessages}, and
@@ -41,7 +41,7 @@
  * <STRONG>MOVE Support</STRONG>
  * <P>
  * The IMAP MOVE extension
- * (<A HREF="http://www.ietf.org/rfc/rfc6851.txt" TARGET="_top">RFC 6851</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc6851.txt" TARGET="_top">RFC 6851</A>)
  * is supported via the IMAPFolder methods
  * {@link org.eclipse.angus.mail.imap.IMAPFolder#moveMessages moveMessages} and
  * {@link org.eclipse.angus.mail.imap.IMAPFolder#moveUIDMessages moveUIDMessages}.
@@ -49,17 +49,17 @@
  * <STRONG>SASL Support</STRONG>
  * <P>
  * The IMAP protocol provider can use SASL
- * (<A HREF="http://www.ietf.org/rfc/rfc4422.txt" TARGET="_top">RFC 4422</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc4422.txt" TARGET="_top">RFC 4422</A>)
  * authentication mechanisms on systems that support the
  * <CODE>javax.security.sasl</CODE> APIs.
  * The SASL-IR
- * (<A HREF="http://www.ietf.org/rfc/rfc4959.txt" TARGET="_top">RFC 4959</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc4959.txt" TARGET="_top">RFC 4959</A>)
  * capability is also supported.
  * In addition to the SASL mechanisms that are built into
  * the SASL implementation, users can also provide additional
  * SASL mechanisms of their own design to support custom authentication
  * schemes.  See the
- * <A HREF="http://download.oracle.com/javase/6/docs/technotes/guides/security/sasl/sasl-refguide.html" TARGET="_top">
+ * <A HREF="https://docs.oracle.com/javase/6/docs/technotes/guides/security/sasl/sasl-refguide.html" TARGET="_top">
  * Java SASL API Programming and Deployment Guide</A> for details.
  * Note that the current implementation doesn't support SASL mechanisms
  * that provide their own integrity or confidentiality layer.
@@ -67,12 +67,12 @@
  * <STRONG>OAuth 2.0 Support</STRONG>
  * <P>
  * Support for OAuth 2.0 authentication via the
- * <A HREF="https://developers.google.com/gmail/xoauth2_protocol" TARGET="_top">
+ * <A HREF="https://developers.google.com/gmail/imap/xoauth2-protocol" TARGET="_top">
  * XOAUTH2 authentication mechanism</A> is provided either through the SASL
  * support described above or as a built-in authentication mechanism in the
  * IMAP provider.
  * The OAuth 2.0 Access Token should be passed as the password for this mechanism.
- * See <A HREF="https://eclipse-ee4j.github.io/mail/OAuth2" TARGET="_top">
+ * See <A HREF="https://eclipse-ee4j.github.io/angus-mail/OAuth2" TARGET="_top">
  * OAuth2 Support</A> for details.
  * </P>
  * <STRONG>Connection Pool</STRONG>
@@ -100,7 +100,7 @@
  * <STRONG>QUOTA Support</STRONG>
  * <P>
  * The IMAP QUOTA extension
- * (<A HREF="http://www.ietf.org/rfc/rfc2087.txt" TARGET="_top">RFC 2087</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc2087.txt" TARGET="_top">RFC 2087</A>)
  * is supported via the
  * {@link jakarta.mail.QuotaAwareStore QuotaAwareStore} interface implemented by
  * {@link org.eclipse.angus.mail.imap.IMAPStore IMAPStore}, and the
@@ -109,7 +109,7 @@
  * <STRONG>ACL Support</STRONG>
  * <P>
  * The IMAP ACL extension
- * (<A HREF="http://www.ietf.org/rfc/rfc2086.txt" TARGET="_top">RFC 2086</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc2086.txt" TARGET="_top">RFC 2086</A>)
  * is supported via the
  * {@link org.eclipse.angus.mail.imap.Rights Rights} class and the IMAPFolder methods
  * {@link org.eclipse.angus.mail.imap.IMAPFolder#getACL getACL},
@@ -123,7 +123,7 @@
  * <STRONG>SORT Support</STRONG>
  * <P>
  * The IMAP SORT extension
- * (<A HREF="http://www.ietf.org/rfc/rfc5256.txt" TARGET="_top">RFC 5256</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc5256.txt" TARGET="_top">RFC 5256</A>)
  * is supported via the
  * {@link org.eclipse.angus.mail.imap.SortTerm SortTerm} class and the IMAPFolder
  * {@link org.eclipse.angus.mail.imap.IMAPFolder#getSortedMessages getSortedMessages}
@@ -132,9 +132,9 @@
  * <STRONG>CONDSTORE and QRESYNC Support</STRONG>
  * <P>
  * Basic support is provided for the IMAP CONDSTORE
- * (<A HREF="http://www.ietf.org/rfc/rfc4551.txt" TARGET="_top">RFC 4551</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc4551.txt" TARGET="_top">RFC 4551</A>)
  * and QRESYNC
- * (<A HREF="http://www.ietf.org/rfc/rfc5162.txt" TARGET="_top">RFC 5162</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc5162.txt" TARGET="_top">RFC 5162</A>)
  * extensions for the purpose of resynchronizing a folder after offline operation.
  * Of course, the server must support these extensions.
  * Use of these extensions is enabled by using the new
@@ -182,7 +182,7 @@
  * <STRONG>WITHIN Search Support</STRONG>
  * <P>
  * The IMAP WITHIN search extension
- * (<A HREF="http://www.ietf.org/rfc/rfc5032.txt" TARGET="_top">RFC 5032</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc5032.txt" TARGET="_top">RFC 5032</A>)
  * is supported via the
  * {@link org.eclipse.angus.mail.imap.YoungerTerm YoungerTerm} and
  * {@link org.eclipse.angus.mail.imap.OlderTerm OlderTerm}
@@ -195,7 +195,7 @@
  * <STRONG>LOGIN-REFERRAL Support</STRONG>
  * <P>
  * The IMAP LOGIN-REFERRAL extension
- * (<A HREF="http://www.ietf.org/rfc/rfc2221.txt" TARGET="_top">RFC 2221</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc2221.txt" TARGET="_top">RFC 2221</A>)
  * is supported.
  * If a login referral is received when connecting or when authentication fails, a
  * {@link org.eclipse.angus.mail.imap.ReferralException ReferralException} is thrown.
@@ -206,7 +206,7 @@
  * <STRONG>COMPRESS Support</STRONG>
  * <P>
  * The IMAP COMPRESS extension
- * (<A HREF="http://www.ietf.org/rfc/rfc4978.txt" TARGET="_top">RFC 4978</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc4978.txt" TARGET="_top">RFC 4978</A>)
  * is supported.
  * If the server supports the extension and the
  * <code>mail.imap.compress.enable</code> property is set to "true",
@@ -215,7 +215,7 @@
  * <STRONG>UTF-8 Support</STRONG>
  * <P>
  * The IMAP UTF8 extension
- * (<A HREF="http://www.ietf.org/rfc/rfc6855.txt" TARGET="_top">RFC 6855</A>)
+ * (<A HREF="https://www.ietf.org/rfc/rfc6855.txt" TARGET="_top">RFC 6855</A>)
  * is supported.
  * If the server supports the extension, the client will enable use of UTF-8,
  * allowing use of UTF-8 in IMAP protocol strings such as folder names.
@@ -454,8 +454,8 @@
  * <TD>int</TD>
  * <TD>
  * NTLM protocol-specific flags.
- * See <A HREF="http://curl.haxx.se/rfc/ntlm.html#theNtlmFlags" TARGET="_top">
- * http://curl.haxx.se/rfc/ntlm.html#theNtlmFlags</A> for details.
+ * See <A HREF="https://curl.se/rfc/ntlm.html#theNtlmFlags" TARGET="_top">
+ * https://curl.se/rfc/ntlm.html#theNtlmFlags</A> for details.
  * </TD>
  * </TR>
  *
@@ -624,7 +624,7 @@
  * <TD>boolean</TD>
  * <TD>
  * If set to false, it does not check the server identity as specified by
- * <A HREF="http://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
+ * <A HREF="https://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
  * These additional checks based on the content of the server's certificate
  * are intended to prevent man-in-the-middle attacks.
  * Defaults to true.

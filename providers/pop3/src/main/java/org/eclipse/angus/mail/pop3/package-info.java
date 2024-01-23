@@ -17,7 +17,7 @@
 /**
  * A POP3 protocol provider for the Jakarta Mail API
  * that provides access to a POP3 message store.
- * Refer to <A HREF="http://www.ietf.org/rfc/rfc1939.txt" TARGET="_top">
+ * Refer to <A HREF="https://www.ietf.org/rfc/rfc1939.txt" TARGET="_top">
  * RFC 1939</A>
  * for more information.
  * <P>
@@ -30,7 +30,7 @@
  * <P>
  * Note that Jakarta Mail does <strong>not</strong> include a local store into
  * which messages can be downloaded and stored.  See our
- * <A HREF="https://eclipse-ee4j.github.io/mail/ThirdPartyProducts" TARGET="_top">
+ * <A HREF="https://eclipse-ee4j.github.io/angus-mail/ThirdPartyProducts" TARGET="_top">
  * Third Party Products</A>
  * web page for availability of "mbox" and "MH" local store providers.
  * </P>
@@ -135,7 +135,7 @@
  * </P>
  * <P>
  * The POP3 CAPA command (defined by
- * <A HREF="http://www.ietf.org/rfc/rfc2449.txt" TARGET="_top">RFC 2449</A>)
+ * <A HREF="https://www.ietf.org/rfc/rfc2449.txt" TARGET="_top">RFC 2449</A>)
  * will be used to determine the capabilities supported by the server.
  * Some servers don't implement the CAPA command, and some servers don't
  * return correct information, so various properties are available to
@@ -143,7 +143,7 @@
  * </P>
  * <P>
  * If the server advertises the PIPELINING capability (defined by
- * <A HREF="http://www.ietf.org/rfc/rfc2449.txt" TARGET="_top">RFC 2449</A>),
+ * <A HREF="https://www.ietf.org/rfc/rfc2449.txt" TARGET="_top">RFC 2449</A>),
  * or the <CODE>mail.pop3.pipelining</CODE> property is set, the POP3
  * provider will send some commands in batches, which can significantly
  * improve performance and memory use.
@@ -362,8 +362,8 @@
  * <TD>int</TD>
  * <TD>
  * NTLM protocol-specific flags.
- * See <A HREF="http://curl.haxx.se/rfc/ntlm.html#theNtlmFlags" TARGET="_top">
- * http://curl.haxx.se/rfc/ntlm.html#theNtlmFlags</A> for details.
+ * See <A HREF="https://curl.se/rfc/ntlm.html#theNtlmFlags" TARGET="_top">
+ * https://curl.se/rfc/ntlm.html#theNtlmFlags</A> for details.
  * </TD>
  * </TR>
  *
@@ -383,8 +383,8 @@
  * <TD>int</TD>
  * <TD>
  * Sets the LM compatibility level, as described here:
- * <A HREF="http://curl.haxx.se/rfc/ntlm.html#ntlmVersion2" TARGET="_top">
- * http://curl.haxx.se/rfc/ntlm.html#ntlmVersion2</A>
+ * <A HREF="https://curl.se/rfc/ntlm.html#ntlmVersion2" TARGET="_top">
+ * https://curl.se/rfc/ntlm.html#ntlmVersion2</A>
  * Defaults to "3".  Currently not used.
  * </TD>
  * </TR>
@@ -464,7 +464,7 @@
  * <TD>boolean</TD>
  * <TD>
  * If set to false, it does not check the server identity as specified by
- * <A HREF="http://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
+ * <A HREF="https://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
  * These additional checks based on the content of the server's certificate
  * are intended to prevent man-in-the-middle attacks.
  * Defaults to true.
