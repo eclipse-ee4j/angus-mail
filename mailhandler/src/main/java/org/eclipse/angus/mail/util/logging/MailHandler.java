@@ -68,6 +68,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.ResourceBundle;
+import java.util.ServiceConfigurationError;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
 import java.util.logging.Formatter;
@@ -409,6 +410,10 @@ public class MailHandler extends Handler {
      */
     private static final int MIN_HEADER_SIZE = 1024;
     /**
+     * Default capacity for the log record storage.
+     */
+    private static final int DEFAULT_CAPACITY = 1000;
+    /**
      * Cache the off value.
      */
     private static final int offValue = Level.OFF.intValue();
@@ -445,10 +450,15 @@ public class MailHandler extends Handler {
      */
     private static final Integer MUTEX_REPORT = -4;
     /**
+     * The used for service configuration error reporting.
+     * This must be less than the REPORT state and less than linkage.
+     */
+    private static final Integer MUTEX_SERVICE = -8;
+    /**
      * The used for linkage error reporting.
      * This must be less than the REPORT state.
      */
-    private static final Integer MUTEX_LINKAGE = -8;
+    private static final Integer MUTEX_LINKAGE = -16;
     /**
      * Used to turn off security checks.
      */
@@ -461,7 +471,7 @@ public class MailHandler extends Handler {
     /**
      * Holds all of the email server properties.
      */
-    private Properties mailProps;
+    private Properties mailProps = new Properties();
     /**
      * Holds the authenticator required to login to the email server.
      */
@@ -491,6 +501,7 @@ public class MailHandler extends Handler {
      * The maximum number of log records to format per email.
      * Used to roughly bound the size of an email.
      * Every time the capacity is reached, the handler will push.
+     * Capacity is zero while the handler is being constructed.
      * The capacity will be negative if this handler is closed.
      * Negative values are used to ensure all records are pushed.
      */
@@ -517,7 +528,7 @@ public class MailHandler extends Handler {
      * This is only required if an email must be sent prior to shutdown
      * or before the buffer is full.
      */
-    private Level pushLevel;
+    private Level pushLevel = Level.OFF;
     /**
      * Holds the push filter for trigger conditions requiring an early push.
      * Only gets called if the given log record is greater than or equal
@@ -530,10 +541,11 @@ public class MailHandler extends Handler {
      */
     private volatile Filter filter;
     /**
-     * Holds the level for this handler.
+     * Holds the level for this handler.  Default value must be OFF.
      * There is no way to un-seal the super handler.
+     * @see #init(java.util.Properties)
      */
-    private volatile Level logLevel = Level.ALL;
+    private volatile Level logLevel = Level.OFF;
     /**
      * Holds the filters for each attachment.  Filters are optional for
      * each attachment.  This is declared volatile because this is treated as
@@ -541,14 +553,14 @@ public class MailHandler extends Handler {
      * positive.
      */
     @SuppressWarnings("VolatileArrayField")
-    private volatile Filter[] attachmentFilters;
+    private volatile Filter[] attachmentFilters = emptyFilterArray();
     /**
      * Holds the encoding name for this handler.
      * There is no way to un-seal the super handler.
      */
     private String encoding;
     /**
-     * Holds the entry and body filter for this handler.
+     * Holds the body formatter for this handler.
      * There is no way to un-seal the super handler.
      */
     private Formatter formatter;
@@ -558,14 +570,14 @@ public class MailHandler extends Handler {
      * getHead, format, and getTail methods are only called if one or more
      * log records pass through the attachment filters.
      */
-    private Formatter[] attachmentFormatters;
+    private Formatter[] attachmentFormatters = emptyFormatterArray();
     /**
      * Holds the formatters that create the file name for each attachment.
      * Each formatter must produce a non null and non empty name.
      * The final file name will be the concatenation of one getHead call, plus
      * all of the format calls, plus one getTail call.
      */
-    private Formatter[] attachmentNames;
+    private Formatter[] attachmentNames = emptyFormatterArray();
     /**
      * Used to override the content type for the body and set the content type
      * for each attachment.
@@ -575,6 +587,7 @@ public class MailHandler extends Handler {
      * Holds the error manager for this handler.
      * There is no way to un-seal the super handler.
      */
+    @SuppressWarnings("this-escape")
     private volatile ErrorManager errorManager = defaultErrorManager();
 
     /**
@@ -584,6 +597,7 @@ public class MailHandler extends Handler {
      * @throws SecurityException if a security manager exists and the
      *                           caller does not have <code>LoggingPermission("control")</code>.
      */
+    @SuppressWarnings("this-escape")
     public MailHandler() {
         init((Properties) null);
     }
@@ -593,10 +607,12 @@ public class MailHandler extends Handler {
      * <code>LogManager</code> configuration properties but overrides the
      * <code>LogManager</code> capacity with the given capacity.
      *
-     * @param capacity of the internal buffer.
+     * @param capacity of the internal buffer. If less than one the default of
+     * 1000 is used.
      * @throws SecurityException        if a security manager exists and the
      *                                  caller does not have <code>LoggingPermission("control")</code>.
      */
+    @SuppressWarnings("this-escape")
     public MailHandler(final int capacity) {
         init((Properties) null);
         setCapacity0(capacity);
@@ -613,6 +629,7 @@ public class MailHandler extends Handler {
      * @throws SecurityException    if a security manager exists and the
      *                              caller does not have <code>LoggingPermission("control")</code>.
      */
+    @SuppressWarnings("this-escape")
     public MailHandler(Properties props) {
         init(props); //Must pass null or original object
     }
@@ -685,6 +702,8 @@ public class MailHandler extends Handler {
                 }
             } catch (final LinkageError JDK8152515) {
                 reportLinkageError(JDK8152515, ErrorManager.WRITE_FAILURE);
+            } catch (final ServiceConfigurationError sce) {
+                reportConfigurationError(sce, ErrorManager.WRITE_FAILURE);
             } finally {
                 releaseMutex();
             }
@@ -911,8 +930,8 @@ public class MailHandler extends Handler {
      */
     @Override
     public void close() {
+        checkAccess();
         try {
-            checkAccess(); //Ensure setLevel works before clearing the buffer.
             Message msg = null;
             synchronized (this) {
                 try {
@@ -920,6 +939,7 @@ public class MailHandler extends Handler {
                 } finally {  //Change level after formatting.
                     this.logLevel = Level.OFF;
                     this.disabledLevel = null; //free reference
+
                     /**
                      * The sign bit of the capacity is set to ensure that
                      * records that have passed isLoggable, but have yet to be
@@ -930,10 +950,10 @@ public class MailHandler extends Handler {
                         this.capacity = -this.capacity;
                     }
 
+                    //Only need room for one record after closed
                     //Ensure not inside a push.
                     if (size == 0 && data.length != 1) {
-                        this.data = new LogRecord[1];
-                        this.matched = new int[this.data.length];
+                        initLogRecords(1);
                     }
                 }
             }
@@ -943,6 +963,8 @@ public class MailHandler extends Handler {
             }
         } catch (final LinkageError JDK8152515) {
             reportLinkageError(JDK8152515, ErrorManager.CLOSE_FAILURE);
+        } catch (final ServiceConfigurationError sce) {
+            reportConfigurationError(sce, ErrorManager.CLOSE_FAILURE);
         }
     }
 
@@ -954,8 +976,10 @@ public class MailHandler extends Handler {
      * @see #setLevel(java.util.logging.Level)
      * @since Angus Mail 2.0.3
      */
-    public boolean isEnabled() {
-        return this.logLevel.intValue() != offValue; //Volatile read
+    public synchronized boolean isEnabled() {
+        //For a this-escape, capacity will be zero and level will be off.
+        //No need to check that construction completed.
+        return capacity > 0 && this.logLevel.intValue() != offValue;
     }
 
     /**
@@ -971,30 +995,19 @@ public class MailHandler extends Handler {
      * @see #isEnabled()
      * @since Angus Mail 2.0.3
      */
-    public void setEnabled(final boolean enabled) {
+    public synchronized void setEnabled(final boolean enabled) {
         checkAccess();
-        setEnabled0(enabled);
-    }
-
-    /**
-     * Used to enable or disable this handler.
-     *
-     * Pushes any buffered records to the email server as normal priority.
-     * The internal buffer is then cleared.
-     *
-     * @param enabled true to enable and false to disable.
-     * @since Angus Mail 2.0.3
-     */
-    private synchronized void setEnabled0(final boolean enabled) {
         if (this.capacity > 0) { //handler is open
-            this.push(false, ErrorManager.FLUSH_FAILURE);
+            if (this.size != 0) {
+                push(false, ErrorManager.FLUSH_FAILURE);
+            }
             if (enabled) {
-                if (disabledLevel != null) { //was disabled
+                if (this.disabledLevel != null) { //was disabled
                     this.logLevel = this.disabledLevel;
                     this.disabledLevel = null;
                 }
             } else {
-                if (disabledLevel == null) {
+                if (this.disabledLevel == null) {
                     this.disabledLevel = this.logLevel;
                     this.logLevel = Level.OFF;
                 }
@@ -1041,6 +1054,8 @@ public class MailHandler extends Handler {
      */
     @Override
     public Level getLevel() {
+        //For a this-escape, this value will be OFF.
+        //No need to check that construction completed.
         return logLevel; //Volatile access.
     }
 
@@ -1134,6 +1149,8 @@ public class MailHandler extends Handler {
      */
     @Override
     public synchronized String getEncoding() {
+        //For a this-escape, this value will be null.
+        //No need to check that construction completed.
         return this.encoding;
     }
 
@@ -1304,8 +1321,8 @@ public class MailHandler extends Handler {
      * @return the capacity.
      */
     public final synchronized int getCapacity() {
-        assert capacity != Integer.MIN_VALUE && capacity != 0 : capacity;
-        return Math.abs(capacity);
+        assert capacity != Integer.MIN_VALUE : capacity;
+        return capacity != 0 ? Math.abs(capacity) : DEFAULT_CAPACITY;
     }
 
     /**
@@ -1314,15 +1331,16 @@ public class MailHandler extends Handler {
      * Pushes any buffered records to the email server as normal priority.
      * The internal buffer is then cleared.
      *
-     * @param newCapacity the max number of records.
+     * @param newCapacity the max number of records. The default capacity of
+     * 1000 is used if the given capacity is less than one.
      * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
-     * @throws IllegalArgumentException is the new capacity is less than one.
      * @throws IllegalStateException if called from inside a push.
      * @see #flush()
      * @since Angus Mail 2.0.3
      */
     public final synchronized void setCapacity(int newCapacity) {
+        checkAccess();
         setCapacity0(newCapacity);
     }
 
@@ -1429,6 +1447,7 @@ public class MailHandler extends Handler {
      * @throws IllegalStateException if called from inside a push.
      */
     public final void setMailProperties(Properties props) {
+        checkAccess();
         if (props == null) {
             final String p = getClass().getName();
             props = parseProperties(
@@ -1450,13 +1469,18 @@ public class MailHandler extends Handler {
      * @since Angus Mail 2.0.3
      */
     private Properties copyOf(Properties props) {
-        Properties copy = (Properties) props.clone(); //Allow subclass
-        return Objects.requireNonNull(copy); //Broken subclass
+        //Allow subclasses however, check that clone contract was followed in
+        //that a non-null Properties object was returned.
+        //No need to perform reflexive test or exact class matching tests as
+        //that doesn't really cause any unexpected failures.
+        Properties copy = (Properties) props.clone();
+        return Objects.requireNonNull(copy,
+                props.getClass().getName());
     }
 
     /**
-     * A private hook to handle overrides when the public method is declared
-     * non final. See public method for details.
+     * A private hook to set and validate properties.
+     * See public method for details.
      *
      * @param props a safe properties object.
      * @return true if verification key was present.
@@ -1464,7 +1488,6 @@ public class MailHandler extends Handler {
      */
     private boolean setMailProperties0(Properties props) {
         Objects.requireNonNull(props);
-        checkAccess();
         Session settings;
         synchronized (this) {
             if (isWriting) {
@@ -1531,6 +1554,7 @@ public class MailHandler extends Handler {
      * @since Angus Mail 2.0.3
      */
     public final void setMailEntries(String entries) {
+        checkAccess();
         if (entries == null) {
             final String p = getClass().getName();
             entries = fromLogManager(p.concat(".mailEntries"));
@@ -1930,6 +1954,7 @@ public class MailHandler extends Handler {
      */
     @Override
     protected void reportError(String msg, Exception ex, int code) {
+        //For a this-escape, the error manager will be the default.
         try {
             if (msg != null) {
                 errorManager.error(Level.SEVERE.getName()
@@ -1937,19 +1962,31 @@ public class MailHandler extends Handler {
             } else {
                 errorManager.error((String) null, ex, code);
             }
-        } catch (RuntimeException | LinkageError GLASSFISH_21258) {
+        } catch (final RuntimeException | LinkageError GLASSFISH_21258) {
+            if (ex != null && GLASSFISH_21258 != ex) {
+                GLASSFISH_21258.addSuppressed(ex);
+            }
             reportLinkageError(GLASSFISH_21258, code);
+        } catch (final ServiceConfigurationError sce) {
+            if (ex != null) {
+                sce.addSuppressed(ex);
+            }
+            reportConfigurationError(sce, code);
         }
     }
 
     /**
      * Checks logging permissions if this handler has been sealed.
+     * Otherwise, this will check that this object was fully constructed.
+     *
      * @throws SecurityException if a security manager exists and the caller
      *                           does not have {@code LoggingPermission("control")}.
      */
     private void checkAccess() {
         if (sealed) {
             LogManagerProperties.checkLogManagerAccess();
+        } else {
+            throw new SecurityException("this-escape");
         }
     }
 
@@ -1976,7 +2013,8 @@ public class MailHandler extends Handler {
                 assert in.markSupported() : in.getClass().getName();
                 return URLConnection.guessContentTypeFromStream(in);
             } catch (final IOException IOE) {
-                reportError(IOE.getMessage(), IOE, ErrorManager.FORMAT_FAILURE);
+                reportError("Unable to guess content type",
+                        IOE, ErrorManager.FORMAT_FAILURE);
             }
         }
         return null; //text/plain
@@ -2095,8 +2133,39 @@ public class MailHandler extends Handler {
             } catch (final Exception e) {
                 reportError(toMsgString(e), ex, code);
             }
-        } catch (final LinkageError GLASSFISH_21258) {
+        } catch (LinkageError GLASSFISH_21258) {
+            if (ex != null) {
+                GLASSFISH_21258.addSuppressed(ex);
+            }
             reportLinkageError(GLASSFISH_21258, code);
+        } catch (ServiceConfigurationError sce) {
+            if (ex != null) {
+                sce.addSuppressed(ex);
+            }
+            reportConfigurationError(sce, code);
+        }
+    }
+
+    private void reportConfigurationError(Throwable t, int code) {
+        final Integer idx = MUTEX.get();
+        if (idx == null || idx > MUTEX_SERVICE) {
+            MUTEX.set(MUTEX_SERVICE);
+            try {
+                reportError("Unable to load dependencies",
+                        new IllegalStateException(t), code);
+            } catch (RuntimeException | ServiceConfigurationError
+                    | LinkageError e) {
+                if (t != null && e != t) {
+                   e.addSuppressed(t);
+                }
+                reportLinkageError(e, code);
+            } finally {
+                if (idx != null) {
+                    MUTEX.set(idx);
+                } else {
+                    MUTEX.remove();
+                }
+            }
         }
     }
 
@@ -2109,21 +2178,18 @@ public class MailHandler extends Handler {
      *
      * @param le   the linkage error or a RuntimeException.
      * @param code the ErrorManager code.
-     * @throws NullPointerException if error is null.
      * @since JavaMail 1.5.3
      */
     private void reportLinkageError(final Throwable le, final int code) {
-        if (le == null) {
-            throw new NullPointerException(String.valueOf(code));
-        }
-
+        assert le != null : code;
         final Integer idx = MUTEX.get();
         if (idx == null || idx > MUTEX_LINKAGE) {
             MUTEX.set(MUTEX_LINKAGE);
             try {
                 Thread.currentThread().getUncaughtExceptionHandler()
                         .uncaughtException(Thread.currentThread(), le);
-            } catch (RuntimeException | LinkageError ignore) {
+            } catch (RuntimeException | ServiceConfigurationError
+                    | LinkageError ignore) {
             } finally {
                 if (idx != null) {
                     MUTEX.set(idx);
@@ -2223,13 +2289,16 @@ public class MailHandler extends Handler {
      * @throws IllegalStateException if called from inside a push.
      */
     private synchronized void setCapacity0(int newCapacity) {
-        checkAccess();
-        if (newCapacity <= 0) {
-            newCapacity = 1000;
-        }
-
         if (isWriting) {
             throw new IllegalStateException();
+        }
+
+        if (this.capacity == 0) {
+           return;
+        }
+
+        if (newCapacity <= 0) {
+            newCapacity = DEFAULT_CAPACITY;
         }
 
         if (this.capacity < 0) { //If closed, remain closed.
@@ -2237,9 +2306,8 @@ public class MailHandler extends Handler {
         } else {
             this.push(false, ErrorManager.FLUSH_FAILURE);
             this.capacity = newCapacity;
-            if (this.data != null && this.data.length > newCapacity) {
-                this.data = Arrays.copyOf(data, newCapacity, LogRecord[].class);
-                this.matched = Arrays.copyOf(matched, newCapacity);
+            if (this.data.length > newCapacity) {
+                initLogRecords(1);
             }
         }
     }
@@ -2387,8 +2455,11 @@ public class MailHandler extends Handler {
             newCapacity = capacity;
         }
         assert len != capacity : len;
-        this.data = Arrays.copyOf(data, newCapacity, LogRecord[].class);
-        this.matched = Arrays.copyOf(matched, newCapacity);
+        final LogRecord[] d = Arrays.copyOf(data, newCapacity, LogRecord[].class);
+        final int[] m = Arrays.copyOf(matched, newCapacity);
+        //Ensure both arrays are created before assigning.
+        this.data = d;
+        this.matched = m;
     }
 
     /**
@@ -2402,21 +2473,18 @@ public class MailHandler extends Handler {
      * @see #sealed
      */
     private synchronized void init(final Properties props) {
-        assert this.errorManager != null;
-        final String p = getClass().getName();
-        this.mailProps = new Properties(); //ensure non-null on exception
-        final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
-        try {
-            this.contentTypes = FileTypeMap.getDefaultFileTypeMap();
-        } finally {
-            getAndSetContextClassLoader(ccl);
-        }
+        initLogRecords(0); //Ensure non-null even on exception.
+        LogManagerProperties.checkLogManagerAccess();
 
+        final String p = getClass().getName();
         //Assign any custom error manager first so it can detect all failures.
+        assert this.errorManager != null; //default set before custom object
         initErrorManager(fromLogManager(p.concat(".errorManager")));
-        initCapacity(fromLogManager(p.concat(".capacity")));
-        initLevel(fromLogManager(p.concat(".level")));
-        initEnabled(fromLogManager(p.concat(".enabled")));
+        int cap = parseCapacity(fromLogManager(p.concat(".capacity")));
+        Level lvl = parseLevel(fromLogManager(p.concat(".level")));
+        boolean enabled = parseEnabled(fromLogManager(p.concat(".enabled")));
+        initContentTypes();
+
         initFilter(fromLogManager(p.concat(".filter")));
         this.auth = newAuthenticator(fromLogManager(p.concat(".authenticator")));
 
@@ -2433,11 +2501,11 @@ public class MailHandler extends Handler {
         initAttachmentFilters(fromLogManager(p.concat(".attachment.filters")));
         initAttachmentNames(fromLogManager(p.concat(".attachment.names")));
 
-        //Verification of all of the MailHandler properties starts here
-        //That means setting new object members goes above this comment.
         //Entries are always parsed to report any errors.
         Properties entries = parseProperties(fromLogManager(p.concat(".mailEntries")));
-        sealed = true;
+
+        //Any new handler object members should be set above this line
+        String verify = fromLogManager(p.concat(".verify"));
         boolean verified;
         if (props != null) {
             //Given properties do not fallback to log manager.
@@ -2447,14 +2515,29 @@ public class MailHandler extends Handler {
             //.mailEntries should fallback to log manager when verify key not present.
             verified = setMailProperties0(entries);
         } else {
-            checkAccess();
             verified = false;
         }
 
-        if (!verified && fromLogManager(p.concat(".verify")) != null) {
-            verifySettings(initSession());
+        //Fallback to top level verify properties if needed.
+        if (!verified && verify != null) {
+            try {
+                verifySettings(initSession());
+            } catch (final RuntimeException re) {
+                reportError("Unable to verify", re, ErrorManager.OPEN_FAILURE);
+            } catch (final ServiceConfigurationError sce) {
+                reportConfigurationError(sce, ErrorManager.OPEN_FAILURE);
+            }
         }
         intern(); //Show verify warnings first.
+
+        //Mark the handler as fully constructed by setting these fields.
+        this.capacity = cap;
+        if (enabled) {
+            this.logLevel = lvl;
+        } else {
+            this.disabledLevel = lvl;
+        }
+        sealed = true;
     }
 
     /**
@@ -2471,26 +2554,18 @@ public class MailHandler extends Handler {
             Object canidate;
             Object result;
             final Map<Object, Object> seen = new HashMap<>();
-            try {
-                intern(seen, this.errorManager);
-            } catch (final SecurityException se) {
-                reportError(se.getMessage(), se, ErrorManager.OPEN_FAILURE);
+            intern(seen, this.errorManager);
+
+            canidate = this.filter;
+            result = intern(seen, canidate);
+            if (result != canidate && result instanceof Filter) {
+                this.filter = (Filter) result;
             }
 
-            try {
-                canidate = this.filter;
-                result = intern(seen, canidate);
-                if (result != canidate && result instanceof Filter) {
-                    this.filter = (Filter) result;
-                }
-
-                canidate = this.formatter;
-                result = intern(seen, canidate);
-                if (result != canidate && result instanceof Formatter) {
-                    this.formatter = (Formatter) result;
-                }
-            } catch (final SecurityException se) {
-                reportError(se.getMessage(), se, ErrorManager.OPEN_FAILURE);
+            canidate = this.formatter;
+            result = intern(seen, canidate);
+            if (result != canidate && result instanceof Formatter) {
+                this.formatter = (Formatter) result;
             }
 
             canidate = this.subjectFormatter;
@@ -2525,10 +2600,12 @@ public class MailHandler extends Handler {
                 }
             }
         } catch (final Exception skip) {
-            reportError(skip.getMessage(), skip, ErrorManager.OPEN_FAILURE);
+            reportError("Unable to deduplcate", skip, ErrorManager.OPEN_FAILURE);
         } catch (final LinkageError skip) {
-            reportError(skip.getMessage(), new InvocationTargetException(skip),
+            reportError("Unable to deduplcate", new InvocationTargetException(skip),
                     ErrorManager.OPEN_FAILURE);
+        } catch (final ServiceConfigurationError skip) {
+            reportConfigurationError(skip, ErrorManager.OPEN_FAILURE);
         }
     }
 
@@ -2664,7 +2741,7 @@ public class MailHandler extends Handler {
                     } catch (final SecurityException SE) {
                         throw SE; //Avoid catch all.
                     } catch (final Exception E) {
-                        reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+                        reportError(Integer.toString(i), E, ErrorManager.OPEN_FAILURE);
                     }
                 }
             }
@@ -2710,7 +2787,7 @@ public class MailHandler extends Handler {
                     } catch (final SecurityException SE) {
                         throw SE; //Avoid catch all.
                     } catch (final Exception E) {
-                        reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+                        reportError(Integer.toString(i), E, ErrorManager.OPEN_FAILURE);
                         a[i] = createSimpleFormatter();
                     }
                 } else {
@@ -2750,7 +2827,7 @@ public class MailHandler extends Handler {
                     } catch (final SecurityException SE) {
                         throw SE; //Avoid catch all.
                     } catch (final Exception E) {
-                        reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+                        reportError(Integer.toString(i), E, ErrorManager.OPEN_FAILURE);
                     }
                 } else {
                     a[i] = TailNameFormatter.of(toString(attachmentFormatters[i]));
@@ -2787,9 +2864,11 @@ public class MailHandler extends Handler {
                                | ClassCastException literalAuth) {
                     a = DefaultAuthenticator.of(name);
                 } catch (final Exception E) {
-                    reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
-                } catch (final LinkageError JDK8152515) {
-                   reportLinkageError(JDK8152515, ErrorManager.OPEN_FAILURE);
+                    reportError("Unable to create authenticator",
+                                E, ErrorManager.OPEN_FAILURE);
+                } catch (final LinkageError GLASSFISH_21258) {
+                    reportLinkageError(GLASSFISH_21258,
+                            ErrorManager.OPEN_FAILURE);
                 }
             } else { //Authenticator is installed to provide the user name.
                 a = DefaultAuthenticator.of(name);
@@ -2804,21 +2883,37 @@ public class MailHandler extends Handler {
      * @param nameOrNumber the level name or number.
      * @throws SecurityException    if not allowed.
      */
-    private void initLevel(final String nameOrNumber) {
+    private Level parseLevel(final String nameOrNumber) {
         assert Thread.holdsLock(this);
         assert disabledLevel == null : disabledLevel;
+        Level lvl = Level.WARNING;
         try {
             if (!isEmpty(nameOrNumber)) {
-                logLevel = Level.parse(nameOrNumber);
-            } else {
-                logLevel = Level.WARNING;
+                lvl = Level.parse(nameOrNumber);
             }
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
         } catch (final RuntimeException RE) {
-            reportError(RE.getMessage(), RE, ErrorManager.OPEN_FAILURE);
-            logLevel = Level.WARNING;
+            reportError(nameOrNumber, RE, ErrorManager.OPEN_FAILURE);
         }
+        return lvl;
+    }
+
+    /**
+     * Creates the internal collection to store log records.
+     * This method assumes that no log records are currently stored.
+     *
+     * @param records the number of records.
+     * @throws RuntimeException if records is negative.
+     * @since Angus Mail 2.0.3
+     */
+    private void initLogRecords(final int records) {
+        assert this.size == 0 : this.size;
+        final LogRecord[] d = new LogRecord[records];
+        final int[] m = new int[records];
+        //Ensure both arrays are created before assigning.
+        this.data = d;
+        this.matched = m;
     }
 
     /**
@@ -2833,31 +2928,32 @@ public class MailHandler extends Handler {
      * @see #setMailEntries(java.lang.String)
      */
     private Properties parseProperties(String entries) {
-        if (entries != null) {
-           final Properties props = new Properties();
-           if (!hasValue(entries)) {
-              return props;
-           }
-
-           /**
-            * The characters # and ! are used for comment lines in properties
-            * format.  The characters \r or \n are not allowed in WildFly form
-            * validation however, properties comment characters are allowed.
-            * Comment lines are useless for this handler therefore, "#!"
-            * characters are used to represent logical lines and are assumed to
-            * not be present together in a key or value.
-            */
-            try {
-                entries = entries.replace("#!", "\r\n");
-                //Dynamic cast used so byte code verifier doesn't load StringReader
-                props.load(Reader.class.cast(new StringReader(entries)));
-            } catch (IOException | RuntimeException ex) {
-                reportError(entries, ex, ErrorManager.OPEN_FAILURE);
-                //Allow a partial load of properties to be set
-            }
-            return props;
+        if (entries == null) {
+            return null;
         }
-        return null;
+
+        final Properties props = new Properties();
+        if (!hasValue(entries)) {
+           return props;
+        }
+
+        /**
+         * The characters # and ! are used for comment lines in properties
+         * format.  The characters \r or \n are not allowed in WildFly form
+         * validation however, properties comment characters are allowed.
+         * Comment lines are useless for this handler therefore, "#!"
+         * characters are used to represent logical lines and are assumed to
+         * not be present together in a key or value.
+         */
+        try {
+            entries = entries.replace("#!", "\r\n");
+            //Dynamic cast used so byte code verifier doesn't load StringReader
+            props.load(Reader.class.cast(new StringReader(entries)));
+        } catch (IOException | RuntimeException ex) {
+            reportError(entries, ex, ErrorManager.OPEN_FAILURE);
+            //Allow a partial load of properties to be set
+        }
+        return props;
     }
 
     /**
@@ -2867,14 +2963,10 @@ public class MailHandler extends Handler {
      * @param enabled the string false will only disable this handler.
      * @since Angus Mail 2.0.3
      */
-    private void initEnabled(final String enabled) {
+    private boolean parseEnabled(final String enabled) {
         assert Thread.holdsLock(this);
-        assert logLevel != null;
-        assert capacity != 0;
         //By default the Handler is enabled so only need to disable it on init.
-        if (hasValue(enabled) && !Boolean.parseBoolean(enabled)) {
-            setEnabled0(false);
-        }
+        return !hasValue(enabled) || Boolean.parseBoolean(enabled);
     }
 
     /**
@@ -2894,7 +2986,8 @@ public class MailHandler extends Handler {
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
         } catch (final Exception E) {
-            reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+            reportError("Unable to create filter",
+                            E, ErrorManager.OPEN_FAILURE);
         }
     }
 
@@ -2904,27 +2997,23 @@ public class MailHandler extends Handler {
      * @param value the capacity value.
      * @throws SecurityException    if not allowed.
      */
-    private void initCapacity(final String value) {
+    private int parseCapacity(final String value) {
         assert Thread.holdsLock(this);
-        final int DEFAULT_CAPACITY = 1000;
+        int cap = 0;
         try {
             if (value != null) {
-                this.setCapacity0(Integer.parseInt(value));
-            } else {
-                this.setCapacity0(DEFAULT_CAPACITY);
+                cap = Integer.parseInt(value);
             }
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
         } catch (final RuntimeException RE) {
-            reportError(RE.getMessage(), RE, ErrorManager.OPEN_FAILURE);
+            reportError("Unable to set capacity", RE, ErrorManager.OPEN_FAILURE);
         }
 
-        if (capacity <= 0) {
-            capacity = DEFAULT_CAPACITY;
+        if (cap <= 0) {
+            cap = DEFAULT_CAPACITY;
         }
-
-        this.data = new LogRecord[1];
-        this.matched = new int[this.data.length];
+        return cap;
     }
 
     /**
@@ -2940,7 +3029,7 @@ public class MailHandler extends Handler {
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
         } catch (UnsupportedEncodingException | RuntimeException UEE) {
-            reportError(UEE.getMessage(), UEE, ErrorManager.OPEN_FAILURE);
+            reportError(e, UEE, ErrorManager.OPEN_FAILURE);
         }
     }
 
@@ -2971,8 +3060,8 @@ public class MailHandler extends Handler {
      * @param name the error manager class name.
      * @throws SecurityException    if not allowed.
      */
+    @SuppressWarnings("this-escape")
     private void initErrorManager(final String name) {
-        assert Thread.holdsLock(this);
         try {
             if (name != null) {
                 setErrorManager0(LogManagerProperties.newErrorManager(name));
@@ -2980,7 +3069,8 @@ public class MailHandler extends Handler {
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
         } catch (final Exception E) {
-            reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+            reportError("Unable to create error manager",
+                        E, ErrorManager.OPEN_FAILURE);
         }
     }
 
@@ -3008,7 +3098,8 @@ public class MailHandler extends Handler {
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
         } catch (final Exception E) {
-            reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+            reportError("Unable to create formatter",
+                            E, ErrorManager.OPEN_FAILURE);
             formatter = createSimpleFormatter();
         }
     }
@@ -3030,7 +3121,7 @@ public class MailHandler extends Handler {
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
         } catch (final Exception E) {
-            reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+            reportError("Unable to create comparator", E, ErrorManager.OPEN_FAILURE);
         }
     }
 
@@ -3042,8 +3133,31 @@ public class MailHandler extends Handler {
             } else {
                 IllegalArgumentException E = new IllegalArgumentException(
                             "No comparator to reverse.");
-                reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+                reportError(reverse, E, ErrorManager.OPEN_FAILURE);
             }
+        }
+    }
+
+    /**
+     * Gets and assigns the content types for this handler.
+     *
+     * @since Angus Mail 2.0.3
+     */
+    private void initContentTypes() {
+        try {
+            Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+            try {
+                this.contentTypes = FileTypeMap.getDefaultFileTypeMap();
+            } finally { //reset ccl before reporting errors
+                getAndSetContextClassLoader(ccl);
+            }
+        } catch (final RuntimeException re) {
+            reportError("Unable to get default FileTypeMap",
+                        re, ErrorManager.OPEN_FAILURE);
+        } catch (final LinkageError GLASSFISH_21258) {
+            reportLinkageError(GLASSFISH_21258, ErrorManager.OPEN_FAILURE);
+        } catch (final ServiceConfigurationError sce) {
+            reportConfigurationError(sce, ErrorManager.OPEN_FAILURE);
         }
     }
 
@@ -3062,7 +3176,7 @@ public class MailHandler extends Handler {
                 this.pushLevel = Level.OFF;
             }
         } catch (final RuntimeException RE) {
-            reportError(RE.getMessage(), RE, ErrorManager.OPEN_FAILURE);
+            reportError("Unable to parse push level", RE, ErrorManager.OPEN_FAILURE);
         }
 
         if (this.pushLevel == null) {
@@ -3087,7 +3201,7 @@ public class MailHandler extends Handler {
         } catch (final SecurityException SE) {
             throw SE; //Avoid catch all.
         } catch (final Exception E) {
-            reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+            reportError("Unable to create push filter", E, ErrorManager.OPEN_FAILURE);
         }
     }
 
@@ -3117,7 +3231,7 @@ public class MailHandler extends Handler {
                 this.subjectFormatter = TailNameFormatter.of(name);
             } catch (final Exception E) {
                 this.subjectFormatter = TailNameFormatter.of(name);
-                reportError(E.getMessage(), E, ErrorManager.OPEN_FAILURE);
+                reportError("Unable to create subject formatter", E, ErrorManager.OPEN_FAILURE);
             }
         } else { //User has forced empty or literal null.
             this.subjectFormatter = TailNameFormatter.of(name);
@@ -3188,6 +3302,8 @@ public class MailHandler extends Handler {
                 }
             } catch (final LinkageError JDK8152515) {
                 reportLinkageError(JDK8152515, code);
+            } catch (final ServiceConfigurationError sce) {
+                reportConfigurationError(sce, code);
             } finally {
                 releaseMutex();
             }
@@ -3238,7 +3354,7 @@ public class MailHandler extends Handler {
                     }
                 }
             } catch (final RuntimeException RE) {
-                reportError(RE.getMessage(), RE, ErrorManager.FORMAT_FAILURE);
+                reportError(comparator.toString(), RE, ErrorManager.FORMAT_FAILURE);
             }
         }
     }
@@ -3252,6 +3368,8 @@ public class MailHandler extends Handler {
      * @return null if there are no records or is currently in a push.
      * Otherwise a new message is created with a formatted message and
      * attached session.
+     * @throws ServiceConfigurationError  if the session provider fails to
+     * lookup the provider implementation.
      */
     private Message writeLogRecords(final int code) {
         try {
@@ -3269,7 +3387,7 @@ public class MailHandler extends Handler {
                 }
             }
         } catch (final Exception e) {
-            reportError(e.getMessage(), e, code);
+            reportError("Unable to create message", e, code);
         }
         return null;
     }
@@ -3284,6 +3402,8 @@ public class MailHandler extends Handler {
      * @throws MessagingException if there is a problem.
      * @throws IOException        if there is a problem.
      * @throws RuntimeException   if there is an unexpected problem.
+     * @throws ServiceConfigurationError  if the session provider fails to
+     * lookup the provider implementation.
      * @since JavaMail 1.5.3
      */
     private Message writeLogRecords0() throws Exception {
@@ -3465,6 +3585,8 @@ public class MailHandler extends Handler {
             }
         } catch (final LinkageError JDK8152515) {
             reportLinkageError(JDK8152515, ErrorManager.OPEN_FAILURE);
+        } catch (final ServiceConfigurationError sce) {
+            reportConfigurationError(sce, ErrorManager.OPEN_FAILURE);
         }
         return false;
     }
@@ -3907,10 +4029,17 @@ public class MailHandler extends Handler {
      */
     private Session updateSession() {
         assert Thread.holdsLock(this);
-        final Session settings;
+        Session settings = null;
         if (mailProps.getProperty("verify") != null) {
-            settings = initSession();
-            assert settings == session : session;
+            try {
+                settings = initSession();
+                assert settings == session : session;
+            } catch (final RuntimeException re) {
+                reportError("Unable to update session",
+                            re, ErrorManager.OPEN_FAILURE);
+            } catch (final ServiceConfigurationError sce) {
+                reportConfigurationError(sce, ErrorManager.OPEN_FAILURE);
+            }
         } else {
             session = null; //Remove old session.
             settings = null;
@@ -3922,6 +4051,10 @@ public class MailHandler extends Handler {
      * Creates a session using a proxy properties object.
      *
      * @return the session that was created and assigned.
+     * @throws IllegalStateException if the session provider fails to lookup the
+     * provider implementation.
+     * @throws ServiceConfigurationError  if the session provider fails to
+     * lookup the provider implementation.
      */
     private Session initSession() {
         assert Thread.holdsLock(this);
@@ -3963,10 +4096,17 @@ public class MailHandler extends Handler {
         try {
             msg.setSentDate(new java.util.Date());
         } catch (final MessagingException ME) {
-            reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+            reportError("Sent date not set", ME, ErrorManager.FORMAT_FAILURE);
         }
     }
 
+    /**
+     * Creates a new MimeMultipart.
+     *
+     * @return a new MimeMultipart
+     * @throws MessagingException if there is a problem.
+     * @since Angus Mail 2.0.3
+     */
     private MimeMultipart createMultipart() throws MessagingException {
         assert Thread.holdsLock(this);
         final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
@@ -4122,7 +4262,7 @@ public class MailHandler extends Handler {
             final String old = part.getFileName();
             part.setFileName(old != null ? old.concat(chunk) : chunk);
         } catch (final MessagingException ME) {
-            reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+            reportError("File name truncated", ME, ErrorManager.FORMAT_FAILURE);
         }
     }
 
@@ -4159,7 +4299,7 @@ public class MailHandler extends Handler {
             ((MimeMessage) msg).setSubject(old != null ? old.concat(chunk)
                     : chunk, MimeUtility.mimeCharset(charset));
         } catch (final MessagingException ME) {
-            reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+            reportError("Subject truncated", ME, ErrorManager.FORMAT_FAILURE);
         }
     }
 
@@ -4239,7 +4379,8 @@ public class MailHandler extends Handler {
                 }
             }
         } catch (final MessagingException ME) {
-            reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+            reportError("Content-Language not set",
+                    ME, ErrorManager.FORMAT_FAILURE);
         }
     }
 
@@ -4258,7 +4399,8 @@ public class MailHandler extends Handler {
                 p.setHeader("Accept-Language", lang);
             }
         } catch (final MessagingException ME) {
-            reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+            reportError("Accept-Language not set",
+                    ME, ErrorManager.FORMAT_FAILURE);
         }
     }
 
@@ -4334,7 +4476,7 @@ public class MailHandler extends Handler {
         try {
             return f.getHead(this);
         } catch (final RuntimeException RE) {
-            reportError(RE.getMessage(), RE, ErrorManager.FORMAT_FAILURE);
+            reportError("head", RE, ErrorManager.FORMAT_FAILURE);
             return "";
         }
     }
@@ -4350,7 +4492,7 @@ public class MailHandler extends Handler {
         try {
             return f.format(r);
         } catch (final RuntimeException RE) {
-            reportError(RE.getMessage(), RE, ErrorManager.FORMAT_FAILURE);
+            reportError("format", RE, ErrorManager.FORMAT_FAILURE);
             return "";
         }
     }
@@ -4366,7 +4508,7 @@ public class MailHandler extends Handler {
         try {
             return f.getTail(this);
         } catch (final RuntimeException RE) {
-            reportError(RE.getMessage(), RE, ErrorManager.FORMAT_FAILURE);
+            reportError("tail", RE, ErrorManager.FORMAT_FAILURE);
             return def;
         }
     }
@@ -4387,7 +4529,7 @@ public class MailHandler extends Handler {
                 try {
                     value = MimeUtility.encodeText(k.getName());
                 } catch (final UnsupportedEncodingException E) {
-                    reportError(E.getMessage(), E, ErrorManager.FORMAT_FAILURE);
+                    reportError(k.getName(), E, ErrorManager.FORMAT_FAILURE);
                     value = k.getName().replaceAll("[^\\x00-\\x7F]", "\uu001A");
                 }
                 value = MimeUtility.fold(10, mail.getName() + " using the "
@@ -4395,7 +4537,8 @@ public class MailHandler extends Handler {
             }
             msg.setHeader("X-Mailer", value);
         } catch (final MessagingException ME) {
-            reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+            reportError("X-Mailer not set",
+                        ME, ErrorManager.FORMAT_FAILURE);
         }
     }
 
@@ -4410,7 +4553,8 @@ public class MailHandler extends Handler {
             msg.setHeader("Priority", "urgent");
             msg.setHeader("X-Priority", "2"); //High
         } catch (final MessagingException ME) {
-            reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+            reportError("Importance and priority not set",
+                    ME, ErrorManager.FORMAT_FAILURE);
         }
     }
 
@@ -4429,7 +4573,8 @@ public class MailHandler extends Handler {
         try {
             msg.setHeader("Incomplete-Copy", "");
         } catch (final MessagingException ME) {
-            reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+            reportError("Incomplete-Copy not set",
+                    ME, ErrorManager.FORMAT_FAILURE);
         }
     }
 
@@ -4445,7 +4590,8 @@ public class MailHandler extends Handler {
             try { //RFC 3834 (5.2)
                 msg.setHeader("auto-submitted", "auto-generated");
             } catch (final MessagingException ME) {
-                reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+                reportError("auto-submitted not set",
+                            ME, ErrorManager.FORMAT_FAILURE);
             }
         }
     }
@@ -4472,7 +4618,8 @@ public class MailHandler extends Handler {
                 //to fail.  Assume the user wants to omit the from address
                 //header.
             } catch (final MessagingException ME) {
-                reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+                reportError("From address not set",
+                            ME, ErrorManager.FORMAT_FAILURE);
                 setDefaultFrom(msg);
             }
         } else {
@@ -4489,7 +4636,8 @@ public class MailHandler extends Handler {
         try {
             msg.setFrom();
         } catch (final MessagingException ME) {
-            reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+            reportError("Default from address not set",
+                        ME, ErrorManager.FORMAT_FAILURE);
         }
     }
 
@@ -4518,7 +4666,7 @@ public class MailHandler extends Handler {
                 }
             }
         } catch (MessagingException | RuntimeException ME) {
-            reportError("Unable to compute a default recipient.",
+            reportError("Default recipient not set",
                     ME, ErrorManager.FORMAT_FAILURE);
         }
     }
@@ -4537,7 +4685,8 @@ public class MailHandler extends Handler {
                     msg.setReplyTo(address);
                 }
             } catch (final MessagingException ME) {
-                reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+                reportError("Reply-To address not set",
+                            ME, ErrorManager.FORMAT_FAILURE);
             }
         }
     }
@@ -4563,7 +4712,7 @@ public class MailHandler extends Handler {
                     }
                 }
             } catch (final MessagingException ME) {
-                reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+                reportError("Sender not set", ME, ErrorManager.FORMAT_FAILURE);
             }
         }
     }
@@ -4600,7 +4749,7 @@ public class MailHandler extends Handler {
                     msg.setRecipients(type, address);
                 }
             } catch (final MessagingException ME) {
-                reportError(ME.getMessage(), ME, ErrorManager.FORMAT_FAILURE);
+                reportError(key, ME, ErrorManager.FORMAT_FAILURE);
             }
         }
         return containsKey;
@@ -4734,7 +4883,7 @@ public class MailHandler extends Handler {
         } catch (SecurityException | NoSuchMethodException
                  | LinkageError ignore) {
         } catch (final Exception ex) {
-            reportError(s.toString(), ex, ErrorManager.OPEN_FAILURE);
+            reportError(String.valueOf(s), ex, ErrorManager.OPEN_FAILURE);
         }
         return null;
     }
