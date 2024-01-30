@@ -2146,6 +2146,13 @@ public class MailHandler extends Handler {
         }
     }
 
+    /**
+     * Report a ServiceConfigurationError to the error manager.
+     *
+     * @param t the service configuration error.
+     * @param code the error manager reason code.
+     * @since Angus Mail 2.0.3
+     */
     private void reportConfigurationError(Throwable t, int code) {
         final Integer idx = MUTEX.get();
         if (idx == null || idx > MUTEX_SERVICE) {
@@ -2288,9 +2295,8 @@ public class MailHandler extends Handler {
     /**
      * Sets the capacity for this handler.
      *
-     * @param newCapacity the max number of records.
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
+     * @param newCapacity the max number of records. Default capacity is used if
+     * the value is negative.
      * @throws IllegalStateException if called from inside a push.
      */
     private synchronized void setCapacity0(int newCapacity) {
@@ -4209,7 +4215,7 @@ public class MailHandler extends Handler {
      * Gets a class name represents the behavior of the formatter.
      * The class name may not be assignable to a Formatter.
      *
-     * @param f the formatter.
+     * @param f the formatter or null.
      * @return a class name that represents the given formatter.
      * @since JavaMail 1.4.5
      */
