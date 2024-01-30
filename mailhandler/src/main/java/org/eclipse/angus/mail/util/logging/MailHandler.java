@@ -1954,7 +1954,8 @@ public class MailHandler extends Handler {
      */
     @Override
     protected void reportError(String msg, Exception ex, int code) {
-        //For a this-escape, the error manager will be the default.
+        //This method is not protected from a this-escape.
+        //The error manager will be non-null in any case.
         try {
             if (msg != null) {
                 errorManager.error(Level.SEVERE.getName()
@@ -2186,6 +2187,11 @@ public class MailHandler extends Handler {
         if (idx == null || idx > MUTEX_LINKAGE) {
             MUTEX.set(MUTEX_LINKAGE);
             try {
+                //Per the API docs this is not how uncaught exception handler
+                //should be used. However, the throwable that we are receiving
+                //here is happening only when the JVM is shutting down.
+                //This will only execute on unpatched systems.
+                //See tickets listed in API docs above.
                 Thread.currentThread().getUncaughtExceptionHandler()
                         .uncaughtException(Thread.currentThread(), le);
             } catch (RuntimeException | ServiceConfigurationError
@@ -4204,10 +4210,13 @@ public class MailHandler extends Handler {
      *
      * @param f the formatter.
      * @return a class name that represents the given formatter.
-     * @throws NullPointerException if the parameter is null.
      * @since JavaMail 1.4.5
      */
     private String getClassId(final Formatter f) {
+        if (f == null) {
+           return "null";
+        }
+
         if (f instanceof TailNameFormatter) {
             return String.class.getName(); //Literal string.
         } else {
