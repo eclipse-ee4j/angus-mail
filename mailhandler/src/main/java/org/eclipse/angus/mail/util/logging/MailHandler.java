@@ -939,7 +939,6 @@ public class MailHandler extends Handler {
                 } finally {  //Change level after formatting.
                     this.logLevel = Level.OFF;
                     this.disabledLevel = null; //free reference
-
                     /**
                      * The sign bit of the capacity is set to ensure that
                      * records that have passed isLoggable, but have yet to be
