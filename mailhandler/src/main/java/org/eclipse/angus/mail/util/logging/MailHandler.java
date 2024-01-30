@@ -4042,6 +4042,8 @@ public class MailHandler extends Handler {
             } catch (final RuntimeException re) {
                 reportError("Unable to update session",
                             re, ErrorManager.OPEN_FAILURE);
+            } catch (final LinkageError GLASSFISH_21258) {
+                reportLinkageError(GLASSFISH_21258, ErrorManager.OPEN_FAILURE);
             } catch (final ServiceConfigurationError sce) {
                 reportConfigurationError(sce, ErrorManager.OPEN_FAILURE);
             }
