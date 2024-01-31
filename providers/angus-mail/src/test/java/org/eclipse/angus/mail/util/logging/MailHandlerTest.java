@@ -1533,6 +1533,145 @@ public class MailHandlerTest extends AbstractLogging {
         instance.close();
     }
 
+    private static final class ExploitHandler extends MailHandler {
+        private static ExploitHandler INSTANCE;
+
+        public static ExploitHandler getInstance() throws Exception {
+            final Class<?> lock = ExploitHandler.class;
+            synchronized (lock) {
+                try {
+                    new ExploitHandler();
+                } catch (Throwable ignore) {
+                }
+
+                for (int i = 0; i < 100; ++i) {
+                    if (INSTANCE == null) {
+                        System.gc();
+                        System.runFinalization();
+                        lock.wait(10);
+                    } else {
+                        break;
+                    }
+                }
+
+                Assume.assumeNotNull(INSTANCE);
+                return INSTANCE;
+            }
+        }
+
+        @Override
+        public String getEncoding(){
+            throw new Error();
+        }
+
+        @Override
+        public Level getLevel() {
+            return Level.ALL;
+        }
+
+        @Override
+        public boolean isLoggable(LogRecord record) {
+            assertEquals(Level.OFF, super.getLevel());
+            assertNull(super.getFilter());
+            assertEquals(0, super.getAttachmentFilters().length);
+            return true;
+        }
+
+        @Deprecated
+        @SuppressWarnings("override")
+        protected void finalize() throws Throwable {
+            final Class<?> lock = ExploitHandler.class;
+            synchronized (lock) {
+                INSTANCE = this;
+                lock.notify();
+            }
+        }
+    }
+
+    @Test
+    public void testThisExcape() throws Exception {
+        final String p = ExploitHandler.class.getName();
+        final LogManager manager = LogManager.getLogManager();
+        final Properties props = createInitProperties(p);
+        props.put(p.concat(".authenticator"), "password");
+        props.setProperty(p.concat(".verify"), "local");
+
+        read(manager, props);
+        try {
+            MailHandler h = ExploitHandler.getInstance();
+            try {
+                Authenticator a = h.getAuthenticator();
+                fail(String.valueOf(a));
+            } catch (SecurityException expect) {
+                assertEquals("this-escape", expect.getMessage());
+            }
+
+            try {
+                h.setAuthenticator((Authenticator) null);
+                fail();
+            } catch (SecurityException expect) {
+                assertEquals("this-escape", expect.getMessage());
+            }
+
+            try {
+                h.setAuthenticator(new char[0]);
+                fail();
+            } catch (SecurityException expect) {
+                assertEquals("this-escape", expect.getMessage());
+            }
+
+            try {
+                h.setAuthentication((String) null);
+                fail();
+            } catch (SecurityException expect) {
+                assertEquals("this-escape", expect.getMessage());
+            }
+
+            try {
+                Properties mail = h.getMailProperties();
+                fail(mail.toString());
+            } catch (SecurityException expect) {
+                assertEquals("this-escape", expect.getMessage());
+            }
+
+            try {
+                h.setMailProperties(new Properties());
+                fail();
+            } catch (SecurityException expect) {
+                assertEquals("this-escape", expect.getMessage());
+            }
+            
+            try {
+                ErrorManager em = h.getErrorManager();
+                fail(String.valueOf(em));
+            } catch (SecurityException expect) {
+                assertEquals("this-escape", expect.getMessage());
+            }
+
+            try {
+                h.setCapacity(1);
+                fail();
+            } catch (SecurityException expect) {
+                assertEquals("this-escape", expect.getMessage());
+            }
+
+            for (int i = 0; i < 5000; ++i) {
+                LogRecord r = new LogRecord(Level.SEVERE, "");
+                assertTrue(h.isLoggable(r));
+                h.publish(r);
+            }
+
+            try {
+                h.close();
+                fail();
+            } catch(SecurityException expect) {
+                assertEquals("this-escape", expect.getMessage());
+            }
+        } finally {
+            manager.reset();
+        }
+    }
+
     @Test
     public void testErrorManager() {
         MailHandler h = new MailHandler();

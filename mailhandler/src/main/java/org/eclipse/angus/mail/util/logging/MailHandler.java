@@ -649,6 +649,9 @@ public class MailHandler extends Handler {
      */
     @Override
     public boolean isLoggable(final LogRecord record) {
+        //For a this-escape, level will be off.
+        //Unless subclass is known, the filter will be null
+        //and the attachment filters will be an empty array.
         if (record == null) { //JDK-8233979
             return false;
         }
