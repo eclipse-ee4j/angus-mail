@@ -722,6 +722,9 @@ public class MailHandler extends Handler {
         Message msg;
         boolean priority;
         synchronized (this) {
+            //No need to check for sealed as long as the init method ensures
+            //that data.length and capacity are both zero until end of init().
+            //size is always zero on construction.
             if (size == data.length && size < capacity) {
                 grow();
             }
@@ -1983,7 +1986,7 @@ public class MailHandler extends Handler {
      *                           does not have {@code LoggingPermission("control")}.
      */
     private void checkAccess() {
-        if (sealed) {
+        if (this.sealed) {
             LogManagerProperties.checkLogManagerAccess();
         } else {
             throw new SecurityException("this-escape");
@@ -2304,7 +2307,7 @@ public class MailHandler extends Handler {
             throw new IllegalStateException();
         }
 
-        if (this.capacity == 0) {
+        if (!this.sealed || this.capacity == 0) {
            return;
         }
 
@@ -2315,7 +2318,7 @@ public class MailHandler extends Handler {
         if (this.capacity < 0) { //If closed, remain closed.
             this.capacity = -newCapacity;
         } else {
-            this.push(false, ErrorManager.FLUSH_FAILURE);
+            push(false, ErrorManager.FLUSH_FAILURE);
             this.capacity = newCapacity;
             if (this.data.length > newCapacity) {
                 initLogRecords(1);
@@ -2448,9 +2451,9 @@ public class MailHandler extends Handler {
     private void reset() {
         assert Thread.holdsLock(this);
         if (size < data.length) {
-            Arrays.fill(data, 0, size, null);
+            Arrays.fill(data, 0, size, (LogRecord) null);
         } else {
-            Arrays.fill(data, null);
+            Arrays.fill(data, (LogRecord) null);
         }
         this.size = 0;
     }
@@ -2484,7 +2487,9 @@ public class MailHandler extends Handler {
      * @see #sealed
      */
     private synchronized void init(final Properties props) {
-        initLogRecords(0); //Ensure non-null even on exception.
+        //Ensure non-null even on exception.
+        //Zero value allows publish to not check for this-escape.
+        initLogRecords(0);
         LogManagerProperties.checkLogManagerAccess();
 
         final String p = getClass().getName();
@@ -3097,7 +3102,6 @@ public class MailHandler extends Handler {
             if (hasValue(name)) {
                 final Formatter f
                         = LogManagerProperties.newFormatter(name);
-                assert f != null;
                 if (f instanceof TailNameFormatter == false) {
                     formatter = f;
                 } else {
@@ -3319,7 +3323,7 @@ public class MailHandler extends Handler {
                 releaseMutex();
             }
         } else {
-            reportUnPublishedError(null);
+            reportUnPublishedError((LogRecord) null);
         }
     }
 
@@ -3889,6 +3893,8 @@ public class MailHandler extends Handler {
         if (abort != null) {
             try {
                 try {
+                    //The abort message is non-null at this point so if any
+                    //NPE is thrown then it was due to the call to saveChanges.
                     abort.saveChanges();
                 } catch (final NullPointerException xferEncoding) {
                     //Workaround GNU JavaMail bug in MimeUtility.getEncoding
@@ -4221,7 +4227,7 @@ public class MailHandler extends Handler {
      */
     private String getClassId(final Formatter f) {
         if (f == null) {
-           return "null";
+           return "no formatter";
         }
 
         if (f instanceof TailNameFormatter) {
@@ -4362,7 +4368,8 @@ public class MailHandler extends Handler {
         try {
             String lang = LogManagerProperties.toLanguageTag(l);
             if (lang.length() != 0) {
-                String header = p.getHeader("Content-Language", null);
+                String header = p.getHeader("Content-Language",
+                        (String) null);
                 if (isEmpty(header)) {
                     p.setHeader("Content-Language", lang);
                 } else if (!header.equalsIgnoreCase(lang)) {
