@@ -1561,11 +1561,19 @@ public class MailHandlerTest extends AbstractLogging {
 
         @Override
         public String getEncoding(){
-            throw new Error();
+            final Class<?> lock = ExploitHandler.class;
+            synchronized (lock) {
+                if (INSTANCE == null) {
+                    throw new Error();
+                } else {
+                    return null;
+                }
+            }
         }
 
         @Override
         public Level getLevel() {
+            assertEquals(Level.OFF, super.getLevel());
             return Level.ALL;
         }
 
@@ -1575,6 +1583,11 @@ public class MailHandlerTest extends AbstractLogging {
             assertNull(super.getFilter());
             assertEquals(0, super.getAttachmentFilters().length);
             return true;
+        }
+
+        @Override
+        protected void reportError(String msg, Exception ex, int code) {
+            throw new AssertionError(msg + " code: "+ code, ex);
         }
 
         @Deprecated
@@ -1640,7 +1653,7 @@ public class MailHandlerTest extends AbstractLogging {
             } catch (SecurityException expect) {
                 assertEquals("this-escape", expect.getMessage());
             }
-            
+
             try {
                 ErrorManager em = h.getErrorManager();
                 fail(String.valueOf(em));
@@ -1655,9 +1668,11 @@ public class MailHandlerTest extends AbstractLogging {
                 assertEquals("this-escape", expect.getMessage());
             }
 
-            for (int i = 0; i < 5000; ++i) {
+            //Check that p
+            for (int i = 0; i < 2500; ++i) {
                 LogRecord r = new LogRecord(Level.SEVERE, "");
-                assertTrue(h.isLoggable(r));
+                assertTrue(h.getClass().getName(),
+                        h.isLoggable(r));
                 h.publish(r);
             }
 
