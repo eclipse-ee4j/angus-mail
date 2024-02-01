@@ -324,15 +324,16 @@ public class MailHandlerTest extends AbstractLogging {
             ((ClassLoaderThread) clt).secure = false;
         }
 
-        assert em != null;
+        boolean fail = false;
         for (Exception exception : em.exceptions) {
             Throwable t = exception;
             if (t instanceof MessagingException == false) {
                 dump(t);
-                fail(t.toString());
+                fail = true;
             }
         }
         assertFalse(em.exceptions.isEmpty());
+        assertFalse(fail);
     }
 
     @Test
@@ -413,14 +414,16 @@ public class MailHandlerTest extends AbstractLogging {
             manager.reset();
         }
 
-        assert em != null;
+        boolean fail = false;
         for (Exception exception : em.exceptions) {
             Throwable t = exception;
             if (t instanceof MessagingException == false) {
                 dump(t);
+                fail = true;
             }
         }
         assertFalse(em.exceptions.isEmpty());
+        assertFalse(fail);
     }
 
     @Test
@@ -477,14 +480,16 @@ public class MailHandlerTest extends AbstractLogging {
             ((ClassLoaderThread) clt).secure = false;
         }
 
-        assert em != null;
+        boolean fail = false;
         for (Exception exception : em.exceptions) {
             Throwable t = exception;
             if (t instanceof MessagingException == false) {
                 dump(t);
+                fail = true;
             }
         }
         assertFalse(em.exceptions.isEmpty());
+        assertFalse(fail);
     }
 
     @Test
