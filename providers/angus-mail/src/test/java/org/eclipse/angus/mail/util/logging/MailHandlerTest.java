@@ -79,6 +79,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.logging.ConsoleHandler;
@@ -1533,15 +1534,16 @@ public class MailHandlerTest extends AbstractLogging {
         instance.close();
     }
 
-    private static final class ExploitHandler extends MailHandler {
-        private static ExploitHandler INSTANCE;
+    private static final class FinalizerHandler extends MailHandler {
+        private static FinalizerHandler INSTANCE;
 
-        public static ExploitHandler getInstance() throws Exception {
-            final Class<?> lock = ExploitHandler.class;
+        public static FinalizerHandler getInstance() throws Exception {
+            final Class<?> lock = FinalizerHandler.class;
             synchronized (lock) {
                 try {
-                    new ExploitHandler();
-                } catch (Throwable ignore) {
+                    FinalizerHandler fh = new FinalizerHandler();
+                    throw new AssertionError(fh);
+                } catch (UnknownError ignore) {
                 }
 
                 for (int i = 0; i < 100; ++i) {
@@ -1561,10 +1563,10 @@ public class MailHandlerTest extends AbstractLogging {
 
         @Override
         public String getEncoding(){
-            final Class<?> lock = ExploitHandler.class;
+            final Class<?> lock = FinalizerHandler.class;
             synchronized (lock) {
                 if (INSTANCE == null) {
-                    throw new Error();
+                    throw new UnknownError();
                 } else {
                     return null;
                 }
@@ -1593,7 +1595,7 @@ public class MailHandlerTest extends AbstractLogging {
         @Deprecated
         @SuppressWarnings("override")
         protected void finalize() throws Throwable {
-            final Class<?> lock = ExploitHandler.class;
+            final Class<?> lock = FinalizerHandler.class;
             synchronized (lock) {
                 INSTANCE = this;
                 lock.notify();
@@ -1601,17 +1603,41 @@ public class MailHandlerTest extends AbstractLogging {
         }
     }
 
+    public static final class FinalizerErrorManager extends ErrorManager {
+
+        private static final InternalErrorManager INSTANCE = new InternalErrorManager();
+        private static final AtomicInteger INSTANCES = new AtomicInteger();
+
+        public synchronized static InternalErrorManager getInstance() {
+            return INSTANCE;
+        }
+
+        public static int seen() {
+            return INSTANCES.get();
+        }
+
+        public FinalizerErrorManager() {
+            INSTANCES.getAndIncrement();
+        }
+
+        @Override
+        public void error(String msg, Exception ex, int code) {
+            INSTANCE.error(msg, ex, code);
+        }
+    }
+
     @Test
-    public void testThisExcape() throws Exception {
-        final String p = ExploitHandler.class.getName();
+    public void testThisExcapeViaFinalizer() throws Exception {
+        final String p = FinalizerHandler.class.getName();
         final LogManager manager = LogManager.getLogManager();
         final Properties props = createInitProperties(p);
+        props.put(p.concat(".errorManager"), FinalizerErrorManager.class.getName());
         props.put(p.concat(".authenticator"), "password");
         props.setProperty(p.concat(".verify"), "local");
 
         read(manager, props);
         try {
-            MailHandler h = ExploitHandler.getInstance();
+            MailHandler h = FinalizerHandler.getInstance();
             try {
                 Authenticator a = h.getAuthenticator();
                 fail(String.valueOf(a));
@@ -1668,7 +1694,8 @@ public class MailHandlerTest extends AbstractLogging {
                 assertEquals("this-escape", expect.getMessage());
             }
 
-            //Check that p
+            //Make sure this is not a multiple of 1000 (default capacity) so
+            //the close method has records to push.
             for (int i = 0; i < 2500; ++i) {
                 LogRecord r = new LogRecord(Level.SEVERE, "");
                 assertTrue(h.getClass().getName(),
@@ -1679,9 +1706,16 @@ public class MailHandlerTest extends AbstractLogging {
             try {
                 h.close();
                 fail();
-            } catch(SecurityException expect) {
+            } catch (SecurityException expect) {
                 assertEquals("this-escape", expect.getMessage());
             }
+
+            InternalErrorManager em = FinalizerErrorManager.getInstance();
+            for (Exception exception : em.exceptions) {
+                dump(exception);
+            }
+            assertTrue(em.exceptions.isEmpty());
+            assertEquals(1, FinalizerErrorManager.seen());
         } finally {
             manager.reset();
         }
