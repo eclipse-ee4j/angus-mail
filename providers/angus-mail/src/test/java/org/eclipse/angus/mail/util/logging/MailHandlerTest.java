@@ -53,7 +53,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
@@ -75,13 +77,14 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
+import java.util.function.Predicate;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
@@ -94,6 +97,7 @@ import java.util.logging.Logger;
 import java.util.logging.MemoryHandler;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.XMLFormatter;
+import static org.eclipse.angus.mail.util.logging.AbstractLogging.dump;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -324,16 +328,7 @@ public class MailHandlerTest extends AbstractLogging {
             ((ClassLoaderThread) clt).secure = false;
         }
 
-        boolean fail = false;
-        for (Exception exception : em.exceptions) {
-            Throwable t = exception;
-            if (t instanceof MessagingException == false) {
-                dump(t);
-                fail = true;
-            }
-        }
-        assertFalse(em.exceptions.isEmpty());
-        assertFalse(fail);
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     @Test
@@ -414,16 +409,7 @@ public class MailHandlerTest extends AbstractLogging {
             manager.reset();
         }
 
-        boolean fail = false;
-        for (Exception exception : em.exceptions) {
-            Throwable t = exception;
-            if (t instanceof MessagingException == false) {
-                dump(t);
-                fail = true;
-            }
-        }
-        assertFalse(em.exceptions.isEmpty());
-        assertFalse(fail);
+        em.failWhen(e -> !(e instanceof AddressException && e.toString().contains("badAddress")));
     }
 
     @Test
@@ -480,29 +466,17 @@ public class MailHandlerTest extends AbstractLogging {
             ((ClassLoaderThread) clt).secure = false;
         }
 
-        boolean fail = false;
-        for (Exception exception : em.exceptions) {
-            Throwable t = exception;
-            if (t instanceof MessagingException == false) {
-                dump(t);
-                fail = true;
-            }
-        }
-        assertFalse(em.exceptions.isEmpty());
-        assertFalse(fail);
+        em.failWhen(e -> !(e instanceof AddressException && e.toString().contains("badAddress")));
     }
 
     @Test
     public void testIsLoggable() {
         final Level[] lvls = getAllLevels();
-        if (lvls.length > 0) {
-            LogRecord record = new LogRecord(Level.INFO, "");
-            for (Level lvl : lvls) {
-                testLoggable(lvl, null);
-                testLoggable(lvl, record);
-            }
-        } else {
-            fail("No predefined levels.");
+        assertNotEquals(0, lvls.length);
+        LogRecord record = new LogRecord(Level.INFO, "");
+        for (Level lvl : lvls) {
+            testLoggable(lvl, null);
+            testLoggable(lvl, record);
         }
     }
 
@@ -875,7 +849,7 @@ public class MailHandlerTest extends AbstractLogging {
 
             //ensure one transport error.
             assertEquals(1, em.exceptions.size());
-            assertTrue(em.exceptions.get(0) instanceof MessagingException);
+            assertNotNull(MessagingException.class.cast(em.exceptions.get(0)));
         }
     }
 
@@ -928,7 +902,7 @@ public class MailHandlerTest extends AbstractLogging {
         instance.publish(record);
         try {
             instance.push();
-            fail("Error didn't escape push.");
+            fail();
         } catch (Error expected) {
             if (expected.getClass() != Error.class) {
                 throw expected;
@@ -940,7 +914,7 @@ public class MailHandlerTest extends AbstractLogging {
         instance.publish(record);
         try {
             instance.flush();
-            fail("Error didn't escape flush.");
+            fail();
         } catch (Error expected) {
             if (expected.getClass() != Error.class) {
                 throw expected;
@@ -953,7 +927,7 @@ public class MailHandlerTest extends AbstractLogging {
         record = new LogRecord(Level.INFO, "");
         try {
             instance.publish(record);
-            fail("Error didn't escape publish at full capacity.");
+            throw new AssertionError("Error didn't escape publish at full capacity.");
         } catch (Error expected) {
             if (expected.getClass() != Error.class) {
                 throw expected;
@@ -965,7 +939,7 @@ public class MailHandlerTest extends AbstractLogging {
         instance.publish(record);
         try {
             instance.close();
-            fail("Error didn't escape close.");
+            throw new AssertionError("Error didn't escape close.");
         } catch (Error expected) {
             if (expected.getClass() != Error.class) {
                 throw expected;
@@ -1051,7 +1025,7 @@ public class MailHandlerTest extends AbstractLogging {
                     em.exceptions.get(size - 1) instanceof MessagingException);
             return;
         }
-        fail("No runtime exceptions reported");
+        throw new AssertionError("No runtime exceptions reported");
     }
 
     @Test
@@ -1070,7 +1044,7 @@ public class MailHandlerTest extends AbstractLogging {
         instance.publish(record);
         try {
             instance.close();
-            fail("Error was swallowed.");
+            throw new AssertionError("Error was swallowed.");
         } catch (Error expect) {
             if (expect.getClass() != Error.class) {
                 throw expect;
@@ -1098,12 +1072,12 @@ public class MailHandlerTest extends AbstractLogging {
                     instance.setLevel(Level.ALL);
                     instance.setFilter(new ErrorFilter());
                     instance.isLoggable(record);
-                    fail("Doesn't match the memory handler.");
+                    throw new AssertionError("Doesn't match the memory handler.");
                 } catch (Error resultEx) {
                     assertEquals(expectEx.getClass(), resultEx.getClass());
                 }
             } else {
-                fail("Doesn't match the memory handler.");
+                throw new AssertionError("Doesn't match the memory handler.");
             }
         }
 
@@ -1124,7 +1098,7 @@ public class MailHandlerTest extends AbstractLogging {
         instance.publish(record);
         try {
             instance.close();
-            fail("Error was swallowed.");
+            throw new AssertionError("Error was swallowed.");
         } catch (Error expect) {
             if (expect.getClass() != Error.class) {
                 throw expect;
@@ -1146,15 +1120,7 @@ public class MailHandlerTest extends AbstractLogging {
         }
 
         InternalErrorManager em = internalErrorManagerFrom(instance);
-        boolean failed = false;
-        for (Throwable t : em.exceptions) {
-            if (!isConnectOrTimeout(t)) {
-                dump(t);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     @Test
@@ -1257,12 +1223,12 @@ public class MailHandlerTest extends AbstractLogging {
                     instance.setLevel(Level.ALL);
                     instance.setFilter(new ThrowFilter());
                     instance.isLoggable(record);
-                    fail("Doesn't match the memory handler.");
+                    throw new AssertionError("Doesn't match the memory handler.");
                 } catch (RuntimeException resultEx) {
                     assertEquals(expectEx.getClass(), resultEx.getClass());
                 }
             } else {
-                fail("Doesn't match the memory handler.");
+                throw new AssertionError("Doesn't match the memory handler.");
             }
         }
 
@@ -1524,7 +1490,7 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(manager.getProperty(p.concat(".encoding")), instance.getEncoding());
         try {
             instance.setEncoding("unsupported encoding exception");
-            fail("Missing encoding check.");
+            throw new AssertionError("Missing encoding check.");
         } catch (UnsupportedEncodingException expect) {
         }
         assertEquals(manager.getProperty(p.concat(".encoding")), instance.getEncoding());
@@ -1537,193 +1503,6 @@ public class MailHandlerTest extends AbstractLogging {
         LogRecord record = new LogRecord(Level.SEVERE, "Zeit\u00FCberschreitung bei Anweisung");
         instance.publish(record);
         instance.close();
-    }
-
-    private static final class FinalizerHandler extends MailHandler {
-        private static FinalizerHandler INSTANCE;
-
-        public static FinalizerHandler getInstance() throws Exception {
-            final Class<?> lock = FinalizerHandler.class;
-            synchronized (lock) {
-                try {
-                    FinalizerHandler fh = new FinalizerHandler();
-                    throw new AssertionError(fh);
-                } catch (UnknownError ignore) {
-                }
-
-                for (int i = 0; i < 100; ++i) {
-                    if (INSTANCE == null) {
-                        System.gc();
-                        System.runFinalization();
-                        lock.wait(10);
-                    } else {
-                        break;
-                    }
-                }
-
-                Assume.assumeNotNull(INSTANCE);
-                return INSTANCE;
-            }
-        }
-
-        @Override
-        public String getEncoding(){
-            final Class<?> lock = FinalizerHandler.class;
-            synchronized (lock) {
-                if (INSTANCE == null) {
-                    throw new UnknownError();
-                } else {
-                    return null;
-                }
-            }
-        }
-
-        @Override
-        public Level getLevel() {
-            assertEquals(Level.OFF, super.getLevel());
-            return Level.ALL;
-        }
-
-        @Override
-        public boolean isLoggable(LogRecord record) {
-            assertEquals(Level.OFF, super.getLevel());
-            assertNull(super.getFilter());
-            assertEquals(0, super.getAttachmentFilters().length);
-            return true;
-        }
-
-        @Override
-        protected void reportError(String msg, Exception ex, int code) {
-            throw new AssertionError(msg + " code: "+ code, ex);
-        }
-
-        @Deprecated
-        @SuppressWarnings("override")
-        protected void finalize() throws Throwable {
-            final Class<?> lock = FinalizerHandler.class;
-            synchronized (lock) {
-                INSTANCE = this;
-                lock.notify();
-            }
-        }
-    }
-
-    public static final class FinalizerErrorManager extends ErrorManager {
-
-        private static final InternalErrorManager INSTANCE = new InternalErrorManager();
-        private static final AtomicInteger INSTANCES = new AtomicInteger();
-
-        public synchronized static InternalErrorManager getInstance() {
-            return INSTANCE;
-        }
-
-        public static int seen() {
-            return INSTANCES.get();
-        }
-
-        public FinalizerErrorManager() {
-            INSTANCES.getAndIncrement();
-        }
-
-        @Override
-        public void error(String msg, Exception ex, int code) {
-            INSTANCE.error(msg, ex, code);
-        }
-    }
-
-    @Test
-    public void testThisExcapeViaFinalizer() throws Exception {
-        final String p = FinalizerHandler.class.getName();
-        final LogManager manager = LogManager.getLogManager();
-        final Properties props = createInitProperties(p);
-        props.put(p.concat(".errorManager"), FinalizerErrorManager.class.getName());
-        props.put(p.concat(".authenticator"), "password");
-        props.setProperty(p.concat(".verify"), "local");
-
-        read(manager, props);
-        try {
-            MailHandler h = FinalizerHandler.getInstance();
-            try {
-                Authenticator a = h.getAuthenticator();
-                fail(String.valueOf(a));
-            } catch (SecurityException expect) {
-                assertEquals("this-escape", expect.getMessage());
-            }
-
-            try {
-                h.setAuthenticator((Authenticator) null);
-                fail();
-            } catch (SecurityException expect) {
-                assertEquals("this-escape", expect.getMessage());
-            }
-
-            try {
-                h.setAuthenticator(new char[0]);
-                fail();
-            } catch (SecurityException expect) {
-                assertEquals("this-escape", expect.getMessage());
-            }
-
-            try {
-                h.setAuthentication((String) null);
-                fail();
-            } catch (SecurityException expect) {
-                assertEquals("this-escape", expect.getMessage());
-            }
-
-            try {
-                Properties mail = h.getMailProperties();
-                fail(mail.toString());
-            } catch (SecurityException expect) {
-                assertEquals("this-escape", expect.getMessage());
-            }
-
-            try {
-                h.setMailProperties(new Properties());
-                fail();
-            } catch (SecurityException expect) {
-                assertEquals("this-escape", expect.getMessage());
-            }
-
-            try {
-                ErrorManager em = h.getErrorManager();
-                fail(String.valueOf(em));
-            } catch (SecurityException expect) {
-                assertEquals("this-escape", expect.getMessage());
-            }
-
-            try {
-                h.setCapacity(1);
-                fail();
-            } catch (SecurityException expect) {
-                assertEquals("this-escape", expect.getMessage());
-            }
-
-            //Make sure this is not a multiple of 1000 (default capacity) so
-            //the close method has records to push.
-            for (int i = 0; i < 2500; ++i) {
-                LogRecord r = new LogRecord(Level.SEVERE, "");
-                assertTrue(h.getClass().getName(),
-                        h.isLoggable(r));
-                h.publish(r);
-            }
-
-            try {
-                h.close();
-                fail();
-            } catch (SecurityException expect) {
-                assertEquals("this-escape", expect.getMessage());
-            }
-
-            InternalErrorManager em = FinalizerErrorManager.getInstance();
-            for (Exception exception : em.exceptions) {
-                dump(exception);
-            }
-            assertTrue(em.exceptions.isEmpty());
-            assertEquals(1, FinalizerErrorManager.seen());
-        } finally {
-            manager.reset();
-        }
     }
 
     @Test
@@ -1788,15 +1567,7 @@ public class MailHandlerTest extends AbstractLogging {
         }
         h.close();
         assertEquals(MAX_RECORDS, cf.count);
-        boolean failed = false;
-        for (Exception exception : em.exceptions) {
-            if (!isConnectOrTimeout(exception)) {
-                dump(exception);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     @Test
@@ -1822,15 +1593,7 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(MAX_RECORDS, negativeOne.count);
         assertEquals(MAX_RECORDS, one.count);
         assertEquals(MAX_RECORDS, two.count);
-        boolean failed = false;
-        for (Exception exception : em.exceptions) {
-            if (!isConnectOrTimeout(exception)) {
-                dump(exception);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     @Test
@@ -1865,15 +1628,7 @@ public class MailHandlerTest extends AbstractLogging {
 
         assertEquals(MAX_RECORDS, cf.count);
         assertEquals(MAX_RECORDS, one.count);
-        boolean failed = false;
-        for (Exception exception : em.exceptions) {
-            if (!isConnectOrTimeout(exception)) {
-                dump(exception);
-                failed = false;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     @Test
@@ -1895,15 +1650,7 @@ public class MailHandlerTest extends AbstractLogging {
         h.publish(r);
         h.close();
         assertEquals(1, cf.count);
-        boolean failed = false;
-        for (Exception exception : em.exceptions) {
-            if (!isConnectOrTimeout(exception)) {
-                dump(exception);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     private void testStatefulPushAttachmentFilter(boolean clear) {
@@ -1951,15 +1698,7 @@ public class MailHandlerTest extends AbstractLogging {
             assertEquals(1, two.count);
             assertEquals(1, push.count);
         }
-        boolean failed = false;
-        for (Exception exception : em.exceptions) {
-            if (!isConnectOrTimeout(exception)) {
-                dump(exception);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     @Test
@@ -2057,19 +1796,19 @@ public class MailHandlerTest extends AbstractLogging {
             private void pushTest(MailHandler h) {
                 try {
                     h.setPushLevel(Level.ALL);
-                    fail("Push level mutable during push");
+                    throw new AssertionError("Push level mutable during push");
                 } catch (IllegalStateException expect) {
                 }
 
                 try {
                     h.setPushFilter((Filter) null);
-                    fail("Push filter mutable during push");
+                    throw new AssertionError("Push filter mutable during push");
                 } catch (IllegalStateException expect) {
                 }
 
                 try {
                     h.setPushFilter(new ErrorFilter());
-                    fail("Push filter mutable during push");
+                    throw new AssertionError("Push filter mutable during push");
                 } catch (IllegalStateException expect) {
                 }
 
@@ -2090,7 +1829,7 @@ public class MailHandlerTest extends AbstractLogging {
                 Formatter[] f = mh.getAttachmentFormatters();
                 try {
                     mh.setAttachmentFormatters(f);
-                    fail("Mutable formatter.");
+                    throw new AssertionError("Mutable formatter.");
                 } catch (IllegalStateException pass) {
                 } catch (Throwable T) {
                     fail(T.toString());
@@ -2125,7 +1864,7 @@ public class MailHandlerTest extends AbstractLogging {
                 Formatter[] f = h.getAttachmentNames();
                 try {
                     h.setAttachmentNames(f);
-                    fail("Mutable formatter");
+                    throw new AssertionError("Mutable formatter");
                 } catch (IllegalStateException pass) {
                 } catch (Throwable T) {
                     fail(T.toString());
@@ -2137,7 +1876,7 @@ public class MailHandlerTest extends AbstractLogging {
                         names[i] = f[i].toString();
                     }
                     h.setAttachmentNames(names);
-                    fail("Mutable names");
+                    throw new AssertionError("Mutable names");
                 } catch (IllegalStateException pass) {
                 } catch (Throwable T) {
                     fail(T.toString());
@@ -2155,7 +1894,7 @@ public class MailHandlerTest extends AbstractLogging {
                 Filter[] f = mh.getAttachmentFilters();
                 try {
                     mh.setAttachmentFilters(f);
-                    fail("Mutable filters.");
+                    throw new AssertionError("Mutable filters.");
                 } catch (IllegalStateException pass) {
                 } catch (Throwable T) {
                     fail(T.toString());
@@ -2179,7 +1918,7 @@ public class MailHandlerTest extends AbstractLogging {
                 Comparator<? super LogRecord> c = mh.getComparator();
                 try {
                     mh.setComparator(c);
-                    fail("Mutable comparator.");
+                    throw new AssertionError("Mutable comparator.");
                 } catch (IllegalStateException pass) {
                 } catch (Throwable T) {
                     fail(T.toString());
@@ -2208,7 +1947,7 @@ public class MailHandlerTest extends AbstractLogging {
                 Properties props = mh.getMailProperties();
                 try {
                     mh.setMailProperties(props);
-                    fail("Mutable props.");
+                    throw new AssertionError("Mutable props.");
                 } catch (IllegalStateException pass) {
                 } catch (Throwable T) {
                     fail(T.toString());
@@ -2237,7 +1976,7 @@ public class MailHandlerTest extends AbstractLogging {
                 Formatter f = mh.getSubject();
                 try {
                     mh.setSubject(f);
-                    fail("Mutable subject.");
+                    throw new AssertionError("Mutable subject.");
                 } catch (IllegalStateException pass) {
                 } catch (Throwable T) {
                     fail(T.toString());
@@ -2266,7 +2005,7 @@ public class MailHandlerTest extends AbstractLogging {
                 Authenticator a = mh.getAuthenticator();
                 try {
                     mh.setAuthenticator(a);
-                    fail("Mutable Authenticator.");
+                    throw new AssertionError("Mutable Authenticator.");
                 } catch (IllegalStateException pass) {
                 } catch (Throwable T) {
                     fail(T.toString());
@@ -2301,17 +2040,8 @@ public class MailHandlerTest extends AbstractLogging {
         }
         instance.flush();
 
-        boolean failed = false;
-        for (Exception exception : em.exceptions) {
-            Throwable t = exception;
-            if ((t instanceof MessagingException == false)
-                    && (t instanceof IllegalStateException == false)) {
-                dump(t);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> (e instanceof MessagingException == false)
+                    && (e instanceof IllegalStateException == false));
     }
 
     @Test
@@ -2573,15 +2303,7 @@ public class MailHandlerTest extends AbstractLogging {
             instance.close();
         }
 
-        boolean failed = false;
-        for (Exception exception : em.exceptions) {
-            Throwable t = exception;
-            if (!isConnectOrTimeout(t)) {
-                dump(t);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     @Test
@@ -2696,7 +2418,7 @@ public class MailHandlerTest extends AbstractLogging {
         assertNotNull(instance.getLevel());
         try {
             instance.setLevel((Level) null);
-            fail("Null level was allowed");
+            throw new AssertionError("Null level was allowed");
         } catch (NullPointerException pass) {
             assertNotNull(instance);
         } catch (RuntimeException re) {
@@ -2732,21 +2454,7 @@ public class MailHandlerTest extends AbstractLogging {
         instance.setFormatter(new LevelCheckingFormatter(expect));
         instance.close();
 
-        boolean failed = false;
-        for (Exception exception : em.exceptions) {
-            Throwable t = exception;
-            if (t instanceof MessagingException) {
-                if (!isConnectOrTimeout(t)) {
-                    dump(t);
-                    failed = true;
-                }
-            } else {
-                dump(t);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     @Test
@@ -2761,21 +2469,7 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(Level.OFF, instance.getLevel());
 
         instance.close();
-        boolean failed = false;
-        for (Exception exception : em.exceptions) {
-            Throwable t = exception;
-            if (t instanceof MessagingException) {
-                if (!isConnectOrTimeout(t)) {
-                    dump(t);
-                    failed = true;
-                }
-            } else {
-                dump(t);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     @Test
@@ -2855,7 +2549,7 @@ public class MailHandlerTest extends AbstractLogging {
                 for (Exception exception : em.exceptions) {
                     Throwable t = exception;
                     dump(t);
-                    fail("Verify index=" + v);
+                    throw new AssertionError("Verify index=" + v);
                 }
 
                 manager.reset();
@@ -2869,11 +2563,11 @@ public class MailHandlerTest extends AbstractLogging {
                         }
                         if (!isConnectOrTimeout(t)) {
                             dump(t);
-                            fail("Verify index=" + v);
+                            throw new AssertionError("Verify index=" + v);
                         }
                     } else {
                         dump(t);
-                        fail("Verify index=" + v);
+                        throw new AssertionError("Verify index=" + v);
                     }
                 }
             }
@@ -3450,16 +3144,8 @@ public class MailHandlerTest extends AbstractLogging {
 
             target.close();
 
-            boolean failed = false;
             InternalErrorManager em = internalErrorManagerFrom(target);
-            for (Exception t : em.exceptions) {
-                if (!isConnectOrTimeout(t)) {
-                    dump(t);
-                    failed = true;
-                }
-            }
-            assertFalse(failed);
-            assertFalse(em.exceptions.isEmpty());
+            em.failWhen(e -> !isConnectOrTimeout(e));
         } finally {
             Locale.setDefault(l);
             if (!f.delete() && f.exists()) {
@@ -3569,16 +3255,8 @@ public class MailHandlerTest extends AbstractLogging {
 
         target.close();
 
-        boolean failed = false;
         InternalErrorManager em = internalErrorManagerFrom(target);
-        for (Exception t : em.exceptions) {
-            if (!isConnectOrTimeout(t)) {
-                dump(t);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     @Test
@@ -3693,16 +3371,8 @@ public class MailHandlerTest extends AbstractLogging {
 
         target.close();
 
-        boolean failed = false;
         InternalErrorManager em = internalErrorManagerFrom(target);
-        for (Exception t : em.exceptions) {
-            if (!isConnectOrTimeout(t)) {
-                dump(t);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> !isConnectOrTimeout(e));
     }
 
     private File testContentLangExact(MailHandler target, Properties props, String exact) throws Exception {
@@ -3921,7 +3591,8 @@ public class MailHandlerTest extends AbstractLogging {
             assertEquals(1, formatter.head);
             assertEquals(1, formatter.tail);
             assertEquals(1, em.exceptions.size());
-            assertTrue(em.exceptions.get(0) instanceof MessagingException);
+            assertTrue(MessagingException.class.isAssignableFrom(
+                    em.exceptions.get(0).getClass()));
             instance.close();
         }
     }
@@ -4107,16 +3778,8 @@ public class MailHandlerTest extends AbstractLogging {
         props.setProperty("mail.to", "localhost@localdomain");
         instance.setMailProperties(props);
         instance.flush();
-        boolean failed = false;
-        for (Exception exception : em.exceptions) {
-            final Throwable t = exception;
-            if (!isConnectOrTimeout(t)) {
-                dump(t);
-                failed = true;
-            }
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+
+        em.failWhen(e -> !isConnectOrTimeout(e));
 
         props.setProperty("mail.from", "localhost@localdomain");
         props.setProperty("mail.to", "::1@@");
@@ -4127,17 +3790,7 @@ public class MailHandlerTest extends AbstractLogging {
 
         instance.publish(new LogRecord(Level.SEVERE, "test"));
         instance.close();
-        failed = false;
-        for (Exception exception : em.exceptions) {
-            final Throwable t = exception;
-            if (t instanceof AddressException || isConnectOrTimeout(t)) {
-                continue;
-            }
-            dump(t);
-            failed = true;
-        }
-        assertFalse(failed);
-        assertFalse(em.exceptions.isEmpty());
+        em.failWhen(e -> !(e instanceof AddressException || isConnectOrTimeout(e)));
     }
 
 
@@ -4159,51 +3812,18 @@ public class MailHandlerTest extends AbstractLogging {
             assertEquals("localhost@localdomain",
                     stored.getProperty("mail.from"));
             assertEquals("local",stored.getProperty("verify"));
-            boolean failed = false;
-            for (Exception e : em.exceptions) {
-                if (e instanceof AddressException) {
-                   if (e.toString().contains("badAddress")) {
-                       continue;
-                   }
-                }
-                dump(e);
-                failed = true;
-            }
-            assertFalse(failed);
-            assertFalse(em.exceptions.isEmpty());
+            em.failWhen(e -> !(e instanceof AddressException && e.toString().contains("badAddress")));
 
             target.setMailProperties((Properties) null);
             stored = target.getMailProperties();
             assertEquals("localhost@localdomain",
                     stored.getProperty("mail.from"));
             assertEquals("local", stored.getProperty("verify"));
-            failed = false;
-            for (Exception e : em.exceptions) {
-                if (e instanceof AddressException) {
-                   if (e.toString().contains("badAddress")) {
-                       continue;
-                   }
-                }
-                dump(e);
-                failed = true;
-            }
-            assertFalse(failed);
-            assertFalse(em.exceptions.isEmpty());
+            em.failWhen(e -> !(e instanceof AddressException && e.toString().contains("badAddress")));
 
             target = new MailHandler((Properties) null);
             em = internalErrorManagerFrom(target);
-            failed = false;
-            for (Exception e : em.exceptions) {
-                if (e instanceof AddressException) {
-                   if (e.toString().contains("badAddress")) {
-                       continue;
-                   }
-                }
-                dump(e);
-                failed = true;
-            }
-            assertFalse(failed);
-            assertFalse(em.exceptions.isEmpty());
+            em.failWhen(e -> !(e instanceof AddressException && e.toString().contains("badAddress")));
 
             stored = target.getMailProperties();
             assertEquals("localhost@localdomain",
@@ -4242,17 +3862,8 @@ public class MailHandlerTest extends AbstractLogging {
             InternalErrorManager em = internalErrorManagerFrom(target);
             target.setMailEntries((String) null);
             Properties stored = target.getMailProperties();
-            boolean failed = false;
-            for (Exception e : em.exceptions) {
-                if (e instanceof AddressException) {
-                   if (e.toString().contains("badAddress")) {
-                       continue;
-                   }
-                }
-                dump(e);
-                failed = true;
-            }
-            assertFalse(failed);
+            em.failWhen(e -> !(e instanceof AddressException && e.toString().contains("badAddress")));
+
             assertFalse(em.exceptions.isEmpty());
             assertEquals("localhost@localdomain",
                     stored.getProperty("mail.from"));
@@ -5594,7 +5205,7 @@ public class MailHandlerTest extends AbstractLogging {
         msg.saveChanges();
         try {
             msg.writeTo(out);
-            fail("Verify type 'remote' may send a message with no content.");
+            throw new AssertionError("Verify type 'remote' may send a message with no content.");
         } catch (MessagingException | IOException expect) {
             msg.setContent("", "text/plain");
             msg.saveChanges();
@@ -5618,7 +5229,7 @@ public class MailHandlerTest extends AbstractLogging {
         msg.saveChanges();
         try {
             msg.writeTo(new ByteArrayOutputStream(384));
-            fail("Verify type 'remote' may hide remote exceptions.");
+            throw new AssertionError("Verify type 'remote' may hide remote exceptions.");
         } catch (RuntimeException re) {
             throw re; //Avoid catch all.
         } catch (Exception expect) {
@@ -7063,10 +6674,21 @@ public class MailHandlerTest extends AbstractLogging {
         if (p.length() != 0) {
             p = p.concat(".");
         }
-        props.put("mail.host", UNKNOWN_HOST);
-        props.put(p.concat("mail.host"), UNKNOWN_HOST);
-        props.put(p.concat("mail.smtp.host"), UNKNOWN_HOST);
-        props.put(p.concat("mail.smtp.port"), Integer.toString(OPEN_PORT));
+
+        String host = UNKNOWN_HOST;
+        if (host == null) {
+            UNKNOWN_HOST = host = findUnknownHost();
+        }
+
+        int port = OPEN_PORT;
+        if (port <= 0) {
+            OPEN_PORT = port = findOpenPort();
+        }
+
+        props.put("mail.host", host);
+        props.put(p.concat("mail.host"), host);
+        props.put(p.concat("mail.smtp.host"), host);
+        props.put(p.concat("mail.smtp.port"), Integer.toString(port));
         props.put(p.concat("mail.to"), "");
         props.put(p.concat("mail.cc"), "badAddress");
         props.put(p.concat("mail.from"), "");
@@ -7121,7 +6743,7 @@ public class MailHandlerTest extends AbstractLogging {
         String name = "Mail Handler test subject";
         try {
             Class.forName(name); //ensure this can't be loaded.
-            fail("Invalid subject: " + name);
+            throw new AssertionError("Invalid subject: " + name);
         } catch (AssertionError fail) {
             throw fail;
         } catch (Throwable expected) {
@@ -7480,7 +7102,7 @@ public class MailHandlerTest extends AbstractLogging {
                 }
             } else {
                 new ErrorManager().error(msg, ex, code);
-                fail("Message.writeTo failed.");
+                throw new AssertionError("Message.writeTo failed.");
             }
         }
 
@@ -7851,6 +7473,17 @@ public class MailHandlerTest extends AbstractLogging {
         public void error(String msg, Exception ex, int code) {
             exceptions.add(ex);
         }
+
+        public final void failWhen(Predicate<Exception> p) {
+            boolean fail = false;
+            for (Exception exception : exceptions) {
+                if (p.test(exception)) {
+                    dump(exception);
+                    fail = true;
+                }
+            }
+            assertFalse(fail);
+        }
     }
 
     public static final class ThrowAuthenticator extends jakarta.mail.Authenticator {
@@ -7874,26 +7507,6 @@ public class MailHandlerTest extends AbstractLogging {
         @Override
         public String format(LogRecord r) {
             return "";
-        }
-    }
-
-    public static final class GaeErrorManager extends MessageErrorManager {
-
-        public GaeErrorManager(MailHandler h) {
-            super(h.getMailProperties());
-        }
-
-        @Override
-        protected void error(MimeMessage message, Throwable t, int code) {
-            try {
-                assertFalse(LogManagerProperties.hasLogManager());
-                String[] a = message.getHeader("auto-submitted");
-                assertTrue(Arrays.toString(a), a == null || a.length == 0);
-                message.saveChanges();
-            } catch (Exception ME) {
-                dump(ME);
-                fail(ME.toString());
-            }
         }
     }
 
@@ -8710,7 +8323,7 @@ public class MailHandlerTest extends AbstractLogging {
 
         private static final long serialVersionUID = -1L;
 
-        private final ClassLoader expect;
+        private final transient ClassLoader expect;
 
         public ClassLoaderComparator() {
             this(LOADER.get());
@@ -8742,6 +8355,11 @@ public class MailHandlerTest extends AbstractLogging {
         public String toString() {
             checkContextClassLoader(expect);
             return super.toString();
+        }
+
+        private void writeObject(ObjectOutputStream out) throws IOException {
+            Objects.requireNonNull(out);
+            throw new NotSerializableException(getClass().getName());
         }
     }
 
