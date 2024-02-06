@@ -653,7 +653,7 @@
  * The instantiated object will provide additional checks based on the content
  * of the server's certificate are intended to prevent man-in-the-middle
  * attacks.  Defaults to any if the
- * <code>mail.imap.ssl.checkserveridentity</code> is true (set or default).
+ * <code>mail.smtp.ssl.checkserveridentity</code> is true (set or default).
  * Otherwise the default is null.
  * </TD>
  * </TR>
