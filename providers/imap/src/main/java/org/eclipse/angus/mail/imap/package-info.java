@@ -632,6 +632,70 @@
  * </TR>
  *
  * <TR>
+ * <TD><A ID="mail.imap.ssl.endpointidentitycheck">mail.imap.ssl.endpointidentitycheck</A></TD>
+ * <TD>String</TD>
+ * <TD>
+ * If not set or empty, the endpoint identity check is not performed by the ssl
+ * socket.  If set to HTTPS the server identity is verified as specified by
+ * <A HREF="http://www.ietf.org/rfc/rfc2818.txt" TARGET="_top">RFC 2818</A>.
+ * If set to LDAPS the server identity is verified as specified by
+ * <A HREF="http://www.ietf.org/rfc/rfc2830.txt" TARGET="_top">RFC 2830</A>.
+ * These additional checks based on the content of the server's certificate
+ * are intended to prevent man-in-the-middle attacks.  The 'LDAPS' should be the
+ * preferred algorithm for compatibility with email.  These additional checks
+ * based on the content of the server's certificate are intended to prevent
+ * man-in-the-middle attacks.
+ * Defaults to null.
+ * </TD>
+ * </TR>
+ *
+ * <TR>
+ * <TD><A ID="mail.imap.ssl.hostnameverifier">mail.imap.ssl.hostnameverifier</A></TD>
+ * <TD>javax.net.ssl.HostnameVerifier</TD>
+ * <TD>
+ * If set to an object that implements the
+ * <code>javax.net.ssl.HostnameVerifier</code> interface then, this object
+ * will be used to verify the hostname against the certificate.  This object is
+ * allowed to throw {@linkplain java.io.UncheckedIOException} from the
+ * {@linkplain javax.net.ssl.HostnameVerifier#verify verify} method to propagate
+ * any {@link java.io.IOException}.  Note that this is an instance of a class,
+ * not a name, and must be set using the <code>put</code> method, not the
+ * <code>setProperty</code> method.  The given object will provide additional
+ * checks based on the content of the server's certificate are intended to
+ * prevent man-in-the-middle attacks.
+ * Defaults to null.
+ * </TD>
+ * </TR>
+ *
+ * <TR>
+ * <TD><A ID="mail.imap.ssl.hostnameverifier.class">mail.imap.ssl.hostnameverifier.class</A></TD>
+ * <TD>String</TD>
+ * <TD>
+ * If set, specifies the name of a class that extends the
+ * <code>javax.net.ssl.HostnameVerifier</code> class or an alias name assigned
+ * to a built in hostname verifier.  A class name will be instantiated using the
+ * default constructor and that instance will be used to verify the hostname
+ * against the certificate.  The instantiated object is allowed to throw
+ * {@linkplain java.io.UncheckedIOException} from the
+ * {@linkplain javax.net.ssl.HostnameVerifier#verify verify} method to propagate
+ * any {@link java.io.IOException}.  The alias name <code>any</code> will
+ * attempt find a built in hostname verifier that allows verfication to succeed.
+ * The alias name <code>sun.security.util.HostnameChecker</code> or
+ * <code>org.eclipse.angus.mail.util.SocketFetcher$HostnameChecker</code> will
+ * attempt to access the <code>sun.security.util.HostnameChecker</code> via
+ * reflection which will require an add-opens of 'java.base/sun.security.util'.
+ * The alias name
+ * <code>org.eclipse.angus.mail.util.SocketFetcher$MailHostnameVerifier</code>
+ * will use a basic hostname verification of the certificate. *
+ * The instantiated object will provide additional checks based on the content
+ * of the server's certificate are intended to prevent man-in-the-middle
+ * attacks.  Defaults to any if the
+ * <code>mail.imap.ssl.checkserveridentity</code> is true (set or default).
+ * Otherwise the default is null.
+ * </TD>
+ * </TR>
+ *
+ * <TR>
  * <TD><A ID="mail.imap.ssl.trust">mail.imap.ssl.trust</A></TD>
  * <TD>String</TD>
  * <TD>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -16,8 +16,12 @@
 
 package org.eclipse.angus.mail.util;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
 import org.eclipse.angus.mail.test.ProtocolHandler;
 import org.eclipse.angus.mail.test.TestServer;
+import org.junit.function.ThrowingRunnable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -29,11 +33,17 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSession;
+import org.eclipse.angus.mail.imap.IMAPHandler;
+import org.eclipse.angus.mail.test.TestSSLSocketFactory;
 
+import static org.junit.Assert.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Test SocketFetcher.
@@ -128,6 +138,144 @@ public final class SocketFetcherTest {
         assertEquals(errorMessage, error.toString());
     }
 
+    @Test
+    public void testSSLSocketFactoryHostnameVerifierAcceptsConnections() throws Exception {
+        testSSLSocketFactoryHostnameVerifier(true);
+    }
+
+    /**
+     * Test connecting (IMAP) with SSL using a custom hostname verifier which will
+     * reject all connections.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testSSLSocketFactoryHostnameVerifierRejectsConnections() throws Exception {
+        testSSLSocketFactoryHostnameVerifier(false);
+    }
+
+    @Test
+    public void testSSLSocketFactoryHostnameVerifierInstantiatedByString() throws Exception {
+        testSSLSocketFactoryHostnameVerifierByName();
+    }
+
+    /**
+     * Utility method for testing a custom {@link HostnameVerifier}.
+     *
+     * @param acceptConnections Whether the {@link HostnameVerifier} should accept or reject connections.
+     * @throws Exception
+     */
+    private void testSSLSocketFactoryHostnameVerifier(boolean acceptConnections) throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.imap.host", "localhost");
+        properties.setProperty("mail.imap.ssl.enable", "true");
+
+        TestSSLSocketFactory sf = new TestSSLSocketFactory();
+        properties.put("mail.imap.ssl.socketFactory", sf);
+
+        // don't fall back to non-SSL
+        properties.setProperty("mail.imap.socketFactory.fallback", "false");
+
+        TestHostnameVerifier hnv = new TestHostnameVerifier(acceptConnections);
+        properties.put("mail.imap.ssl.hostnameverifier", hnv);
+        properties.setProperty("mail.imap.ssl.checkserveridentity", "true"); // Required for hostname verification
+
+        ThrowingRunnable runnable = new ThrowingRunnable() {
+            @Override
+            public void run() throws Throwable {
+                TestServer server = null;
+                try {
+                    server = new TestServer(new IMAPHandler(), true);
+                    server.start();
+
+                    properties.setProperty("mail.imap.port", "" + server.getPort());
+                    final Session session = Session.getInstance(properties);
+
+                    try (Store store = session.getStore("imap")) {
+                        store.connect("test", "test");
+                    }
+                }
+                finally {
+                    if (server != null) {
+                        server.quit();
+                    }
+                }
+            }
+        };
+
+        if (!acceptConnections) {
+            // When the hostname verifier refuses a connection, a MessagingException will be thrown.
+            assertThrows(MessagingException.class, runnable);
+        }
+        else {
+            // When the hostname verifier is not set to refuse connections, no exception should be thrown.
+            synchronized (TestHostnameVerifier.class) {
+                try {
+                    runnable.run();
+                }
+                catch(Throwable t){
+                    throw new AssertionError(t);
+                }
+                finally{
+                    TestHostnameVerifier.reset();
+                }
+            }
+        }
+
+        // Ensure the custom hostname verifier was actually used.
+        assertTrue("Hostname verifier was not used.", hnv.hasInvokedVerify());
+    }
+
+    private void testSSLSocketFactoryHostnameVerifierByName() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.imap.host", "localhost");
+        properties.setProperty("mail.imap.ssl.enable", "true");
+
+        TestSSLSocketFactory sf = new TestSSLSocketFactory();
+        properties.put("mail.imap.ssl.socketFactory", sf);
+
+        // don't fall back to non-SSL
+        properties.setProperty("mail.imap.socketFactory.fallback", "false");
+
+        properties.setProperty("mail.imap.ssl.hostnameverifier.class", TestHostnameVerifier.class.getName());
+        properties.setProperty("mail.imap.ssl.checkserveridentity", "true"); // Required for hostname verification
+
+        ThrowingRunnable runnable = new ThrowingRunnable() {
+            @Override
+            public void run() throws Throwable {
+                TestServer server = null;
+                try {
+                    server = new TestServer(new IMAPHandler(), true);
+                    server.start();
+
+                    properties.setProperty("mail.imap.port", "" + server.getPort());
+                    final Session session = Session.getInstance(properties);
+
+                    try (Store store = session.getStore("imap")) {
+                        store.connect("test", "test");
+                    }
+                }
+                finally {
+                    if (server != null) {
+                        server.quit();
+                    }
+                }
+            }
+        };
+
+        synchronized (TestHostnameVerifier.class) {
+            try {
+                runnable.run();
+                assertEquals("Expected the Default Constructor of the HostnameVerifier class to be invoked once.", 1, TestHostnameVerifier.getDefaultConstructorCount());
+            } catch (Throwable t) {
+                throw new AssertionError(t);
+            }
+            finally {
+                TestHostnameVerifier.reset();
+            }
+        }
+    }
+
     /**
      *
      */
@@ -188,6 +336,54 @@ public final class SocketFetcherTest {
             if (server != null) {
                 server.quit();
             }
+        }
+    }
+
+    public static class TestHostnameVerifier implements HostnameVerifier {
+        /*
+         * This is based on an assumption that the hostname verifier is instantiated
+         * by its default constructor in a managed way.
+         *
+         * Unit tests that check this property should impose their own thread safety.
+         * For example, when executing code expected to be using the TestHostnameVerifier,
+         * the unit test may synchronize on the TestHostnameVerifier class and call the
+         * static "reset" method prior to de-synchronizing.
+         */
+        public static final AtomicInteger defaultConstructorCount = new AtomicInteger();
+        private boolean acceptConnections = true;
+        private boolean verified = false;
+
+        public TestHostnameVerifier() {
+            defaultConstructorCount.getAndIncrement();
+        }
+
+        public TestHostnameVerifier(boolean acceptConnections) {
+            this.acceptConnections = acceptConnections;
+        }
+
+        @Override
+        public boolean verify(String hostname, SSLSession session) {
+            verified = true;
+            return acceptConnections;
+        }
+
+        /**
+         * Indicates whether the hostname verifier has been used.
+         * @return true if
+         */
+        public boolean hasInvokedVerify() {
+            return verified;
+        }
+
+        public static int getDefaultConstructorCount() {
+            return defaultConstructorCount.get();
+        }
+
+        /**
+         * Used to reset static values.
+         */
+        public static void reset() {
+            defaultConstructorCount.set(0);
         }
     }
 
