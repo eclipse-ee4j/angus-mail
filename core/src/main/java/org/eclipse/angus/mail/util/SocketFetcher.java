@@ -631,8 +631,8 @@ public class SocketFetcher {
                 SSLParameters params = sslsocket.getSSLParameters();
                 params.setEndpointIdentificationAlgorithm(eia);
                 sslsocket.setSSLParameters(params);
-                logger.finer("SSL enabled ciphers after " +
-                    Arrays.asList(sslsocket.getEnabledCipherSuites()));
+                logger.log(Level.FINER,
+                        "Endpoint identification algorithm {0}", eia);
             }
         } catch (RuntimeException re) {
             throw cleanupAndThrow(sslsocket,
