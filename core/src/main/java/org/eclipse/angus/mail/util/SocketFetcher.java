@@ -1036,6 +1036,10 @@ public class SocketFetcher {
             X509Certificate cert = null;
             try {
                 cert = getX509Certificate(ssls.getPeerCertificates());
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer("matchCert server "
+                            + server + ", cert " + cert);
+                }
                 /*
                  * Check each of the subjectAltNames.
                  * XXX - only checks DNS names, should also handle
@@ -1103,7 +1107,10 @@ public class SocketFetcher {
             try {
                 X509Certificate cert = getX509Certificate(
                     ssls.getPeerCertificates());
-
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer("matchCert server "
+                            + server + ", cert " + cert);
+                }
                 KeyStore ks = KeyStore.getInstance("pkcs12");
                 //TODO: Load single cert vs. load full chain
                 ks.setCertificateEntry("test", cert);
