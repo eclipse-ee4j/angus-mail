@@ -519,7 +519,7 @@
  * {@linkplain java.io.UncheckedIOException} from the
  * {@linkplain javax.net.ssl.HostnameVerifier#verify verify} method to propagate
  * any {@link java.io.IOException}.  The alias name <code>any</code> will
- * attempt find a built in hostname verifier that allows verfication to succeed.
+ * attempt find a built in hostname verifier that passes verification.
  * The alias name <code>sun.security.util.HostnameChecker</code> or
  * <code>org.eclipse.angus.mail.util.SocketFetcher$HostnameChecker</code> will
  * attempt to access the <code>sun.security.util.HostnameChecker</code> via

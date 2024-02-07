@@ -740,22 +740,12 @@ public class SocketFetcher {
     */
    private static HostnameVerifier getHostnameVerifier(Properties props, String prefix)
            throws ReflectiveOperationException {
-        HostnameVerifier hvn = (HostnameVerifier)
-                                props.get(prefix + ".ssl.hostnameverifier");
-        if (hvn != null) {
-            return hvn;
-        }
 
+        HostnameVerifier builtin = null;
         String fqcn = props.getProperty(prefix + ".ssl.hostnameverifier.class");
-        if (fqcn == null) {
-            if (!PropUtil.getBooleanProperty(props,
-                    prefix + ".ssl.checkserveridentity", true)) {
-                return null;
-            }
-            fqcn = "any";
-        }
-
-        if ("any".equals(fqcn)) {
+        if (PropUtil.getBooleanProperty(props,
+                    prefix + ".ssl.checkserveridentity", true)
+                || "any".equals(fqcn)) {
             /*
              * First, try to use sun.security.util.HostnameChecker,
              * which exists in Sun's JDK starting with 1.4.1.
@@ -765,25 +755,48 @@ public class SocketFetcher {
              */
             try {
                 Class.forName("java.lang.Module");
-                hvn = MailHostnameVerifier.of();
+                builtin = MailHostnameVerifier.of();
             } catch (ClassNotFoundException preJdk9) {
-                hvn = HostnameChecker.or(MailHostnameVerifier.of());
+                builtin = OrChain.of(HostnameChecker.of(),
+                        MailHostnameVerifier.of());
             }
-            logger.log(Level.FINE, "Fallback HostnameVerifier: {0}", hvn);
-            return hvn;
         }
 
-        //Handle any class name aliases
+        //Custom object is used before factory.
+        HostnameVerifier hvn = (HostnameVerifier)
+                                props.get(prefix + ".ssl.hostnameverifier");
+        if (hvn != null) {
+            return builtin != null ? OrChain.of(hvn, builtin) : hvn;
+        }
+
+        //Handle none or any class name factory aliases
+        if (fqcn == null || "any".equals(fqcn)) {
+            return builtin;
+        }
+
         if ("sun.security.util.HostnameChecker".equals(fqcn)
                 || HostnameChecker.class.getName().equals(fqcn)) {
-            return HostnameChecker.of();
+            if (builtin != null
+                    && HostnameChecker.class == builtin.getClass()) {
+                return builtin;
+            }
+            hvn = HostnameChecker.of();
         }
 
         if (MailHostnameVerifier.class.getName().equals(fqcn)) {
-            return MailHostnameVerifier.of();
+            if (builtin != null
+                    && MailHostnameVerifier.class == builtin.getClass()) {
+                return builtin;
+            }
+            hvn = MailHostnameVerifier.of();
         }
 
-        //Try to load the given classname
+
+        if (hvn != null) {
+            return builtin != null ? OrChain.of(hvn, builtin) : hvn;
+        }
+
+        //Handle the given classname
         Class<? extends HostnameVerifier> verifierClass = null;
         ClassLoader ccl = getContextClassLoader();
 
@@ -822,7 +835,11 @@ public class SocketFetcher {
         }
 
         if (verifierClass != null) {
-            return verifierClass.getConstructor().newInstance();
+            hvn = verifierClass.getConstructor().newInstance();
+        }
+
+        if (hvn != null) {
+            return builtin != null ? OrChain.of(hvn, builtin) : hvn;
         }
         throw new ClassNotFoundException(fqcn);
    }
@@ -972,24 +989,71 @@ public class SocketFetcher {
                 });
     }
 
+    private static final class OrChain implements HostnameVerifier {
+        private final HostnameVerifier[] or;
+
+        static HostnameVerifier of(HostnameVerifier lhs, HostnameVerifier rhs) {
+            Objects.requireNonNull(lhs);
+            Objects.requireNonNull(rhs);
+            if (rhs instanceof OrChain) {
+                HostnameVerifier[] other = ((OrChain) rhs).or;
+                HostnameVerifier[] or = new HostnameVerifier[other.length + 1];
+                or[0] = lhs;
+                System.arraycopy(other, 0, or, 1, other.length);
+                return new OrChain(or);
+            }
+            return new OrChain(lhs, rhs);
+        }
+
+        private OrChain(final HostnameVerifier... or) {
+            this.or = or;
+        }
+
+        @Override
+        public boolean verify(String string, SSLSession ssls) {
+            RuntimeException root = null;
+            for (HostnameVerifier next : or) {
+                try {
+                    if (next.verify(string, ssls)) {
+                        return true;
+                    }
+                } catch (UncheckedIOException uioe) {
+                    if (root == null)
+                        root = uioe;
+                    if (root != uioe)
+                        root.addSuppressed(uioe.getCause());
+                } catch (RuntimeException re) {
+                    if (root == null)
+                        root = re;
+                    if (root != re)
+                        root.addSuppressed(re);
+                }
+            }
+
+            if (root != null) {
+               throw root;
+            }
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return "or=" + Arrays.toString(or);
+        }
+    }
+
     /**
      * Check the server from the Socket connection against the server name(s)
      * as expressed in the server certificate (RFC 2595 check).
      * We implement a crude version of the same checks ourselves.
      */
     private static final class MailHostnameVerifier implements HostnameVerifier {
-        private final HostnameVerifier or;
 
         static HostnameVerifier of() {
-            return or((n, s) -> { return false; });
+            return new MailHostnameVerifier();
         }
 
-        static HostnameVerifier or(HostnameVerifier or) {
-            return new MailHostnameVerifier(or);
-        }
-
-        private MailHostnameVerifier(final HostnameVerifier or) {
-            this.or = Objects.requireNonNull(or);
+        private MailHostnameVerifier() {
         }
 
         @Override
@@ -1028,7 +1092,7 @@ public class SocketFetcher {
                         }
                     }
                     if (foundName)    // found a name, but no match
-                        return or.verify(server, ssls);
+                        return false;
                 }
             } catch (CertificateParsingException ignore) {
                 logger.log(Level.FINEST, server, ignore);
@@ -1048,12 +1112,7 @@ public class SocketFetcher {
             if (m.find() && matchServer(server, m.group(1).trim()))
                 return true;
 
-            return or.verify(server, ssls);
-        }
-
-        @Override
-        public String toString() {
-            return "[" + super.toString() +", or=" + or + "]";
+            return false;
         }
     }
 
@@ -1075,18 +1134,12 @@ public class SocketFetcher {
      * See: JDK-8062515 - Migrate use of sun.security.** to supported API
      */
     private static final class HostnameChecker implements HostnameVerifier {
-        private final HostnameVerifier or;
 
         static HostnameVerifier of() {
-            return or((n, s) -> { return false; });
+            return new HostnameChecker();
         }
 
-        static HostnameVerifier or(HostnameVerifier or) {
-            return new HostnameChecker(or);
-        }
-
-        private HostnameChecker(final HostnameVerifier or) {
-            this.or = Objects.requireNonNull(or);
+        private HostnameChecker() {
         }
 
         @Override
@@ -1134,12 +1187,7 @@ public class SocketFetcher {
             } catch (Exception ex) {
                 logger.log(Level.FINER, "NO sun.security.util.HostnameChecker", ex);
             }
-            return or.verify(server, ssls);
-        }
-
-        @Override
-        public String toString() {
-            return "[" + super.toString() +", or=" + or + "]";
+            return false;
         }
     }
 }
