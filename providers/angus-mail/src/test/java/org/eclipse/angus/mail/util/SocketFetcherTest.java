@@ -178,7 +178,7 @@ public final class SocketFetcherTest {
 
         TestHostnameVerifier hnv = new TestHostnameVerifier(acceptConnections);
         properties.put("mail.imap.ssl.hostnameverifier", hnv);
-        properties.setProperty("mail.imap.ssl.checkserveridentity", "true"); // Required for hostname verification
+        properties.setProperty("mail.imap.ssl.checkserveridentity", "false");
 
         ThrowingRunnable runnable = new ThrowingRunnable() {
             @Override
@@ -238,7 +238,7 @@ public final class SocketFetcherTest {
         properties.setProperty("mail.imap.socketFactory.fallback", "false");
 
         properties.setProperty("mail.imap.ssl.hostnameverifier.class", TestHostnameVerifier.class.getName());
-        properties.setProperty("mail.imap.ssl.checkserveridentity", "true"); // Required for hostname verification
+        properties.setProperty("mail.imap.ssl.checkserveridentity", "false");
 
         ThrowingRunnable runnable = new ThrowingRunnable() {
             @Override

@@ -22,6 +22,9 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -37,6 +40,8 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
@@ -654,8 +659,19 @@ public class SocketFetcher {
          * Check server identity and trust.
          */
         try {
-            HostnameVerifier hvn = getHostnameVerifier(props, prefix);
-            checkServerIdentity(hvn, host, sslsocket);
+            if (PropUtil.getBooleanProperty(props,
+                    prefix + ".ssl.checkserveridentity", true)) {
+                /* Check the server from the Socket connection against the
+                 * server name(s) as expressed in the server certificate
+                 * (RFC 2595 check)
+                 */
+                checkServerIdentity(newHostnameVerifier(),
+                    host, sslsocket);
+            }
+
+            //Perform any custom hostname verification requested by the user.
+            checkServerIdentity(getHostnameVerifier(props, prefix),
+                    host, sslsocket);
         } catch (IOException ioe) {
             throw cleanupAndThrow(sslsocket,ioe);
         } catch (ReflectiveOperationException | RuntimeException re) {
@@ -698,7 +714,7 @@ public class SocketFetcher {
 
     /**
      * Check the server from the Socket connection against the server name(s)
-     * as expressed in the server certificate (RFC 2595 check).  All hostname
+     * using the given HostnameVerifier.  All hostname
      * verifier implementations are allowed to throw an UncheckedIOException
      * which will be caught and unwrapped.
      *
@@ -706,10 +722,11 @@ public class SocketFetcher {
      * @param server name of the server expected
      * @param sslSocket SSLSocket connected to the server.  Caller is expected
      * to close the socket on error.
-     * @exception IOException    if we can't verify identity of server
+     * @exception IOException if we can't verify identity of server
      */
-    private static void checkServerIdentity(HostnameVerifier hnv, String server, SSLSocket sslSocket)
-            throws IOException {
+    private static void checkServerIdentity(HostnameVerifier hnv,
+                            String server, SSLSocket sslSocket)
+                            throws IOException {
         logger.log(Level.FINE, "Using HostnameVerifier: {0}", hnv);
         if (hnv == null) {
             return;
@@ -727,6 +744,44 @@ public class SocketFetcher {
         }
     }
 
+    /**
+     * Check the server from the Socket connection against the
+     * server name(s) as expressed in the server certificate
+     * (RFC 2595 check)
+     */
+    private static HostnameVerifier newHostnameVerifier() {
+        /*
+         * First, try to use sun.security.util.HostnameChecker,
+         * which exists in Sun's JDK starting with 1.4.1.
+         * We use reflection to access it in case it's not available
+         * in the JDK we're running on.
+         * Limit access starting with JDK9 to avoid console warnings.
+         */
+        try {
+           Class.forName("java.lang.Module");
+           return TrustManagerHostnameVerifier.or(MailHostnameVerifier.of());
+       } catch (ClassNotFoundException preJdk9) {
+           return HostnameChecker.or(MailHostnameVerifier.of());
+       }
+    }
+
+    private static X509Certificate getX509Certificate(
+            java.security.cert.Certificate[] certChain) throws IOException {
+        if (certChain == null || certChain.length == 0) {
+            throw new SSLPeerUnverifiedException(
+                    Arrays.toString(certChain));
+        }
+
+        java.security.cert.Certificate first = certChain[0];
+        if (first instanceof X509Certificate) {
+            return (X509Certificate) first;
+        }
+
+        throw new SSLPeerUnverifiedException(first == null ? "null"
+                : (first.getClass().getName() + " " + first.getType()));
+    }
+
+
    /**
     * Return an instance of {@link HostnameVerifier}.
     *
@@ -741,62 +796,38 @@ public class SocketFetcher {
    private static HostnameVerifier getHostnameVerifier(Properties props, String prefix)
            throws ReflectiveOperationException {
 
-        HostnameVerifier builtin = null;
-        String fqcn = props.getProperty(prefix + ".ssl.hostnameverifier.class");
-        if (PropUtil.getBooleanProperty(props,
-                    prefix + ".ssl.checkserveridentity", true)
-                || "any".equals(fqcn)) {
-            /*
-             * First, try to use sun.security.util.HostnameChecker,
-             * which exists in Sun's JDK starting with 1.4.1.
-             * We use reflection to access it in case it's not available
-             * in the JDK we're running on.
-             * Limit access starting with JDK9 to avoid console warnings.
-             */
-            try {
-                Class.forName("java.lang.Module");
-                builtin = MailHostnameVerifier.of();
-            } catch (ClassNotFoundException preJdk9) {
-                builtin = OrChain.of(HostnameChecker.of(),
-                        MailHostnameVerifier.of());
-            }
-        }
-
         //Custom object is used before factory.
         HostnameVerifier hvn = (HostnameVerifier)
                                 props.get(prefix + ".ssl.hostnameverifier");
         if (hvn != null) {
-            return builtin != null ? OrChain.of(hvn, builtin) : hvn;
+            return hvn;
         }
 
-        //Handle none or any class name factory aliases
-        if (fqcn == null || "any".equals(fqcn)) {
-            return builtin;
+        String fqcn = props.getProperty(prefix + ".ssl.hostnameverifier.class");
+        if (fqcn == null) {
+            return null;
+        }
+
+        //Handle all aliases
+        if ("any".equals(fqcn)) {
+            return newHostnameVerifier();
         }
 
         if ("sun.security.util.HostnameChecker".equals(fqcn)
-                || HostnameChecker.class.getName().equals(fqcn)) {
-            if (builtin != null
-                    && HostnameChecker.class == builtin.getClass()) {
-                return builtin;
-            }
-            hvn = HostnameChecker.of();
+                || HostnameChecker.class.getSimpleName().equals(fqcn)) {
+            return HostnameChecker.of();
         }
 
-        if (MailHostnameVerifier.class.getName().equals(fqcn)) {
-            if (builtin != null
-                    && MailHostnameVerifier.class == builtin.getClass()) {
-                return builtin;
-            }
-            hvn = MailHostnameVerifier.of();
+        if (MailHostnameVerifier.class.getSimpleName().equals(fqcn)) {
+            return MailHostnameVerifier.of();
         }
 
-
-        if (hvn != null) {
-            return builtin != null ? OrChain.of(hvn, builtin) : hvn;
+        if (TrustManagerHostnameVerifier.class.getSimpleName()
+                .equals(fqcn)) {
+            return TrustManagerHostnameVerifier.of();
         }
 
-        //Handle the given classname
+        //Handle the fully qualified class name
         Class<? extends HostnameVerifier> verifierClass = null;
         ClassLoader ccl = getContextClassLoader();
 
@@ -835,12 +866,9 @@ public class SocketFetcher {
         }
 
         if (verifierClass != null) {
-            hvn = verifierClass.getConstructor().newInstance();
+            return verifierClass.getConstructor().newInstance();
         }
 
-        if (hvn != null) {
-            return builtin != null ? OrChain.of(hvn, builtin) : hvn;
-        }
         throw new ClassNotFoundException(fqcn);
    }
 
@@ -989,59 +1017,6 @@ public class SocketFetcher {
                 });
     }
 
-    private static final class OrChain implements HostnameVerifier {
-        private final HostnameVerifier[] or;
-
-        static HostnameVerifier of(HostnameVerifier lhs, HostnameVerifier rhs) {
-            Objects.requireNonNull(lhs);
-            Objects.requireNonNull(rhs);
-            if (rhs instanceof OrChain) {
-                HostnameVerifier[] other = ((OrChain) rhs).or;
-                HostnameVerifier[] or = new HostnameVerifier[other.length + 1];
-                or[0] = lhs;
-                System.arraycopy(other, 0, or, 1, other.length);
-                return new OrChain(or);
-            }
-            return new OrChain(lhs, rhs);
-        }
-
-        private OrChain(final HostnameVerifier... or) {
-            this.or = or;
-        }
-
-        @Override
-        public boolean verify(String string, SSLSession ssls) {
-            RuntimeException root = null;
-            for (HostnameVerifier next : or) {
-                try {
-                    if (next.verify(string, ssls)) {
-                        return true;
-                    }
-                } catch (UncheckedIOException uioe) {
-                    if (root == null)
-                        root = uioe;
-                    if (root != uioe)
-                        root.addSuppressed(uioe.getCause());
-                } catch (RuntimeException re) {
-                    if (root == null)
-                        root = re;
-                    if (root != re)
-                        root.addSuppressed(re);
-                }
-            }
-
-            if (root != null) {
-               throw root;
-            }
-            return false;
-        }
-
-        @Override
-        public String toString() {
-            return "or=" + Arrays.toString(or);
-        }
-    }
-
     /**
      * Check the server from the Socket connection against the server name(s)
      * as expressed in the server certificate (RFC 2595 check).
@@ -1060,17 +1035,7 @@ public class SocketFetcher {
         public boolean verify(String server, SSLSession ssls) {
             X509Certificate cert = null;
             try {
-                java.security.cert.Certificate[] certChain
-                        = ssls.getPeerCertificates();
-                if (certChain != null && certChain.length > 0
-                        && certChain[0] instanceof X509Certificate) {
-                    cert = (X509Certificate) certChain[0];
-                }
-
-                if (cert == null) {
-                    throw new SSLPeerUnverifiedException(Arrays.toString(certChain));
-                }
-
+                cert = getX509Certificate(ssls.getPeerCertificates());
                 /*
                  * Check each of the subjectAltNames.
                  * XXX - only checks DNS names, should also handle
@@ -1096,7 +1061,7 @@ public class SocketFetcher {
                 }
             } catch (CertificateParsingException ignore) {
                 logger.log(Level.FINEST, server, ignore);
-            } catch (SSLPeerUnverifiedException spue) {
+            } catch (IOException spue) {
                 throw new UncheckedIOException(spue);
             }
 
@@ -1113,6 +1078,60 @@ public class SocketFetcher {
                 return true;
 
             return false;
+        }
+    }
+
+    private static final class TrustManagerHostnameVerifier
+            implements HostnameVerifier {
+
+        private final HostnameVerifier or;
+
+        static HostnameVerifier of() {
+            return or((n, s) -> { return false; });
+        }
+
+        static HostnameVerifier or(HostnameVerifier or) {
+            return new TrustManagerHostnameVerifier(or);
+        }
+
+        private TrustManagerHostnameVerifier(final HostnameVerifier or) {
+            this.or = Objects.requireNonNull(or);
+        }
+
+        @Override
+        public boolean verify(String server, SSLSession ssls) {
+            try {
+                X509Certificate cert = getX509Certificate(
+                    ssls.getPeerCertificates());
+
+                KeyStore ks = KeyStore.getInstance("pkcs12");
+                //TODO: Load single cert vs. load full chain
+                ks.setCertificateEntry("test", cert);
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX");
+                tmf.init(ks);
+                TrustManager[] tms = tmf.getTrustManagers();
+                if (tms == null || tms.length == 0) {
+                   throw new SSLPeerUnverifiedException(Arrays.toString(tms));
+                }
+
+                TrustManager tm = tms[0];
+                if (tm instanceof X509TrustManager) {
+                    //TODO: checkServer vs. checkClient
+                    ((X509TrustManager) tm).checkServerTrusted(
+                            new X509Certificate[]{cert}, server);
+                    return true;
+                }
+            } catch (IOException ioe) {
+                throw new UncheckedIOException(ioe);
+            } catch (GeneralSecurityException ex) {
+                logger.log(Level.FINER, "Unable to load TrustManager", ex);
+            }
+            return or.verify(server, ssls);
+        }
+
+        @Override
+        public String toString() {
+            return "[" + getClass().getSimpleName() +", or=" + or + "]";
         }
     }
 
@@ -1134,32 +1153,29 @@ public class SocketFetcher {
      * See: JDK-8062515 - Migrate use of sun.security.** to supported API
      */
     private static final class HostnameChecker implements HostnameVerifier {
+        private final HostnameVerifier or;
 
         static HostnameVerifier of() {
-            return new HostnameChecker();
+            return or((n, s) -> { return false; });
         }
 
-        private HostnameChecker() {
+        static HostnameVerifier or(HostnameVerifier or) {
+            return new HostnameChecker(or);
+        }
+
+        private HostnameChecker(final HostnameVerifier or) {
+            this.or = Objects.requireNonNull(or);
         }
 
         @Override
         public boolean verify(String server, SSLSession ssls) {
             try {
-                java.security.cert.Certificate[] certChain
-                        = ssls.getPeerCertificates();
-                X509Certificate cert = null;
-                if (certChain != null && certChain.length > 0
-                        && certChain[0] instanceof X509Certificate) {
-                    cert = (X509Certificate) certChain[0];
-                }
+                X509Certificate cert = getX509Certificate(
+                        ssls.getPeerCertificates());
 
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer("matchCert server "
                             + server + ", cert " + cert);
-                }
-
-                if (cert == null) {
-                    throw new SSLPeerUnverifiedException(Arrays.toString(certChain));
                 }
 
                 Class<?> hnc = Class.forName("sun.security.util.HostnameChecker");
@@ -1187,7 +1203,12 @@ public class SocketFetcher {
             } catch (Exception ex) {
                 logger.log(Level.FINER, "NO sun.security.util.HostnameChecker", ex);
             }
-            return false;
+            return or.verify(server, ssls);
+        }
+
+        @Override
+        public String toString() {
+            return "[" + getClass().getSimpleName() +", or=" + or + "]";
         }
     }
 }
