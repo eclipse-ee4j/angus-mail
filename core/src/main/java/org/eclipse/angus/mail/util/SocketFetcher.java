@@ -808,9 +808,11 @@ public class SocketFetcher {
             return null;
         }
 
-        //Handle all aliases
+        //Handle all aliases names
         if ("any".equals(fqcn)) {
-            return newHostnameVerifier();
+            return HostnameChecker.or(
+                    TrustManagerHostnameVerifier.or(
+                    MailHostnameVerifier.of()));
         }
 
         if ("sun.security.util.HostnameChecker".equals(fqcn)
