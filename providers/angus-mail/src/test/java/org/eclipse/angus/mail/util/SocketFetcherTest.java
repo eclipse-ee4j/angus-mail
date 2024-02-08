@@ -349,7 +349,7 @@ public final class SocketFetcherTest {
          * the unit test may synchronize on the TestHostnameVerifier class and call the
          * static "reset" method prior to de-synchronizing.
          */
-        public static final AtomicInteger defaultConstructorCount = new AtomicInteger();
+        private static final AtomicInteger defaultConstructorCount = new AtomicInteger();
         private boolean acceptConnections = true;
         private boolean verified = false;
 

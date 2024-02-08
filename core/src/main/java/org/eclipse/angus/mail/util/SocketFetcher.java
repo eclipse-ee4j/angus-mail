@@ -1102,8 +1102,9 @@ public class SocketFetcher {
      * or --add-opens 'java.base/sun.security.util=jakarta.mail' depending on
      * how this class has been packaged.
      * It is preferred to set mail.<protocol>.ssl.endpointidentitycheck property
-     * to 'LDAPS' instead of using this validator.  This adapter will be removed
-     * in a future release of Angus Mail.
+     * to 'LDAPS' instead of using this verifier.  This adapter will be removed
+     * in a future release of Angus Mail when there is no reason to keep this
+     * for compatiblity sake.
      *
      * See: JDK-8062515 - Migrate use of sun.security.** to supported API
      */
