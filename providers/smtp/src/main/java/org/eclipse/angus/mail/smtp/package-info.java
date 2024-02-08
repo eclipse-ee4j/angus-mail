@@ -644,17 +644,13 @@
  * any {@link java.io.IOException}.  The alias name <code>any</code> will
  * attempt find a built in hostname verifier that passes verification.
  * The alias name <code>sun.security.util.HostnameChecker</code> or
- * <code>org.eclipse.angus.mail.util.SocketFetcher$HostnameChecker</code> will
- * attempt to access the <code>sun.security.util.HostnameChecker</code> via
- * reflection which will require an add-opens of 'java.base/sun.security.util'.
- * The alias name
- * <code>org.eclipse.angus.mail.util.SocketFetcher$MailHostnameVerifier</code>
- * will use a basic hostname verification of the certificate. *
- * The instantiated object will provide additional checks based on the content
- * of the server's certificate are intended to prevent man-in-the-middle
- * attacks.  Defaults to any if the
- * <code>mail.smtp.ssl.checkserveridentity</code> is true (set or default).
- * Otherwise the default is null.
+ * <code>HostnameChecker</code> will attempt to access the
+ * <code>sun.security.util.HostnameChecker</code> via reflection which will
+ * require an add-opens of 'java.base/sun.security.util'.  The alias name
+ * <code>MailHostnameVerifier</code> will use a basic hostname verification of
+ * the certificate.  The instantiated object will provide additional checks
+ * based on the content of the server's certificate are intended to prevent
+ * man-in-the-middle attacks.  Defaults to null.
  * </TD>
  * </TR>
  *

@@ -18,6 +18,8 @@ package org.eclipse.angus.mail.util;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
@@ -635,6 +637,16 @@ public class SocketFetcher {
             if (!eia.isEmpty()) {
                 SSLParameters params = sslsocket.getSSLParameters();
                 params.setEndpointIdentificationAlgorithm(eia);
+
+                SNIHostName shn = new SNIHostName(host);
+                List<SNIServerName> src = params.getServerNames();
+                if (!src.contains(shn)) {
+                    List<SNIServerName> copy = new ArrayList<>(src.size() + 1);
+                    copy.addAll(src);
+                    copy.add(shn);
+                    params.setServerNames(copy);
+                }
+
                 sslsocket.setSSLParameters(params);
                 logger.log(Level.FINER,
                         "Endpoint identification algorithm {0}", eia);
@@ -659,6 +671,12 @@ public class SocketFetcher {
          * Check server identity and trust.
          */
         try {
+            //Perform any custom hostname verification requested by the user
+            //so user can force legacy behavior on JDK9+ by setting this to
+            //HostnameChecker and checkserveridentity=true
+            checkServerIdentity(getHostnameVerifier(props, prefix),
+                    host, sslsocket);
+
             if (PropUtil.getBooleanProperty(props,
                     prefix + ".ssl.checkserveridentity", true)) {
                 /* Check the server from the Socket connection against the
@@ -668,10 +686,6 @@ public class SocketFetcher {
                 checkServerIdentity(newHostnameVerifier(),
                     host, sslsocket);
             }
-
-            //Perform any custom hostname verification requested by the user.
-            checkServerIdentity(getHostnameVerifier(props, prefix),
-                    host, sslsocket);
         } catch (IOException ioe) {
             throw cleanupAndThrow(sslsocket,ioe);
         } catch (ReflectiveOperationException | RuntimeException re) {
@@ -759,7 +773,7 @@ public class SocketFetcher {
          */
         try {
            Class.forName("java.lang.Module");
-           return TrustManagerHostnameVerifier.or(MailHostnameVerifier.of());
+           return MailHostnameVerifier.of();
        } catch (ClassNotFoundException preJdk9) {
            return HostnameChecker.or(MailHostnameVerifier.of());
        }
@@ -777,6 +791,7 @@ public class SocketFetcher {
             return (X509Certificate) first;
         }
 
+        //Only metadata about the cert is shown in the message
         throw new SSLPeerUnverifiedException(first == null ? "null"
                 : (first.getClass().getName() + " " + first.getType()));
     }
@@ -790,7 +805,7 @@ public class SocketFetcher {
     *
     * @param fqcn the class name of the {@link HostnameVerifier}
     * @return the {@link HostnameVerifier} or null
-    * @throws ClassCastException if assigned hostnameverifier is not a {@link HostnameVerifier}
+    * @throws ClassCastException if hostnameverifier is not a {@link HostnameVerifier}
     * @throws ReflectiveOperationException if unable to construct a {@link HostnameVerifier}
     */
    private static HostnameVerifier getHostnameVerifier(Properties props, String prefix)
@@ -809,10 +824,8 @@ public class SocketFetcher {
         }
 
         //Handle all aliases names
-        if ("any".equals(fqcn)) {
-            return HostnameChecker.or(
-                    TrustManagerHostnameVerifier.or(
-                    MailHostnameVerifier.of()));
+        if ("any".equals(fqcn)) { //legacy behavior
+            return HostnameChecker.or(MailHostnameVerifier.of());
         }
 
         if ("sun.security.util.HostnameChecker".equals(fqcn)
@@ -822,11 +835,6 @@ public class SocketFetcher {
 
         if (MailHostnameVerifier.class.getSimpleName().equals(fqcn)) {
             return MailHostnameVerifier.of();
-        }
-
-        if (TrustManagerHostnameVerifier.class.getSimpleName()
-                .equals(fqcn)) {
-            return TrustManagerHostnameVerifier.of();
         }
 
         //Handle the fully qualified class name
@@ -1084,63 +1092,6 @@ public class SocketFetcher {
                 return true;
 
             return false;
-        }
-    }
-
-    private static final class TrustManagerHostnameVerifier
-            implements HostnameVerifier {
-
-        private final HostnameVerifier or;
-
-        static HostnameVerifier of() {
-            return or((n, s) -> { return false; });
-        }
-
-        static HostnameVerifier or(HostnameVerifier or) {
-            return new TrustManagerHostnameVerifier(or);
-        }
-
-        private TrustManagerHostnameVerifier(final HostnameVerifier or) {
-            this.or = Objects.requireNonNull(or);
-        }
-
-        @Override
-        public boolean verify(String server, SSLSession ssls) {
-            try {
-                X509Certificate cert = getX509Certificate(
-                    ssls.getPeerCertificates());
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer("matchCert server "
-                            + server + ", cert " + cert);
-                }
-                KeyStore ks = KeyStore.getInstance("pkcs12");
-                //TODO: Load single cert vs. load full chain
-                ks.setCertificateEntry("test", cert);
-                TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX");
-                tmf.init(ks);
-                TrustManager[] tms = tmf.getTrustManagers();
-                if (tms == null || tms.length == 0) {
-                   throw new SSLPeerUnverifiedException(Arrays.toString(tms));
-                }
-
-                TrustManager tm = tms[0];
-                if (tm instanceof X509TrustManager) {
-                    //TODO: checkServer vs. checkClient
-                    ((X509TrustManager) tm).checkServerTrusted(
-                            new X509Certificate[]{cert}, server);
-                    return true;
-                }
-            } catch (IOException ioe) {
-                throw new UncheckedIOException(ioe);
-            } catch (GeneralSecurityException ex) {
-                logger.log(Level.FINER, "Unable to load TrustManager", ex);
-            }
-            return or.verify(server, ssls);
-        }
-
-        @Override
-        public String toString() {
-            return "[" + getClass().getSimpleName() +", or=" + or + "]";
         }
     }
 
