@@ -668,8 +668,7 @@ public class SocketFetcher {
                  * server name(s) as expressed in the server certificate
                  * (RFC 2595 check)
                  */
-                checkServerIdentity(newHostnameVerifier(),
-                    host, sslsocket);
+                checkServerIdentity(newHostnameVerifier(),host, sslsocket);
             }
         } catch (IOException ioe) {
             throw cleanupAndThrow(sslsocket,ioe);
