@@ -633,13 +633,10 @@ public class SocketFetcher {
                 SSLParameters params = sslsocket.getSSLParameters();
                 params.setEndpointIdentificationAlgorithm(eia);
 
-                SNIHostName shn = new SNIHostName(host);
                 List<SNIServerName> src = params.getServerNames();
-                if (!src.contains(shn)) {
-                    List<SNIServerName> copy = new ArrayList<>(src.size() + 1);
-                    copy.addAll(src);
-                    copy.add(shn);
-                    params.setServerNames(copy);
+                if (src.isEmpty()) {
+                    SNIHostName shn = new SNIHostName(host);
+                    params.setServerNames(Arrays.asList(shn));
                 }
 
                 sslsocket.setSSLParameters(params);
