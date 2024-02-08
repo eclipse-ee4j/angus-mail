@@ -632,13 +632,6 @@ public class SocketFetcher {
             if (!eia.isEmpty()) {
                 SSLParameters params = sslsocket.getSSLParameters();
                 params.setEndpointIdentificationAlgorithm(eia);
-
-                List<SNIServerName> src = params.getServerNames();
-                if (src.isEmpty()) {
-                    SNIHostName shn = new SNIHostName(host);
-                    params.setServerNames(Arrays.asList(shn));
-                }
-
                 sslsocket.setSSLParameters(params);
                 logger.log(Level.FINER,
                         "Endpoint identification algorithm {0}", eia);
