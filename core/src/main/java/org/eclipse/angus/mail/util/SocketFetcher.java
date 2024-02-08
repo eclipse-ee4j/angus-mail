@@ -657,8 +657,8 @@ public class SocketFetcher {
          */
         try {
             //Perform any custom hostname verification requested by the user
-            //so user can force legacy behavior on JDK9+ by setting this to
-            //HostnameChecker and checkserveridentity=true
+            //first so user can force legacy behavior on JDK9+ by setting this
+            //to HostnameChecker and the checkserveridentity to true.
             checkServerIdentity(getHostnameVerifier(props, prefix),
                     host, sslsocket);
 
