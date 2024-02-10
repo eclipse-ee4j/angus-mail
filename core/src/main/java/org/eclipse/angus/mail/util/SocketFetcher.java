@@ -631,8 +631,12 @@ public class SocketFetcher {
                 SSLParameters params = sslsocket.getSSLParameters();
                 params.setEndpointIdentificationAlgorithm(eia);
                 sslsocket.setSSLParameters(params);
-                logger.log(Level.FINER,
-                        "Endpoint identification algorithm {0}", eia);
+
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER,
+                "Checking {0} using endpoint identification algorithm {1}",
+                        new Object[]{eia, params.getServerNames()});
+                }
             }
         } catch (RuntimeException re) {
             throw cleanupAndThrow(sslsocket,
@@ -670,7 +674,7 @@ public class SocketFetcher {
             }
         } catch (IOException ioe) {
             throw cleanupAndThrow(sslsocket,ioe);
-        } catch (ReflectiveOperationException | RuntimeException re) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError re) {
             throw cleanupAndThrow(sslsocket,
                     new IOException("Unable to check server idenitity",re));
         }
@@ -723,7 +727,13 @@ public class SocketFetcher {
     private static void checkServerIdentity(HostnameVerifier hnv,
                             String server, SSLSocket sslSocket)
                             throws IOException {
-        logger.log(Level.FINE, "Using HostnameVerifier: {0}", hnv);
+        if(logger.isLoggable(Level.FINER)) {
+            //Only expose the toString of the HostnameVerifier to the logger
+            //and not a direct reference to the HostnameVerifier
+            logger.log(Level.FINER, "Using HostnameVerifier: {0}",
+                    Objects.toString(hnv));
+        }
+
         if (hnv == null) {
             return;
         }
@@ -801,7 +811,7 @@ public class SocketFetcher {
         }
 
         String fqcn = props.getProperty(prefix + ".ssl.hostnameverifier.class");
-        if (fqcn == null) {
+        if (fqcn == null || fqcn.isEmpty()) {
             return null;
         }
 
@@ -1091,7 +1101,7 @@ public class SocketFetcher {
      * It is preferred to set mail.<protocol>.ssl.endpointidentitycheck property
      * to 'LDAPS' instead of using this verifier.  This adapter will be removed
      * in a future release of Angus Mail when there is no reason to keep this
-     * for compatiblity sake.
+     * for compatibility sake.
      *
      * See: JDK-8062515 - Migrate use of sun.security.** to supported API
      */

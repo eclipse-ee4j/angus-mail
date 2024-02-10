@@ -29,12 +29,14 @@ import org.junit.rules.Timeout;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
 import org.eclipse.angus.mail.imap.IMAPHandler;
 import org.eclipse.angus.mail.test.TestSSLSocketFactory;
@@ -42,6 +44,7 @@ import org.eclipse.angus.mail.test.TestSSLSocketFactory;
 import static org.junit.Assert.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -139,8 +142,8 @@ public final class SocketFetcherTest {
     }
 
     @Test
-    public void testSSLSocketFactoryHostnameVerifierAcceptsConnections() throws Exception {
-        testSSLSocketFactoryHostnameVerifier(true);
+    public void testSSLHostnameVerifierAcceptsConnections() throws Exception {
+        testSSLHostnameVerifier(true);
     }
 
     /**
@@ -150,13 +153,13 @@ public final class SocketFetcherTest {
      * @throws Exception
      */
     @Test
-    public void testSSLSocketFactoryHostnameVerifierRejectsConnections() throws Exception {
-        testSSLSocketFactoryHostnameVerifier(false);
+    public void testSSLHostnameVerifierRejectsConnections() throws Exception {
+        testSSLHostnameVerifier(false);
     }
 
     @Test
-    public void testSSLSocketFactoryHostnameVerifierInstantiatedByString() throws Exception {
-        testSSLSocketFactoryHostnameVerifierByName();
+    public void testSSLVerifierInstantiatedByString() throws Exception {
+        testSSLHostnameVerifierByName();
     }
 
     /**
@@ -165,7 +168,7 @@ public final class SocketFetcherTest {
      * @param acceptConnections Whether the {@link HostnameVerifier} should accept or reject connections.
      * @throws Exception
      */
-    private void testSSLSocketFactoryHostnameVerifier(boolean acceptConnections) throws Exception {
+    private void testSSLHostnameVerifier(boolean acceptConnections) throws Exception {
         final Properties properties = new Properties();
         properties.setProperty("mail.imap.host", "localhost");
         properties.setProperty("mail.imap.ssl.enable", "true");
@@ -180,43 +183,37 @@ public final class SocketFetcherTest {
         properties.put("mail.imap.ssl.hostnameverifier", hnv);
         properties.setProperty("mail.imap.ssl.checkserveridentity", "false");
 
-        ThrowingRunnable runnable = new ThrowingRunnable() {
-            @Override
-            public void run() throws Throwable {
-                TestServer server = null;
-                try {
-                    server = new TestServer(new IMAPHandler(), true);
-                    server.start();
+        ThrowingRunnable runnable = () -> {
+            TestServer server = null;
+            try {
+                server = new TestServer(new IMAPHandler(), true);
+                server.start();
 
-                    properties.setProperty("mail.imap.port", "" + server.getPort());
-                    final Session session = Session.getInstance(properties);
+                properties.setProperty("mail.imap.port",
+                        Integer.toString(server.getPort()));
+                final Session session = Session.getInstance(properties);
 
-                    try (Store store = session.getStore("imap")) {
-                        store.connect("test", "test");
-                    }
+                try (Store store = session.getStore("imap")) {
+                    store.connect("test", "test");
                 }
-                finally {
-                    if (server != null) {
-                        server.quit();
-                    }
+            } finally {
+                if (server != null) {
+                    server.quit();
                 }
             }
         };
 
         if (!acceptConnections) {
             // When the hostname verifier refuses a connection, a MessagingException will be thrown.
-            assertThrows(MessagingException.class, runnable);
-        }
-        else {
+            assertNotNull(assertThrows(MessagingException.class, runnable));
+        } else {
             // When the hostname verifier is not set to refuse connections, no exception should be thrown.
             synchronized (TestHostnameVerifier.class) {
                 try {
                     runnable.run();
-                }
-                catch(Throwable t){
+                } catch(Throwable t){
                     throw new AssertionError(t);
-                }
-                finally{
+                } finally{
                     TestHostnameVerifier.reset();
                 }
             }
@@ -226,7 +223,7 @@ public final class SocketFetcherTest {
         assertTrue("Hostname verifier was not used.", hnv.hasInvokedVerify());
     }
 
-    private void testSSLSocketFactoryHostnameVerifierByName() throws Exception {
+    private void testSSLHostnameVerifierByName() throws Exception {
         final Properties properties = new Properties();
         properties.setProperty("mail.imap.host", "localhost");
         properties.setProperty("mail.imap.ssl.enable", "true");
@@ -240,25 +237,22 @@ public final class SocketFetcherTest {
         properties.setProperty("mail.imap.ssl.hostnameverifier.class", TestHostnameVerifier.class.getName());
         properties.setProperty("mail.imap.ssl.checkserveridentity", "false");
 
-        ThrowingRunnable runnable = new ThrowingRunnable() {
-            @Override
-            public void run() throws Throwable {
-                TestServer server = null;
-                try {
-                    server = new TestServer(new IMAPHandler(), true);
-                    server.start();
+        ThrowingRunnable runnable = () -> {
+            TestServer server = null;
+            try {
+                server = new TestServer(new IMAPHandler(), true);
+                server.start();
 
-                    properties.setProperty("mail.imap.port", "" + server.getPort());
-                    final Session session = Session.getInstance(properties);
+                properties.setProperty("mail.imap.port",
+                        Integer.toString(server.getPort()));
+                final Session session = Session.getInstance(properties);
 
-                    try (Store store = session.getStore("imap")) {
-                        store.connect("test", "test");
-                    }
+                try (Store store = session.getStore("imap")) {
+                    store.connect("test", "test");
                 }
-                finally {
-                    if (server != null) {
-                        server.quit();
-                    }
+            } finally {
+                if (server != null) {
+                    server.quit();
                 }
             }
         };
@@ -269,9 +263,95 @@ public final class SocketFetcherTest {
                 assertEquals("Expected the Default Constructor of the HostnameVerifier class to be invoked once.", 1, TestHostnameVerifier.getDefaultConstructorCount());
             } catch (Throwable t) {
                 throw new AssertionError(t);
-            }
-            finally {
+            } finally {
                 TestHostnameVerifier.reset();
+            }
+        }
+    }
+
+    @Test
+    public void testSSLEndpointIdentityCheckEmptyString() throws Throwable {
+        testSSLEndpointIdentityCheck("");
+    }
+
+    @Test
+    public void testSSLEndpointIdentityCheckLdaps() {
+        try {
+            testSSLEndpointIdentityCheck("LDAPS");
+            throw new AssertionError();
+        } catch (Error | RuntimeException e) {
+            throw e;
+        } catch (MessagingException me) {
+            Throwable cause = me.getCause();
+            assertTrue(String.valueOf(cause),
+                    cause instanceof SSLHandshakeException);
+            assertTrue(me.toString(), isFromTrustManager(me));
+        } catch (Throwable t) {
+            throw new AssertionError(t);
+        }
+    }
+
+    @Test
+    public void testSSLEndpointIdentityCheckHttps() {
+        try {
+            testSSLEndpointIdentityCheck("HTTPS");
+            throw new AssertionError();
+        } catch (Error | RuntimeException e) {
+            throw e;
+        } catch (MessagingException me) {
+            Throwable cause = me.getCause();
+            assertTrue(String.valueOf(cause),
+                    cause instanceof SSLHandshakeException);
+            assertTrue(me.toString(), isFromTrustManager(me));
+        } catch (Throwable t) {
+            throw new AssertionError(t);
+        }
+    }
+
+    private boolean isFromTrustManager(Throwable thrown) {
+        for (Throwable t = thrown; t != null; t = t.getCause()) {
+            for (StackTraceElement s : t.getStackTrace()) {
+                if ("checkServerTrusted".equals(s.getMethodName())
+                        && s.getClassName().contains("TrustManager")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+
+    private void testSSLEndpointIdentityCheck(String algo) throws Throwable {
+        final Properties props = new Properties();
+        //String host = InetAddress.getLocalHost().getCanonicalHostName();
+        //properties.setProperty("mail.imap.host", host);
+        props.setProperty("mail.imap.host", "localhost");
+        props.setProperty("mail.imap.ssl.enable", "true");
+
+        TestSSLSocketFactory sf = new TestSSLSocketFactory();
+        props.put("mail.imap.ssl.socketFactory", sf);
+
+        // don't fall back to non-SSL
+        props.setProperty("mail.imap.socketFactory.fallback", "false");
+
+        props.setProperty("mail.imap.ssl.checkserveridentity", "false");
+        props.setProperty("mail.imap.ssl.endpointidentitycheck", algo);
+
+        TestServer server = null;
+        try {
+            server = new TestServer(new IMAPHandler(), true);
+            server.start();
+
+            props.setProperty("mail.imap.port",
+                    Integer.toString(server.getPort()));
+            final Session session = Session.getInstance(props);
+
+            try (Store store = session.getStore("imap")) {
+                store.connect("test", "test");
+            }
+        } finally {
+            if (server != null) {
+                server.quit();
             }
         }
     }
@@ -392,7 +472,7 @@ public final class SocketFetcherTest {
      * and save user/password string;
      */
     private static class ProxyHandler extends ProtocolHandler {
-        private boolean http;
+        private final boolean http;
 
         // must be static because handler is cloned for each connection
         private static volatile boolean connected;
