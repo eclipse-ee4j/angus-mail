@@ -634,7 +634,7 @@ public class SocketFetcher {
 
                 if (logger.isLoggable(Level.FINER)) {
                     logger.log(Level.FINER,
-                "Checking {0} using endpoint identification algorithm {1}",
+                    "Checking {0} using endpoint identification algorithm {1}",
                         new Object[]{eia, params.getServerNames()});
                 }
             }
