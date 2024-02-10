@@ -15,7 +15,9 @@
     enable validations performed by the sun.security.util.HostnameChecker.
     For strict compatibility with previous release set the
     "mail.<protocol>.ssl.hostnameverifier.class" property to
-    "sun.security.util.HostnameChecker" which restore reflective access.
+    "any" which restore reflective access and fallback validation behavior.  Set
+    the "mail.<protocol>.ssl.checkserveridentity" property to "false" so the
+    default fallback verifier is not unconditionally invoked.
 
 - MailHandler public methods no longer hostile to invalid arguments
 
