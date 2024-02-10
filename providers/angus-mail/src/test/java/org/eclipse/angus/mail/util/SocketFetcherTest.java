@@ -29,7 +29,6 @@ import org.junit.rules.Timeout;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -41,6 +40,7 @@ import javax.net.ssl.SSLSession;
 import org.eclipse.angus.mail.imap.IMAPHandler;
 import org.eclipse.angus.mail.test.TestSSLSocketFactory;
 
+import static org.junit.Assume.assumeTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -270,6 +270,91 @@ public final class SocketFetcherTest {
     }
 
     @Test
+    public void testSSLHostnameVerifierHostNameCheckerFQCN() throws Exception {
+        try {
+            testSSLHostnameVerifierClass("sun.security.util.HostnameChecker");
+            throw new AssertionError("No exception");
+        } catch (MessagingException me) {
+            Throwable cause = me.getCause();
+            assertTrue(String.valueOf(cause),
+                    cause instanceof IOException);
+            assertTrue(me.toString(), isFromSocketFetcher(me));
+        }
+    }
+
+    @Test
+    public void testSSLHostnameVerifierHostNameChecker() throws Exception {
+        try {
+            testSSLHostnameVerifierClass("HostnameChecker");
+            throw new AssertionError("No exception");
+        } catch (MessagingException me) {
+            Throwable cause = me.getCause();
+            assertTrue(String.valueOf(cause),
+                    cause instanceof IOException);
+            assertTrue(me.toString(), isFromSocketFetcher(me));
+        }
+    }
+
+    @Test
+    public void testSSLHostnameVerifierAny() throws Exception {
+        try {
+            testSSLHostnameVerifierClass("any");
+            throw new AssertionError("No exception");
+        } catch (MessagingException me) {
+            Throwable cause = me.getCause();
+            assertTrue(String.valueOf(cause),
+                    cause instanceof IOException);
+            assertTrue(me.toString(), isFromSocketFetcher(me));
+        }
+    }
+
+    @Test
+    public void testSSLHostnameVerifierMail() throws Exception {
+        try {
+            testSSLHostnameVerifierClass("MailHostnameVerifier");
+            throw new AssertionError("No exception");
+        } catch (MessagingException me) {
+            Throwable cause = me.getCause();
+            assertTrue(String.valueOf(cause),
+                    cause instanceof IOException);
+            assertTrue(me.toString(), isFromSocketFetcher(me));
+        }
+    }
+
+    private void testSSLHostnameVerifierClass(String name) throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.imap.host", "localhost");
+        properties.setProperty("mail.imap.ssl.enable", "true");
+
+        TestSSLSocketFactory sf = new TestSSLSocketFactory();
+        properties.put("mail.imap.ssl.socketFactory", sf);
+
+        // don't fall back to non-SSL
+        properties.setProperty("mail.imap.socketFactory.fallback", "false");
+
+        properties.setProperty("mail.imap.ssl.hostnameverifier.class", name);
+        properties.setProperty("mail.imap.ssl.checkserveridentity", "false");
+
+        TestServer server = null;
+        try {
+            server = new TestServer(new IMAPHandler(), true);
+            server.start();
+
+            properties.setProperty("mail.imap.port",
+                    Integer.toString(server.getPort()));
+            final Session session = Session.getInstance(properties);
+
+            try (Store store = session.getStore("imap")) {
+                store.connect("test", "test");
+            }
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
+    }
+
+    @Test
     public void testSSLEndpointIdentityCheckEmptyString() throws Throwable {
         testSSLEndpointIdentityCheck("");
     }
@@ -313,6 +398,18 @@ public final class SocketFetcherTest {
             for (StackTraceElement s : t.getStackTrace()) {
                 if ("checkServerTrusted".equals(s.getMethodName())
                         && s.getClassName().contains("TrustManager")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isFromSocketFetcher(Throwable thrown) {
+        for (Throwable t = thrown; t != null; t = t.getCause()) {
+            for (StackTraceElement s : t.getStackTrace()) {
+                if ("checkServerIdentity".equals(s.getMethodName())
+                        && SocketFetcher.class.getName().equals(s.getClassName())) {
                     return true;
                 }
             }
