@@ -6,18 +6,18 @@
 
 -- Angus Mail 2.0.3 --
 
-- Server Identity Check may not invoke sun.security.util.HostnameChecker
+- Server Identity Check performed by SSL endpoint identification algorithm
 
-    When running on JDK9+ the server identity check will no longer break
-    encapsulation to invoke the sun.security.util.HostnameChecker.  By default
-    the fallback logic included with AngusMail is invoked.  It is recommended
-    to set "mail.<protocol>.ssl.endpointidentitycheck" property to "LDAPS" to
-    enable validations performed by the sun.security.util.HostnameChecker.
+    The mail.<protocol>.ssl.checkserveridentity property now uses the
+    SSLParameters::setEndpointIdentificationAlgorithm on the SSLSocket.
     For strict compatibility with previous release set the
     "mail.<protocol>.ssl.hostnameverifier.class" property to
-    "any" which restore reflective access and fallback validation behavior.  Set
-    the "mail.<protocol>.ssl.checkserveridentity" property to "false" so the
-    default fallback verifier is not unconditionally invoked.
+    "any" which will restore reflective access and fallback validation behavior.
+    To avoid reflective access warning the value can be set to
+    "MailHostnameVerifier" but this verifier may fail certificates with false
+    negatives. The "mail.<protocol>.ssl.checkserveridentity" property should be
+    set to "false" so the endpoint identification algorithm is not overriding
+    the hostname verifier.
 
 - MailHandler public methods no longer hostile to invalid arguments
 

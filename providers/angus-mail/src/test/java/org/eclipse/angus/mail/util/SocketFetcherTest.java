@@ -355,14 +355,14 @@ public final class SocketFetcherTest {
     }
 
     @Test
-    public void testSSLEndpointIdentityCheckEmptyString() throws Throwable {
-        testSSLEndpointIdentityCheck("");
+    public void testSSLCheckServerIdentityFalse() throws Throwable {
+        testSSLCheckServerIdentity("false");
     }
 
     @Test
-    public void testSSLEndpointIdentityCheckLdaps() {
+    public void testSSLCheckServerIdentityNull() {
         try {
-            testSSLEndpointIdentityCheck("LDAPS");
+            testSSLCheckServerIdentity((String) null);
             throw new AssertionError();
         } catch (Error | RuntimeException e) {
             throw e;
@@ -377,9 +377,9 @@ public final class SocketFetcherTest {
     }
 
     @Test
-    public void testSSLEndpointIdentityCheckHttps() {
+    public void testSSLCheckServerIdentityTrue() {
         try {
-            testSSLEndpointIdentityCheck("HTTPS");
+            testSSLCheckServerIdentity("true");
             throw new AssertionError();
         } catch (Error | RuntimeException e) {
             throw e;
@@ -418,10 +418,8 @@ public final class SocketFetcherTest {
     }
 
 
-    private void testSSLEndpointIdentityCheck(String algo) throws Throwable {
+    private void testSSLCheckServerIdentity(String check) throws Throwable {
         final Properties props = new Properties();
-        //String host = InetAddress.getLocalHost().getCanonicalHostName();
-        //properties.setProperty("mail.imap.host", host);
         props.setProperty("mail.imap.host", "localhost");
         props.setProperty("mail.imap.ssl.enable", "true");
 
@@ -431,8 +429,9 @@ public final class SocketFetcherTest {
         // don't fall back to non-SSL
         props.setProperty("mail.imap.socketFactory.fallback", "false");
 
-        props.setProperty("mail.imap.ssl.checkserveridentity", "false");
-        props.setProperty("mail.imap.ssl.endpointidentitycheck", algo);
+        if (check != null) {
+            props.setProperty("mail.imap.ssl.checkserveridentity", check);
+        }
 
         TestServer server = null;
         try {

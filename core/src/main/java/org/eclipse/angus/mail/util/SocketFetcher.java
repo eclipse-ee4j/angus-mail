@@ -626,8 +626,14 @@ public class SocketFetcher {
         }
 
         try {
-            String eia = props.getProperty(prefix + ".ssl.endpointidentitycheck", "");
-            if (!eia.isEmpty()) {
+            /*
+             * Check server identity and trust.
+             * See: JDK-8062515 and JDK-7192189
+             */
+            if (PropUtil.getBooleanProperty(props,
+                    prefix + ".ssl.checkserveridentity", true)) {
+                // LDAP requires the same regex handling as we need
+                String eia = "LDAPS";
                 SSLParameters params = sslsocket.getSSLParameters();
                 params.setEndpointIdentificationAlgorithm(eia);
                 sslsocket.setSSLParameters(params);
@@ -655,20 +661,11 @@ public class SocketFetcher {
         }
 
         /*
-         * Check server identity and trust.
+         * Check server identity and trust with user provided checks.
          */
         try {
             checkServerIdentity(getHostnameVerifier(props, prefix),
                     host, sslsocket);
-
-            if (PropUtil.getBooleanProperty(props,
-                    prefix + ".ssl.checkserveridentity", true)) {
-                /* Check the server from the Socket connection against the
-                 * server name(s) as expressed in the server certificate
-                 * (RFC 2595 check)
-                 */
-                checkServerIdentity(newHostnameVerifier(),host, sslsocket);
-            }
         } catch (IOException ioe) {
             throw cleanupAndThrow(sslsocket,ioe);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError re) {
@@ -724,7 +721,7 @@ public class SocketFetcher {
     private static void checkServerIdentity(HostnameVerifier hnv,
                             String server, SSLSocket sslSocket)
                             throws IOException {
-        if(logger.isLoggable(Level.FINER)) {
+        if (logger.isLoggable(Level.FINER)) {
             //Only expose the toString of the HostnameVerifier to the logger
             //and not a direct reference to the HostnameVerifier
             logger.log(Level.FINER, "Using HostnameVerifier: {0}",
@@ -745,27 +742,6 @@ public class SocketFetcher {
             throw new IOException("Can't verify identity of server: "
                     + server, cause != null ? cause : wrapper);
         }
-    }
-
-    /**
-     * Check the server from the Socket connection against the
-     * server name(s) as expressed in the server certificate
-     * (RFC 2595 check)
-     */
-    private static HostnameVerifier newHostnameVerifier() {
-        /*
-         * First, try to use sun.security.util.HostnameChecker,
-         * which exists in Sun's JDK starting with 1.4.1.
-         * We use reflection to access it in case it's not available
-         * in the JDK we're running on.
-         * Limit access starting with JDK9 to avoid console warnings.
-         */
-        try {
-           Class.forName("java.lang.Module");
-           return MailHostnameVerifier.of();
-       } catch (ClassNotFoundException preJdk9) {
-           return HostnameChecker.or(MailHostnameVerifier.of());
-       }
     }
 
     private static X509Certificate getX509Certificate(

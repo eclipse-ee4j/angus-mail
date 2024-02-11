@@ -587,28 +587,12 @@
  * <TD>boolean</TD>
  * <TD>
  * If set to false, it does not check the server identity as specified by
- * <A HREF="http://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
+ * <A HREF="http://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>,
+ * <A HREF="http://www.ietf.org/rfc/rfc2830.txt" TARGET="_top">RFC 2830</A>, and
+ * <A HREF="http://www.ietf.org/rfc/rfc6125.txt" TARGET="_top">RFC 6125</A>.
  * These additional checks based on the content of the server's certificate
  * are intended to prevent man-in-the-middle attacks.
  * Defaults to true.
- * </TD>
- * </TR>
- *
- * <TR>
- * <TD><A ID="mail.smtp.ssl.endpointidentitycheck">mail.smtp.ssl.endpointidentitycheck</A></TD>
- * <TD>String</TD>
- * <TD>
- * If not set or empty, the endpoint identity check is not performed by the ssl
- * socket.  If set to HTTPS the server identity is verified as specified by
- * <A HREF="http://www.ietf.org/rfc/rfc2818.txt" TARGET="_top">RFC 2818</A>.
- * If set to LDAPS the server identity is verified as specified by
- * <A HREF="http://www.ietf.org/rfc/rfc2830.txt" TARGET="_top">RFC 2830</A>.
- * These additional checks based on the content of the server's certificate
- * are intended to prevent man-in-the-middle attacks.  The 'LDAPS' should be the
- * preferred algorithm for compatibility with email.  These additional checks
- * based on the content of the server's certificate are intended to prevent
- * man-in-the-middle attacks.
- * Defaults to null.
  * </TD>
  * </TR>
  *
@@ -647,10 +631,11 @@
  * <code>HostnameChecker</code> will attempt to access the
  * <code>sun.security.util.HostnameChecker</code> via reflection which will
  * require an add-opens of 'java.base/sun.security.util'.  The alias name
- * <code>MailHostnameVerifier</code> will use a basic hostname verification of
- * the certificate.  The instantiated object will provide additional checks
- * based on the content of the server's certificate are intended to prevent
- * man-in-the-middle attacks.  Defaults to null.
+ * <code>MailHostnameVerifier</code> will check server identity as specified by
+ * <A HREF="http://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
+ * The instantiated object will provide additional checks based on the content
+ * of the server's certificate are intended to prevent man-in-the-middle
+ * attacks.  Defaults to null.
  * </TD>
  * </TR>
  *
