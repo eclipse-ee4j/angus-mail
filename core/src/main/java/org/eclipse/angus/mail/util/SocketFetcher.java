@@ -1119,9 +1119,15 @@ public class SocketFetcher {
                 logger.log(Level.FINER, "HostnameChecker FAIL", roe);
                 try {
                     if (or.verify(server, ssls)) {
+                        if (logger.isLoggable(Level.FINER)) {
+                            logger.log(Level.FINER, "allowed by: {0}",
+                                    Objects.toString(or));
+                        }
                         return true;
                     }
                 } catch (Throwable t) {
+                    if (logger.isLoggable(Level.FINER))
+                        logger.log(Level.FINER, Objects.toString(or), t);
                     if (t != roe)
                         t.addSuppressed(roe);
                     throw t;
