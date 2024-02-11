@@ -790,12 +790,12 @@ public class SocketFetcher {
 
         //Handle all aliases names
         if ("any".equals(fqcn)) { //legacy behavior
-            return HostnameChecker.or(MailHostnameVerifier.of());
+            return JdkHostnameChecker.or(MailHostnameVerifier.of());
         }
 
         if ("sun.security.util.HostnameChecker".equals(fqcn)
-                || HostnameChecker.class.getSimpleName().equals(fqcn)) {
-            return HostnameChecker.of();
+                || JdkHostnameChecker.class.getSimpleName().equals(fqcn)) {
+            return JdkHostnameChecker.of();
         }
 
         if (MailHostnameVerifier.class.getSimpleName().equals(fqcn)) {
@@ -1078,7 +1078,7 @@ public class SocketFetcher {
      *
      * See: JDK-8062515 - Migrate use of sun.security.** to supported API
      */
-    private static final class HostnameChecker implements HostnameVerifier {
+    private static final class JdkHostnameChecker implements HostnameVerifier {
         private final HostnameVerifier or;
 
         static HostnameVerifier of() {
@@ -1086,10 +1086,10 @@ public class SocketFetcher {
         }
 
         static HostnameVerifier or(HostnameVerifier or) {
-            return new HostnameChecker(or);
+            return new JdkHostnameChecker(or);
         }
 
-        private HostnameChecker(final HostnameVerifier or) {
+        private JdkHostnameChecker(final HostnameVerifier or) {
             this.or = Objects.requireNonNull(or);
         }
 

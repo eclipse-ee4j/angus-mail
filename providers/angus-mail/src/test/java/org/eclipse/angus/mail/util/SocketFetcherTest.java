@@ -285,7 +285,7 @@ public final class SocketFetcherTest {
     @Test
     public void testSSLHostnameVerifierHostNameChecker() throws Exception {
         try {
-            testSSLHostnameVerifierClass("HostnameChecker");
+            testSSLHostnameVerifierClass("JdkHostnameChecker");
             throw new AssertionError("No exception");
         } catch (MessagingException me) {
             Throwable cause = me.getCause();

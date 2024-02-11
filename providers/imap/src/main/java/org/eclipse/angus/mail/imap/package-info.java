@@ -665,7 +665,7 @@
  * any {@link java.io.IOException}.  The alias name <code>any</code> will
  * attempt find a built in hostname verifier that passes verification.
  * The alias name <code>sun.security.util.HostnameChecker</code> or
- * <code>HostnameChecker</code> will attempt to access the
+ * <code>JdkHostnameChecker</code> will attempt to access the
  * <code>sun.security.util.HostnameChecker</code> via reflection which will
  * require an add-opens of 'java.base/sun.security.util'.  The alias name
  * <code>MailHostnameVerifier</code> will check server identity as specified by
