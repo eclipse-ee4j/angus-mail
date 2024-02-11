@@ -31,12 +31,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509ExtendedTrustManager;
 import org.eclipse.angus.mail.imap.IMAPHandler;
 import org.eclipse.angus.mail.test.TestSSLSocketFactory;
 
@@ -389,6 +393,41 @@ public final class SocketFetcherTest {
     }
 
     @Test
+    public void testSSLCheckServerIdentityTrustManager() throws Exception {
+        final Properties props = new Properties();
+        props.setProperty("mail.imap.host", "localhost");
+        props.setProperty("mail.imap.ssl.enable", "true");
+
+        MailSSLSocketFactory sf = new MailSSLSocketFactory();
+        sf.setTrustedHosts("localhost");
+        sf.setTrustManagers(new AllowAllX509ExtendedTrustManager());
+        props.put("mail.imap.ssl.socketFactory", sf);
+
+        // don't fall back to non-SSL
+        props.setProperty("mail.imap.socketFactory.fallback", "false");
+        props.setProperty("mail.imap.ssl.checkserveridentity", "true");
+
+
+        TestServer server = null;
+        try {
+            server = new TestServer(new IMAPHandler(), true);
+            server.start();
+
+            props.setProperty("mail.imap.port",
+                    Integer.toString(server.getPort()));
+            final Session session = Session.getInstance(props);
+
+            try (Store store = session.getStore("imap")) {
+                store.connect("test", "test");
+            }
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
+    }
+
+    @Test
     public void testSSLCheckServerIdentityFalse() throws Throwable {
         testSSLCheckServerIdentity("localhost", "false");
     }
@@ -594,6 +633,49 @@ public final class SocketFetcherTest {
             if (server != null) {
                 server.quit();
             }
+        }
+    }
+
+
+    private static final class AllowAllX509ExtendedTrustManager
+            extends X509ExtendedTrustManager {
+
+        AllowAllX509ExtendedTrustManager() {
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] xcs, String string,
+                Socket socket) throws CertificateException {
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] xcs, String string,
+                Socket socket) throws CertificateException {
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] xcs, String string,
+                SSLEngine ssle) throws CertificateException {
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] xcs, String string,
+                SSLEngine ssle) throws CertificateException {
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] xcs, String string)
+                throws CertificateException {
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] xcs, String string)
+                throws CertificateException {
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return null;
         }
     }
 
