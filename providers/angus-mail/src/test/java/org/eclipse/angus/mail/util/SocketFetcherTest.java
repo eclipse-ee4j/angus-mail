@@ -339,7 +339,6 @@ public final class SocketFetcherTest {
             assertTrue(String.valueOf(cause),
                     cause instanceof IOException);
             assertTrue(me.toString(), isFromSocketFetcher(me));
-
         }
     }
 

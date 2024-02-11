@@ -672,7 +672,7 @@ public class SocketFetcher {
         } catch (ReflectiveOperationException | RuntimeException | LinkageError re) {
             throw cleanupAndThrow(sslsocket,
                     new IOException("Unable to check server idenitity for: "
-                            + host,re));
+                            + host, re));
         }
 
         if (sf instanceof MailSSLSocketFactory) {
