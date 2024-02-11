@@ -272,46 +272,81 @@ public final class SocketFetcherTest {
     @Test
     public void testSSLHostnameVerifierHostNameCheckerFQCN() throws Exception {
         try {
-            testSSLHostnameVerifierClass("sun.security.util.HostnameChecker");
+            testSSLHostnameVerifierClass("localhost", "sun.security.util.HostnameChecker");
             throw new AssertionError("No exception");
         } catch (MessagingException me) {
             Throwable cause = me.getCause();
             assertTrue(String.valueOf(cause),
                     cause instanceof IOException);
             assertTrue(me.toString(), isFromSocketFetcher(me));
+            assumeTrue("missing --add-opens java.base/sun.security.util=ALL-UNNAMED",
+                    isSunSecurityOpen(cause));
         }
     }
 
     @Test
     public void testSSLHostnameVerifierHostNameChecker() throws Exception {
         try {
-            testSSLHostnameVerifierClass("JdkHostnameChecker");
+            testSSLHostnameVerifierClass("localhost", "JdkHostnameChecker");
             throw new AssertionError("No exception");
         } catch (MessagingException me) {
             Throwable cause = me.getCause();
             assertTrue(String.valueOf(cause),
                     cause instanceof IOException);
             assertTrue(me.toString(), isFromSocketFetcher(me));
+            assumeTrue("missing --add-opens java.base/sun.security.util=ALL-UNNAMED",
+                    isSunSecurityOpen(cause));
+        }
+    }
+
+    @Test
+    public void testSSLHostnameVerifierHostNameCheckerIPv4() throws Exception {
+        try {
+            testSSLHostnameVerifierClass("127.0.0.1", "JdkHostnameChecker");
+            throw new AssertionError("No exception");
+        } catch (MessagingException me) {
+            Throwable cause = me.getCause();
+            assertTrue(String.valueOf(cause),
+                    cause instanceof IOException);
+            assertTrue(me.toString(), isFromSocketFetcher(me));
+            assumeTrue("missing --add-opens java.base/sun.security.util=ALL-UNNAMED",
+                    isSunSecurityOpen(cause));
+        }
+    }
+
+    @Test
+    public void testSSLHostnameVerifierHostNameCheckerIPv6() throws Exception {
+        try {
+            testSSLHostnameVerifierClass("::1", "JdkHostnameChecker");
+            throw new AssertionError("No exception");
+        } catch (MessagingException me) {
+            Throwable cause = me.getCause();
+            assertTrue(String.valueOf(cause),
+                    cause instanceof IOException);
+            assertTrue(me.toString(), isFromSocketFetcher(me));
+            assumeTrue("missing --add-opens java.base/sun.security.util=ALL-UNNAMED",
+                    isSunSecurityOpen(cause));
         }
     }
 
     @Test
     public void testSSLHostnameVerifierAny() throws Exception {
         try {
-            testSSLHostnameVerifierClass("any");
+            testSSLHostnameVerifierClass("localhost", "any");
             throw new AssertionError("No exception");
         } catch (MessagingException me) {
             Throwable cause = me.getCause();
             assertTrue(String.valueOf(cause),
                     cause instanceof IOException);
             assertTrue(me.toString(), isFromSocketFetcher(me));
+
         }
     }
 
     @Test
     public void testSSLHostnameVerifierMail() throws Exception {
         try {
-            testSSLHostnameVerifierClass("MailHostnameVerifier");
+            testSSLHostnameVerifierClass("localhost", "MailHostnameVerifier");
             throw new AssertionError("No exception");
         } catch (MessagingException me) {
             Throwable cause = me.getCause();
@@ -321,9 +356,9 @@ public final class SocketFetcherTest {
         }
     }
 
-    private void testSSLHostnameVerifierClass(String name) throws Exception {
+    private void testSSLHostnameVerifierClass(String host, String name) throws Exception {
         final Properties properties = new Properties();
-        properties.setProperty("mail.imap.host", "localhost");
+        properties.setProperty("mail.imap.host", host);
         properties.setProperty("mail.imap.ssl.enable", "true");
 
         TestSSLSocketFactory sf = new TestSSLSocketFactory();
@@ -356,13 +391,13 @@ public final class SocketFetcherTest {
 
     @Test
     public void testSSLCheckServerIdentityFalse() throws Throwable {
-        testSSLCheckServerIdentity("false");
+        testSSLCheckServerIdentity("localhost", "false");
     }
 
     @Test
     public void testSSLCheckServerIdentityNull() {
         try {
-            testSSLCheckServerIdentity((String) null);
+            testSSLCheckServerIdentity("localhost", (String) null);
             throw new AssertionError();
         } catch (Error | RuntimeException e) {
             throw e;
@@ -379,7 +414,41 @@ public final class SocketFetcherTest {
     @Test
     public void testSSLCheckServerIdentityTrue() {
         try {
-            testSSLCheckServerIdentity("true");
+            testSSLCheckServerIdentity("localhost", "true");
+            throw new AssertionError();
+        } catch (Error | RuntimeException e) {
+            throw e;
+        } catch (MessagingException me) {
+            Throwable cause = me.getCause();
+            assertTrue(String.valueOf(cause),
+                    cause instanceof SSLHandshakeException);
+            assertTrue(me.toString(), isFromTrustManager(me));
+        } catch (Throwable t) {
+            throw new AssertionError(t);
+        }
+    }
+
+    @Test
+    public void testSSLCheckServerIdentityIPv4True() {
+        try {
+            testSSLCheckServerIdentity("127.0.0.1", "true");
+            throw new AssertionError();
+        } catch (Error | RuntimeException e) {
+            throw e;
+        } catch (MessagingException me) {
+            Throwable cause = me.getCause();
+            assertTrue(String.valueOf(cause),
+                    cause instanceof SSLHandshakeException);
+            assertTrue(me.toString(), isFromTrustManager(me));
+        } catch (Throwable t) {
+            throw new AssertionError(t);
+        }
+    }
+
+    @Test
+    public void testSSLCheckServerIdentityIPv6True() {
+        try {
+            testSSLCheckServerIdentity("::1", "true");
             throw new AssertionError();
         } catch (Error | RuntimeException e) {
             throw e;
@@ -405,6 +474,20 @@ public final class SocketFetcherTest {
         return false;
     }
 
+    private boolean isSunSecurityOpen(Throwable thrown) {
+        for (Throwable t = thrown; t != null; t = t.getCause()) {
+            if (t instanceof IllegalAccessException) {
+                for (StackTraceElement s : t.getStackTrace()) {
+                    if ("verify".equals(s.getMethodName())
+                            && s.getClassName().contains("JdkHostnameChecker")) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
     private boolean isFromSocketFetcher(Throwable thrown) {
         for (Throwable t = thrown; t != null; t = t.getCause()) {
             for (StackTraceElement s : t.getStackTrace()) {
@@ -418,9 +501,9 @@ public final class SocketFetcherTest {
     }
 
 
-    private void testSSLCheckServerIdentity(String check) throws Throwable {
+    private void testSSLCheckServerIdentity(String host, String check) throws Throwable {
         final Properties props = new Properties();
-        props.setProperty("mail.imap.host", "localhost");
+        props.setProperty("mail.imap.host", host);
         props.setProperty("mail.imap.ssl.enable", "true");
 
         TestSSLSocketFactory sf = new TestSSLSocketFactory();

@@ -28,6 +28,7 @@ import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -670,7 +671,8 @@ public class SocketFetcher {
             throw cleanupAndThrow(sslsocket,ioe);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError re) {
             throw cleanupAndThrow(sslsocket,
-                    new IOException("Unable to check server idenitity",re));
+                    new IOException("Unable to check server idenitity for: "
+                            + host,re));
         }
 
         if (sf instanceof MailSSLSocketFactory) {
@@ -708,15 +710,15 @@ public class SocketFetcher {
 
     /**
      * Check the server from the Socket connection against the server name(s)
-     * using the given HostnameVerifier.  All hostname
-     * verifier implementations are allowed to throw an UncheckedIOException
-     * which will be caught and unwrapped.
+     * using the given HostnameVerifier.  All hostname verifier implementations
+     * are allowed to throw unchecked exceptions.
      *
      * @param hnv the HostnameVerifier or null if allowing all.
      * @param server name of the server expected
      * @param sslSocket SSLSocket connected to the server.  Caller is expected
      * to close the socket on error.
      * @exception IOException if we can't verify identity of server
+     * @throws RuntimeException caused by invoking the verifier
      */
     private static void checkServerIdentity(HostnameVerifier hnv,
                             String server, SSLSocket sslSocket)
@@ -733,14 +735,8 @@ public class SocketFetcher {
         }
 
         // Check against the server name(s) as expressed in server certificate
-        try {
-            if (!hnv.verify(server, sslSocket.getSession())) {
-                throw new IOException("Server is not trusted: " + server);
-            }
-        } catch (UncheckedIOException wrapper) {
-            Throwable cause = wrapper.getCause();
-            throw new IOException("Can't verify identity of server: "
-                    + server, cause != null ? cause : wrapper);
+        if (!hnv.verify(server, sslSocket.getSession())) {
+            throw new IOException("Server is not trusted: " + server);
         }
     }
 
@@ -1114,27 +1110,44 @@ public class SocketFetcher {
                         .invoke((Object) null, (byte) 2);
 
                 // invoke hostnameChecker.match( server, cert)
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer("using sun.security.util.HostnameChecker");
+                logger.finer("using sun.security.util.HostnameChecker");
                 Method match = hnc.getMethod("match",
                         String.class, X509Certificate.class);
+                match.invoke(hostnameChecker, server, cert);
+                return true;
+            } catch (IOException | ReflectiveOperationException roe) {
+                logger.log(Level.FINER, "HostnameChecker FAIL", roe);
                 try {
-                    match.invoke(hostnameChecker, server, cert);
-                    return true;
-                } catch (InvocationTargetException cex) {
-                    logger.log(Level.FINER, "HostnameChecker FAIL", cex);
+                    if (or.verify(server, ssls)) {
+                        return true;
+                    }
+                } catch (Throwable t) {
+                    if (t != roe)
+                        t.addSuppressed(roe);
+                    throw t;
                 }
-            } catch (IOException spue) {
-                throw new UncheckedIOException(spue);
-            } catch (Exception ex) {
-                logger.log(Level.FINER, "NO sun.security.util.HostnameChecker", ex);
+
+                //Report real reason rather than just failing to verify
+                Throwable cause = roe;
+                if (roe instanceof InvocationTargetException)
+                    cause = roe.getCause();
+                if (cause == null)
+                    cause = roe;
+                if (cause instanceof RuntimeException)
+                    throw (RuntimeException) cause;
+                if (cause instanceof Error)
+                    throw (Error) cause;
+
+                String msg = "Failed then denied by " + this.toString();
+                if (cause instanceof IOException)
+                    throw new UncheckedIOException(msg, (IOException) cause);
+                throw new UndeclaredThrowableException(cause, msg);
             }
-            return or.verify(server, ssls);
         }
 
         @Override
         public String toString() {
-            return "[" + getClass().getSimpleName() +", or=" + or + "]";
+            return "[" + getClass().getSimpleName() +", " + or + "]";
         }
     }
 }
