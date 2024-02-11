@@ -248,6 +248,7 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.0.0</version>
                     <configuration>
+                        <skip>${skip8}</skip>
                         <argLine>
                             --add-opens java.base/sun.security.util=ALL-UNNAMED
                         </argLine>
