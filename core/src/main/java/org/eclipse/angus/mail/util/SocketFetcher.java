@@ -1166,7 +1166,7 @@ public class SocketFetcher {
                 if (t instanceof Error)
                     throw (Error) t;
 
-                String msg = "Fail over then denied by " + toString();
+                String msg = "failed over then denied using: " + toString();
                 if (t instanceof IOException)
                     throw new UncheckedIOException(msg, (IOException) t);
                 throw new UndeclaredThrowableException(t, msg);

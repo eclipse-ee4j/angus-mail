@@ -36,7 +36,7 @@
     mail.<protocol>.ssl.checkserveridentity session property.  This behavior has
     been relaxed in Angus Mail 2.0.3, where even though the
     mail.<protocol>.ssl.checkserveridentity session property was set to true the
-    hostname verification may be disabled by only a X509ExtendedTrustManager
+    hostname verification may be disabled by a X509ExtendedTrustManager
     implementation.
 
     For compatibility with previous release the session property
@@ -48,10 +48,9 @@
     hostname independently of the mail.<protocol>.ssl.checkserveridentity
     session property.  The recommended value for
     "mail.<protocol>.ssl.hostnameverifier.class" in this specific case is
-    "MailHostnameVerifier".  Keep in mind that this verifier is not a
-    comprehensive as the "sun.security.util.HostnameChecker" could fail with
-    false negatives.  Using 3rd party verifier would be a way to work around
-    issues with false negatives in the short term.
+    "MailHostnameVerifier".  This verifier may not be as comprehensive as the
+    "sun.security.util.HostnameChecker" could fail with false negatives.  Using
+    a 3rd party HostnameVerifier is a viable alternative in that case.
 
     For strict compatibility with previous release set the
     "mail.<protocol>.ssl.hostnameverifier.class" session property to
@@ -59,10 +58,10 @@
     "sun.security.util.HostnameChecker" and will fallback to the
     "MailHostnameVerifier" in the event the "sun.security.util.HostnameChecker"
     is inaccessible. Using this value may result in reflective access warnings
-    depending on the JDK in use.  The previous release did not perform endpoint
-    identification which means the "mail.<protocol>.ssl.checkserveridentity"
-    session property should be set to "false" in this case to disable those
-    validation rules.
+    depending on the JDK in use.  The previous Angus Mail release did not
+    perform endpoint identification which means the
+    "mail.<protocol>.ssl.checkserveridentity" session property should be set to
+    "false" in this case to disable those validation rules.
 
 - MailHandler public methods no longer hostile to invalid arguments
 
