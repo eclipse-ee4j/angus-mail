@@ -40,6 +40,7 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
@@ -336,9 +337,28 @@ public final class SocketFetcherTest {
     }
 
     @Test
-    public void testSSLHostnameVerifierAny() throws Exception {
+    public void testSSLHostnameVerifierFutureAlias() {
+        //Reserve all identifiers that don't contain a package
+        //For future use by Angus Mail.
         try {
-            testSSLHostnameVerifierClass("localhost", "any");
+            testSSLHostnameVerifierClass("localhost", "foobarbaz");
+            throw new AssertionError("No exception");
+        } catch (MessagingException me) {
+            for (Throwable t = me; t != null; t = t.getCause()) {
+                if (t instanceof ClassNotFoundException) {
+                   return;
+                }
+            }
+            throw new AssertionError(me);
+        } catch(Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    @Test
+    public void testSSLHostnameVerifierLegacy() throws Exception {
+        try {
+            testSSLHostnameVerifierClass("localhost", "legacy");
             throw new AssertionError("No exception");
         } catch (MessagingException me) {
             Throwable cause = me.getCause();
@@ -418,6 +438,7 @@ public final class SocketFetcherTest {
     /**
      * Endpoint identity check is not enforced when TrustManager type is an
      * X509ExtendedTrustManager. This is not compatible with legacy behavior.
+     * Custom X509ExtendedTrustManager implementation should inspect the given
      */
     @Test
     public void testSSLCheckServerIdentityExtendedTrustManager() throws Exception {
@@ -693,27 +714,59 @@ public final class SocketFetcherTest {
     private static final class AllowAllX509ExtendedTrustManager
             extends X509ExtendedTrustManager {
 
+        private static final String ALGO = "LDAPS";
+
         AllowAllX509ExtendedTrustManager() {
         }
 
         @Override
         public void checkClientTrusted(X509Certificate[] xcs, String string,
                 Socket socket) throws CertificateException {
+            checkServerTrusted(xcs, string, socket);
         }
 
         @Override
         public void checkServerTrusted(X509Certificate[] xcs, String string,
                 Socket socket) throws CertificateException {
+            if (socket == null) {
+                throw new CertificateException("Null socket");
+            }
+
+            if (socket.isClosed()) {
+                throw new CertificateException("closed");
+            }
+
+            if (!socket.isConnected()) {
+                throw new CertificateException("not connected");
+            }
+
+            //Check that .ssl.checkserveridentity=true
+            final String eia = ((SSLSocket) socket)
+                    .getSSLParameters().getEndpointIdentificationAlgorithm();
+            if (!ALGO.equals(eia)) {
+                throw new CertificateException(eia);
+            }
         }
 
         @Override
         public void checkClientTrusted(X509Certificate[] xcs, String string,
                 SSLEngine ssle) throws CertificateException {
+            checkServerTrusted(xcs, string, ssle);
         }
 
         @Override
         public void checkServerTrusted(X509Certificate[] xcs, String string,
                 SSLEngine ssle) throws CertificateException {
+            if (ssle == null) {
+                throw new CertificateException("Null engine");
+            }
+
+            //Check that .ssl.checkserveridentity=true
+            final String eia = ssle.getSSLParameters()
+                    .getEndpointIdentificationAlgorithm();
+            if (!ALGO.equals(eia)) {
+                throw new CertificateException(eia);
+            }
         }
 
         @Override

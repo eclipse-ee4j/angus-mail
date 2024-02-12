@@ -662,8 +662,9 @@
  * against the certificate.  The instantiated object is allowed to throw
  * {@linkplain java.io.UncheckedIOException} from the
  * {@linkplain javax.net.ssl.HostnameVerifier#verify verify} method to propagate
- * any {@link java.io.IOException}.  The alias name <code>any</code> will
- * attempt find a built in hostname verifier that passes verification.
+ * any {@link java.io.IOException}.  The alias name <code>legacy</code> will
+ * enable the <code>sun.security.util.HostnameChecker</code> with failover to
+ * the <code>MailHostnameVerifier</code>.
  * The alias name <code>sun.security.util.HostnameChecker</code> or
  * <code>JdkHostnameChecker</code> will attempt to access the
  * <code>sun.security.util.HostnameChecker</code> via reflection which will

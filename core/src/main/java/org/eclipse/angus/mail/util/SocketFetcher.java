@@ -37,6 +37,7 @@ import java.net.SocketTimeoutException;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
+import java.security.cert.CertificateException;
 import java.security.GeneralSecurityException;
 import java.security.PrivilegedAction;
 import java.security.cert.CertificateParsingException;
@@ -647,7 +648,7 @@ public class SocketFetcher {
             }
         } catch (RuntimeException re) {
             throw cleanupAndThrow(sslsocket,
-                new IOException("Unable to check server idenitity", re));
+                new IOException("Unable to check server identity", re));
         }
 
         /*
@@ -671,7 +672,7 @@ public class SocketFetcher {
             throw cleanupAndThrow(sslsocket,ioe);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError re) {
             throw cleanupAndThrow(sslsocket,
-                    new IOException("Unable to check server idenitity for: "
+                    new IOException("Unable to check server identity for: "
                             + host, re));
         }
 
@@ -785,8 +786,8 @@ public class SocketFetcher {
         }
 
         //Handle all aliases names
-        if ("any".equals(fqcn)) { //legacy behavior
-            return JdkHostnameChecker.or(MailHostnameVerifier.of());
+        if ("legacy".equals(fqcn)) {
+            return JdkHostnameChecker.ofFailover(MailHostnameVerifier.of());
         }
 
         if ("sun.security.util.HostnameChecker".equals(fqcn)
@@ -796,6 +797,11 @@ public class SocketFetcher {
 
         if (MailHostnameVerifier.class.getSimpleName().equals(fqcn)) {
             return MailHostnameVerifier.of();
+        }
+
+        //Treat classname without a package as an alias for future use.
+        if (fqcn.indexOf('.') < 0) {
+            throw new ClassNotFoundException(fqcn);
         }
 
         //Handle the fully qualified class name
@@ -1082,18 +1088,18 @@ public class SocketFetcher {
      * See: JDK-8062515 - Migrate use of sun.security.** to supported API
      */
     private static final class JdkHostnameChecker implements HostnameVerifier {
-        private final HostnameVerifier or;
+        private final HostnameVerifier failover;
 
         static HostnameVerifier of() {
-            return or((n, s) -> { return false; });
+            return ofFailover((n, s) -> { return false; });
         }
 
-        static HostnameVerifier or(HostnameVerifier or) {
+        static HostnameVerifier ofFailover(HostnameVerifier or) {
             return new JdkHostnameChecker(or);
         }
 
         private JdkHostnameChecker(final HostnameVerifier or) {
-            this.or = Objects.requireNonNull(or);
+            this.failover = Objects.requireNonNull(or);
         }
 
         @Override
@@ -1120,47 +1126,56 @@ public class SocketFetcher {
                 logger.finer("using sun.security.util.HostnameChecker");
                 Method match = hnc.getMethod("match",
                         String.class, X509Certificate.class);
-                match.invoke(hostnameChecker, server, cert);
-                return true;
+                try {
+                    match.invoke(hostnameChecker, server, cert);
+                    return true;
+                } catch (InvocationTargetException ite) {
+                    Throwable ce = ite.getCause();
+                    if (ce instanceof CertificateException) {
+                        logger.log(Level.FINER, "HostnameChecker DENY", ite);
+                        throw new UndeclaredThrowableException(ce, toString());
+                    }
+                    throw ite;
+                }
             } catch (IOException | ReflectiveOperationException roe) {
                 logger.log(Level.FINER, "HostnameChecker FAIL", roe);
                 try {
-                    if (or.verify(server, ssls)) {
+                    if (failover.verify(server, ssls)) {
                         if (logger.isLoggable(Level.FINER)) {
                             logger.log(Level.FINER, "allowed by: {0}",
-                                    Objects.toString(or));
+                                    Objects.toString(failover));
                         }
                         return true;
                     }
                 } catch (Throwable t) {
                     if (logger.isLoggable(Level.FINER))
-                        logger.log(Level.FINER, Objects.toString(or), t);
+                        logger.log(Level.FINER, Objects.toString(failover), t);
                     if (t != roe)
                         t.addSuppressed(roe);
                     throw t;
                 }
 
                 //Report real reason rather than just failing to verify
-                Throwable cause = roe;
+                Throwable t = roe;
                 if (roe instanceof InvocationTargetException)
-                    cause = roe.getCause();
-                if (cause == null)
-                    cause = roe;
-                if (cause instanceof RuntimeException)
-                    throw (RuntimeException) cause;
-                if (cause instanceof Error)
-                    throw (Error) cause;
+                    t = roe.getCause();
+                if (t == null) //Broken subclass
+                    t = roe;
+                if (t instanceof RuntimeException)
+                    throw (RuntimeException) t;
+                if (t instanceof Error)
+                    throw (Error) t;
 
-                String msg = "Failed then denied by " + this.toString();
-                if (cause instanceof IOException)
-                    throw new UncheckedIOException(msg, (IOException) cause);
-                throw new UndeclaredThrowableException(cause, msg);
+                String msg = "Fail over then denied by " + toString();
+                if (t instanceof IOException)
+                    throw new UncheckedIOException(msg, (IOException) t);
+                throw new UndeclaredThrowableException(t, msg);
             }
         }
 
         @Override
         public String toString() {
-            return "(" + getClass().getSimpleName() + " | " + or + ")";
+            return getClass().getSimpleName() + " -> " + failover;
         }
     }
 }
