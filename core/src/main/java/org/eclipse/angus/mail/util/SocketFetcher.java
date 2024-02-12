@@ -844,31 +844,6 @@ public class SocketFetcher {
    }
 
     /**
-     * Does the server we're expecting to connect to match the
-     * given name from the server's certificate?
-     *
-     * @param    server        name of the server expected
-     * @param    name        name from the server's certificate
-     */
-    private static boolean matchServer(String server, String name) {
-        if (logger.isLoggable(Level.FINER))
-            logger.finer("match server " + server + " with " + name);
-        if (name.startsWith("*.")) {
-            // match "foo.example.com" with "*.example.com"
-            String tail = name.substring(2);
-            if (tail.length() == 0)
-                return false;
-            int off = server.length() - tail.length();
-            if (off < 1)
-                return false;
-            // if tail matches and is preceeded by "."
-            return server.charAt(off - 1) == '.' &&
-                    server.regionMatches(true, off, tail, 0, tail.length());
-        } else
-            return server.equalsIgnoreCase(name);
-    }
-
-    /**
      * Use the HTTP CONNECT protocol to connect to a
      * site through an HTTP proxy server. <p>
      *
@@ -1054,6 +1029,38 @@ public class SocketFetcher {
 
             return false;
         }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName();
+        }
+
+        /**
+         * Does the server we're expecting to connect to match the
+         * given name from the server's certificate?
+         *
+         * @param    server        name of the server expected
+         * @param    name        name from the server's certificate
+         */
+        private static boolean matchServer(String server, String name) {
+            if (logger.isLoggable(Level.FINER))
+                logger.finer("match server " + server + " with " + name);
+
+            if (name.startsWith("*.")) {
+                // match "foo.example.com" with "*.example.com"
+                String tail = name.substring(2);
+                if (tail.length() == 0)
+                    return false;
+                int off = server.length() - tail.length();
+                if (off < 1)
+                    return false;
+                // if tail matches and is preceeded by "."
+                return server.charAt(off - 1) == '.' &&
+                       server.regionMatches(true, off, tail, 0, tail.length());
+            } else {
+               return server.equalsIgnoreCase(name);
+            }
+        }
     }
 
     /**
@@ -1153,7 +1160,7 @@ public class SocketFetcher {
 
         @Override
         public String toString() {
-            return "[" + getClass().getSimpleName() +", " + or + "]";
+            return "(" + getClass().getSimpleName() + " | " + or + ")";
         }
     }
 }
