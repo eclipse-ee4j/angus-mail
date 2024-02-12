@@ -40,6 +40,8 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
 import org.eclipse.angus.mail.imap.IMAPHandler;
 import org.eclipse.angus.mail.test.TestSSLSocketFactory;
@@ -392,15 +394,45 @@ public final class SocketFetcherTest {
         }
     }
 
+    /**
+     * Endpoint identity check is enforced when TrustManager type is not
+     * an X509ExtendedTrustManager which is compatible legacy behavior.
+     */
     @Test
-    public void testSSLCheckServerIdentityTrustManager() throws Exception {
+    public void testSSLCheckServerIdentityTrustManager() {
+        try {
+            testSSLCheckServerIdentity(new AllowAllX509TrustManager());
+            throw new AssertionError();
+        } catch (Error | RuntimeException e) {
+            throw e;
+        } catch (MessagingException me) {
+            Throwable cause = me.getCause();
+            assertTrue(String.valueOf(cause),
+                    cause instanceof SSLHandshakeException);
+            assertTrue(me.toString(), isFromTrustManager(me));
+        } catch (Exception t) {
+            throw new AssertionError(t);
+        }
+    }
+
+    /**
+     * Endpoint identity check is not enforced when TrustManager type is an
+     * X509ExtendedTrustManager. This is not compatible with legacy behavior.
+     */
+    @Test
+    public void testSSLCheckServerIdentityExtendedTrustManager() throws Exception {
+        testSSLCheckServerIdentity(new AllowAllX509ExtendedTrustManager());
+    }
+
+    private void testSSLCheckServerIdentity(TrustManager tm) throws Exception {
         final Properties props = new Properties();
         props.setProperty("mail.imap.host", "localhost");
         props.setProperty("mail.imap.ssl.enable", "true");
 
         MailSSLSocketFactory sf = new MailSSLSocketFactory();
         sf.setTrustedHosts("localhost");
-        sf.setTrustManagers(new AllowAllX509ExtendedTrustManager());
+        sf.setTrustAllHosts(true);
+        sf.setTrustManagers(tm);
         props.put("mail.imap.ssl.socketFactory", sf);
 
         // don't fall back to non-SSL
@@ -636,6 +668,27 @@ public final class SocketFetcherTest {
         }
     }
 
+    private static final class AllowAllX509TrustManager
+            implements X509TrustManager {
+
+        AllowAllX509TrustManager() {
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] xcs, String string)
+                        throws CertificateException {
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] xcs, String string)
+                        throws CertificateException {
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return null;
+        }
+    }
 
     private static final class AllowAllX509ExtendedTrustManager
             extends X509ExtendedTrustManager {
