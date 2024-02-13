@@ -479,16 +479,12 @@ public final class SocketFetcherTest {
         } catch (MessagingException me) {
             assertTrue(me.toString(), isFromSocketFetcher(me));
             assertFalse(me.toString(), isFromTrustManager(me));
-            for (Throwable t = me; t != null; t = t.getCause()) {
-                for (StackTraceElement s : t.getStackTrace()) {
-                   if ("verify".equals(s.getMethodName())
+            if (!matchAnyCauseStackTrace(thrown, (t, s) ->
+                "verify".equals(s.getMethodName())
                         && (s.getClassName().contains("MailHostnameVerifier")
-                        || s.getClassName().contains("JdkHostnameVerifier"))) {
-                        return;
-                    }
-                }
+                        || s.getClassName().contains("JdkHostnameChecker")))) {
+                throw new AssertionError(me);
             }
-            throw new AssertionError(me);
         } catch (Exception t) {
             throw new AssertionError(t);
         }

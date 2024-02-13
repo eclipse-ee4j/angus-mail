@@ -801,9 +801,9 @@ public class SocketFetcher {
         }
 
         //Ensure an alias is never loaded from modulepath or classpath.
-        //This ensures that removed aliases never loads weaker verifier and
-        //that all future aliases, classes without packagename, are reserved
-        //only for our use.
+        //This ensures that removed aliases never loads a weaker verifier and
+        //that all future aliases, classes without package names, are reserved
+        //for future use.
         if (fqcn.indexOf('.') < 0) {
             throw new ClassNotFoundException(fqcn);
         }
