@@ -479,7 +479,7 @@ public final class SocketFetcherTest {
         } catch (MessagingException me) {
             assertTrue(me.toString(), isFromSocketFetcher(me));
             assertFalse(me.toString(), isFromTrustManager(me));
-            if (!matchAnyCauseStackTrace(thrown, (t, s) ->
+            if (!matchAnyCauseStackTrace(me, (t, s) ->
                 "verify".equals(s.getMethodName())
                         && (s.getClassName().contains("MailHostnameVerifier")
                         || s.getClassName().contains("JdkHostnameChecker")))) {
