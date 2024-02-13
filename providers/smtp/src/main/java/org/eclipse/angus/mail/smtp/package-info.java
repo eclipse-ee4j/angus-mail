@@ -618,20 +618,16 @@
  * <TD><A ID="mail.smtp.ssl.hostnameverifier.class">mail.smtp.ssl.hostnameverifier.class</A></TD>
  * <TD>String</TD>
  * <TD>
- * If set, specifies the name of a class that extends the
- * <code>javax.net.ssl.HostnameVerifier</code> class or an alias name assigned
- * to a built in hostname verifier.  A class name will be instantiated using the
- * default constructor and that instance will be used to verify the hostname
- * against the certificate.  The instantiated object is allowed to throw a
- * subclass of {@linkplain java.lang.RuntimeException} from the
- * {@linkplain javax.net.ssl.HostnameVerifier#verify verify} method to propagate
- * any {@link java.lang.Exception}.  The alias name <code>legacy</code> will
- * enable the <code>sun.security.util.HostnameChecker</code> with failover to
- * the <code>MailHostnameVerifier</code>.
- * The alias name <code>sun.security.util.HostnameChecker</code> or
+ * If set, specifies the name of a class that implements the
+ * <code>javax.net.ssl.HostnameVerifier</code> interface or an alias name
+ * assigned to a built in hostname verifier.  A class name will be instantiated
+ * using the default constructor and that instance will be used to verify the
+ * hostname against the certificate.  The alias name <code>legacy</code> will
+ * enable the <code>sun.security.util.HostnameChecker</code> with fail over to
+ * the <code>MailHostnameVerifier</code>. The alias name
+ * <code>sun.security.util.HostnameChecker</code> or
  * <code>JdkHostnameChecker</code> will attempt to access the
- * <code>sun.security.util.HostnameChecker</code> via reflection which will
- * require an add-opens of 'java.base/sun.security.util'.  The alias name
+ * <code>sun.security.util.HostnameChecker</code> via reflection. The alias name
  * <code>MailHostnameVerifier</code> will check server identity as specified by
  * <A HREF="http://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
  * The instantiated object will provide additional checks based on the content

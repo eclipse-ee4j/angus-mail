@@ -972,19 +972,35 @@ public class SocketFetcher {
     /**
      * Check the server from the Socket connection against the server name(s)
      * as expressed in the server certificate (RFC 2595 check).
+     *
      * We implement a crude version of the same checks ourselves.
+     * The verify method will throw unchecked exceptions instead of returning
+     * false.  This violation of specification is acceptable because this class
+     * is private and doesn't escape the SocketFetcher.
      */
     private static final class MailHostnameVerifier implements HostnameVerifier {
 
+        private static final HostnameVerifier OF = new MailHostnameVerifier();
+
         static HostnameVerifier of() {
-            return new MailHostnameVerifier();
+            return OF;
         }
 
         private MailHostnameVerifier() {
         }
 
+        /**
+         * Verify that the host name is an acceptable match.
+         *
+         * @param server the host name.
+         * @param ssls the SSLSession
+         * @return true if matches.
+         * @throws UncheckedIOException if the SSL peer is unverified.
+         * @throws UndeclaredThrowableException wrapping the checked exception.
+         */
         @Override
         public boolean verify(String server, SSLSession ssls) {
+            Objects.requireNonNull(server);
             X509Certificate cert = null;
             try {
                 cert = getX509Certificate(ssls.getPeerCertificates());
@@ -1000,10 +1016,9 @@ public class SocketFetcher {
                 Collection<List<?>> names = cert.getSubjectAlternativeNames();
                 if (names != null) {
                     boolean foundName = false;
-                    for (Iterator<List<?>> it = names.iterator(); it.hasNext(); ) {
-                        List<?> nameEnt = it.next();
-                        Integer type = (Integer) nameEnt.get(0);
-                        if (type.intValue() == 2) {    // 2 == dNSName
+                    for (List<?> nameEnt : names) {
+                        final int type = (Integer) nameEnt.get(0);
+                        if (type == 2) {    // 2 == dNSName
                             foundName = true;
                             String name = (String) nameEnt.get(1);
                             if (logger.isLoggable(Level.FINER))
@@ -1012,8 +1027,13 @@ public class SocketFetcher {
                                 return true;
                         }
                     }
-                    if (foundName)    // found a name, but no match
-                        return false;
+
+                    if (foundName) {    // found a name, but no match
+                        throw new UndeclaredThrowableException(
+                            new CertificateException(
+                                "No subject alternative DNS name matching "
+                                    + server + " found"), this.toString());
+                    }
                 }
             } catch (CertificateParsingException ignore) {
                 logger.log(Level.FINEST, server, ignore);
@@ -1033,7 +1053,8 @@ public class SocketFetcher {
             if (m.find() && matchServer(server, m.group(1).trim()))
                 return true;
 
-            return false;
+            throw new UndeclaredThrowableException(new CertificateException(
+                "No name matching " + server + " found"), this.toString());
         }
 
         @Override
@@ -1076,6 +1097,11 @@ public class SocketFetcher {
      * which exists in Sun's JDK starting with 1.4.1.  Validation is using LDAPS
      * (RFC 2830) host name checking.
      *
+     * The verify method will throw unchecked exceptions instead of returning
+     * false.  This violation of specification is acceptable because this class
+     * is private and doesn't escape the SocketFetcher.
+
+     *
      * This class will print --illegal-access=warn console warnings on JDK9
      * and may require: -add-opens 'java.base/sun.security.util=ALL-UNNAMED'
      * or --add-opens 'java.base/sun.security.util=jakarta.mail' depending on
@@ -1102,6 +1128,15 @@ public class SocketFetcher {
             this.failover = Objects.requireNonNull(or);
         }
 
+        /**
+         * Verify that the host name is an acceptable match.
+         *
+         * @param server the host name.
+         * @param ssls the SSLSession
+         * @return true if matches.
+         * @throws UncheckedIOException if the SSL peer is unverified.
+         * @throws UndeclaredThrowableException wrapping the checked exception.
+         */
         @Override
         public boolean verify(String server, SSLSession ssls) {
             try {
@@ -1147,12 +1182,12 @@ public class SocketFetcher {
                         }
                         return true;
                     }
-                } catch (Throwable t) {
+                } catch (Throwable fail) {
                     if (logger.isLoggable(Level.FINER))
-                        logger.log(Level.FINER, failover.toString(), t);
-                    if (t != roe)
-                        t.addSuppressed(roe);
-                    throw t;
+                        logger.log(Level.FINER, failover + " FAIL", fail);
+                    if (fail != roe)
+                        fail.addSuppressed(roe);
+                    throw fail;
                 }
 
                 //Report real reason rather than just failing to verify
@@ -1166,7 +1201,7 @@ public class SocketFetcher {
                 if (t instanceof Error)
                     throw (Error) t;
 
-                String msg = toString() + " DENY; enable logging for details";
+                String msg = toString() + " FAIL -> DENY";
                 if (t instanceof IOException)
                     throw new UncheckedIOException(msg, (IOException) t);
                 throw new UndeclaredThrowableException(t, msg);

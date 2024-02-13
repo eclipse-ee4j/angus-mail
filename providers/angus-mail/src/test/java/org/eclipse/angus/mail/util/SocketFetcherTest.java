@@ -421,7 +421,8 @@ public final class SocketFetcherTest {
     @Test
     public void testSSLCheckServerIdentityTrustManager() {
         try {
-            testSSLCheckServerIdentity(new AllowAllX509TrustManager());
+            testSSLCheckServerIdentity(
+                    new AllowAllX509TrustManager(), (String) null);
             throw new AssertionError();
         } catch (Error | RuntimeException e) {
             throw e;
@@ -442,10 +443,45 @@ public final class SocketFetcherTest {
      */
     @Test
     public void testSSLCheckServerIdentityExtendedTrustManager() throws Exception {
-        testSSLCheckServerIdentity(new AllowAllX509ExtendedTrustManager());
+        testSSLCheckServerIdentity(
+                new AllowAllX509ExtendedTrustManager(), (String) null);
     }
 
-    private void testSSLCheckServerIdentity(TrustManager tm) throws Exception {
+    @Test
+    public void testSSLCheckCompatibility() {
+        testSSLCheckCompatibility("MailHostnameVerifier");
+    }
+
+    @Test
+    public void testSSLCheckStrictCompatibility() {
+        testSSLCheckCompatibility("legacy");
+    }
+
+    private void testSSLCheckCompatibility(String hnv) {
+        try {
+            testSSLCheckServerIdentity(
+                new AllowAllX509ExtendedTrustManager(), hnv);
+            throw new AssertionError();
+        } catch (Error | RuntimeException e) {
+            throw e;
+        } catch (MessagingException me) {
+            assertTrue(me.toString(), isFromSocketFetcher(me));
+            assertFalse(me.toString(), isFromTrustManager(me));
+            for (Throwable t = me; t != null; t = t.getCause()) {
+                for (StackTraceElement s : t.getStackTrace()) {
+                   if ("verify".equals(s.getMethodName())
+                            && s.getClassName().contains("MailHostnameVerifier")) {
+                        return;
+                    }
+                }
+            }
+            throw new AssertionError(me);
+        } catch (Exception t) {
+            throw new AssertionError(t);
+        }
+    }
+
+    private void testSSLCheckServerIdentity(TrustManager tm, String hnv) throws Exception {
         final Properties props = new Properties();
         props.setProperty("mail.imap.host", "localhost");
         props.setProperty("mail.imap.ssl.enable", "true");
@@ -460,6 +496,9 @@ public final class SocketFetcherTest {
         props.setProperty("mail.imap.socketFactory.fallback", "false");
         props.setProperty("mail.imap.ssl.checkserveridentity", "true");
 
+        if (hnv != null) {
+            props.setProperty("mail.imap.ssl.hostnameverifier.class", hnv);
+        }
 
         TestServer server = null;
         try {
