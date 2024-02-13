@@ -29,14 +29,15 @@ import org.junit.rules.Timeout;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiPredicate;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLHandshakeException;
@@ -338,19 +339,29 @@ public final class SocketFetcherTest {
     }
 
     @Test
-    public void testSSLHostnameVerifierFutureAlias() {
+    public void testSSLHostnameVerifierClassCastException() {
+        try {
+            testSSLHostnameVerifierClass("localhost", String.class.getName());
+            throw new AssertionError("No exception");
+        } catch (MessagingException me) {
+            assertTrue(matchAnyCauseStackTrace(me,
+                    (t, s) -> t instanceof ClassCastException));
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    @Test
+    public void testSSLHostnameVerifierRemovedAlias() {
         //Reserve all identifiers that don't contain a package
         //For future use by Angus Mail.
+        //Ensure removed aliases never fallback to classloading.
         try {
             testSSLHostnameVerifierClass("localhost", "foobarbaz");
             throw new AssertionError("No exception");
         } catch (MessagingException me) {
-            for (Throwable t = me; t != null; t = t.getCause()) {
-                if (t instanceof ClassNotFoundException) {
-                   return;
-                }
-            }
-            throw new AssertionError(me);
+            assertFalse("Must not class load aliases",
+                    isFromClassLoading(me));
         } catch(Exception e) {
             throw new AssertionError(e);
         }
@@ -470,16 +481,10 @@ public final class SocketFetcherTest {
             assertFalse(me.toString(), isFromTrustManager(me));
             for (Throwable t = me; t != null; t = t.getCause()) {
                 for (StackTraceElement s : t.getStackTrace()) {
-                   if ("verify".equals(s.getMethodName())) {
-                        if(isSunSecurityOpen(me)) {
-                            if (s.getClassName().contains("MailHostnameVerifier")) {
-                                return;
-                            }
-                        } else {
-                            if (s.getClassName().contains("JdkHostnameVerifier")) {
-                                return;
-                            }
-                        }
+                   if ("verify".equals(s.getMethodName())
+                        && (s.getClassName().contains("MailHostnameVerifier")
+                        || s.getClassName().contains("JdkHostnameVerifier"))) {
+                        return;
                     }
                 }
             }
@@ -600,42 +605,43 @@ public final class SocketFetcherTest {
         }
     }
 
-    private boolean isFromTrustManager(Throwable thrown) {
+    private boolean matchAnyCauseStackTrace(Throwable thrown,
+            BiPredicate<Throwable, StackTraceElement> matcher) {
+        Objects.requireNonNull(matcher);
         for (Throwable t = thrown; t != null; t = t.getCause()) {
             for (StackTraceElement s : t.getStackTrace()) {
-                if ("checkServerTrusted".equals(s.getMethodName())
-                        && s.getClassName().contains("TrustManager")) {
+                if (matcher.test(t, s)) {
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    private boolean isFromTrustManager(Throwable thrown) {
+        return matchAnyCauseStackTrace(thrown, (t, s) ->
+                "checkServerTrusted".equals(s.getMethodName())
+                && s.getClassName().contains("TrustManager"));
     }
 
     private boolean isSunSecurityOpen(Throwable thrown) {
-        Class<?> hnc;
-        try {
-            hnc = Class.forName("sun.security.util.HostnameChecker");
-            Method getInstance = hnc.getMethod("getInstance", byte.class);
-            getInstance.invoke((Object) null, (byte) 2);
-            return true;
-        } catch (IllegalAccessException ex) {
-            return false;
-        } catch (ReflectiveOperationException roe) {
-            throw new AssertionError(roe);
-        }
+        return !matchAnyCauseStackTrace(thrown, (t, s) ->
+                t instanceof IllegalAccessException
+                && "verify".equals(s.getMethodName())
+                && s.getClassName().contains("JdkHostnameChecker"));
     }
 
     private boolean isFromSocketFetcher(Throwable thrown) {
-        for (Throwable t = thrown; t != null; t = t.getCause()) {
-            for (StackTraceElement s : t.getStackTrace()) {
-                if ("checkServerIdentity".equals(s.getMethodName())
-                        && SocketFetcher.class.getName().equals(s.getClassName())) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return matchAnyCauseStackTrace(thrown, (t, s) ->
+                "checkServerIdentity".equals(s.getMethodName())
+                && SocketFetcher.class.getName().equals(s.getClassName()));
+    }
+
+    private boolean isFromClassLoading(Throwable thrown) {
+        return matchAnyCauseStackTrace(thrown, (t, s) ->
+                t instanceof ClassNotFoundException
+                && ("forName".equals(s.getMethodName())
+                   || "loadClass".equals(s.getMethodName())));
     }
 
 

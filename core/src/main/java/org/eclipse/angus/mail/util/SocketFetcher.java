@@ -800,7 +800,10 @@ public class SocketFetcher {
             return MailHostnameVerifier.of();
         }
 
-        //Treat classname without a package as an alias for future use.
+        //Ensure an alias is never loaded from modulepath or classpath.
+        //This ensures that removed aliases never loads weaker verifier and
+        //that all future aliases, classes without packagename, are reserved
+        //only for our use.
         if (fqcn.indexOf('.') < 0) {
             throw new ClassNotFoundException(fqcn);
         }
@@ -847,7 +850,11 @@ public class SocketFetcher {
             return verifierClass.getConstructor().newInstance();
         }
 
-        throw new ClassNotFoundException(fqcn);
+        //Everything failed, try to expose one of the reasons.
+        Class<?> c = Class.forName(fqcn)
+                .asSubclass(HostnameVerifier.class);
+        throw new ClassNotFoundException(fqcn,
+                new IllegalStateException(c.toString())); //unexpected
    }
 
     /**
@@ -1033,7 +1040,7 @@ public class SocketFetcher {
                         throw new UndeclaredThrowableException(
                             new CertificateException(
                                 "No subject alternative DNS name matching "
-                                    + server + " found"), this.toString());
+                                    + server + " found"), toString() + " DENY");
                     }
                 }
             } catch (CertificateParsingException ignore) {
@@ -1055,7 +1062,7 @@ public class SocketFetcher {
                 return true;
 
             throw new UndeclaredThrowableException(new CertificateException(
-                "No name matching " + server + " found"), this.toString());
+                "No name matching " + server + " found"), toString() + " DENY");
         }
 
         @Override
@@ -1110,7 +1117,9 @@ public class SocketFetcher {
      * It is preferred to set mail.<protocol>.ssl.endpointidentitycheck property
      * to 'LDAPS' instead of using this verifier.  This adapter will be removed
      * in a future release of Angus Mail when there is no reason to keep this
-     * for compatibility sake.
+     * for compatibility sake.  When this is removed ensure that the `legacy`
+     * alias doesn't search the modulepath/classpath as that would be a security
+     * risk.
      *
      * See: JDK-8062515 - Migrate use of sun.security.** to supported API
      */
@@ -1169,9 +1178,9 @@ public class SocketFetcher {
                     Throwable ce = ite.getCause();
                     if (ce instanceof CertificateException) {
                         logger.log(Level.FINER, "HostnameChecker DENY", ite);
-                        throw new UndeclaredThrowableException(ce, toString());
+                        throw new UndeclaredThrowableException(ce, toString() + " DENY");
                     }
-                    throw ite;
+                    throw ite; //treat as fail over
                 }
             } catch (IOException | ReflectiveOperationException roe) {
                 logger.log(Level.FINER, "HostnameChecker FAIL", roe);
@@ -1184,8 +1193,10 @@ public class SocketFetcher {
                         return true;
                     }
                 } catch (Throwable fail) {
-                    if (logger.isLoggable(Level.FINER))
-                        logger.log(Level.FINER, failover + " FAIL", fail);
+                    if (logger.isLoggable(Level.FINER)) {
+                        logger.log(Level.FINER, toString()
+                                + "FAIL -> THROW", fail);
+                    }
                     if (fail != roe)
                         fail.addSuppressed(roe);
                     throw fail;
