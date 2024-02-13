@@ -353,9 +353,9 @@ public final class SocketFetcherTest {
 
     @Test
     public void testSSLHostnameVerifierRemovedAlias() {
-        //Reserve all identifiers that don't contain a package
-        //For future use by Angus Mail.
-        //Ensure removed aliases never fallback to classloading.
+        //Reserve all identifiers that don't contain a package for future use by
+        //Angus Mail.  Ensure removed aliases never fallback to classloading as
+        //that might find a malicious class of the same name as the alias.
         try {
             testSSLHostnameVerifierClass("localhost", "foobarbaz");
             throw new AssertionError("No exception");
