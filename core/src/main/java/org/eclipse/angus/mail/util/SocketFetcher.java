@@ -1048,11 +1048,11 @@ public class SocketFetcher {
             } catch (CertificateParsingException ignore) {
                 logger.log(Level.FINEST, server, ignore);
             } catch (IOException spue) {
-                throw new UncheckedIOException(spue);
+                throw new UncheckedIOException(toString() + " DENY", spue);
             }
 
             if (cert == null) {
-                throw new UncheckedIOException(
+                throw new UncheckedIOException(toString() + " DENY",
                         new SSLPeerUnverifiedException("null"));
             }
 
