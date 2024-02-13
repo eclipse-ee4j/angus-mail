@@ -1143,13 +1143,13 @@ public class SocketFetcher {
                     if (failover.verify(server, ssls)) {
                         if (logger.isLoggable(Level.FINER)) {
                             logger.log(Level.FINER, "allowed by: {0}",
-                                    Objects.toString(failover));
+                                    failover.toString());
                         }
                         return true;
                     }
                 } catch (Throwable t) {
                     if (logger.isLoggable(Level.FINER))
-                        logger.log(Level.FINER, Objects.toString(failover), t);
+                        logger.log(Level.FINER, failover.toString(), t);
                     if (t != roe)
                         t.addSuppressed(roe);
                     throw t;
@@ -1166,7 +1166,7 @@ public class SocketFetcher {
                 if (t instanceof Error)
                     throw (Error) t;
 
-                String msg = "failed over then denied using: " + toString();
+                String msg = toString() + " DENY; enable logging for details";
                 if (t instanceof IOException)
                     throw new UncheckedIOException(msg, (IOException) t);
                 throw new UndeclaredThrowableException(t, msg);

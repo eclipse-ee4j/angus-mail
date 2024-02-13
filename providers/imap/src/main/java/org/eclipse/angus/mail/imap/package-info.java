@@ -659,10 +659,10 @@
  * <code>javax.net.ssl.HostnameVerifier</code> class or an alias name assigned
  * to a built in hostname verifier.  A class name will be instantiated using the
  * default constructor and that instance will be used to verify the hostname
- * against the certificate.  The instantiated object is allowed to throw
- * {@linkplain java.io.UncheckedIOException} from the
+ * against the certificate.  The instantiated object is allowed to throw a
+ * subclass of {@linkplain java.lang.RuntimeException} from the
  * {@linkplain javax.net.ssl.HostnameVerifier#verify verify} method to propagate
- * any {@link java.io.IOException}.  The alias name <code>legacy</code> will
+ * any {@link java.lang.Exception}.  The alias name <code>legacy</code> will
  * enable the <code>sun.security.util.HostnameChecker</code> with failover to
  * the <code>MailHostnameVerifier</code>.
  * The alias name <code>sun.security.util.HostnameChecker</code> or
