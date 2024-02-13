@@ -737,7 +737,8 @@ public class SocketFetcher {
 
         // Check against the server name(s) as expressed in server certificate
         if (!hnv.verify(server, sslSocket.getSession())) {
-            throw new IOException("Server is not trusted: " + server);
+            throw new IOException("Server identity does not match "
+                    + "authentication scheme: " + server);
         }
     }
 
