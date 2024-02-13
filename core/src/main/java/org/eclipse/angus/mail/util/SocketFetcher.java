@@ -982,9 +982,11 @@ public class SocketFetcher {
      * as expressed in the server certificate (RFC 2595 check).
      *
      * We implement a crude version of the same checks ourselves.
+     *
      * The verify method will throw unchecked exceptions instead of returning
      * false.  This violation of specification is acceptable because this class
-     * is private and doesn't escape the SocketFetcher.
+     * is private and doesn't escape the SocketFetcher.  SocketFetcher is able
+     * to safely handle unchecked exceptions from HostnameVerifier::verify.
      */
     private static final class MailHostnameVerifier implements HostnameVerifier {
 
@@ -1107,10 +1109,8 @@ public class SocketFetcher {
      *
      * The verify method will throw unchecked exceptions instead of returning
      * false.  This violation of specification is acceptable because this class
-     * is private and doesn't escape the SocketFetcher.
-     *
-     * Making factory methods a singleton is pointless because it should only
-     * be used in rare cases.
+     * is private and doesn't escape the SocketFetcher.  SocketFetcher is able
+     * to safely handle unchecked exceptions from HostnameVerifier::verify.
      *
      * This class will print --illegal-access=warn console warnings on JDK9
      * and may require: -add-opens 'java.base/sun.security.util=ALL-UNNAMED'
@@ -1133,6 +1133,8 @@ public class SocketFetcher {
         }
 
         static HostnameVerifier ofFailover(HostnameVerifier or) {
+            //Making factory methods return a singleton is pointless because
+            //this class should only be used as a last resort.
             return new JdkHostnameChecker(or);
         }
 
