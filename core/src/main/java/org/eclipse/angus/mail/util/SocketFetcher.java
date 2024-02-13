@@ -1108,7 +1108,9 @@ public class SocketFetcher {
      * The verify method will throw unchecked exceptions instead of returning
      * false.  This violation of specification is acceptable because this class
      * is private and doesn't escape the SocketFetcher.
-
+     *
+     * Making factory methods a singleton is pointless because it should only
+     * be used in rare cases.
      *
      * This class will print --illegal-access=warn console warnings on JDK9
      * and may require: -add-opens 'java.base/sun.security.util=ALL-UNNAMED'
