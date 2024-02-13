@@ -29,6 +29,7 @@ import org.junit.rules.Timeout;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
@@ -453,7 +454,7 @@ public final class SocketFetcherTest {
     }
 
     @Test
-    public void testSSLCheckStrictCompatibility() {
+    public void testSSLCheckCompatibilityStrict() {
         testSSLCheckCompatibility("legacy");
     }
 
@@ -469,9 +470,16 @@ public final class SocketFetcherTest {
             assertFalse(me.toString(), isFromTrustManager(me));
             for (Throwable t = me; t != null; t = t.getCause()) {
                 for (StackTraceElement s : t.getStackTrace()) {
-                   if ("verify".equals(s.getMethodName())
-                            && s.getClassName().contains("MailHostnameVerifier")) {
-                        return;
+                   if ("verify".equals(s.getMethodName())) {
+                        if(isSunSecurityOpen(me)) {
+                            if (s.getClassName().contains("MailHostnameVerifier")) {
+                                return;
+                            }
+                        } else {
+                            if (s.getClassName().contains("JdkHostnameVerifier")) {
+                                return;
+                            }
+                        }
                     }
                 }
             }
@@ -605,17 +613,17 @@ public final class SocketFetcherTest {
     }
 
     private boolean isSunSecurityOpen(Throwable thrown) {
-        for (Throwable t = thrown; t != null; t = t.getCause()) {
-            if (t instanceof IllegalAccessException) {
-                for (StackTraceElement s : t.getStackTrace()) {
-                    if ("verify".equals(s.getMethodName())
-                            && s.getClassName().contains("JdkHostnameChecker")) {
-                        return false;
-                    }
-                }
-            }
+        Class<?> hnc;
+        try {
+            hnc = Class.forName("sun.security.util.HostnameChecker");
+            Method getInstance = hnc.getMethod("getInstance", byte.class);
+            getInstance.invoke((Object) null, (byte) 2);
+            return true;
+        } catch (IllegalAccessException ex) {
+            return false;
+        } catch (ReflectiveOperationException roe) {
+            throw new AssertionError(roe);
         }
-        return true;
     }
 
     private boolean isFromSocketFetcher(Throwable thrown) {
