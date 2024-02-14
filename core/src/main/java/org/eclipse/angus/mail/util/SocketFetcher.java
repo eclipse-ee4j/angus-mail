@@ -670,9 +670,8 @@ public class SocketFetcher {
         try {
             checkServerIdentity(getHostnameVerifier(props, prefix),
                     host, sslsocket);
-        } catch (IOException ioe) {
-            throw cleanupAndThrow(sslsocket,ioe);
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError re) {
+        } catch (IOException | ReflectiveOperationException
+                | RuntimeException | LinkageError re) {
             throw cleanupAndThrow(sslsocket,
                     new IOException("Unable to check server identity for: "
                             + host, re));
@@ -742,7 +741,7 @@ public class SocketFetcher {
         // Check against the server name(s) as expressed in server certificate
         if (!hnv.verify(server, sslSocket.getSession())) {
             throw new IOException("Server identity does not match "
-                    + "authentication scheme: " + server);
+                    + "authentication scheme: " + hnv + " DENY");
         }
     }
 
