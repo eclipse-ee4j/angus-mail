@@ -506,14 +506,13 @@ public class MailHandlerTest extends AbstractLogging {
         instance.setErrorManager(em);
 
         instance.setLevel(lvl);
-        boolean result = false;
         boolean expect = true;
         if (record == null || record.getLevel().intValue() < lvl.intValue()
                 || Level.OFF.intValue() == lvl.intValue()) {
             expect = false;
         }
 
-        result = instance.isLoggable(record);
+        boolean result = instance.isLoggable(record);
         assertEquals(lvl.getName(), expect, result);
 
         instance.setLevel(Level.INFO);
@@ -1141,14 +1140,14 @@ public class MailHandlerTest extends AbstractLogging {
         }
 
         InternalErrorManager em = internalErrorManagerFrom(instance);
+        boolean failed = false;
         for (Throwable t : em.exceptions) {
-            if (isConnectOrTimeout(t)) {
-                continue;
-            } else {
+            if (!isConnectOrTimeout(t)) {
                 dump(t);
-                fail(t.toString());
+                failed = true;
             }
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -1165,19 +1164,21 @@ public class MailHandlerTest extends AbstractLogging {
 
         boolean seenError = false;
         InternalErrorManager em = internalErrorManagerFrom(instance);
+        boolean failed = false;
         for (Throwable t : em.exceptions) {
             if (isConnectOrTimeout(t)) {
                 continue;
-            } else if (t.getClass() == IllegalArgumentException.class
+            }
+            if (t.getClass() == IllegalArgumentException.class
                     && t.getMessage().contains(instance.getComparator()
                     .getClass().getName())) {
                 seenError = true; //See Arrays.sort(T[], Comparator<? super T>)
                 continue; //expect.
-            } else {
-                dump(t);
-                fail(t.toString());
             }
+            dump(t);
+            failed = true;
         }
+        assertFalse(failed);
         assertTrue("Exception was not thrown.", seenError);
         assertFalse(em.exceptions.isEmpty());
     }
@@ -1209,18 +1210,19 @@ public class MailHandlerTest extends AbstractLogging {
 
         InternalErrorManager em = internalErrorManagerFrom(instance);
         boolean seenError = false;
+        boolean failed = false;
         for (Throwable t : em.exceptions) {
             if (isConnectOrTimeout(t)) {
                 continue;
-            } else if (t.getClass() == RuntimeException.class) {
+            }
+            if (t.getClass() == RuntimeException.class) {
                 seenError = true;
                 continue; //expect.
-            } else {
-                dump(t);
-                fail(t.toString());
             }
+            dump(t);
+            failed = true;
         }
-
+        assertFalse(failed);
         if (records == 0) {
             assertEquals(true, em.exceptions.isEmpty());
         } else {
@@ -1593,12 +1595,14 @@ public class MailHandlerTest extends AbstractLogging {
         }
         h.close();
         assertEquals(MAX_RECORDS, cf.count);
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             if (!isConnectOrTimeout(exception)) {
                 dump(exception);
-                fail(String.valueOf(exception));
+                failed = true;
             }
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -1625,12 +1629,14 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(MAX_RECORDS, negativeOne.count);
         assertEquals(MAX_RECORDS, one.count);
         assertEquals(MAX_RECORDS, two.count);
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             if (!isConnectOrTimeout(exception)) {
                 dump(exception);
-                fail(String.valueOf(exception));
+                failed = true;
             }
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -1666,12 +1672,14 @@ public class MailHandlerTest extends AbstractLogging {
 
         assertEquals(MAX_RECORDS, cf.count);
         assertEquals(MAX_RECORDS, one.count);
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             if (!isConnectOrTimeout(exception)) {
                 dump(exception);
-                fail(String.valueOf(exception));
+                failed = false;
             }
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -1694,12 +1702,14 @@ public class MailHandlerTest extends AbstractLogging {
         h.publish(r);
         h.close();
         assertEquals(1, cf.count);
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             if (!isConnectOrTimeout(exception)) {
                 dump(exception);
-                fail(String.valueOf(exception));
+                failed = true;
             }
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -1748,12 +1758,14 @@ public class MailHandlerTest extends AbstractLogging {
             assertEquals(1, two.count);
             assertEquals(1, push.count);
         }
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             if (!isConnectOrTimeout(exception)) {
                 dump(exception);
-                fail(String.valueOf(exception));
+                failed = true;
             }
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -2096,14 +2108,16 @@ public class MailHandlerTest extends AbstractLogging {
         }
         instance.flush();
 
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             Throwable t = exception;
             if ((t instanceof MessagingException == false)
                     && (t instanceof IllegalStateException == false)) {
                 dump(t);
-                fail(String.valueOf(t));
+                failed = true;
             }
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -2366,13 +2380,15 @@ public class MailHandlerTest extends AbstractLogging {
             instance.close();
         }
 
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             Throwable t = exception;
             if (!isConnectOrTimeout(t)) {
                 dump(t);
-                fail(t.toString());
+                failed = true;
             }
         }
+        assertFalse(failed);
     }
 
     @Test
@@ -2523,18 +2539,20 @@ public class MailHandlerTest extends AbstractLogging {
         instance.setFormatter(new LevelCheckingFormatter(expect));
         instance.close();
 
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             Throwable t = exception;
             if (t instanceof MessagingException) {
                 if (!isConnectOrTimeout(t)) {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             } else {
                 dump(t);
-                fail(t.toString());
+                failed = true;
             }
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -2550,18 +2568,20 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(Level.OFF, instance.getLevel());
 
         instance.close();
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             Throwable t = exception;
             if (t instanceof MessagingException) {
                 if (!isConnectOrTimeout(t)) {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             } else {
                 dump(t);
-                fail(t.toString());
+                failed = true;
             }
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -2575,6 +2595,7 @@ public class MailHandlerTest extends AbstractLogging {
 
             manager.reset();
 
+            boolean failed = false;
             for (Exception exception : em.exceptions) {
                 Throwable t = exception;
                 if (t instanceof MessagingException) {
@@ -2583,17 +2604,19 @@ public class MailHandlerTest extends AbstractLogging {
                     }
                     if (!isConnectOrTimeout(t)) {
                         dump(t);
-                        fail(t.toString());
+                        failed = true;
                     }
                 } else {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             }
+            assertFalse(failed);
 
             instance = startLogManagerReset("local");
             em = internalErrorManagerFrom(instance);
 
+            failed = false;
             for (Exception exception : em.exceptions) {
                 Throwable t = exception;
                 if (t instanceof MessagingException) {
@@ -2602,16 +2625,18 @@ public class MailHandlerTest extends AbstractLogging {
                     }
                     if (!isConnectOrTimeout(t)) {
                         dump(t);
-                        fail(t.toString());
+                        failed = true;
                     }
                 } else {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             }
+            assertFalse(failed);
 
             manager.reset();
 
+            failed = false;
             for (Exception exception : em.exceptions) {
                 Throwable t = exception;
                 if (t instanceof MessagingException) {
@@ -2620,13 +2645,14 @@ public class MailHandlerTest extends AbstractLogging {
                     }
                     if (!isConnectOrTimeout(t)) {
                         dump(t);
-                        fail(t.toString());
+                        failed = true;
                     }
                 } else {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             }
+            assertFalse(failed);
 
             String[] noVerify = new String[]{null, "", "null"};
             for (int v = 0; v < noVerify.length; v++) {
@@ -2666,16 +2692,18 @@ public class MailHandlerTest extends AbstractLogging {
 
             //Allow the LogManagerProperties to copy on a bad enum type.
             boolean foundIllegalArg = false;
+            failed = false;
             for (Exception exception : em.exceptions) {
                 Throwable t = exception;
                 if (t instanceof IllegalArgumentException) {
                     foundIllegalArg = true;
                 } else if (t instanceof RuntimeException) {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             }
 
+            assertFalse(failed);
             assertTrue(foundIllegalArg);
             assertFalse(em.exceptions.isEmpty());
         } finally {
@@ -3229,14 +3257,15 @@ public class MailHandlerTest extends AbstractLogging {
 
             target.close();
 
+            boolean failed = false;
             InternalErrorManager em = internalErrorManagerFrom(target);
             for (Exception t : em.exceptions) {
-                if (isConnectOrTimeout(t)) {
-                    continue;
+                if (!isConnectOrTimeout(t)) {
+                    dump(t);
+                    failed = true;
                 }
-                dump(t);
-                fail(t.toString());
             }
+            assertFalse(failed);
             assertFalse(em.exceptions.isEmpty());
         } finally {
             Locale.setDefault(l);
@@ -3347,14 +3376,15 @@ public class MailHandlerTest extends AbstractLogging {
 
         target.close();
 
+        boolean failed = false;
         InternalErrorManager em = internalErrorManagerFrom(target);
         for (Exception t : em.exceptions) {
-            if (isConnectOrTimeout(t)) {
-                continue;
+            if (!isConnectOrTimeout(t)) {
+                dump(t);
+                failed = true;
             }
-            dump(t);
-            fail(t.toString());
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -3470,14 +3500,15 @@ public class MailHandlerTest extends AbstractLogging {
 
         target.close();
 
+        boolean failed = false;
         InternalErrorManager em = internalErrorManagerFrom(target);
         for (Exception t : em.exceptions) {
-            if (isConnectOrTimeout(t)) {
-                continue;
+            if (!isConnectOrTimeout(t)) {
+                dump(t);
+                failed = true;
             }
-            dump(t);
-            fail(t.toString());
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -3883,15 +3914,15 @@ public class MailHandlerTest extends AbstractLogging {
         props.setProperty("mail.to", "localhost@localdomain");
         instance.setMailProperties(props);
         instance.flush();
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             final Throwable t = exception;
-            if (isConnectOrTimeout(t)) {
-                continue;
-            } else {
+            if (!isConnectOrTimeout(t)) {
                 dump(t);
-                fail(t.toString());
+                failed = true;
             }
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
 
         props.setProperty("mail.from", "localhost@localdomain");
@@ -3903,17 +3934,16 @@ public class MailHandlerTest extends AbstractLogging {
 
         instance.publish(new LogRecord(Level.SEVERE, "test"));
         instance.close();
-        int failed = 0;
+        failed = false;
         for (Exception exception : em.exceptions) {
             final Throwable t = exception;
             if (t instanceof AddressException || isConnectOrTimeout(t)) {
                 continue;
-            } else {
-                dump(t);
-                failed++;
             }
+            dump(t);
+            failed = true;
         }
-        assertEquals(0, failed);
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -3936,6 +3966,7 @@ public class MailHandlerTest extends AbstractLogging {
             assertEquals("localhost@localdomain",
                     stored.getProperty("mail.from"));
             assertEquals("local",stored.getProperty("verify"));
+            boolean failed = false;
             for (Exception e : em.exceptions) {
                 if (e instanceof AddressException) {
                    if (e.toString().contains("badAddress")) {
@@ -3943,8 +3974,9 @@ public class MailHandlerTest extends AbstractLogging {
                    }
                 }
                 dump(e);
-                fail(e.toString());
+                failed = true;
             }
+            assertFalse(failed);
             assertFalse(em.exceptions.isEmpty());
 
             target.setMailProperties((Properties) null);
@@ -3952,6 +3984,7 @@ public class MailHandlerTest extends AbstractLogging {
             assertEquals("localhost@localdomain",
                     stored.getProperty("mail.from"));
             assertEquals("local", stored.getProperty("verify"));
+            failed = false;
             for (Exception e : em.exceptions) {
                 if (e instanceof AddressException) {
                    if (e.toString().contains("badAddress")) {
@@ -3959,12 +3992,14 @@ public class MailHandlerTest extends AbstractLogging {
                    }
                 }
                 dump(e);
-                fail(e.toString());
+                failed = true;
             }
+            assertFalse(failed);
             assertFalse(em.exceptions.isEmpty());
 
             target = new MailHandler((Properties) null);
             em = internalErrorManagerFrom(target);
+            failed = false;
             for (Exception e : em.exceptions) {
                 if (e instanceof AddressException) {
                    if (e.toString().contains("badAddress")) {
@@ -3972,8 +4007,9 @@ public class MailHandlerTest extends AbstractLogging {
                    }
                 }
                 dump(e);
-                fail(e.toString());
+                failed = true;
             }
+            assertFalse(failed);
             assertFalse(em.exceptions.isEmpty());
 
             stored = target.getMailProperties();
@@ -4013,6 +4049,7 @@ public class MailHandlerTest extends AbstractLogging {
             InternalErrorManager em = internalErrorManagerFrom(target);
             target.setMailEntries((String) null);
             Properties stored = target.getMailProperties();
+            boolean failed = false;
             for (Exception e : em.exceptions) {
                 if (e instanceof AddressException) {
                    if (e.toString().contains("badAddress")) {
@@ -4020,8 +4057,9 @@ public class MailHandlerTest extends AbstractLogging {
                    }
                 }
                 dump(e);
-                fail(e.toString());
+                failed = true;
             }
+            assertFalse(failed);
             assertFalse(em.exceptions.isEmpty());
             assertEquals("localhost@localdomain",
                     stored.getProperty("mail.from"));
@@ -4346,16 +4384,16 @@ public class MailHandlerTest extends AbstractLogging {
 
         instance.setMailProperties(addresses);
         instance.close();
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             final Throwable t = exception;
             if (isConnectOrTimeout(t) || t instanceof SendFailedException) {
                 continue;
-            } else {
-                dump(t);
-                fail(t.toString());
             }
+            dump(t);
+            failed = true;
         }
-
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -4374,6 +4412,7 @@ public class MailHandlerTest extends AbstractLogging {
         instance.setMailProperties(props);
         instance.close();
         InternalErrorManager em = internalErrorManagerFrom(instance);
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             if (exception instanceof MessagingException) {
                 if (exception instanceof AddressException
@@ -4390,8 +4429,9 @@ public class MailHandlerTest extends AbstractLogging {
                 }
             }
             dump(exception);
-            fail(exception.toString());
+            failed = true;
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -4791,19 +4831,21 @@ public class MailHandlerTest extends AbstractLogging {
         instance.close();
 
         int seenFormat = 0;
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             if (exception instanceof MessagingException) {
                 continue;
-            } else if (exception instanceof RuntimeException
+            }
+            if (exception instanceof RuntimeException
                     && exception.getMessage().contains(instance.getFilter().toString())
                     && exception.getMessage().contains(Arrays.asList(instance.getAttachmentFilters()).toString())) {
                 seenFormat++;
                 continue; //expected.
-            } else {
-                fail(String.valueOf(exception));
             }
+            failed = true;
         }
         assertTrue("No format error", seenFormat > 0);
+        assertFalse(failed);
     }
 
     @Test
@@ -4959,14 +5001,16 @@ public class MailHandlerTest extends AbstractLogging {
             }
             instance.close();
 
+            boolean failed = false;
             for (Exception exception : em.exceptions) {
                 Throwable t = exception;
                 if ((t instanceof MessagingException == false)
                         && (t instanceof IllegalStateException == false)) {
                     dump(t);
-                    fail(String.valueOf(t));
+                    failed = true;
                 }
             }
+            assertFalse(failed);
             assertFalse(em.exceptions.isEmpty());
         } finally {
             logger.removeHandler(instance);
@@ -5327,14 +5371,16 @@ public class MailHandlerTest extends AbstractLogging {
             //ensure VerifyErrorManager was installed.
             assertEquals(VerifyErrorManager.class, em.getClass());
 
+            boolean failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (!isConnectOrTimeout(t)) {
                     dump(t);
-                    fail(t.toString());
+                    failed = false;
                 }
             }
 
+            assertFalse(failed);
             assertFalse(em.exceptions.isEmpty());
             instance.close();
         } finally {
@@ -5466,6 +5512,7 @@ public class MailHandlerTest extends AbstractLogging {
         assertSame(names[5], names[6]);
 
         InternalErrorManager em = internalErrorManagerFrom(instance);
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             final Throwable t = exception;
             if (t instanceof IllegalArgumentException
@@ -5473,7 +5520,9 @@ public class MailHandlerTest extends AbstractLogging {
                 continue;
             }
             dump(t);
+            failed = true;
         }
+        assertFalse(failed);
         assertFalse(em.exceptions.isEmpty());
     }
 
@@ -5505,6 +5554,7 @@ public class MailHandlerTest extends AbstractLogging {
         instance.close();
 
         InternalErrorManager em = internalErrorManagerFrom(instance);
+        boolean failed = false;
         for (Exception exception : em.exceptions) {
             final Throwable t = exception;
             if (t instanceof IllegalArgumentException
@@ -5512,7 +5562,9 @@ public class MailHandlerTest extends AbstractLogging {
                 continue;
             }
             dump(t);
+            failed = true;
         }
+        assertFalse(failed);
         assertEquals(2, em.exceptions.size());
     }
 
@@ -5535,7 +5587,6 @@ public class MailHandlerTest extends AbstractLogging {
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 dump(t);
-                fail(t.toString());
             }
             assertTrue(em.exceptions.isEmpty());
 
@@ -5553,7 +5604,6 @@ public class MailHandlerTest extends AbstractLogging {
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 dump(t);
-                fail(t.toString());
             }
             assertTrue(em.exceptions.isEmpty());
 
@@ -5571,7 +5621,6 @@ public class MailHandlerTest extends AbstractLogging {
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 dump(t);
-                fail(t.toString());
             }
             assertTrue(em.exceptions.isEmpty());
 
@@ -5585,15 +5634,16 @@ public class MailHandlerTest extends AbstractLogging {
             instance = new MailHandler();
             instance.close();
             em = internalErrorManagerFrom(instance);
+            boolean failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (t instanceof IllegalArgumentException) {
                     continue;
                 }
                 dump(t);
-                fail(t.toString());
+                failed = true;
             }
-
+            assertFalse(failed);
             assertFalse(IllegalArgumentException.class.getName(),
                     em.exceptions.isEmpty());
 
@@ -5602,15 +5652,16 @@ public class MailHandlerTest extends AbstractLogging {
             instance = new MailHandler();
             instance.close();
             em = internalErrorManagerFrom(instance);
+            failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (t instanceof IllegalArgumentException) {
                     continue;
                 }
                 dump(t);
-                fail(t.toString());
+                failed = true;
             }
-
+            assertFalse(failed);
             assertFalse(IllegalArgumentException.class.getName(),
                     em.exceptions.isEmpty());
 
@@ -5619,15 +5670,16 @@ public class MailHandlerTest extends AbstractLogging {
             instance = new MailHandler();
             instance.close();
             em = internalErrorManagerFrom(instance);
+            failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (t instanceof IllegalArgumentException) {
                     continue;
                 }
                 dump(t);
-                fail(t.toString());
+                failed = true;
             }
-
+            assertFalse(failed);
             assertFalse(IllegalArgumentException.class.getName(),
                     em.exceptions.isEmpty());
         } finally {
@@ -5657,13 +5709,15 @@ public class MailHandlerTest extends AbstractLogging {
 
             assertEquals(InternalErrorManager.class, em.getClass());
 
+            boolean failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (t instanceof AddressException == false) {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             }
+            assertFalse(failed);
             assertFalse(em.exceptions.isEmpty());
 
             instance.close();
@@ -5677,13 +5731,15 @@ public class MailHandlerTest extends AbstractLogging {
 
             assertEquals(InternalErrorManager.class, em.getClass());
 
+            failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (t instanceof AddressException == false) {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             }
+            assertFalse(failed);
             assertFalse(em.exceptions.isEmpty());
 
             instance.close();
@@ -5697,6 +5753,7 @@ public class MailHandlerTest extends AbstractLogging {
 
             assertEquals(InternalErrorManager.class, em.getClass());
 
+            failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (isConnectOrTimeout(t)) {
@@ -5704,9 +5761,10 @@ public class MailHandlerTest extends AbstractLogging {
                 }
                 if (t instanceof AddressException == false) {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             }
+            assertFalse(failed);
             assertFalse(em.exceptions.isEmpty());
 
             instance.close();
@@ -5719,17 +5777,19 @@ public class MailHandlerTest extends AbstractLogging {
 
             assertEquals(InternalErrorManager.class, em.getClass());
 
+            failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (t instanceof AddressException) {
                     continue;
-                } else if (isConnectOrTimeout(t)) {
-                    continue;
-                } else {
-                    dump(t);
-                    fail(t.toString());
                 }
+                if (isConnectOrTimeout(t)) {
+                    continue;
+                }
+                dump(t);
+                failed = true;
             }
+            assertFalse(failed);
             assertFalse(em.exceptions.isEmpty());
         } finally {
             manager.reset();
@@ -5748,13 +5808,15 @@ public class MailHandlerTest extends AbstractLogging {
             instance.setErrorManager(em);
             instance.setMailProperties(props);
 
+            boolean failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (t instanceof AddressException == false) {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             }
+            assertFalse(failed);
         } finally {
             instance.close();
         }
@@ -5766,13 +5828,15 @@ public class MailHandlerTest extends AbstractLogging {
             instance.setErrorManager(em);
             instance.setMailProperties(props);
 
+            boolean failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (t instanceof AddressException == false) {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             }
+            assertFalse(failed);
         } finally {
             instance.close();
         }
@@ -5784,6 +5848,7 @@ public class MailHandlerTest extends AbstractLogging {
             instance.setErrorManager(em);
             instance.setMailProperties(props);
 
+            boolean failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (isConnectOrTimeout(t)) {
@@ -5791,9 +5856,10 @@ public class MailHandlerTest extends AbstractLogging {
                 }
                 if (t instanceof AddressException == false) {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             }
+            assertFalse(failed);
         } finally {
             instance.close();
         }
@@ -5805,6 +5871,7 @@ public class MailHandlerTest extends AbstractLogging {
             instance.setErrorManager(em);
             instance.setMailProperties(props);
 
+            boolean failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (isConnectOrTimeout(t)) {
@@ -5812,9 +5879,10 @@ public class MailHandlerTest extends AbstractLogging {
                 }
                 if (t instanceof AddressException == false) {
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
             }
+            assertFalse(failed);
         } finally {
             instance.close();
         }
@@ -5826,17 +5894,19 @@ public class MailHandlerTest extends AbstractLogging {
             instance.setErrorManager(em);
             instance.setMailProperties(props);
 
+            boolean failed = false;
             for (Exception exception : em.exceptions) {
                 final Throwable t = exception;
                 if (t instanceof AddressException) {
                     continue;
-                } else if (isConnectOrTimeout(t)) {
-                    continue;
-                } else {
-                    dump(t);
-                    fail(t.toString());
                 }
+                if (isConnectOrTimeout(t)) {
+                    continue;
+                }
+                dump(t);
+                failed = true;
             }
+            assertFalse(failed);
         } finally {
             instance.close();
         }
@@ -5863,13 +5933,15 @@ public class MailHandlerTest extends AbstractLogging {
             try {
                 InternalErrorManager em = internalErrorManagerFrom(instance);
 
+                boolean failed = false;
                 for (Exception exception : em.exceptions) {
                     final Throwable t = exception;
                     if (t instanceof AddressException == false) {
                         dump(t);
-                        fail(t.toString());
+                        failed = true;
                     }
                 }
+                assertFalse(failed);
                 assertFalse(em.exceptions.isEmpty());
             } finally {
                 instance.close();
@@ -5887,13 +5959,15 @@ public class MailHandlerTest extends AbstractLogging {
             try {
                 InternalErrorManager em = internalErrorManagerFrom(instance);
 
+                boolean failed = false;
                 for (Exception exception : em.exceptions) {
                     final Throwable t = exception;
                     if (t instanceof AddressException == false) {
                         dump(t);
-                        fail(t.toString());
+                        failed = true;
                     }
                 }
+                assertFalse(failed);
                 assertFalse(em.exceptions.isEmpty());
             } finally {
                 instance.close();
@@ -5904,7 +5978,7 @@ public class MailHandlerTest extends AbstractLogging {
             instance = new MailHandler(props);
             try {
                 InternalErrorManager em = internalErrorManagerFrom(instance);
-
+                boolean failed = false;
                 for (Exception exception : em.exceptions) {
                     final Throwable t = exception;
                     if (isConnectOrTimeout(t)) {
@@ -5912,9 +5986,10 @@ public class MailHandlerTest extends AbstractLogging {
                     }
                     if (t instanceof AddressException == false) {
                         dump(t);
-                        fail(t.toString());
+                        failed = true;
                     }
                 }
+                assertFalse(failed);
                 assertFalse(em.exceptions.isEmpty());
             } finally {
                 instance.close();
@@ -5925,17 +6000,19 @@ public class MailHandlerTest extends AbstractLogging {
             try {
                 InternalErrorManager em = internalErrorManagerFrom(instance);
 
+                boolean failed = false;
                 for (Exception exception : em.exceptions) {
                     final Throwable t = exception;
                     if (t instanceof AddressException) {
                         continue;
-                    } else if (isConnectOrTimeout(t)) {
-                        continue;
-                    } else {
-                        dump(t);
-                        fail(t.toString());
                     }
+                    if (isConnectOrTimeout(t)) {
+                        continue;
+                    }
+                    dump(t);
+                    failed = true;
                 }
+                assertFalse(failed);
                 assertFalse(em.exceptions.isEmpty());
             } finally {
                 instance.close();
@@ -6167,13 +6244,16 @@ public class MailHandlerTest extends AbstractLogging {
             target = new MailHandler();
             try {
                 em = internalErrorManagerFrom(target);
+                boolean failed = false;
                 for (Exception exception : em.exceptions) {
                     final Throwable t = exception;
                     if (t instanceof IndexOutOfBoundsException) {
                         continue;
                     }
                     dump(t);
+                    failed = true;
                 }
+                assertFalse(failed);
                 assertFalse(em.exceptions.isEmpty());
             } finally {
                 target.close();
@@ -6542,6 +6622,7 @@ public class MailHandlerTest extends AbstractLogging {
             final MailHandler target = new MailHandler();
             try {
                 InternalErrorManager em = internalErrorManagerFrom(target);
+                boolean failed = false;
                 next:
                 for (Exception t : em.exceptions) {
                     for (Throwable cause = t; cause != null; cause = cause.getCause()) {
@@ -6550,8 +6631,9 @@ public class MailHandlerTest extends AbstractLogging {
                         }
                     }
                     dump(t);
-                    fail(t.toString());
+                    failed = true;
                 }
+                assertFalse(failed);
                 assertFalse(em.exceptions.isEmpty());
             } finally {
                 target.close();
@@ -6897,17 +6979,17 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(EmptyFormatter.class, h.getSubject().getClass());
         assertEquals(EmptyAuthenticator.class, h.getAuthenticator().getClass());
         assertEquals(3, h.getAttachmentFormatters().length);
-        assertTrue(null != h.getAttachmentFormatters()[0]);
-        assertTrue(null != h.getAttachmentFormatters()[1]);
-        assertTrue(null != h.getAttachmentFormatters()[2]);
+        assertNotNull(h.getAttachmentFormatters()[0]);
+        assertNotNull(h.getAttachmentFormatters()[1]);
+        assertNotNull(h.getAttachmentFormatters()[2]);
         assertEquals(3, h.getAttachmentFilters().length);
-        assertEquals(null, h.getAttachmentFilters()[0]);
+        assertNull(h.getAttachmentFilters()[0]);
         assertEquals(ThrowFilter.class, h.getAttachmentFilters()[1].getClass());
         assertEquals(ThrowFilter.class, h.getAttachmentFilters()[2].getClass());
         assertEquals(3, h.getAttachmentNames().length);
-        assertTrue(null != h.getAttachmentNames()[0]);
-        assertTrue(null != h.getAttachmentNames()[1]);
-        assertTrue(null != h.getAttachmentNames()[2]);
+        assertNotNull(h.getAttachmentNames()[0]);
+        assertNotNull(h.getAttachmentNames()[1]);
+        assertNotNull(h.getAttachmentNames()[2]);
 
         InternalErrorManager em = internalErrorManagerFrom(h);
         for (Exception exception : em.exceptions) {
@@ -7016,12 +7098,10 @@ public class MailHandlerTest extends AbstractLogging {
             h = type.getConstructor(types).newInstance(params);
             System.err.flush();
             result = oldErrors.toString(encoding).trim();
-            int index = result.indexOf(ErrorManager.class.getName() + ": "
-                    + ErrorManager.OPEN_FAILURE + ": " + Level.SEVERE.getName()
-                    + ": InvalidErrorManager");
-            assertTrue(index > -1);
-            assertTrue(result.indexOf(
-                    "java.lang.ClassNotFoundException: InvalidErrorManager") > index);
+            assertTrue(result.startsWith(ErrorManager.class.getName() + ": "
+                    + ErrorManager.OPEN_FAILURE + ": " + Level.SEVERE.getName()));
+            assertTrue(result, result.contains(
+                    "java.lang.ClassNotFoundException: InvalidErrorManager"));
             oldErrors.reset();
         } finally {
             System.setErr(err);
@@ -7029,38 +7109,40 @@ public class MailHandlerTest extends AbstractLogging {
 
         assert h != null;
         assertEquals(ErrorManager.class, h.getErrorManager().getClass());
-        assertTrue(h.getCapacity() != 10);
-        assertTrue(h.getCapacity() != -10);
+        assertNotEquals(10, h.getCapacity());
+        assertNotEquals(-10, h.getCapacity());
         assertEquals(Level.WARNING, h.getLevel());
-        assertEquals(null, h.getFilter());
+        assertNull( h.getFilter());
         assertEquals(SimpleFormatter.class, h.getFormatter().getClass());
         assertEquals(Level.OFF, h.getPushLevel());
-        assertEquals(null, h.getPushFilter());
+        assertNull(h.getPushFilter());
         assertNull(h.getComparator());
-        assertEquals(null, h.getEncoding());
+        assertNull(h.getEncoding());
         assertEquals(ThrowFilter.class.getName(), h.getSubject().toString());
         PasswordAuthentication pa = passwordAuthentication(h.getAuthenticator(), "user");
         assertEquals("user", pa.getUserName());
         assertEquals("password", pa.getPassword());
         assertEquals(3, h.getAttachmentFormatters().length);
-        assertTrue(null != h.getAttachmentFormatters()[0]);
-        assertTrue(null != h.getAttachmentFormatters()[1]);
-        assertTrue(null != h.getAttachmentFormatters()[2]);
+        assertNotNull(h.getAttachmentFormatters()[0]);
+        assertNotNull(h.getAttachmentFormatters()[1]);
+        assertNotNull(h.getAttachmentFormatters()[2]);
         assertEquals(3, h.getAttachmentFilters().length);
-        assertTrue(null == h.getAttachmentFilters()[0]);
-        assertTrue(null == h.getAttachmentFilters()[1]);
-        assertTrue(null != h.getAttachmentFilters()[2]);
+        assertNull(h.getAttachmentFilters()[0]);
+        assertNull(h.getAttachmentFilters()[1]);
+        assertNotNull(h.getAttachmentFilters()[2]);
         assertEquals(ThrowFilter.class, h.getAttachmentFilters()[2].getClass());
         assertEquals(3, h.getAttachmentNames().length);
-        assertTrue(null != h.getAttachmentNames()[0]);
-        assertTrue(null != h.getAttachmentNames()[1]);
-        assertTrue(null != h.getAttachmentNames()[2]);
+        assertNotNull(h.getAttachmentNames()[0]);
+        assertNotNull(h.getAttachmentNames()[1]);
+        assertNotNull(h.getAttachmentNames()[2]);
         assertEquals(XMLFormatter.class, h.getAttachmentNames()[2].getClass());
         h.close();
     }
 
     private static boolean isConnectOrTimeout(Throwable t) {
-        if (t instanceof MessagingException) {
+        if (t == null) {
+            return false;
+        } else if (t instanceof MessagingException) {
             Throwable cause = t.getCause();
             if (cause == null) { //GNU JavaMail doesn't support 1.4 chaining.
                 cause = ((MessagingException) t).getNextException();
