@@ -642,8 +642,10 @@ public class SocketFetcher {
 
                 if (logger.isLoggable(Level.FINER)) {
                     logger.log(Level.FINER,
-                    "Checking {0} using endpoint identification algorithm {1}",
-                        new Object[]{params.getServerNames(), eia});
+                    "Checking {0} with names {1} using"
+                            + " endpoint identification algorithm {2}",
+                        new Object[]{host,
+                            Objects.toString(params.getServerNames()), eia});
                 }
             }
         } catch (RuntimeException re) {
@@ -727,8 +729,10 @@ public class SocketFetcher {
         if (logger.isLoggable(Level.FINER)) {
             //Only expose the toString of the HostnameVerifier to the logger
             //and not a direct reference to the HostnameVerifier
-            logger.log(Level.FINER, "Using HostnameVerifier: {0}",
-                    Objects.toString(hnv));
+            logger.log(Level.FINER,
+                    "Using HostnameVerifier {0} with {1}, {2}",
+                    Objects.toString(hnv), server,
+                    Objects.toString(sslSocket));
         }
 
         if (hnv == null) {
