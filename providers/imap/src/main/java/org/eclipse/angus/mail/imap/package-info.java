@@ -670,6 +670,7 @@
  * The instantiated object will provide additional checks based on the content
  * of the server's certificate are intended to prevent man-in-the-middle
  * attacks.  Defaults to null.
+ * 
  * </TD>
  * </TR>
  *
