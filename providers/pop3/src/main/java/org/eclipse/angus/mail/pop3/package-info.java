@@ -479,15 +479,12 @@
  * <TD>
  * If set to an object that implements the
  * <code>javax.net.ssl.HostnameVerifier</code> interface then, this object
- * will be used to verify the hostname against the certificate.  This object is
- * allowed to throw {@linkplain java.io.UncheckedIOException} from the
- * {@linkplain javax.net.ssl.HostnameVerifier#verify verify} method to propagate
- * any {@link java.io.IOException}.  Note that this is an instance of a class,
- * not a name, and must be set using the <code>put</code> method, not the
- * <code>setProperty</code> method.  The given object will provide additional
- * checks based on the content of the server's certificate are intended to
- * prevent man-in-the-middle attacks.
- * Defaults to null.
+ * will be used to verify the hostname against the certificate.  Note that this
+ * is an instance of a class, not a name, and must be set using the
+ * <code>put</code> method, not the <code>setProperty</code> method.  The given
+ * object will provide additional checks based on the content of the server's
+ * certificate are intended to prevent man-in-the-middle attacks.  Defaults to
+ * null.
  * </TD>
  * </TR>
  *
