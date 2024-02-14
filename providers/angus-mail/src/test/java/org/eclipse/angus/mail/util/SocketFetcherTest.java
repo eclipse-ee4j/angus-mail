@@ -220,9 +220,9 @@ public final class SocketFetcherTest {
             synchronized (TestHostnameVerifier.class) {
                 try {
                     runnable.run();
-                } catch(Throwable t){
+                } catch (Throwable t){
                     throw new AssertionError(t);
-                } finally{
+                } finally {
                     TestHostnameVerifier.reset();
                 }
             }
@@ -360,7 +360,7 @@ public final class SocketFetcherTest {
             testSSLHostnameVerifierClass("localhost", "foobarbaz");
             throw new AssertionError("No exception");
         } catch (MessagingException me) {
-            assertFalse("Must not class load aliases",
+            assertFalse("Must not attempt to class load aliases",
                     isFromClassLoading(me));
         } catch(Exception e) {
             throw new AssertionError(e);

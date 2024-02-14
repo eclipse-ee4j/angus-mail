@@ -855,10 +855,11 @@ public class SocketFetcher {
         }
 
         //Everything failed, try to expose one of the reasons.
-        Class<?> c = Class.forName(fqcn)
+        verifierClass = Class.forName(fqcn)
                 .asSubclass(HostnameVerifier.class);
+        //This is unexpected, should be unreachable
         throw new ClassNotFoundException(fqcn,
-                new IllegalStateException(c.toString())); //unexpected
+                new IllegalStateException(verifierClass.toString()));
    }
 
     /**
