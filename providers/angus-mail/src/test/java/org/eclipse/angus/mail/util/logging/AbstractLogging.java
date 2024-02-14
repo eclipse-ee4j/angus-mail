@@ -20,6 +20,7 @@ package org.eclipse.angus.mail.util.logging;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Constructor;
@@ -56,7 +57,9 @@ abstract class AbstractLogging {
      */
     @SuppressWarnings({"CallToThreadDumpStack", "CallToPrintStackTrace"})
     static void dump(final Throwable t) {
-        t.printStackTrace();
+        PrintStream err = System.err;
+        err.print(AbstractLogging.class.getSimpleName() + ": ");
+        t.printStackTrace(err);
     }
 
     /**
