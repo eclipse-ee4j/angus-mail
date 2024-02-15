@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -464,10 +464,49 @@
  * <TD>boolean</TD>
  * <TD>
  * If set to false, it does not check the server identity as specified by
- * <A HREF="http://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
+ * <A HREF="http://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>,
+ * <A HREF="http://www.ietf.org/rfc/rfc2830.txt" TARGET="_top">RFC 2830</A>, and
+ * <A HREF="http://www.ietf.org/rfc/rfc6125.txt" TARGET="_top">RFC 6125</A>.
  * These additional checks based on the content of the server's certificate
  * are intended to prevent man-in-the-middle attacks.
  * Defaults to true.
+ * </TD>
+ * </TR>
+ *
+ * <TR>
+ * <TD><A ID="mail.pop3.ssl.hostnameverifier">mail.pop3.ssl.hostnameverifier</A></TD>
+ * <TD>javax.net.ssl.HostnameVerifier</TD>
+ * <TD>
+ * If set to an object that implements the
+ * <code>javax.net.ssl.HostnameVerifier</code> interface then, this object
+ * will be used to verify the hostname against the certificate.  Note that this
+ * is an instance of a class, not a name, and must be set using the
+ * <code>put</code> method, not the <code>setProperty</code> method.  The given
+ * object will provide additional checks based on the content of the server's
+ * certificate are intended to prevent man-in-the-middle attacks.  Defaults to
+ * null.
+ * </TD>
+ * </TR>
+ *
+ * <TR>
+ * <TD><A ID="mail.pop3.ssl.hostnameverifier.class">mail.pop3.ssl.hostnameverifier.class</A></TD>
+ * <TD>String</TD>
+ * <TD>
+ * If set, specifies the name of a class that implements the
+ * <code>javax.net.ssl.HostnameVerifier</code> interface or an alias name
+ * assigned to a built in hostname verifier.  A class name will be instantiated
+ * using the default constructor and that instance will be used to verify the
+ * hostname against the certificate.  The alias name <code>"legacy"</code> will
+ * enable the <code>"sun.security.util.HostnameChecker"</code> with fail over to
+ * the <code>"MailHostnameVerifier"</code>. The alias name
+ * <code>"sun.security.util.HostnameChecker"</code> or
+ * <code>"JdkHostnameChecker"</code> will attempt to access the
+ * <code>sun.security.util.HostnameChecker</code> via reflection. The alias name
+ * <code>"MailHostnameVerifier"</code> will check server identity as specified
+ * by <A HREF="http://www.ietf.org/rfc/rfc2595.txt" TARGET="_top">RFC 2595</A>.
+ * The instantiated object will provide additional checks based on the content
+ * of the server's certificate are intended to prevent man-in-the-middle
+ * attacks.  Defaults to null.
  * </TD>
  * </TR>
  *

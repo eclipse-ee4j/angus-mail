@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -17,14 +17,19 @@
 package org.eclipse.angus.mail.util;
 
 import javax.net.SocketFactory;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -33,6 +38,7 @@ import java.net.SocketTimeoutException;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
+import java.security.cert.CertificateException;
 import java.security.GeneralSecurityException;
 import java.security.PrivilegedAction;
 import java.security.cert.CertificateParsingException;
@@ -43,12 +49,14 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLSession;
 
 /**
  * This class is used to get Sockets. Depending on the arguments passed
@@ -620,20 +628,55 @@ public class SocketFetcher {
                     Arrays.asList(sslsocket.getEnabledCipherSuites()));
         }
 
+        try {
+            /*
+             * Check server identity and trust.
+             * See: JDK-8062515 and JDK-7192189
+             * LDAPS requires the same regex handling as we need
+             */
+            String eia = PropUtil.getBooleanProperty(props,
+                    prefix + ".ssl.checkserveridentity", true)
+                    ? "LDAPS" : (String) null;
+            SSLParameters params = sslsocket.getSSLParameters();
+            params.setEndpointIdentificationAlgorithm(eia);
+            sslsocket.setSSLParameters(params);
+
+            if (logger.isLoggable(Level.FINER)) {
+                logger.log(Level.FINER, "Using endpoint identification "
+                        + "algorithm {0} with SNIs {1} for: {2}",
+                    new Object[]{eia, Objects.toString(
+                        params.getServerNames()), host});
+            }
+        } catch (RuntimeException re) {
+            throw cleanupAndThrow(sslsocket,
+                new IOException("Unable to set endpoint identification "
+                        + "algorithm for: " + host, re));
+        }
+
         /*
          * Force the handshake to be done now so that we can report any
          * errors (e.g., certificate errors) to the caller of the startTLS
          * method.
          */
-        sslsocket.startHandshake();
+        try {
+            sslsocket.startHandshake();
+        } catch (IOException ioe) {
+            throw cleanupAndThrow(sslsocket,ioe);
+        }
 
         /*
-         * Check server identity and trust.
+         * Check server identity and trust with user provided checks.
          */
-        boolean idCheck = PropUtil.getBooleanProperty(props,
-                prefix + ".ssl.checkserveridentity", true);
-        if (idCheck)
-            checkServerIdentity(host, sslsocket);
+        try {
+            checkServerIdentity(getHostnameVerifier(props, prefix),
+                    host, sslsocket);
+        } catch (IOException | ReflectiveOperationException
+                | RuntimeException | LinkageError re) {
+            throw cleanupAndThrow(sslsocket,
+                    new IOException("Unable to check server identity for: "
+                            + host, re));
+        }
+
         if (sf instanceof MailSSLSocketFactory) {
             MailSSLSocketFactory msf = (MailSSLSocketFactory) sf;
             if (!msf.isServerTrusted(host, sslsocket)) {
@@ -669,147 +712,154 @@ public class SocketFetcher {
 
     /**
      * Check the server from the Socket connection against the server name(s)
-     * as expressed in the server certificate (RFC 2595 check).
+     * using the given HostnameVerifier.  All hostname verifier implementations
+     * are allowed to throw unchecked exceptions.
      *
-     * @param sslSocket SSLSocket connected to the server
-     * @param    server        name of the server expected
-     * @exception IOException    if we can't verify identity of server
+     * @param hnv the HostnameVerifier or null if allowing all.
+     * @param server name of the server expected
+     * @param sslSocket SSLSocket connected to the server.  Caller is expected
+     * to close the socket on error.
+     * @exception IOException if we can't verify identity of server
+     * @throws RuntimeException caused by invoking the verifier
      */
-    private static void checkServerIdentity(String server, SSLSocket sslSocket)
-            throws IOException {
+    private static void checkServerIdentity(HostnameVerifier hnv,
+                            String server, SSLSocket sslSocket)
+                            throws IOException {
+        if (logger.isLoggable(Level.FINER)) {
+            //Only expose the toString of the HostnameVerifier to the logger
+            //and not a direct reference to the HostnameVerifier
+            logger.log(Level.FINER,
+                    "Using HostnameVerifier {0} with {1}, {2}",
+                    Objects.toString(hnv), server,
+                    Objects.toString(sslSocket));
+        }
+
+        if (hnv == null) {
+            return;
+        }
 
         // Check against the server name(s) as expressed in server certificate
-        try {
-            java.security.cert.Certificate[] certChain =
-                    sslSocket.getSession().getPeerCertificates();
-            if (certChain != null && certChain.length > 0 &&
-                    certChain[0] instanceof X509Certificate &&
-                    matchCert(server, (X509Certificate) certChain[0]))
-                return;
-        } catch (SSLPeerUnverifiedException e) {
-            sslSocket.close();
-            IOException ioex = new IOException(
-                    "Can't verify identity of server: " + server);
-            ioex.initCause(e);
-            throw ioex;
+        if (!hnv.verify(server, sslSocket.getSession())) {
+            throw new SSLException("Server identity does not match "
+                    + "authentication scheme: " + hnv + " DENY");
         }
-
-        // If we get here, there is nothing to consider the server as trusted.
-        sslSocket.close();
-        throw new IOException("Can't verify identity of server: " + server);
     }
 
-    /**
-     * Do any of the names in the cert match the server name?
-     *
-     * @param cert X509Certificate to get the subject's name from
-     * @return true if it matches
-     * @param    server    name of the server expected
-     */
-    private static boolean matchCert(String server, X509Certificate cert) {
-        if (logger.isLoggable(Level.FINER))
-            logger.finer("matchCert server " +
-                    server + ", cert " + cert);
+    private static X509Certificate getX509Certificate(
+            java.security.cert.Certificate[] certChain) throws IOException {
+        if (certChain == null || certChain.length == 0) {
+            throw new SSLPeerUnverifiedException(
+                    Arrays.toString(certChain));
+        }
 
-        /*
-         * First, try to use sun.security.util.HostnameChecker,
-         * which exists in Sun's JDK starting with 1.4.1.
-         * We use reflection to access it in case it's not available
-         * in the JDK we're running on.
-         */
-        try {
-            Class<?> hnc = Class.forName("sun.security.util.HostnameChecker");
-            // invoke HostnameChecker.getInstance(HostnameChecker.TYPE_LDAP)
-            // HostnameChecker.TYPE_LDAP == 2
-            // LDAP requires the same regex handling as we need
-            Method getInstance = hnc.getMethod("getInstance",
-                    byte.class);
-            Object hostnameChecker = getInstance.invoke(new Object(),
-                    Byte.valueOf((byte) 2));
+        java.security.cert.Certificate first = certChain[0];
+        if (first instanceof X509Certificate) {
+            return (X509Certificate) first;
+        }
 
-            // invoke hostnameChecker.match( server, cert)
-            if (logger.isLoggable(Level.FINER))
-                logger.finer("using sun.security.util.HostnameChecker");
-            Method match = hnc.getMethod("match",
-                    String.class, X509Certificate.class);
+        //Only metadata about the cert is shown in the message
+        throw new SSLPeerUnverifiedException(first == null ? "null"
+                : (first.getClass().getName() + " " + first.getType()));
+    }
+
+
+   /**
+    * Return an instance of {@link HostnameVerifier}.
+    *
+    * This method assumes the {@link HostnameVerifier} class provides an
+    * accessible default constructor to instantiate the instance.
+    *
+    * @param fqcn the class name of the {@link HostnameVerifier}
+    * @return the {@link HostnameVerifier} or null
+    * @throws ClassCastException if hostnameverifier is not a {@link HostnameVerifier}
+    * @throws ReflectiveOperationException if unable to construct a {@link HostnameVerifier}
+    */
+   private static HostnameVerifier getHostnameVerifier(Properties props, String prefix)
+           throws ReflectiveOperationException {
+
+        //Custom object is used before factory.
+        HostnameVerifier hvn = (HostnameVerifier)
+                                props.get(prefix + ".ssl.hostnameverifier");
+        if (hvn != null) {
+            return hvn;
+        }
+
+        String fqcn = props.getProperty(prefix + ".ssl.hostnameverifier.class");
+        if (fqcn == null || fqcn.isEmpty()) {
+            return null;
+        }
+
+        //Handle all aliases names
+        if ("legacy".equals(fqcn)) {
+            return JdkHostnameChecker.ofFailover(MailHostnameVerifier.of());
+        }
+
+        if ("sun.security.util.HostnameChecker".equals(fqcn)
+                || JdkHostnameChecker.class.getSimpleName().equals(fqcn)) {
+            return JdkHostnameChecker.of();
+        }
+
+        if (MailHostnameVerifier.class.getSimpleName().equals(fqcn)) {
+            return MailHostnameVerifier.of();
+        }
+
+        //Ensure an alias is never loaded from modulepath or classpath.
+        //This ensures that removed aliases never loads a weaker verifier and
+        //that all future aliases, classes without package names, are reserved
+        //for future use.
+        if (fqcn.indexOf('.') < 0) {
+            throw new ClassNotFoundException(fqcn);
+        }
+
+        //Handle the fully qualified class name
+        Class<? extends HostnameVerifier> verifierClass = null;
+        ClassLoader ccl = getContextClassLoader();
+
+        // Attempt to load the class from the context class loader.
+        if (ccl != null) {
             try {
-                match.invoke(hostnameChecker, server, cert);
-                return true;
-            } catch (InvocationTargetException cex) {
-                logger.log(Level.FINER, "HostnameChecker FAIL", cex);
-                return false;
+                verifierClass = Class.forName(fqcn, false, ccl)
+                        .asSubclass(HostnameVerifier.class);
+            } catch (ClassNotFoundException | RuntimeException cnfe) {
+                logger.log(Level.FINER,
+                        "Context class loader could not find: " + fqcn, cnfe);
             }
-        } catch (Exception ex) {
-            logger.log(Level.FINER, "NO sun.security.util.HostnameChecker", ex);
-            // ignore failure and continue below
         }
 
-        /*
-         * Lacking HostnameChecker, we implement a crude version of
-         * the same checks ourselves.
-         */
-        try {
-            /*
-             * Check each of the subjectAltNames.
-             * XXX - only checks DNS names, should also handle
-             * case where server name is a literal IP address
-             */
-            Collection<List<?>> names = cert.getSubjectAlternativeNames();
-            if (names != null) {
-                boolean foundName = false;
-                for (Iterator<List<?>> it = names.iterator(); it.hasNext(); ) {
-                    List<?> nameEnt = it.next();
-                    Integer type = (Integer) nameEnt.get(0);
-                    if (type.intValue() == 2) {    // 2 == dNSName
-                        foundName = true;
-                        String name = (String) nameEnt.get(1);
-                        if (logger.isLoggable(Level.FINER))
-                            logger.finer("found name: " + name);
-                        if (matchServer(server, name))
-                            return true;
-                    }
-                }
-                if (foundName)    // found a name, but no match
-                    return false;
+        //Try calling class loader
+        if (verifierClass == null) {
+            try {
+                verifierClass = Class.forName(fqcn)
+                    .asSubclass(HostnameVerifier.class);
+            } catch (ClassNotFoundException | RuntimeException cnfe) {
+                logger.log(Level.FINER,
+                        "Calling class loader could not find: " + fqcn, cnfe);
             }
-        } catch (CertificateParsingException ex) {
-            // ignore it
         }
 
-        // XXX - following is a *very* crude parse of the name and ignores
-        //	 all sorts of important issues such as quoting
-        Pattern p = Pattern.compile("CN=([^,]*)");
-        Matcher m = p.matcher(cert.getSubjectX500Principal().getName());
-        if (m.find() && matchServer(server, m.group(1).trim()))
-            return true;
+        //Try system class loader
+        if (verifierClass == null) {
+            try {
+                verifierClass = Class.forName(fqcn, false,
+                        ClassLoader.getSystemClassLoader())
+                    .asSubclass(HostnameVerifier.class);
+            } catch (ClassNotFoundException | RuntimeException cnfe) {
+                logger.log(Level.FINER,
+                        "System class loader could not find: " + fqcn, cnfe);
+            }
+        }
 
-        return false;
-    }
+        if (verifierClass != null) {
+            return verifierClass.getConstructor().newInstance();
+        }
 
-    /**
-     * Does the server we're expecting to connect to match the
-     * given name from the server's certificate?
-     *
-     * @param    server        name of the server expected
-     * @param    name        name from the server's certificate
-     */
-    private static boolean matchServer(String server, String name) {
-        if (logger.isLoggable(Level.FINER))
-            logger.finer("match server " + server + " with " + name);
-        if (name.startsWith("*.")) {
-            // match "foo.example.com" with "*.example.com"
-            String tail = name.substring(2);
-            if (tail.length() == 0)
-                return false;
-            int off = server.length() - tail.length();
-            if (off < 1)
-                return false;
-            // if tail matches and is preceeded by "."
-            return server.charAt(off - 1) == '.' &&
-                    server.regionMatches(true, off, tail, 0, tail.length());
-        } else
-            return server.equalsIgnoreCase(name);
-    }
+        //Everything failed, try to expose one of the reasons.
+        verifierClass = Class.forName(fqcn)
+                .asSubclass(HostnameVerifier.class);
+        //This is unexpected, should be unreachable
+        throw new ClassNotFoundException(fqcn,
+                new IllegalStateException(verifierClass.toString()));
+   }
 
     /**
      * Use the HTTP CONNECT protocol to connect to a
@@ -929,5 +979,258 @@ public class SocketFetcher {
                         return cl;
                     }
                 });
+    }
+
+    /**
+     * Check the server from the Socket connection against the server name(s)
+     * as expressed in the server certificate (RFC 2595 check).
+     *
+     * We implement a crude version of the same checks ourselves.
+     *
+     * The verify method will throw unchecked exceptions instead of returning
+     * false.  This violation of specification is acceptable because this class
+     * is private and doesn't escape the SocketFetcher.  SocketFetcher is able
+     * to safely handle unchecked exceptions from HostnameVerifier::verify.
+     */
+    private static final class MailHostnameVerifier implements HostnameVerifier {
+
+        private static final HostnameVerifier OF = new MailHostnameVerifier();
+
+        static HostnameVerifier of() {
+            return OF;
+        }
+
+        private MailHostnameVerifier() {
+        }
+
+        /**
+         * Verify that the host name is an acceptable match.
+         *
+         * @param server the host name.
+         * @param ssls the SSLSession
+         * @return true if matches.
+         * @throws UncheckedIOException if the SSL peer is unverified.
+         * @throws UndeclaredThrowableException wrapping the checked exception.
+         */
+        @Override
+        public boolean verify(String server, SSLSession ssls) {
+            Objects.requireNonNull(server);
+            X509Certificate cert = null;
+            try {
+                cert = getX509Certificate(ssls.getPeerCertificates());
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer("matchCert server "
+                            + server + ", cert " + cert);
+                }
+                /*
+                 * Check each of the subjectAltNames.
+                 * XXX - only checks DNS names, should also handle
+                 * case where server name is a literal IP address
+                 */
+                Collection<List<?>> names = cert.getSubjectAlternativeNames();
+                if (names != null) {
+                    boolean foundName = false;
+                    for (List<?> nameEnt : names) {
+                        final int type = (Integer) nameEnt.get(0);
+                        if (type == 2) {    // 2 == dNSName
+                            foundName = true;
+                            String name = (String) nameEnt.get(1);
+                            if (logger.isLoggable(Level.FINER))
+                                logger.finer("found name: " + name);
+                            if (matchServer(server, name))
+                                return true;
+                        }
+                    }
+
+                    if (foundName) {    // found a name, but no match
+                        throw new UndeclaredThrowableException(
+                            new CertificateException(
+                                "No subject alternative DNS name matching "
+                                    + server + " found"), toString() + " DENY");
+                    }
+                }
+            } catch (CertificateParsingException ignore) {
+                logger.log(Level.FINEST, server, ignore);
+            } catch (IOException spue) {
+                throw new UncheckedIOException(toString() + " DENY", spue);
+            }
+
+            if (cert == null) {
+                throw new UncheckedIOException(toString() + " DENY",
+                        new SSLPeerUnverifiedException("null"));
+            }
+
+            // XXX - following is a *very* crude parse of the name and ignores
+            //	 all sorts of important issues such as quoting
+            Pattern p = Pattern.compile("CN=([^,]*)");
+            Matcher m = p.matcher(cert.getSubjectX500Principal().getName());
+            if (m.find() && matchServer(server, m.group(1).trim()))
+                return true;
+
+            throw new UndeclaredThrowableException(new CertificateException(
+                "No name matching " + server + " found"), toString() + " DENY");
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName();
+        }
+
+        /**
+         * Does the server we're expecting to connect to match the
+         * given name from the server's certificate?
+         *
+         * @param    server        name of the server expected
+         * @param    name        name from the server's certificate
+         */
+        private static boolean matchServer(String server, String name) {
+            if (logger.isLoggable(Level.FINER))
+                logger.finer("match server " + server + " with " + name);
+
+            if (name.startsWith("*.")) {
+                // match "foo.example.com" with "*.example.com"
+                String tail = name.substring(2);
+                if (tail.length() == 0)
+                    return false;
+                int off = server.length() - tail.length();
+                if (off < 1)
+                    return false;
+                // if tail matches and is preceeded by "."
+                return server.charAt(off - 1) == '.' &&
+                       server.regionMatches(true, off, tail, 0, tail.length());
+            } else {
+               return server.equalsIgnoreCase(name);
+            }
+        }
+    }
+
+    /**
+     * Check the server from the Socket connection against the server name(s)
+     * as expressed in the server certificate (RFC 2595 check).  This is a
+     * reflective adapter class for the sun.security.util.HostnameChecker,
+     * which exists in Sun's JDK starting with 1.4.1.  Validation is using LDAPS
+     * (RFC 2830) host name checking.
+     *
+     * The verify method will throw unchecked exceptions instead of returning
+     * false.  This violation of specification is acceptable because this class
+     * is private and doesn't escape the SocketFetcher.  SocketFetcher is able
+     * to safely handle unchecked exceptions from HostnameVerifier::verify.
+     *
+     * This class will print --illegal-access=warn console warnings on JDK9
+     * and may require: -add-opens 'java.base/sun.security.util=ALL-UNNAMED'
+     * or --add-opens 'java.base/sun.security.util=jakarta.mail' depending on
+     * how this class has been packaged.
+     * It is preferred to set mail.<protocol>.ssl.endpointidentitycheck property
+     * to 'LDAPS' instead of using this verifier.  This adapter will be removed
+     * in a future release of Angus Mail when there is no reason to keep this
+     * for compatibility sake.  When this is removed ensure that the `legacy`
+     * alias doesn't search the modulepath/classpath as that would be a security
+     * risk.
+     *
+     * See: JDK-8062515 - Migrate use of sun.security.** to supported API
+     */
+    private static final class JdkHostnameChecker implements HostnameVerifier {
+        private final HostnameVerifier failover;
+
+        static HostnameVerifier of() {
+            return ofFailover((n, s) -> { return false; });
+        }
+
+        static HostnameVerifier ofFailover(HostnameVerifier or) {
+            //Making factory methods return a singleton is pointless because
+            //this class should only be used as a last resort.
+            return new JdkHostnameChecker(or);
+        }
+
+        private JdkHostnameChecker(final HostnameVerifier or) {
+            this.failover = Objects.requireNonNull(or);
+        }
+
+        /**
+         * Verify that the host name is an acceptable match.
+         *
+         * @param server the host name.
+         * @param ssls the SSLSession
+         * @return true if matches.
+         * @throws UncheckedIOException if the SSL peer is unverified.
+         * @throws UndeclaredThrowableException wrapping the checked exception.
+         */
+        @Override
+        public boolean verify(String server, SSLSession ssls) {
+            try {
+                X509Certificate cert = getX509Certificate(
+                        ssls.getPeerCertificates());
+
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer("matchCert server "
+                            + server + ", cert " + cert);
+                }
+
+                Class<?> hnc = Class.forName("sun.security.util.HostnameChecker");
+                // invoke HostnameChecker.getInstance(HostnameChecker.TYPE_LDAP)
+                // HostnameChecker.TYPE_LDAP == 2
+                // LDAP requires the same regex handling as we need
+                Method getInstance = hnc.getMethod("getInstance",
+                        byte.class);
+                Object hostnameChecker = getInstance
+                        .invoke((Object) null, (byte) 2);
+
+                // invoke hostnameChecker.match( server, cert)
+                logger.finer("using sun.security.util.HostnameChecker");
+                Method match = hnc.getMethod("match",
+                        String.class, X509Certificate.class);
+                try {
+                    match.invoke(hostnameChecker, server, cert);
+                    return true;
+                } catch (InvocationTargetException ite) {
+                    Throwable ce = ite.getCause();
+                    if (ce instanceof CertificateException) {
+                        logger.log(Level.FINER, "HostnameChecker DENY", ite);
+                        throw new UndeclaredThrowableException(ce, toString() + " DENY");
+                    }
+                    throw ite; //treat as fail over
+                }
+            } catch (IOException | ReflectiveOperationException roe) {
+                logger.log(Level.FINER, "HostnameChecker FAIL", roe);
+                try {
+                    if (failover.verify(server, ssls)) {
+                        if (logger.isLoggable(Level.FINER)) {
+                            logger.log(Level.FINER, "allowed by: {0}",
+                                    failover.toString());
+                        }
+                        return true;
+                    }
+                } catch (Throwable fail) {
+                    if (logger.isLoggable(Level.FINER)) {
+                        logger.log(Level.FINER, toString()
+                                + "FAIL -> THROW", fail);
+                    }
+                    if (fail != roe)
+                        fail.addSuppressed(roe);
+                    throw fail;
+                }
+
+                //Report real reason rather than just failing to verify
+                Throwable t = roe;
+                if (roe instanceof InvocationTargetException)
+                    t = roe.getCause();
+                if (t == null) //Broken subclass
+                    t = roe;
+                if (t instanceof RuntimeException)
+                    throw (RuntimeException) t;
+                if (t instanceof Error)
+                    throw (Error) t;
+
+                String msg = toString() + " FAIL -> DENY";
+                if (t instanceof IOException)
+                    throw new UncheckedIOException(msg, (IOException) t);
+                throw new UndeclaredThrowableException(t, msg);
+            }
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " -> " + failover;
+        }
     }
 }

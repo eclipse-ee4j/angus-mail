@@ -6,6 +6,70 @@
 
 -- Angus Mail 2.0.3 --
 
+- Server Identity Check performed by SSL endpoint identification algorithm
+
+    The mail.<protocol>.ssl.checkserveridentity session property now uses the
+    SSLParameters::setEndpointIdentificationAlgorithm on the SSLSocket.  This
+    is the recommended replacement for directly calling the
+    "sun.security.util.HostnameChecker".
+
+    Setting the endpoint identification algorithm parameter on the SSLSocket
+    will make the X509ExtendedTrustManager assigned to the SSLSocket responsible
+    for verifying the hostname instead of SocketFetcher class from Angus Mail.
+    X509ExtendedTrustManager implementations are able to inspect that the
+    mail.<protocol>.ssl.checkserveridentity session property was set by using
+    the checkServerTrusted method which takes a socket parameter.
+    The implementation must cast the given socket to a SSLSocket and then get
+    the endpoint identification algorithm from the SSLParameters.  If the value
+    is non-null and non-empty then the mail.<protocol>.ssl.checkserveridentity
+    session property is true.  Implementations of X509ExtendedTrustManager can
+    use this detail to alter the behavior of the hostname verification.
+
+    TrustManager or X509TrustManager implementations are not able to disable
+    this checking as they don't have direct access to the connected SSLSocket.
+    X509ExtendedTrustManager implementations or SSLSocket implementations are
+    able to alter or completely disable hostname checking.
+
+    In previous releases of Angus Mail, a custom X509ExtendedTrustManager or a
+    custom SSLSocket was able to disable verification at the socket level but
+    could not disable hostname verification in Angus Mail provided by
+    mail.<protocol>.ssl.checkserveridentity session property.  This behavior has
+    been relaxed in Angus Mail 2.0.3, where even though the
+    mail.<protocol>.ssl.checkserveridentity session property was set to true the
+    hostname verification may be disabled by a X509ExtendedTrustManager
+    implementation, SSLSocketFactory implementation, or a SSLSocket
+    implementation.
+
+    For behavioral compatibility with previous release, where a custom
+    X509ExtendedTrustManager, SSLSocketFactory, or a SSLSocket must not disable
+    hostname checking, the session property
+    "mail.<protocol>.ssl.hostnameverifier" must be set to an instance
+    of a javax.net.ssl.HostnameVerifier or the session property
+    "mail.<protocol>.ssl.hostnameverifier.class" must be set to a known alias
+    name or a fully qualified class name of a javax.net.ssl.HostnameVerifier
+    implementation. This javax.net.ssl.HostnameVerifier class will verify
+    hostname independently of the mail.<protocol>.ssl.checkserveridentity
+    session property.  The recommended value for
+    "mail.<protocol>.ssl.hostnameverifier.class" in this specific case is
+    "MailHostnameVerifier".  This verifier may not be as comprehensive as the
+    "sun.security.util.HostnameChecker" could fail with false negatives.  Using
+    a 3rd party HostnameVerifier is a viable alternative in that case.
+
+    For strict behavioral compatibility with previous release, where a custom
+    X509ExtendedTrustManager, SSLSocketFactory, or a SSLSocket must not disable
+    hostname checking or hostname checking unexpectedly failing, the
+    "mail.<protocol>.ssl.hostnameverifier.class" session property to
+    "legacy" which will attempt reflective access to the
+    "sun.security.util.HostnameChecker" and will fallback to the
+    "MailHostnameVerifier" in the event the "sun.security.util.HostnameChecker"
+    is inaccessible. Using this value may result in reflective access warnings
+    depending on the JDK in use.  The was the exact behavior in the previous
+    release of Angus Mail 2.0.3.  The previous Angus Mail release did not
+    perform endpoint identification which means the
+    "mail.<protocol>.ssl.checkserveridentity" session property should be set
+    but, is not required to be set to "false" in this case to disable newer
+    RFC validation rules for hostname checking.
+
 - MailHandler public methods no longer hostile to invalid arguments
 
     Public methods that are contractually owned by MailHandler are no longer
