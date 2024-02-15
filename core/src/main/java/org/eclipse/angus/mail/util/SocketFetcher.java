@@ -632,26 +632,25 @@ public class SocketFetcher {
             /*
              * Check server identity and trust.
              * See: JDK-8062515 and JDK-7192189
+             * LDAPS requires the same regex handling as we need
              */
-            if (PropUtil.getBooleanProperty(props,
-                    prefix + ".ssl.checkserveridentity", true)) {
-                // LDAP requires the same regex handling as we need
-                String eia = "LDAPS";
-                SSLParameters params = sslsocket.getSSLParameters();
-                params.setEndpointIdentificationAlgorithm(eia);
-                sslsocket.setSSLParameters(params);
+            String eia = PropUtil.getBooleanProperty(props,
+                    prefix + ".ssl.checkserveridentity", true)
+                    ? "LDAPS" : (String) null;
+            SSLParameters params = sslsocket.getSSLParameters();
+            params.setEndpointIdentificationAlgorithm(eia);
+            sslsocket.setSSLParameters(params);
 
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER,
-                    "Checking {0} with names {1} using"
-                            + " endpoint identification algorithm {2}",
-                        new Object[]{host,
-                            Objects.toString(params.getServerNames()), eia});
-                }
+            if (logger.isLoggable(Level.FINER)) {
+                logger.log(Level.FINER, "Using endpoint identification "
+                        + "algorithm {0} with SNIs {1} for: {2}",
+                    new Object[]{eia, Objects.toString(
+                        params.getServerNames()), host});
             }
         } catch (RuntimeException re) {
             throw cleanupAndThrow(sslsocket,
-                new IOException("Unable to check server identity", re));
+                new IOException("Unable to set endpoint identification "
+                        + "algorithm for: " + host, re));
         }
 
         /*
