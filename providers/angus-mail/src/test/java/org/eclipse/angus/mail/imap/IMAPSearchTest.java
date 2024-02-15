@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -97,13 +97,28 @@ public final class IMAPSearchTest {
      */
     @Test
     public void testUtf8Search() {
+        final String find = "\u2019\u7cfb\u7edf";
         TestServer server = null;
         try {
             server = new TestServer(new IMAPUtf8Handler() {
                 @Override
                 public void search(String line) throws IOException {
+                    //TODO Could use java.util.HexFormat
+                    //TODO this patch doesn't seem correct because
+                    //UTF-8 should be a literal not quoted string.
+                    System.out.println(line);
+                    line.codePoints().forEach(c -> {
+                            System.out.append("0x")
+                                    .append(Integer.toHexString(c))
+                                    .append(", ");
+                    });
+                    System.out.println();
+
+
                     if (line.contains("CHARSET"))
                         bad("CHARSET not supported");
+                    if (!line.contains(find))
+                        bad("UTF-8 encoding/decoding not used");
                     else
                         ok();
                 }
@@ -122,7 +137,9 @@ public final class IMAPSearchTest {
                 store.connect("test", "test");
                 folder = store.getFolder("INBOX");
                 folder.open(Folder.READ_ONLY);
-                Message[] msgs = folder.search(new SubjectTerm("\u2019"));
+                //U+7CFB
+                //U+7EDF
+                Message[] msgs = folder.search(new SubjectTerm(find));
             } catch (Exception ex) {
                 System.out.println(ex);
                 //ex.printStackTrace();
