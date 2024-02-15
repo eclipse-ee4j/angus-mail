@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!--
 
-    Copyright (c) 2022, 2023 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2022, 2024 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Public License v. 2.0, which is available at
@@ -191,7 +191,7 @@
                                 <mkdir dir="${project.build.directory}/javadoc-ant"/>
                                 <javadoc destdir="${angus-mail.javadoc.destdir}"
                                          modulesourcepath="${project.build.directory}/javadoc-sources/"
-                                         modulepath="${jakarta.activation:jakarta.activation-api:jar}:${org.graalvm.sdk:graal-sdk:jar}"
+                                         modulepath="${jakarta.activation:jakarta.activation-api:jar}:${org.graalvm.sdk:graal-sdk:jar}:${org.graalvm.polyglot:polyglot:jar}:${org.graalvm.sdk:nativeimage:jar}:${org.graalvm.sdk:collections:jar}:${org.graalvm.sdk:word:jar}"
                                          author="false"
                                          docfilessubdirs="true"
                                          failonerror="true"
@@ -299,6 +299,30 @@
         <dependency>
             <groupId>org.graalvm.sdk</groupId>
             <artifactId>graal-sdk</artifactId>
+            <optional>true</optional>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>polyglot</artifactId>
+            <optional>true</optional>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>nativeimage</artifactId>
+            <optional>true</optional>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>word</artifactId>
+            <optional>true</optional>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>collections</artifactId>
             <optional>true</optional>
             <scope>provided</scope>
         </dependency>
