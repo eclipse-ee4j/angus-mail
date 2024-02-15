@@ -66,8 +66,7 @@
     </licenses>
 
     <properties>
-        <project.build.commonResourcesDirectory>${project.build.directory}/common-resources
-        </project.build.commonResourcesDirectory>
+        <project.build.commonResourcesDirectory>${project.build.directory}/common-resources</project.build.commonResourcesDirectory>
         <legal.doc.source>${project.build.commonResourcesDirectory}/legal</legal.doc.source>
         <copyright.exclude>${project.build.commonResourcesDirectory}/config/copyright-exclude</copyright.exclude>
         <copyright.ignoreyear>false</copyright.ignoreyear>
@@ -77,6 +76,7 @@
         <spotbugs.threshold>High</spotbugs.threshold>
         <spotbugs.plugin.version>4.8.3.1</spotbugs.plugin.version>
 
+        <project.build.outputTimestamp>2024-02-14T00:00:00Z</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <angus-mail.javadoc.source>11</angus-mail.javadoc.source>
         <angus-mail.javadoc.title>Angus Mail API documentation</angus-mail.javadoc.title>
