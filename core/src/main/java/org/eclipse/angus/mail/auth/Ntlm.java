@@ -369,7 +369,7 @@ public class Ntlm {
             int flags = readInt(type2, 20);
             byte[] lmresponse;
             byte[] ntresponse;
-            
+
             // did the server agree to NTLMv2?
             if ((flags & NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY) != 0) {
                 // yes, create an NTLMv2 response
