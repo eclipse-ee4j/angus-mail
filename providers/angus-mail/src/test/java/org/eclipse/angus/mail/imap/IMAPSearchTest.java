@@ -22,12 +22,18 @@ import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.search.SearchException;
 import jakarta.mail.search.SubjectTerm;
+import org.eclipse.angus.mail.imap.protocol.IMAPProtocol;
+import org.eclipse.angus.mail.imap.protocol.SearchSequence;
 import org.eclipse.angus.mail.test.TestServer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.Properties;
 
 import static org.junit.Assert.fail;
@@ -131,15 +137,30 @@ public final class IMAPSearchTest {
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
 
+            SubjectTerm term = new SubjectTerm(find);
+            InputStream in = new ByteArrayInputStream(new byte[0]);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream out = new PrintStream(baos, true, "UTF-8");
+
+            IMAPProtocol p = new IMAPProtocol(in, out, properties, session.getDebug()) {
+                public boolean supportsUtf8() {
+                    return true;
+                }
+            };
+            SearchSequence ss = new SearchSequence(p);
+            try {
+                ss.generateSequence(term, "UTF-8").write(p);
+            } catch(IOException ignore) {
+            }
+            System.out.println(baos.toString("UTF-8"));
+            
             final Store store = session.getStore("imap");
             Folder folder = null;
             try {
                 store.connect("test", "test");
                 folder = store.getFolder("INBOX");
                 folder.open(Folder.READ_ONLY);
-                //U+7CFB
-                //U+7EDF
-                Message[] msgs = folder.search(new SubjectTerm(find));
+                Message[] msgs = folder.search(term);
             } catch (Exception ex) {
                 System.out.println(ex);
                 //ex.printStackTrace();
