@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -19,6 +19,7 @@ package org.eclipse.angus.mail.util;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This class implements a BASE64 encoder.  It is implemented as
@@ -31,6 +32,7 @@ import java.io.OutputStream;
  */
 
 public class BASE64EncoderStream extends FilterOutputStream {
+    private final ReentrantLock lock = new ReentrantLock();
     private byte[] buffer;    // cache of bytes that are yet to be encoded
     private int bufsize = 0;    // size of the cache
     private byte[] outbuf;    // line size output buffer
@@ -92,46 +94,51 @@ public class BASE64EncoderStream extends FilterOutputStream {
      * @throws IOException if an I/O error occurs.
      */
     @Override
-    public synchronized void write(byte[] b, int off, int len)
+    public void write(byte[] b, int off, int len)
             throws IOException {
-        int end = off + len;
-
-        // finish off incomplete coding unit
-        while (bufsize != 0 && off < end)
-            write(b[off++]);
-
-        // finish off line
-        int blen = ((bytesPerLine - count) / 4) * 3;
-        if (off + blen <= end) {
-            // number of bytes that will be produced in outbuf
-            int outlen = encodedSize(blen);
-            if (!noCRLF) {
-                outbuf[outlen++] = (byte) '\r';
-                outbuf[outlen++] = (byte) '\n';
+        lock.lock();
+        try {
+            int end = off + len;
+    
+            // finish off incomplete coding unit
+            while (bufsize != 0 && off < end)
+                write(b[off++]);
+    
+            // finish off line
+            int blen = ((bytesPerLine - count) / 4) * 3;
+            if (off + blen <= end) {
+                // number of bytes that will be produced in outbuf
+                int outlen = encodedSize(blen);
+                if (!noCRLF) {
+                    outbuf[outlen++] = (byte) '\r';
+                    outbuf[outlen++] = (byte) '\n';
+                }
+                out.write(encode(b, off, blen, outbuf), 0, outlen);
+                off += blen;
+                count = 0;
             }
-            out.write(encode(b, off, blen, outbuf), 0, outlen);
-            off += blen;
-            count = 0;
+    
+            // do bulk encoding a line at a time.
+            for (; off + lineLimit <= end; off += lineLimit)
+                out.write(encode(b, off, lineLimit, outbuf));
+    
+            // handle remaining partial line
+            if (off + 3 <= end) {
+                blen = end - off;
+                blen = (blen / 3) * 3;    // round down
+                // number of bytes that will be produced in outbuf
+                int outlen = encodedSize(blen);
+                out.write(encode(b, off, blen, outbuf), 0, outlen);
+                off += blen;
+                count += outlen;
+            }
+    
+            // start next coding unit
+            for (; off < end; off++)
+                write(b[off]);
+        } finally {
+            lock.unlock();
         }
-
-        // do bulk encoding a line at a time.
-        for (; off + lineLimit <= end; off += lineLimit)
-            out.write(encode(b, off, lineLimit, outbuf));
-
-        // handle remaining partial line
-        if (off + 3 <= end) {
-            blen = end - off;
-            blen = (blen / 3) * 3;    // round down
-            // number of bytes that will be produced in outbuf
-            int outlen = encodedSize(blen);
-            out.write(encode(b, off, blen, outbuf), 0, outlen);
-            off += blen;
-            count += outlen;
-        }
-
-        // start next coding unit
-        for (; off < end; off++)
-            write(b[off]);
     }
 
     /**
@@ -152,11 +159,16 @@ public class BASE64EncoderStream extends FilterOutputStream {
      * @throws IOException if an I/O error occurs.
      */
     @Override
-    public synchronized void write(int c) throws IOException {
-        buffer[bufsize++] = (byte) c;
-        if (bufsize == 3) { // Encoding unit = 3 bytes
-            encode();
-            bufsize = 0;
+    public void write(int c) throws IOException {
+        lock.lock();
+        try {
+            buffer[bufsize++] = (byte) c;
+            if (bufsize == 3) { // Encoding unit = 3 bytes
+                encode();
+                bufsize = 0;
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -167,12 +179,17 @@ public class BASE64EncoderStream extends FilterOutputStream {
      * @throws IOException if an I/O error occurs.
      */
     @Override
-    public synchronized void flush() throws IOException {
-        if (bufsize > 0) { // If there's unencoded characters in the buffer ..
-            encode();      // .. encode them
-            bufsize = 0;
+    public void flush() throws IOException {
+        lock.lock();
+        try {
+            if (bufsize > 0) { // If there's unencoded characters in the buffer ..
+                encode();      // .. encode them
+                bufsize = 0;
+            }
+            out.flush();
+        } finally {
+            lock.unlock();
         }
-        out.flush();
     }
 
     /**
@@ -180,13 +197,18 @@ public class BASE64EncoderStream extends FilterOutputStream {
      * and closes this output stream
      */
     @Override
-    public synchronized void close() throws IOException {
-        flush();
-        if (count > 0 && !noCRLF) {
-            out.write(newline);
-            out.flush();
+    public void close() throws IOException {
+        lock.lock();
+        try {
+            flush();
+            if (count > 0 && !noCRLF) {
+                out.write(newline);
+                out.flush();
+            }
+            out.close();
+        } finally {
+            lock.unlock();
         }
-        out.close();
     }
 
     /**

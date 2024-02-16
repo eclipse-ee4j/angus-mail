@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -35,6 +35,7 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * An SSL socket factory that makes it easier to specify trust.
@@ -51,6 +52,8 @@ import java.util.Arrays;
  * @author Bill Shannon
  */
 public class MailSSLSocketFactory extends SSLSocketFactory {
+
+    private final ReentrantLock lock = new ReentrantLock();
 
     /**
      * Should all hosts be trusted?
@@ -130,97 +133,152 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      *
      * @throws KeyManagementException for key manager errors
      */
-    private synchronized void newAdapteeFactory()
+    private void newAdapteeFactory()
             throws KeyManagementException {
-        sslcontext.init(keyManagers, trustManagers, secureRandom);
-
-        // Get SocketFactory and save it in our instance var
-        adapteeFactory = sslcontext.getSocketFactory();
+        lock.lock();
+        try {
+            sslcontext.init(keyManagers, trustManagers, secureRandom);
+    
+            // Get SocketFactory and save it in our instance var
+            adapteeFactory = sslcontext.getSocketFactory();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
      * @return the keyManagers
      */
-    public synchronized KeyManager[] getKeyManagers() {
-        return keyManagers.clone();
+    public KeyManager[] getKeyManagers() {
+        lock.lock();
+        try {
+            return keyManagers.clone();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
      * @param keyManagers the keyManagers to set
      * @throws GeneralSecurityException for security errors
      */
-    public synchronized void setKeyManagers(KeyManager... keyManagers)
+    public void setKeyManagers(KeyManager... keyManagers)
             throws GeneralSecurityException {
-        this.keyManagers = keyManagers.clone();
-        newAdapteeFactory();
+        lock.lock();
+        try {
+            this.keyManagers = keyManagers.clone();
+            newAdapteeFactory();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
      * @return the secureRandom
      */
-    public synchronized SecureRandom getSecureRandom() {
-        return secureRandom;
+    public SecureRandom getSecureRandom() {
+        lock.lock();
+        try {
+            return secureRandom;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
      * @param secureRandom the secureRandom to set
      * @throws GeneralSecurityException for security errors
      */
-    public synchronized void setSecureRandom(SecureRandom secureRandom)
+    public void setSecureRandom(SecureRandom secureRandom)
             throws GeneralSecurityException {
-        this.secureRandom = secureRandom;
-        newAdapteeFactory();
+        lock.lock();
+        try {
+            this.secureRandom = secureRandom;
+            newAdapteeFactory();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
      * @return the trustManagers
      */
-    public synchronized TrustManager[] getTrustManagers() {
-        return trustManagers;
+    public TrustManager[] getTrustManagers() {
+        lock.lock();
+        try {
+            return trustManagers;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
      * @param trustManagers the trustManagers to set
      * @throws GeneralSecurityException for security errors
      */
-    public synchronized void setTrustManagers(TrustManager... trustManagers)
+    public void setTrustManagers(TrustManager... trustManagers)
             throws GeneralSecurityException {
-        this.trustManagers = trustManagers;
-        newAdapteeFactory();
+        lock.lock();
+        try {
+            this.trustManagers = trustManagers;
+            newAdapteeFactory();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
      * @return true if all hosts should be trusted
      */
-    public synchronized boolean isTrustAllHosts() {
-        return trustAllHosts;
+    public boolean isTrustAllHosts() {
+        lock.lock();
+        try {
+            return trustAllHosts;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
      * @param    trustAllHosts should all hosts be trusted?
      */
-    public synchronized void setTrustAllHosts(boolean trustAllHosts) {
-        this.trustAllHosts = trustAllHosts;
+    public void setTrustAllHosts(boolean trustAllHosts) {
+        lock.lock();
+        try {
+            this.trustAllHosts = trustAllHosts;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
      * @return the trusted hosts
      */
-    public synchronized String[] getTrustedHosts() {
-        if (trustedHosts == null)
-            return null;
-        else
-            return trustedHosts.clone();
+    public String[] getTrustedHosts() {
+        lock.lock();
+        try {
+            if (trustedHosts == null)
+                return null;
+            else
+                return trustedHosts.clone();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
      * @param    trustedHosts the hosts to trust
      */
-    public synchronized void setTrustedHosts(String... trustedHosts) {
-        if (trustedHosts == null)
-            this.trustedHosts = null;
-        else
-            this.trustedHosts = trustedHosts.clone();
+    public void setTrustedHosts(String... trustedHosts) {
+        lock.lock();
+        try {
+            if (trustedHosts == null)
+                this.trustedHosts = null;
+            else
+                this.trustedHosts = trustedHosts.clone();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -232,22 +290,26 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      * is contained in the "trustedHosts" array;
      * @param    server        name of the server we connected to
      */
-    public synchronized boolean isServerTrusted(String server,
+    public boolean isServerTrusted(String server,
                                                 SSLSocket sslSocket) {
+        lock.lock();
+        try {
+            //System.out.println("DEBUG: isServerTrusted host " + server);
 
-        //System.out.println("DEBUG: isServerTrusted host " + server);
+            // If "trustAllHosts" is set to true, we return true
+            if (trustAllHosts)
+                return true;
 
-        // If "trustAllHosts" is set to true, we return true
-        if (trustAllHosts)
+            // If the socket host is contained in the "trustedHosts" array,
+            // we return true
+            if (trustedHosts != null)
+                return Arrays.asList(trustedHosts).contains(server); // ignore case?
+
+            // If we get here, trust of the server was verified by the trust manager
             return true;
-
-        // If the socket host is contained in the "trustedHosts" array,
-        // we return true
-        if (trustedHosts != null)
-            return Arrays.asList(trustedHosts).contains(server); // ignore case?
-
-        // If we get here, trust of the server was verified by the trust manager
-        return true;
+        } finally {
+            lock.unlock();
+        }
     }
 
 
@@ -258,33 +320,53 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      *						java.lang.String, int, boolean)
      */
     @Override
-    public synchronized Socket createSocket(Socket socket, String s, int i,
+    public Socket createSocket(Socket socket, String s, int i,
                                             boolean flag) throws IOException {
-        return adapteeFactory.createSocket(socket, s, i, flag);
+        lock.lock();
+        try {
+            return adapteeFactory.createSocket(socket, s, i, flag);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /* (non-Javadoc)
      * @see javax.net.ssl.SSLSocketFactory#getDefaultCipherSuites()
      */
     @Override
-    public synchronized String[] getDefaultCipherSuites() {
-        return adapteeFactory.getDefaultCipherSuites();
+    public String[] getDefaultCipherSuites() {
+        lock.lock();
+        try {
+            return adapteeFactory.getDefaultCipherSuites();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /* (non-Javadoc)
      * @see javax.net.ssl.SSLSocketFactory#getSupportedCipherSuites()
      */
     @Override
-    public synchronized String[] getSupportedCipherSuites() {
-        return adapteeFactory.getSupportedCipherSuites();
+    public String[] getSupportedCipherSuites() {
+        lock.lock();
+        try {
+            return adapteeFactory.getSupportedCipherSuites();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /* (non-Javadoc)
      * @see javax.net.SocketFactory#createSocket()
      */
     @Override
-    public synchronized Socket createSocket() throws IOException {
-        return adapteeFactory.createSocket();
+    public Socket createSocket() throws IOException {
+        lock.lock();
+        try {
+            return adapteeFactory.createSocket();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /* (non-Javadoc)
@@ -292,18 +374,28 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      *						java.net.InetAddress, int)
      */
     @Override
-    public synchronized Socket createSocket(InetAddress inetaddress, int i,
+    public Socket createSocket(InetAddress inetaddress, int i,
                                             InetAddress inetaddress1, int j) throws IOException {
-        return adapteeFactory.createSocket(inetaddress, i, inetaddress1, j);
+        lock.lock();
+        try {
+            return adapteeFactory.createSocket(inetaddress, i, inetaddress1, j);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /* (non-Javadoc)
      * @see javax.net.SocketFactory#createSocket(java.net.InetAddress, int)
      */
     @Override
-    public synchronized Socket createSocket(InetAddress inetaddress, int i)
+    public Socket createSocket(InetAddress inetaddress, int i)
             throws IOException {
-        return adapteeFactory.createSocket(inetaddress, i);
+        lock.lock();
+        try {
+            return adapteeFactory.createSocket(inetaddress, i);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /* (non-Javadoc)
@@ -311,19 +403,29 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      *						java.net.InetAddress, int)
      */
     @Override
-    public synchronized Socket createSocket(String s, int i,
+    public Socket createSocket(String s, int i,
                                             InetAddress inetaddress, int j)
             throws IOException, UnknownHostException {
-        return adapteeFactory.createSocket(s, i, inetaddress, j);
+        lock.lock();
+        try {
+            return adapteeFactory.createSocket(s, i, inetaddress, j);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /* (non-Javadoc)
      * @see javax.net.SocketFactory#createSocket(java.lang.String, int)
      */
     @Override
-    public synchronized Socket createSocket(String s, int i)
+    public Socket createSocket(String s, int i)
             throws IOException, UnknownHostException {
-        return adapteeFactory.createSocket(s, i);
+        lock.lock();
+        try {
+            return adapteeFactory.createSocket(s, i);
+        } finally {
+            lock.unlock();
+        }
     }
 
 

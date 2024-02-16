@@ -64,6 +64,7 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 /**
  * This class implements an IMAPMessage object. <p>
@@ -203,7 +204,7 @@ public class IMAPMessage extends MimeMessage implements ReadableMime {
      *
      * @return the message cache lock object
      */
-    protected Object getMessageCacheLock() {
+    protected Lock getMessageCacheLock() {
         return ((IMAPFolder) folder).messageCacheLock;
     }
 

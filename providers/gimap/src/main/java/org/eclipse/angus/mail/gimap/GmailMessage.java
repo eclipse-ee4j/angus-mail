@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -103,10 +103,12 @@ public class GmailMessage extends IMAPMessage {
      * @exception MessagingException for failures
      * @since JavaMail 1.5.5
      */
-    public synchronized void setLabels(String[] labels, boolean set)
+    public void setLabels(String[] labels, boolean set)
             throws MessagingException {
-        // Acquire MessageCacheLock, to freeze seqnum.
-        synchronized (getMessageCacheLock()) {
+        lock.lock();
+        try {
+            // Acquire MessageCacheLock, to freeze seqnum.
+            getMessageCacheLock().lock();
             try {
                 IMAPProtocol ip = getProtocol();
                 assert ip instanceof GmailProtocol;
@@ -117,7 +119,11 @@ public class GmailMessage extends IMAPMessage {
                 throw new FolderClosedException(folder, cex.getMessage());
             } catch (ProtocolException pex) {
                 throw new MessagingException(pex.getMessage(), pex);
+            } finally {
+                getMessageCacheLock().unlock();
             }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -131,8 +137,13 @@ public class GmailMessage extends IMAPMessage {
      *
      * @since JavaMail 1.5.6
      */
-    public synchronized void clearCachedLabels() {
-        if (items != null)
-            items.remove(GmailProtocol.LABELS_ITEM.getName());
+    public void clearCachedLabels() {
+        lock.lock();
+        try {
+            if (items != null)
+                items.remove(GmailProtocol.LABELS_ITEM.getName());
+        } finally {
+            lock.unlock();
+        }
     }
 }

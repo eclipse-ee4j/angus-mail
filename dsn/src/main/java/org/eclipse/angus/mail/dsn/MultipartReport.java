@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -28,6 +28,7 @@ import jakarta.mail.internet.MimeMultipart;
 
 import java.io.IOException;
 import java.util.Vector;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A multipart/report message content, as defined in
@@ -54,6 +55,7 @@ import java.util.Vector;
  * @since JavaMail 1.4
  */
 public class MultipartReport extends MimeMultipart {
+    private final ReentrantLock lock = new ReentrantLock();
     protected boolean constructed; // true when done with constructor
 
     /**
@@ -169,7 +171,8 @@ public class MultipartReport extends MimeMultipart {
      * @return the text
      * @exception MessagingException for failures
      */
-    public synchronized String getText() throws MessagingException {
+    public String getText() throws MessagingException {
+        lock.lock();
         try {
             BodyPart bp = getBodyPart(0);
             if (bp.isMimeType("text/plain"))
@@ -184,6 +187,8 @@ public class MultipartReport extends MimeMultipart {
             }
         } catch (IOException ex) {
             throw new MessagingException("Exception getting text content", ex);
+        } finally {
+            lock.unlock();
         }
         return null;
     }
@@ -195,10 +200,15 @@ public class MultipartReport extends MimeMultipart {
      * @param    text    the text
      * @exception MessagingException for failures
      */
-    public synchronized void setText(String text) throws MessagingException {
-        MimeBodyPart mbp = new MimeBodyPart();
-        mbp.setText(text);
-        setBodyPart(mbp, 0);
+    public void setText(String text) throws MessagingException {
+        lock.lock();
+        try {
+            MimeBodyPart mbp = new MimeBodyPart();
+            mbp.setText(text);
+            setBodyPart(mbp, 0);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -208,9 +218,14 @@ public class MultipartReport extends MimeMultipart {
      * @return the body part containing the text
      * @exception MessagingException for failures
      */
-    public synchronized MimeBodyPart getTextBodyPart()
+    public MimeBodyPart getTextBodyPart()
             throws MessagingException {
-        return (MimeBodyPart) getBodyPart(0);
+        lock.lock();
+        try {
+            return (MimeBodyPart) getBodyPart(0);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -223,9 +238,14 @@ public class MultipartReport extends MimeMultipart {
      * @param    mbp    the body part containing the text
      * @exception MessagingException for failures
      */
-    public synchronized void setTextBodyPart(MimeBodyPart mbp)
+    public void setTextBodyPart(MimeBodyPart mbp)
             throws MessagingException {
-        setBodyPart(mbp, 0);
+        lock.lock();
+        try {
+            setBodyPart(mbp, 0);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -235,17 +255,22 @@ public class MultipartReport extends MimeMultipart {
      * @exception MessagingException for failures
      * @since JavaMail 1.4.2
      */
-    public synchronized Report getReport() throws MessagingException {
-        if (getCount() < 2)
-            return null;
-        BodyPart bp = getBodyPart(1);
+    public Report getReport() throws MessagingException {
+        lock.lock();
         try {
-            Object content = bp.getContent();
-            if (!(content instanceof Report))
+            if (getCount() < 2)
                 return null;
-            return (Report) content;
-        } catch (IOException ex) {
-            throw new MessagingException("IOException getting Report", ex);
+            BodyPart bp = getBodyPart(1);
+            try {
+                Object content = bp.getContent();
+                if (!(content instanceof Report))
+                    return null;
+                return (Report) content;
+            } catch (IOException ex) {
+                throw new MessagingException("IOException getting Report", ex);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -256,16 +281,21 @@ public class MultipartReport extends MimeMultipart {
      * @exception MessagingException for failures
      * @since JavaMail 1.4.2
      */
-    public synchronized void setReport(Report report)
+    public void setReport(Report report)
             throws MessagingException {
-        MimeBodyPart mbp = new MimeBodyPart();
-        ContentType ct = new ContentType(contentType);
-        String reportType = report.getType();
-        ct.setParameter("report-type", reportType);
-        contentType = ct.toString();
-        ct = new ContentType("message", reportType, null);
-        mbp.setContent(report, ct.toString());
-        setBodyPart(mbp, 1);
+        lock.lock();
+        try {
+            MimeBodyPart mbp = new MimeBodyPart();
+            ContentType ct = new ContentType(contentType);
+            String reportType = report.getType();
+            ct.setParameter("report-type", reportType);
+            contentType = ct.toString();
+            ct = new ContentType("message", reportType, null);
+            mbp.setContent(report, ct.toString());
+            setBodyPart(mbp, 1);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -276,18 +306,23 @@ public class MultipartReport extends MimeMultipart {
      * @deprecated use getReport instead
      */
     @Deprecated
-    public synchronized DeliveryStatus getDeliveryStatus()
+    public DeliveryStatus getDeliveryStatus()
             throws MessagingException {
-        if (getCount() < 2)
-            return null;
-        BodyPart bp = getBodyPart(1);
-        if (!bp.isMimeType("message/delivery-status"))
-            return null;
+        lock.lock();
         try {
-            return (DeliveryStatus) bp.getContent();
-        } catch (IOException ex) {
-            throw new MessagingException("IOException getting DeliveryStatus",
-                    ex);
+            if (getCount() < 2)
+                return null;
+            BodyPart bp = getBodyPart(1);
+            if (!bp.isMimeType("message/delivery-status"))
+                return null;
+            try {
+                return (DeliveryStatus) bp.getContent();
+            } catch (IOException ex) {
+                throw new MessagingException("IOException getting DeliveryStatus",
+                        ex);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -298,14 +333,19 @@ public class MultipartReport extends MimeMultipart {
      * @exception MessagingException for failures
      * @deprecated use setReport instead
      */
-    public synchronized void setDeliveryStatus(DeliveryStatus status)
+    public void setDeliveryStatus(DeliveryStatus status)
             throws MessagingException {
-        MimeBodyPart mbp = new MimeBodyPart();
-        mbp.setContent(status, "message/delivery-status");
-        setBodyPart(mbp, 1);
-        ContentType ct = new ContentType(contentType);
-        ct.setParameter("report-type", "delivery-status");
-        contentType = ct.toString();
+        lock.lock();
+        try {
+            MimeBodyPart mbp = new MimeBodyPart();
+            mbp.setContent(status, "message/delivery-status");
+            setBodyPart(mbp, 1);
+            ContentType ct = new ContentType(contentType);
+            ct.setParameter("report-type", "delivery-status");
+            contentType = ct.toString();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -317,19 +357,24 @@ public class MultipartReport extends MimeMultipart {
      * @return the returned message
      * @exception MessagingException for failures
      */
-    public synchronized MimeMessage getReturnedMessage()
+    public MimeMessage getReturnedMessage()
             throws MessagingException {
-        if (getCount() < 3)
-            return null;
-        BodyPart bp = getBodyPart(2);
-        if (!bp.isMimeType("message/rfc822") &&
-                !bp.isMimeType("text/rfc822-headers"))
-            return null;
+        lock.lock();
         try {
-            return (MimeMessage) bp.getContent();
-        } catch (IOException ex) {
-            throw new MessagingException("IOException getting ReturnedMessage",
-                    ex);
+            if (getCount() < 3)
+                return null;
+            BodyPart bp = getBodyPart(2);
+            if (!bp.isMimeType("message/rfc822") &&
+                    !bp.isMimeType("text/rfc822-headers"))
+                return null;
+            try {
+                return (MimeMessage) bp.getContent();
+            } catch (IOException ex) {
+                throw new MessagingException("IOException getting ReturnedMessage",
+                        ex);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -341,28 +386,38 @@ public class MultipartReport extends MimeMultipart {
      * @param    msg    the returned message
      * @exception MessagingException for failures
      */
-    public synchronized void setReturnedMessage(MimeMessage msg)
+    public void setReturnedMessage(MimeMessage msg)
             throws MessagingException {
-        if (msg == null) {
-            super.removeBodyPart(2);
-            return;
+        lock.lock();
+        try {
+            if (msg == null) {
+                super.removeBodyPart(2);
+                return;
+            }
+            MimeBodyPart mbp = new MimeBodyPart();
+            if (msg instanceof MessageHeaders)
+                mbp.setContent(msg, "text/rfc822-headers");
+            else
+                mbp.setContent(msg, "message/rfc822");
+            setBodyPart(mbp, 2);
+        } finally {
+            lock.unlock();
         }
-        MimeBodyPart mbp = new MimeBodyPart();
-        if (msg instanceof MessageHeaders)
-            mbp.setContent(msg, "text/rfc822-headers");
-        else
-            mbp.setContent(msg, "message/rfc822");
-        setBodyPart(mbp, 2);
     }
 
-    private synchronized void setBodyPart(BodyPart part, int index)
+    private void setBodyPart(BodyPart part, int index)
             throws MessagingException {
-        if (parts == null)    // XXX - can never happen?
-            parts = new Vector<BodyPart>();
+        lock.lock();
+        try {
+            if (parts == null)    // XXX - can never happen?
+                parts = new Vector<BodyPart>();
 
-        if (index < parts.size())
-            super.removeBodyPart(index);
-        super.addBodyPart(part, index);
+            if (index < parts.size())
+                super.removeBodyPart(index);
+            super.addBodyPart(part, index);
+        } finally {
+            lock.unlock();
+        }
     }
 
 
@@ -374,9 +429,14 @@ public class MultipartReport extends MimeMultipart {
      * @param    subtype        Subtype
      * @exception MessagingException    always; can't change subtype
      */
-    public synchronized void setSubType(String subtype)
+    public void setSubType(String subtype)
             throws MessagingException {
-        throw new MessagingException("Can't change subtype of MultipartReport");
+        lock.lock();
+        try {
+            throw new MessagingException("Can't change subtype of MultipartReport");
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -410,14 +470,19 @@ public class MultipartReport extends MimeMultipart {
      * @param part The Part to be appended
      * @throws MessagingException always
      */
-    public synchronized void addBodyPart(BodyPart part)
+    public void addBodyPart(BodyPart part)
             throws MessagingException {
-        // Once constructor is done, don't allow this anymore.
-        if (!constructed)
-            super.addBodyPart(part);
-        else
-            throw new MessagingException(
-                    "Can't add body parts to multipart/report 1");
+        lock.lock();
+        try {
+            // Once constructor is done, don't allow this anymore.
+            if (!constructed)
+                super.addBodyPart(part);
+            else
+                throw new MessagingException(
+                        "Can't add body parts to multipart/report 1");
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -428,9 +493,14 @@ public class MultipartReport extends MimeMultipart {
      * @param index Location where to insert the part
      * @throws MessagingException always
      */
-    public synchronized void addBodyPart(BodyPart part, int index)
+    public void addBodyPart(BodyPart part, int index)
             throws MessagingException {
-        throw new MessagingException(
-                "Can't add body parts to multipart/report 2");
+        lock.lock();
+        try {
+            throw new MessagingException(
+                    "Can't add body parts to multipart/report 2");
+        } finally {
+            lock.unlock();
+        }
     }
 }

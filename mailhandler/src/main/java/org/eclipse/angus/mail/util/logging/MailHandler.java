@@ -69,6 +69,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.ServiceConfigurationError;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
 import java.util.logging.Formatter;
@@ -459,6 +460,7 @@ public class MailHandler extends Handler {
      * This must be less than the REPORT state.
      */
     private static final Integer MUTEX_LINKAGE = -16;
+    private final ReentrantLock lock = new ReentrantLock();
     /**
      * Used to turn off security checks.
      */
@@ -724,7 +726,8 @@ public class MailHandler extends Handler {
     private void publish0(final LogRecord record) {
         Message msg;
         boolean priority;
-        synchronized (this) {
+        lock.lock();
+        try {
             //No need to check for sealed as long as the init method ensures
             //that data.length and capacity are both zero until end of init().
             //size is always zero on construction.
@@ -747,6 +750,8 @@ public class MailHandler extends Handler {
                 priority = false;
                 msg = null;
             }
+        } finally {
+            lock.unlock();
         }
 
         if (msg != null) {
@@ -939,7 +944,8 @@ public class MailHandler extends Handler {
         checkAccess();
         try {
             Message msg = null;
-            synchronized (this) {
+            lock.lock();
+            try {
                 try {
                     msg = writeLogRecords(ErrorManager.CLOSE_FAILURE);
                 } finally {  //Change level after formatting.
@@ -961,6 +967,8 @@ public class MailHandler extends Handler {
                         initLogRecords(1);
                     }
                 }
+            } finally {
+                lock.unlock();
             }
 
             if (msg != null) {
@@ -981,10 +989,15 @@ public class MailHandler extends Handler {
      * @see #setLevel(java.util.logging.Level)
      * @since Angus Mail 2.0.3
      */
-    public synchronized boolean isEnabled() {
-        //For a this-escape, capacity will be zero and level will be off.
-        //No need to check that construction completed.
-        return capacity > 0 && this.logLevel.intValue() != offValue;
+    public boolean isEnabled() {
+        lock.lock();
+        try {
+            //For a this-escape, capacity will be zero and level will be off.
+            //No need to check that construction completed.
+            return capacity > 0 && this.logLevel.intValue() != offValue;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1000,23 +1013,28 @@ public class MailHandler extends Handler {
      * @see #isEnabled()
      * @since Angus Mail 2.0.3
      */
-    public synchronized void setEnabled(final boolean enabled) {
-        checkAccess();
-        if (this.capacity > 0) { //handler is open
-            if (this.size != 0) {
-                push(false, ErrorManager.FLUSH_FAILURE);
-            }
-            if (enabled) {
-                if (this.disabledLevel != null) { //was disabled
-                    this.logLevel = this.disabledLevel;
-                    this.disabledLevel = null;
+    public void setEnabled(final boolean enabled) {
+        lock.lock();
+        try {
+            checkAccess();
+            if (this.capacity > 0) { //handler is open
+                if (this.size != 0) {
+                    push(false, ErrorManager.FLUSH_FAILURE);
                 }
-            } else {
-                if (this.disabledLevel == null) {
-                    this.disabledLevel = this.logLevel;
-                    this.logLevel = Level.OFF;
+                if (enabled) {
+                    if (this.disabledLevel != null) { //was disabled
+                        this.logLevel = this.disabledLevel;
+                        this.disabledLevel = null;
+                    }
+                } else {
+                    if (this.disabledLevel == null) {
+                        this.disabledLevel = this.logLevel;
+                        this.logLevel = Level.OFF;
+                    }
                 }
             }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -1038,7 +1056,8 @@ public class MailHandler extends Handler {
         checkAccess();
 
         //Don't allow a closed handler to be opened (half way).
-        synchronized (this) { //Wait for writeLogRecords.
+        lock.lock();
+        try { //Wait for writeLogRecords.
             if (this.capacity > 0) {
                 //if disabled then track the new level to be used when enabled.
                 if (this.disabledLevel != null) {
@@ -1047,6 +1066,8 @@ public class MailHandler extends Handler {
                     this.logLevel = newLevel;
                 }
            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -1106,9 +1127,12 @@ public class MailHandler extends Handler {
     private void setErrorManager0(final ErrorManager em) {
         Objects.requireNonNull(em);
         try {
-            synchronized (this) { //Wait for writeLogRecords.
+            lock.lock();
+            try { //Wait for writeLogRecords.
                 this.errorManager = em;
                 super.setErrorManager(em); //Try to free super error manager.
+            } finally {
+                lock.unlock();
             }
         } catch (RuntimeException | LinkageError ignore) {
         }
@@ -1138,11 +1162,14 @@ public class MailHandler extends Handler {
     @Override
     public void setFilter(final Filter newFilter) {
         checkAccess();
-        synchronized (this) {  //Wait for writeLogRecords.
+        lock.lock();
+        try {  //Wait for writeLogRecords.
             if (newFilter != filter) {
                 clearMatches(-1);
             }
             this.filter = newFilter; //Volatile access.
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -1153,10 +1180,15 @@ public class MailHandler extends Handler {
      * encoding should be used.
      */
     @Override
-    public synchronized String getEncoding() {
-        //For a this-escape, this value will be null.
-        //No need to check that construction completed.
-        return this.encoding;
+    public String getEncoding() {
+        lock.lock();
+        try {
+            //For a this-escape, this value will be null.
+            //No need to check that construction completed.
+            return this.encoding;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1195,9 +1227,11 @@ public class MailHandler extends Handler {
                 throw new UnsupportedEncodingException(e);
             }
         }
-
-        synchronized (this) {  //Wait for writeLogRecords.
+        lock.lock();
+        try {
             this.encoding = e;
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -1207,8 +1241,13 @@ public class MailHandler extends Handler {
      * @return the <code>Formatter</code> (may be null).
      */
     @Override
-    public synchronized Formatter getFormatter() {
-        return this.formatter;
+    public Formatter getFormatter() {
+        lock.lock();
+        try {
+            return this.formatter;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1224,9 +1263,14 @@ public class MailHandler extends Handler {
      * @throws NullPointerException if the given formatter is null.
      */
     @Override
-    public synchronized void setFormatter(Formatter newFormatter) throws SecurityException {
-        checkAccess();
-        this.formatter = Objects.requireNonNull(newFormatter);
+    public void setFormatter(Formatter newFormatter) throws SecurityException {
+        lock.lock();
+        try {
+            checkAccess();
+            this.formatter = Objects.requireNonNull(newFormatter);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1235,8 +1279,13 @@ public class MailHandler extends Handler {
      *
      * @return a non-null push level.
      */
-    public final synchronized Level getPushLevel() {
-        return this.pushLevel;
+    public final Level getPushLevel() {
+        lock.lock();
+        try {
+            return this.pushLevel;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1250,16 +1299,21 @@ public class MailHandler extends Handler {
      *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
-    public final synchronized void setPushLevel(Level level) {
-        checkAccess();
-        if (level == null) {
-            level = Level.OFF;
-        }
+    public final void setPushLevel(Level level) {
+        lock.lock();
+        try {
+            checkAccess();
+            if (level == null) {
+                level = Level.OFF;
+            }
 
-        if (isWriting) {
-            throw new IllegalStateException();
+            if (isWriting) {
+                throw new IllegalStateException();
+            }
+            this.pushLevel = level;
+        } finally {
+            lock.unlock();
         }
-        this.pushLevel = level;
     }
 
     /**
@@ -1267,8 +1321,13 @@ public class MailHandler extends Handler {
      *
      * @return the push filter or <code>null</code>.
      */
-    public final synchronized Filter getPushFilter() {
-        return this.pushFilter;
+    public final Filter getPushFilter() {
+        lock.lock();
+        try {
+            return this.pushFilter;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1283,12 +1342,17 @@ public class MailHandler extends Handler {
      *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
-    public final synchronized void setPushFilter(final Filter filter) {
-        checkAccess();
-        if (isWriting) {
-            throw new IllegalStateException();
+    public final void setPushFilter(final Filter filter) {
+        lock.lock();
+        try {
+            checkAccess();
+            if (isWriting) {
+                throw new IllegalStateException();
+            }
+            this.pushFilter = filter;
+        } finally {
+            lock.unlock();
         }
-        this.pushFilter = filter;
     }
 
     /**
@@ -1297,8 +1361,13 @@ public class MailHandler extends Handler {
      *
      * @return the <code>LogRecord</code> comparator.
      */
-    public final synchronized Comparator<? super LogRecord> getComparator() {
-        return this.comparator;
+    public final Comparator<? super LogRecord> getComparator() {
+        lock.lock();
+        try {
+            return this.comparator;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1310,12 +1379,17 @@ public class MailHandler extends Handler {
      *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
-    public final synchronized void setComparator(Comparator<? super LogRecord> c) {
-        checkAccess();
-        if (isWriting) {
-            throw new IllegalStateException();
+    public final void setComparator(Comparator<? super LogRecord> c) {
+        lock.lock();
+        try {
+            checkAccess();
+            if (isWriting) {
+                throw new IllegalStateException();
+            }
+            this.comparator = c;
+        } finally {
+            lock.unlock();
         }
-        this.comparator = c;
     }
 
     /**
@@ -1325,9 +1399,14 @@ public class MailHandler extends Handler {
      *
      * @return the capacity.
      */
-    public final synchronized int getCapacity() {
-        assert capacity != Integer.MIN_VALUE : capacity;
-        return capacity != 0 ? Math.abs(capacity) : DEFAULT_CAPACITY;
+    public final int getCapacity() {
+        lock.lock();
+        try {
+            assert capacity != Integer.MIN_VALUE : capacity;
+            return capacity != 0 ? Math.abs(capacity) : DEFAULT_CAPACITY;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1344,9 +1423,14 @@ public class MailHandler extends Handler {
      * @see #flush()
      * @since Angus Mail 2.0.3
      */
-    public final synchronized void setCapacity(int newCapacity) {
-        checkAccess();
-        setCapacity0(newCapacity);
+    public final void setCapacity(int newCapacity) {
+        lock.lock();
+        try {
+            checkAccess();
+            setCapacity0(newCapacity);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1357,9 +1441,14 @@ public class MailHandler extends Handler {
      * @throws SecurityException if a security manager exists and the
      *                           caller does not have <code>LoggingPermission("control")</code>.
      */
-    public final synchronized Authenticator getAuthenticator() {
-        checkAccess();
-        return this.auth;
+    public final Authenticator getAuthenticator() {
+        lock.lock();
+        try {
+            checkAccess();
+            return this.auth;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1410,8 +1499,13 @@ public class MailHandler extends Handler {
      * @see #setAuthenticator(char...)
      * @since Angus Mail 2.0.3
      */
-    public final synchronized void setAuthentication(final String auth) {
-        setAuthenticator0(newAuthenticator(auth));
+    public final void setAuthentication(final String auth) {
+        lock.lock();
+        try {
+            setAuthenticator0(newAuthenticator(auth));
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1426,12 +1520,15 @@ public class MailHandler extends Handler {
         checkAccess();
 
         Session settings;
-        synchronized (this) {
+        lock.lock();
+        try{
             if (isWriting) {
                 throw new IllegalStateException();
             }
             this.auth = auth;
             settings = updateSession();
+        } finally {
+            lock.unlock();
         }
         verifySettings(settings);
     }
@@ -1494,12 +1591,15 @@ public class MailHandler extends Handler {
     private boolean setMailProperties0(Properties props) {
         Objects.requireNonNull(props);
         Session settings;
-        synchronized (this) {
+        lock.lock();
+        try {
             if (isWriting) {
                 throw new IllegalStateException();
             }
             this.mailProps = props;
             settings = updateSession();
+        } finally {
+            lock.unlock();
         }
         return verifySettings(settings);
     }
@@ -1514,8 +1614,11 @@ public class MailHandler extends Handler {
     public final Properties getMailProperties() {
         checkAccess();
         final Properties props;
-        synchronized (this) {
+        lock.lock();
+        try {
             props = this.mailProps;
+        } finally {
+            lock.unlock();
         }
 
         //Null check to force an error sooner rather than later.
@@ -1588,8 +1691,11 @@ public class MailHandler extends Handler {
     public final String getMailEntries() {
         checkAccess();
         final Properties props;
-        synchronized (this) {
+        lock.lock();
+        try {
             props = this.mailProps;
+        } finally {
+            lock.unlock();
         }
 
         final StringWriter sw = new StringWriter();
@@ -1644,7 +1750,8 @@ public class MailHandler extends Handler {
             filters = Arrays.copyOf(filters, filters.length, Filter[].class);
         }
 
-        synchronized (this) {
+        lock.lock();
+        try {
             if (isWriting) {
                 throw new IllegalStateException();
             }
@@ -1662,6 +1769,8 @@ public class MailHandler extends Handler {
             this.attachmentFilters = filters;
             this.alignAttachmentFormatters(filters.length);
             this.alignAttachmentNames(filters.length);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -1673,8 +1782,11 @@ public class MailHandler extends Handler {
      */
     public final Formatter[] getAttachmentFormatters() {
         Formatter[] formatters;
-        synchronized (this) {
+        lock.lock();
+        try {
             formatters = this.attachmentFormatters;
+        } finally {
+            lock.unlock();
         }
         return formatters.clone();
     }
@@ -1706,7 +1818,8 @@ public class MailHandler extends Handler {
             }
         }
 
-        synchronized (this) {
+        lock.lock();
+        try {
             if (isWriting) {
                 throw new IllegalStateException();
             }
@@ -1714,6 +1827,8 @@ public class MailHandler extends Handler {
             this.attachmentFormatters = formatters;
             this.alignAttachmentFilters(formatters.length);
             this.alignAttachmentNames(formatters.length);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -1727,8 +1842,11 @@ public class MailHandler extends Handler {
      */
     public final Formatter[] getAttachmentNames() {
         final Formatter[] formatters;
-        synchronized (this) {
+        lock.lock();
+        try {
             formatters = this.attachmentNames;
+        } finally {
+            lock.unlock();
         }
         return formatters.clone();
     }
@@ -1758,7 +1876,8 @@ public class MailHandler extends Handler {
             formatters = new Formatter[names.length];
         }
 
-        synchronized (this) {
+        lock.lock();
+        try {
             if (isWriting) {
                 throw new IllegalStateException();
             }
@@ -1774,6 +1893,8 @@ public class MailHandler extends Handler {
                 formatters[i] = TailNameFormatter.of(name);
             }
             this.attachmentNames = formatters;
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -1830,7 +1951,8 @@ public class MailHandler extends Handler {
                     Formatter[].class);
         }
 
-        synchronized (this) {
+        lock.lock();
+        try {
             if (isWriting) {
                 throw new IllegalStateException();
             }
@@ -1843,6 +1965,8 @@ public class MailHandler extends Handler {
                 }
             }
             this.attachmentNames = formatters;
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -1853,8 +1977,13 @@ public class MailHandler extends Handler {
      *
      * @return the formatter.
      */
-    public final synchronized Formatter getSubject() {
-        return getSubjectFormatter();
+    public final Formatter getSubject() {
+        lock.lock();
+        try {
+            return getSubjectFormatter();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1865,8 +1994,13 @@ public class MailHandler extends Handler {
      * @return the formatter.
      * @since Angus Mail 2.0.3
      */
-    public final synchronized Formatter getSubjectFormatter() {
-        return this.subjectFormatter;
+    public final Formatter getSubjectFormatter() {
+        lock.lock();
+        try {
+            return this.subjectFormatter;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1882,12 +2016,17 @@ public class MailHandler extends Handler {
      * @see Character#isISOControl(char)
      * @see Character#isISOControl(int)
      */
-    public synchronized final void setSubject(final String subject) {
-        if (subject != null) {
-            this.setSubjectFormatter(TailNameFormatter.of(subject));
-        } else {
-            checkAccess();
-            initSubject((String) null);
+    public final void setSubject(final String subject) {
+        lock.lock();
+        try {
+            if (subject != null) {
+                this.setSubjectFormatter(TailNameFormatter.of(subject));
+            } else {
+                checkAccess();
+                initSubject((String) null);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -1934,15 +2073,20 @@ public class MailHandler extends Handler {
      * @see Character#isISOControl(int)
      * @since Angus Mail 2.0.3
      */
-    public synchronized final void setSubjectFormatter(final Formatter format) {
-        checkAccess();
-        if (format != null) {
-            if (isWriting) {
-                throw new IllegalStateException();
+    public final void setSubjectFormatter(final Formatter format) {
+        lock.lock();
+        try {
+            checkAccess();
+            if (format != null) {
+                if (isWriting) {
+                    throw new IllegalStateException();
+                }
+                this.subjectFormatter = format;
+            } else {
+                initSubject((String) null);
             }
-            this.subjectFormatter = format;
-        } else {
-            initSubject((String) null);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -2305,27 +2449,32 @@ public class MailHandler extends Handler {
      * the value is negative.
      * @throws IllegalStateException if called from inside a push.
      */
-    private synchronized void setCapacity0(int newCapacity) {
-        if (isWriting) {
-            throw new IllegalStateException();
-        }
-
-        if (!this.sealed || this.capacity == 0) {
-           return;
-        }
-
-        if (newCapacity <= 0) {
-            newCapacity = DEFAULT_CAPACITY;
-        }
-
-        if (this.capacity < 0) { //If closed, remain closed.
-            this.capacity = -newCapacity;
-        } else {
-            push(false, ErrorManager.FLUSH_FAILURE);
-            this.capacity = newCapacity;
-            if (this.data.length > newCapacity) {
-                initLogRecords(1);
+    private void setCapacity0(int newCapacity) {
+        lock.lock();
+        try {
+            if (isWriting) {
+                throw new IllegalStateException();
             }
+
+            if (!this.sealed || this.capacity == 0) {
+               return;
+            }
+
+            if (newCapacity <= 0) {
+                newCapacity = DEFAULT_CAPACITY;
+            }
+
+            if (this.capacity < 0) { //If closed, remain closed.
+                this.capacity = -newCapacity;
+            } else {
+                push(false, ErrorManager.FLUSH_FAILURE);
+                this.capacity = newCapacity;
+                if (this.data.length > newCapacity) {
+                    initLogRecords(1);
+                }
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -2489,74 +2638,79 @@ public class MailHandler extends Handler {
      *                           caller does not have <code>LoggingPermission("control")</code>.
      * @see #sealed
      */
-    private synchronized void init(final Properties props) {
-        //Ensure non-null even on exception.
-        //Zero value allows publish to not check for this-escape.
-        initLogRecords(0);
-        LogManagerProperties.checkLogManagerAccess();
+    private void init(final Properties props) {
+        lock.lock();
+        try {
+            //Ensure non-null even on exception.
+            //Zero value allows publish to not check for this-escape.
+            initLogRecords(0);
+            LogManagerProperties.checkLogManagerAccess();
 
-        final String p = getClass().getName();
-        //Assign any custom error manager first so it can detect all failures.
-        assert this.errorManager != null; //default set before custom object
-        initErrorManager(fromLogManager(p.concat(".errorManager")));
-        int cap = parseCapacity(fromLogManager(p.concat(".capacity")));
-        Level lvl = parseLevel(fromLogManager(p.concat(".level")));
-        boolean enabled = parseEnabled(fromLogManager(p.concat(".enabled")));
-        initContentTypes();
+            final String p = getClass().getName();
+            //Assign any custom error manager first so it can detect all failures.
+            assert this.errorManager != null; //default set before custom object
+            initErrorManager(fromLogManager(p.concat(".errorManager")));
+            int cap = parseCapacity(fromLogManager(p.concat(".capacity")));
+            Level lvl = parseLevel(fromLogManager(p.concat(".level")));
+            boolean enabled = parseEnabled(fromLogManager(p.concat(".enabled")));
+            initContentTypes();
 
-        initFilter(fromLogManager(p.concat(".filter")));
-        this.auth = newAuthenticator(fromLogManager(p.concat(".authenticator")));
+            initFilter(fromLogManager(p.concat(".filter")));
+            this.auth = newAuthenticator(fromLogManager(p.concat(".authenticator")));
 
-        initEncoding(fromLogManager(p.concat(".encoding")));
-        initFormatter(fromLogManager(p.concat(".formatter")));
-        initComparator(fromLogManager(p.concat(".comparator")));
-        initComparatorReverse(fromLogManager(p.concat(".comparator.reverse")));
-        initPushLevel(fromLogManager(p.concat(".pushLevel")));
-        initPushFilter(fromLogManager(p.concat(".pushFilter")));
+            initEncoding(fromLogManager(p.concat(".encoding")));
+            initFormatter(fromLogManager(p.concat(".formatter")));
+            initComparator(fromLogManager(p.concat(".comparator")));
+            initComparatorReverse(fromLogManager(p.concat(".comparator.reverse")));
+            initPushLevel(fromLogManager(p.concat(".pushLevel")));
+            initPushFilter(fromLogManager(p.concat(".pushFilter")));
 
-        initSubject(fromLogManager(p.concat(".subject")));
+            initSubject(fromLogManager(p.concat(".subject")));
 
-        initAttachmentFormaters(fromLogManager(p.concat(".attachment.formatters")));
-        initAttachmentFilters(fromLogManager(p.concat(".attachment.filters")));
-        initAttachmentNames(fromLogManager(p.concat(".attachment.names")));
+            initAttachmentFormaters(fromLogManager(p.concat(".attachment.formatters")));
+            initAttachmentFilters(fromLogManager(p.concat(".attachment.filters")));
+            initAttachmentNames(fromLogManager(p.concat(".attachment.names")));
 
-        //Entries are always parsed to report any errors.
-        Properties entries = parseProperties(fromLogManager(p.concat(".mailEntries")));
+            //Entries are always parsed to report any errors.
+            Properties entries = parseProperties(fromLogManager(p.concat(".mailEntries")));
 
-        //Any new handler object members should be set above this line
-        String verify = fromLogManager(p.concat(".verify"));
-        boolean verified;
-        if (props != null) {
-            //Given properties do not fallback to log manager.
-            setMailProperties0(copyOf(props));
-            verified = true;
-        } else if (entries != null) {
-            //.mailEntries should fallback to log manager when verify key not present.
-            verified = setMailProperties0(entries);
-        } else {
-            verified = false;
-        }
-
-        //Fallback to top level verify properties if needed.
-        if (!verified && verify != null) {
-            try {
-                verifySettings(initSession());
-            } catch (final RuntimeException re) {
-                reportError("Unable to verify", re, ErrorManager.OPEN_FAILURE);
-            } catch (final ServiceConfigurationError sce) {
-                reportConfigurationError(sce, ErrorManager.OPEN_FAILURE);
+            //Any new handler object members should be set above this line
+            String verify = fromLogManager(p.concat(".verify"));
+            boolean verified;
+            if (props != null) {
+                //Given properties do not fallback to log manager.
+                setMailProperties0(copyOf(props));
+                verified = true;
+            } else if (entries != null) {
+                //.mailEntries should fallback to log manager when verify key not present.
+                verified = setMailProperties0(entries);
+            } else {
+                verified = false;
             }
-        }
-        intern(); //Show verify warnings first.
 
-        //Mark the handler as fully constructed by setting these fields.
-        this.capacity = cap;
-        if (enabled) {
-            this.logLevel = lvl;
-        } else {
-            this.disabledLevel = lvl;
+            //Fallback to top level verify properties if needed.
+            if (!verified && verify != null) {
+                try {
+                    verifySettings(initSession());
+                } catch (final RuntimeException re) {
+                    reportError("Unable to verify", re, ErrorManager.OPEN_FAILURE);
+                } catch (final ServiceConfigurationError sce) {
+                    reportConfigurationError(sce, ErrorManager.OPEN_FAILURE);
+                }
+            }
+            intern(); //Show verify warnings first.
+
+            //Mark the handler as fully constructed by setting these fields.
+            this.capacity = cap;
+            if (enabled) {
+                this.logLevel = lvl;
+            } else {
+                this.disabledLevel = lvl;
+            }
+            sealed = true;
+        } finally {
+            lock.unlock();
         }
-        sealed = true;
     }
 
     /**
@@ -3391,7 +3545,8 @@ public class MailHandler extends Handler {
      */
     private Message writeLogRecords(final int code) {
         try {
-            synchronized (this) {
+            lock.lock();
+            try {
                 if (size > 0 && !isWriting) {
                     isWriting = true;
                     try {
@@ -3403,6 +3558,8 @@ public class MailHandler extends Handler {
                         }
                     }
                 }
+            } finally {
+                lock.unlock();
             }
         } catch (final Exception e) {
             reportError("Unable to create message", e, code);
@@ -3653,7 +3810,8 @@ public class MailHandler extends Handler {
 
         //Perform all of the copy actions first.
         String[] atn;
-        synchronized (this) { //Create the subject.
+        lock.lock();
+        try { //Create the subject.
             appendSubject(abort, head(subjectFormatter));
             appendSubject(abort, tail(subjectFormatter, ""));
             atn = new String[attachmentNames.length];
@@ -3665,6 +3823,8 @@ public class MailHandler extends Handler {
                     atn[i] = atn[i].concat(tail(attachmentNames[i], ""));
                 }
             }
+        } finally {
+            lock.unlock();
         }
 
         setIncompleteCopy(abort); //Original body part is never added.
@@ -3811,7 +3971,8 @@ public class MailHandler extends Handler {
                         MimeBodyPart[] ambp = new MimeBodyPart[atn.length];
                         final MimeBodyPart body;
                         final String bodyContentType;
-                        synchronized (this) {
+                        lock.lock();
+                        try {
                             bodyContentType = contentTypeOf(getFormatter());
                             body = createBodyPart();
                             for (int i = 0; i < atn.length; ++i) {
@@ -3820,6 +3981,8 @@ public class MailHandler extends Handler {
                                 //Convert names to mime type under lock.
                                 atn[i] = getContentType(atn[i]);
                             }
+                        } finally {
+                            lock.unlock();
                         }
 
                         body.setDescription(verify);
@@ -4018,10 +4181,13 @@ public class MailHandler extends Handler {
             final MimeBodyPart body;
             final String subjectType;
             final String msgDesc;
-            synchronized (this) {
+            lock.lock();
+            try {
                 body = createBodyPart();
                 msgDesc = descriptionFrom(comparator, pushLevel, pushFilter);
                 subjectType = getClassId(subjectFormatter);
+            } finally {
+                lock.unlock();
             }
 
             body.setDescription("Formatted using "
