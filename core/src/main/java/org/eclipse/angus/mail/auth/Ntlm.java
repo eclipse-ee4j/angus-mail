@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -54,14 +54,14 @@ public class Ntlm {
     private SecretKeyFactory fac;
     private Cipher cipher;
     private MD4 md4;
-    private String hostname;
-    private String ntdomain;
-    private String username;
-    private String password;
+    private final String hostname;
+    private final String ntdomain;
+    private final String username;
+    private final String password;
 
     private Mac hmac;
 
-    private MailLogger logger;
+    private final MailLogger logger;
 
     // NTLM flags, as defined in Microsoft NTLM spec
     // https://msdn.microsoft.com/en-us/library/cc236621.aspx
@@ -105,7 +105,7 @@ public class Ntlm {
             cipher = Cipher.getInstance("DES/ECB/NoPadding");
             md4 = new MD4();
         } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
-            assert false;
+            assert false : e;
         }
     }
 
@@ -149,7 +149,7 @@ public class Ntlm {
             byte[] x = src.getBytes(enc);
             System.arraycopy(x, 0, dest, destpos, x.length);
         } catch (UnsupportedEncodingException e) {
-            assert false;
+            assert false : e;
         }
     }
 
@@ -189,8 +189,8 @@ public class Ntlm {
         if (logger.isLoggable(Level.FINE))
             logger.fine("type 1 message: " + toHex(msg));
 
-        String result = null;
-        result = new String(Base64.getEncoder().encode(msg), StandardCharsets.ISO_8859_1);
+        String result = new String(Base64.getEncoder().encode(msg),
+                StandardCharsets.ISO_8859_1);
         return result;
     }
 
@@ -223,7 +223,7 @@ public class Ntlm {
             if (hmac == null)
                 hmac = Mac.getInstance("HmacMD5");
         } catch (NoSuchAlgorithmException ex) {
-            throw new AssertionError();
+            throw new AssertionError(ex);
         }
         try {
             byte[] nk = new byte[16];
@@ -232,15 +232,15 @@ public class Ntlm {
             hmac.init(skey);
             return hmac.doFinal(text);
         } catch (InvalidKeyException | RuntimeException ex) {
-            assert false;
+            assert false : ex;
         }
         return null;
     }
 
     private byte[] calcLMHash() throws GeneralSecurityException {
         byte[] magic = {0x4b, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25};
-        byte[] pwb = null;
-        pwb = password.toUpperCase(Locale.ENGLISH).getBytes(StandardCharsets.ISO_8859_1);
+        byte[] pwb = password.toUpperCase(Locale.ENGLISH).getBytes(
+                StandardCharsets.ISO_8859_1);
         byte[] pwb1 = new byte[14];
         int len = password.length();
         if (len > 14)
@@ -268,7 +268,7 @@ public class Ntlm {
         try {
             pw = password.getBytes("UnicodeLittleUnmarked");
         } catch (UnsupportedEncodingException e) {
-            assert false;
+            assert false : e;
         }
         byte[] out = md4.digest(pw);
         byte[] result = new byte[21];
@@ -315,7 +315,7 @@ public class Ntlm {
                     getBytes("UnicodeLittleUnmarked");
         } catch (UnsupportedEncodingException ex) {
             // should never happen
-            assert false;
+            assert false : ex;
         }
         byte[] ntlmv2hash = hmacMD5(nthash, txt);
         byte[] cb = new byte[blob.length + 8];
@@ -332,8 +332,8 @@ public class Ntlm {
 
             /* First decode the type2 message to get the server challenge */
             /* challenge is located at type2[24] for 8 bytes */
-            byte[] type2 = null;
-            type2 = Base64.getDecoder().decode(type2msg.getBytes(StandardCharsets.US_ASCII));
+            byte[] type2 = Base64.getDecoder().decode(
+                    type2msg.getBytes(StandardCharsets.US_ASCII));
             if (logger.isLoggable(Level.FINE))
                 logger.fine("type 2 message: " + toHex(type2));
 
@@ -366,11 +366,10 @@ public class Ntlm {
             writeInt(type3, 48, l);
             l += hlen;
 
-            byte[] msg = null;
-            byte[] lmresponse = null;
-            byte[] ntresponse = null;
             int flags = readInt(type2, 20);
-
+            byte[] lmresponse;
+            byte[] ntresponse;
+            
             // did the server agree to NTLMv2?
             if ((flags & NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY) != 0) {
                 // yes, create an NTLMv2 response
@@ -420,17 +419,16 @@ public class Ntlm {
             writeInt(type3, 24, l);
             l += ntresponse.length;
             writeShort(type3, 56, l);
-
-            msg = new byte[l];
-            System.arraycopy(type3, 0, msg, 0, l);
-
             writeInt(type3, 60, type3flags);
+
+            byte[] msg = new byte[l];
+            System.arraycopy(type3, 0, msg, 0, l);
 
             if (logger.isLoggable(Level.FINE))
                 logger.fine("type 3 message: " + toHex(msg));
 
-            String result = null;
-            result = new String(Base64.getEncoder().encode(msg), StandardCharsets.ISO_8859_1);
+            String result = new String(Base64.getEncoder().encode(msg),
+                    StandardCharsets.ISO_8859_1);
             return result;
 
         } catch (GeneralSecurityException ex) {
@@ -464,7 +462,7 @@ public class Ntlm {
         b[off + 3] = (byte) ((data >> 24) & 0xff);
     }
 
-    private static char[] hex =
+    private static final char[] hex =
             {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
     private static String toHex(byte[] b) {
