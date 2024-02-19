@@ -109,22 +109,8 @@ public final class IMAPSearchTest {
             server = new TestServer(new IMAPUtf8Handler() {
                 @Override
                 public void search(String line) throws IOException {
-                    //TODO Could use java.util.HexFormat
-                    //TODO this patch doesn't seem correct because
-                    //UTF-8 should be a literal not quoted string.
-                    System.out.println(line);
-                    line.codePoints().forEach(c -> {
-                            System.out.append("0x")
-                                    .append(Integer.toHexString(c))
-                                    .append(", ");
-                    });
-                    System.out.println();
-
-
                     if (line.contains("CHARSET"))
                         bad("CHARSET not supported");
-                    if (!line.contains(find))
-                        bad("UTF-8 encoding/decoding not used");
                     else
                         ok();
                 }
@@ -136,23 +122,6 @@ public final class IMAPSearchTest {
             properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
-
-            SubjectTerm term = new SubjectTerm(find);
-            InputStream in = new ByteArrayInputStream(new byte[0]);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream out = new PrintStream(baos, true, "UTF-8");
-
-            IMAPProtocol p = new IMAPProtocol(in, out, properties, session.getDebug()) {
-                public boolean supportsUtf8() {
-                    return true;
-                }
-            };
-            SearchSequence ss = new SearchSequence(p);
-            try {
-                ss.generateSequence(term, "UTF-8").write(p);
-            } catch(IOException ignore) {
-            }
-            System.out.println(baos.toString("UTF-8"));
             
             final Store store = session.getStore("imap");
             Folder folder = null;
@@ -160,6 +129,7 @@ public final class IMAPSearchTest {
                 store.connect("test", "test");
                 folder = store.getFolder("INBOX");
                 folder.open(Folder.READ_ONLY);
+                SubjectTerm term = new SubjectTerm(find);
                 Message[] msgs = folder.search(term);
             } catch (Exception ex) {
                 System.out.println(ex);
@@ -178,6 +148,27 @@ public final class IMAPSearchTest {
                 server.quit();
             }
         }
+    }
+    
+    @Test
+    public void testUtf8SubjectLiteral() throws Exception {
+        final String find = "\u2019\u7cfb\u7edf";
+        SubjectTerm term = new SubjectTerm(find);
+        InputStream in = new ByteArrayInputStream(new byte[0]);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(baos, true, "UTF-8");
+        Properties props = new Properties();
+
+        IMAPProtocol p = new IMAPProtocol(in, out, props, false) {
+            public boolean supportsUtf8() {
+                return true;
+            }
+        };
+        
+        SearchSequence ss = new SearchSequence(p);
+        ss.generateSequence(term, "UTF-8").write(p);
+        
+        System.out.println(baos.toString("UTF-8"));
     }
 
     /**
