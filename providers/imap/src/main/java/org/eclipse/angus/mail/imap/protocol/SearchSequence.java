@@ -64,7 +64,7 @@ import java.util.GregorianCalendar;
  */
 public class SearchSequence {
 
-    private IMAPProtocol protocol;    // for hasCapability checks; may be null
+    private final IMAPProtocol protocol;    // for hasCapability checks; may be null
 
     /**
      * Create a SearchSequence for this IMAPProtocol.
@@ -79,8 +79,9 @@ public class SearchSequence {
     /**
      * Create a SearchSequence.
      */
-    @Deprecated(since="2.0.3", forRemoval=true)
+    @Deprecated
     public SearchSequence() {
+        protocol = null; //TODO Deprecate for remove???
     }
 
     /**
@@ -285,7 +286,12 @@ public class SearchSequence {
         Argument result = new Argument();
         result.writeAtom("HEADER");
         result.writeString(term.getHeaderName());
-        result.writeString(term.getPattern(), charset);
+        String pattern = term.getPattern();
+        if (protocol != null && protocol.supportsUtf8() && !isAscii(term)) {
+            result.writeBytes(new Utf8Literal(pattern, charset));
+        } else {
+            result.writeString(pattern, charset);
+        }
         return result;
     }
 
@@ -337,7 +343,11 @@ public class SearchSequence {
             throws SearchException, IOException {
         Argument result = new Argument();
         result.writeAtom("FROM");
-        result.writeString(address, charset);
+        if (protocol != null && protocol.supportsUtf8() && !isAscii(address)) {
+            result.writeBytes(new Utf8Literal(address, charset));
+        } else {
+            result.writeString(address, charset);
+        }
         return result;
     }
 
@@ -355,7 +365,12 @@ public class SearchSequence {
         else
             throw new SearchException("Illegal Recipient type");
 
-        result.writeString(address, charset);
+        
+        if (protocol != null && protocol.supportsUtf8() && !isAscii(address)) {
+            result.writeBytes(new Utf8Literal(address, charset));
+        } else {
+            result.writeString(address, charset);
+        }
         return result;
     }
 
@@ -378,7 +393,12 @@ public class SearchSequence {
         Argument result = new Argument();
 
         result.writeAtom("BODY");
-        result.writeString(term.getPattern(), charset);
+        String pattern = term.getPattern();
+        if (protocol != null && protocol.supportsUtf8() && !isAscii(term)) {
+            result.writeBytes(new Utf8Literal(pattern, charset));
+        } else {
+            result.writeString(pattern, charset);
+        }
         return result;
     }
 
