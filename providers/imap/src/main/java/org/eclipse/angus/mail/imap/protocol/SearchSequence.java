@@ -580,12 +580,16 @@ public class SearchSequence {
         
         @Override
         public int size() {
-            return bytes.length;
+            return bytes.length + 4;
         }
 
         @Override
         public void writeTo(OutputStream os) throws IOException {
+            os.write('\n');
+            os.write('\r');
             os.write(this.bytes);
+            os.write('\n');
+            os.write('\r');
         }
     }
 }

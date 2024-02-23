@@ -99,27 +99,45 @@ public abstract class ProtocolHandler implements Runnable, Cloneable {
         int room = buf.length;
         int offset = 0;
         int c;
+        int ls = -1;
+        int len = -1;
 
         while ((c = in.read()) != -1) {
-            if (c == '\n') {
-                break;
-            } else if (c == '\r') {
-                int c2 = in.read();
-                if ((c2 != '\n') && (c2 != -1)) {
-                    if (!(in instanceof PushbackInputStream))
-                        this.in = new PushbackInputStream(in);
-                    ((PushbackInputStream) in).unread(c2);
-                }
-                break;
-            } else {
-                if (--room < 0) {
-                    byte[] nbuf = new byte[offset + 128];
-                    room = nbuf.length - offset - 1;
-                    System.arraycopy(buf, 0, nbuf, 0, offset);
-                    buf = nbuf;
-                }
-                buf[offset++] = (byte) c;
+            if (c == '{') {
+                ls = offset + 1;
             }
+            
+            if (c == '}' && ls > -1) {
+               len = Integer.parseInt(new String(buf, ls, offset - ls));
+            }
+            
+            if (c == '\n') {
+                if (len < 0) {
+                    break;
+                }
+                len = -1;
+            } 
+            
+            if (c == '\r') {
+                if (len > -1) {
+                    int c2 = in.read();
+                    if ((c2 != '\n') && (c2 != -1)) {
+                        if (!(in instanceof PushbackInputStream))
+                            this.in = new PushbackInputStream(in);
+                        ((PushbackInputStream) in).unread(c2);
+                    }
+                    break;
+                }
+                len = -1;
+            }
+            
+            if (--room < 0) {
+                byte[] nbuf = new byte[offset + 128];
+                room = nbuf.length - offset - 1;
+                System.arraycopy(buf, 0, nbuf, 0, offset);
+                buf = nbuf;
+            }
+            buf[offset++] = (byte) c;
         }
         if ((c == -1) && (offset == 0))
             return null;

@@ -109,6 +109,7 @@ public final class IMAPSearchTest {
             server = new TestServer(new IMAPUtf8Handler() {
                 @Override
                 public void search(String line) throws IOException {
+                    System.out.println(line);
                     if (line.contains("CHARSET"))
                         bad("CHARSET not supported");
                     else
