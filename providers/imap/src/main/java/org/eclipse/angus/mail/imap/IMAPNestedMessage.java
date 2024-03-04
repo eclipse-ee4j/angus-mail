@@ -16,6 +16,8 @@
 
 package org.eclipse.angus.mail.imap;
 
+import java.util.concurrent.locks.Lock;
+
 import jakarta.mail.Flags;
 import jakarta.mail.FolderClosedException;
 import jakarta.mail.MessageRemovedException;
@@ -73,7 +75,7 @@ public class IMAPNestedMessage extends IMAPMessage {
      * IMAPMessage.getMessageCacheLock().
      */
     @Override
-    protected Object getMessageCacheLock() {
+    protected Lock getMessageCacheLock() {
         return msg.getMessageCacheLock();
     }
 

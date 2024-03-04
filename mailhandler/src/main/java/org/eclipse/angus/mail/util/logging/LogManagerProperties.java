@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
 import java.util.logging.Formatter;
@@ -64,6 +65,8 @@ import java.util.logging.Logger;
  * @since JavaMail 1.4.3
  */
 final class LogManagerProperties extends Properties {
+
+    private final ReentrantLock lock = new ReentrantLock();
 
     /**
      * Generated serial id.
@@ -953,8 +956,13 @@ final class LogManagerProperties extends Properties {
      */
     @Override
     @SuppressWarnings("CloneDoesntCallSuperClone")
-    public synchronized Object clone() {
-        return exportCopy(defaults);
+    public Object clone() {
+        lock.lock();
+        try {
+            return exportCopy(defaults);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -965,31 +973,36 @@ final class LogManagerProperties extends Properties {
      * @return the value for that key.
      */
     @Override
-    public synchronized String getProperty(final String key) {
-        String value = defaults.getProperty(key);
-        if (value == null) {
-            if (key.length() > 0) {
-                value = fromLogManager(prefix + '.' + key);
-            }
-
+    public String getProperty(final String key) {
+        lock.lock();
+        try {
+            String value = defaults.getProperty(key);
             if (value == null) {
-                value = fromLogManager(key);
-            }
+                if (key.length() > 0) {
+                    value = fromLogManager(prefix + '.' + key);
+                }
 
-            /**
-             * Copy the log manager properties as we read them. If a value is no
-             * longer present in the LogManager read it from here. The reason
-             * this works is because LogManager.reset() closes all attached
-             * handlers therefore, stale values only exist in closed handlers.
-             */
-            if (value != null) {
-                super.put(key, value);
-            } else {
-                Object v = super.get(key); //defaults are not used.
-                value = v instanceof String ? (String) v : null;
+                if (value == null) {
+                    value = fromLogManager(key);
+                }
+
+                /**
+                 * Copy the log manager properties as we read them. If a value is no
+                 * longer present in the LogManager read it from here. The reason
+                 * this works is because LogManager.reset() closes all attached
+                 * handlers therefore, stale values only exist in closed handlers.
+                 */
+                if (value != null) {
+                    super.put(key, value);
+                } else {
+                    Object v = super.get(key); //defaults are not used.
+                    value = v instanceof String ? (String) v : null;
+                }
             }
+            return value;
+        } finally {
+            lock.unlock();
         }
-        return value;
     }
 
     /**
@@ -1017,22 +1030,27 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.4.5
      */
     @Override
-    public synchronized Object get(final Object key) {
-        Object value;
-        if (key instanceof String) {
-            value = getProperty((String) key);
-        } else {
-            value = null;
-        }
-
-        //Search for non-string value.
-        if (value == null) {
-            value = defaults.get(key);
-            if (value == null && !defaults.containsKey(key)) {
-                value = super.get(key);
+    public Object get(final Object key) {
+        lock.lock();
+        try {
+            Object value;
+            if (key instanceof String) {
+                value = getProperty((String) key);
+            } else {
+                value = null;
             }
+
+            //Search for non-string value.
+            if (value == null) {
+                value = defaults.get(key);
+                if (value == null && !defaults.containsKey(key)) {
+                    value = super.get(key);
+                }
+            }
+            return value;
+        } finally {
+            lock.unlock();
         }
-        return value;
     }
 
     /**
@@ -1044,13 +1062,18 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.4.5
      */
     @Override
-    public synchronized Object put(final Object key, final Object value) {
-        if (key instanceof String && value instanceof String) {
-            final Object def = preWrite(key);
-            final Object man = super.put(key, value);
-            return man == null ? def : man;
-        } else {
-            return super.put(key, value);
+    public Object put(final Object key, final Object value) {
+        lock.lock();
+        try {
+            if (key instanceof String && value instanceof String) {
+                final Object def = preWrite(key);
+                final Object man = super.put(key, value);
+                return man == null ? def : man;
+            } else {
+                return super.put(key, value);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -1075,13 +1098,18 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.4.5
      */
     @Override
-    public synchronized boolean containsKey(final Object key) {
-        boolean found = key instanceof String
-                && getProperty((String) key) != null;
-        if (!found) {
-            found = defaults.containsKey(key) || super.containsKey(key);
+    public boolean containsKey(final Object key) {
+        lock.lock();
+        try {
+            boolean found = key instanceof String
+                    && getProperty((String) key) != null;
+            if (!found) {
+                found = defaults.containsKey(key) || super.containsKey(key);
+            }
+            return found;
+        } finally {
+            lock.unlock();
         }
-        return found;
     }
 
     /**
@@ -1093,10 +1121,15 @@ final class LogManagerProperties extends Properties {
      * @since JavaMail 1.4.5
      */
     @Override
-    public synchronized Object remove(final Object key) {
-        final Object def = preWrite(key);
-        final Object man = super.remove(key);
-        return man == null ? def : man;
+    public Object remove(final Object key) {
+        lock.lock();
+        try {
+            final Object def = preWrite(key);
+            final Object man = super.remove(key);
+            return man == null ? def : man;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -1180,8 +1213,13 @@ final class LogManagerProperties extends Properties {
      * @return the parent properties.
      * @throws ObjectStreamException if there is a problem.
      */
-    private synchronized Object writeReplace() throws ObjectStreamException {
-        assert false;
-        return exportCopy((Properties) defaults.clone());
+    private Object writeReplace() throws ObjectStreamException {
+        lock.lock();
+        try {
+            assert false;
+            return exportCopy((Properties) defaults.clone());
+        } finally {
+            lock.unlock();
+        }
     }
 }

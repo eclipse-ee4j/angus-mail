@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2024 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2015, 2023 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -17,6 +17,7 @@
 
 package org.eclipse.angus.mail.util.logging;
 
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Filter;
 import java.util.logging.LogRecord;
 
@@ -67,6 +68,8 @@ import static org.eclipse.angus.mail.util.logging.LogManagerProperties.fromLogMa
  * @since JavaMail 1.5.5
  */
 public class DurationFilter implements Filter {
+
+    private final ReentrantLock lock = new ReentrantLock();
 
     /**
      * The number of expected records per duration.
@@ -135,20 +138,26 @@ public class DurationFilter implements Filter {
         final long c;
         final long p;
         final long s;
-        synchronized (this) {
+        lock.lock();
+        try {
             r = this.records;
             d = this.duration;
             c = this.count;
             p = this.peak;
             s = this.start;
+        } finally {
+            lock.unlock();
         }
 
         final DurationFilter other = (DurationFilter) obj;
-        synchronized (other) {
+        other.lock.lock();
+        try {
             if (r != other.records || d != other.duration || c != other.count
                     || p != other.peak || s != other.start) {
                 return false;
             }
+        } finally {
+            other.lock.unlock();
         }
         return true;
     }
@@ -171,11 +180,16 @@ public class DurationFilter implements Filter {
      * @return hash code for this filter.
      */
     @Override
-    public synchronized int hashCode() {
-        int hash = 3;
-        hash = 89 * hash + Long.hashCode(records);
-        hash = 89 * hash + Long.hashCode(duration);
-        return hash;
+    public int hashCode() {
+        lock.lock();
+        try {
+            int hash = 3;
+            hash = 89 * hash + Long.hashCode(records);
+            hash = 89 * hash + Long.hashCode(duration);
+            return hash;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -201,8 +215,11 @@ public class DurationFilter implements Filter {
      */
     public boolean isLoggable() {
         final long r;
-        synchronized (this) {
+        lock.lock();
+        try {
             r = records;
+        } finally {
+            lock.unlock();
         }
         return test(r, System.currentTimeMillis());
     }
@@ -215,9 +232,14 @@ public class DurationFilter implements Filter {
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
-    public synchronized long getRecords() {
-        LogManagerProperties.checkLogManagerAccess();
-        return this.records;
+    public long getRecords() {
+        lock.lock();
+        try {
+            LogManagerProperties.checkLogManagerAccess();
+            return this.records;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -228,9 +250,14 @@ public class DurationFilter implements Filter {
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
-    public synchronized void setRecords(long records) {
-        LogManagerProperties.checkLogManagerAccess();
-        this.records = checkRecords(records);
+    public void setRecords(long records) {
+        lock.lock();
+        try {
+            LogManagerProperties.checkLogManagerAccess();
+            this.records = checkRecords(records);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -241,9 +268,14 @@ public class DurationFilter implements Filter {
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
-    public synchronized void setDurationMillis(long duration) {
-        LogManagerProperties.checkLogManagerAccess();
-        this.duration = checkDuration(duration);
+    public void setDurationMillis(long duration) {
+        lock.lock();
+        try {
+            LogManagerProperties.checkLogManagerAccess();
+            this.duration = checkDuration(duration);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -254,9 +286,14 @@ public class DurationFilter implements Filter {
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
-    public synchronized long getDurationMillis() {
-        LogManagerProperties.checkLogManagerAccess();
-        return this.duration;
+    public long getDurationMillis() {
+        lock.lock();
+        try {
+            LogManagerProperties.checkLogManagerAccess();
+            return this.duration;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -272,12 +309,15 @@ public class DurationFilter implements Filter {
         long d;
         boolean idle;
         boolean loggable;
-        synchronized (this) {
+        lock.lock();
+        try {
             r = this.records;
             d = this.duration;
             final long millis = System.currentTimeMillis();
             idle = test(0L, millis);
             loggable = test(r, millis);
+        } finally {
+            lock.unlock();
         }
 
         return getClass().getName() + "{records=" + r
@@ -316,10 +356,13 @@ public class DurationFilter implements Filter {
         final long d;
         final long c;
         final long s;
-        synchronized (this) {
+        lock.lock();
+        try {
             d = duration;
             c = count;
             s = start;
+        } finally {
+            lock.unlock();
         }
 
         if (c > 0L) { //If not saturated.
@@ -340,42 +383,47 @@ public class DurationFilter implements Filter {
      * @param millis the log record milliseconds.
      * @return true if accepted false otherwise.
      */
-    private synchronized boolean accept(final long millis) {
-        //Subtraction is used to deal with numeric overflow of millis.
-        boolean allow;
-        if (count > 0L) { //If not saturated.
-            if ((millis - peak) > 0L) {
-                peak = millis; //Record the new peak.
-            }
+    private boolean accept(final long millis) {
+        lock.lock();
+        try {
+            //Subtraction is used to deal with numeric overflow of millis.
+            boolean allow;
+            if (count > 0L) { //If not saturated.
+                if ((millis - peak) > 0L) {
+                    peak = millis; //Record the new peak.
+                }
 
-            //Under the rate if the count has not been reached.
-            if ((records - count) > 0L) {
-                ++count;
-                allow = true;
-            } else {
-                if ((peak - start) >= duration) {
-                    count = 1L;  //Start a new duration.
-                    start = peak;
+                //Under the rate if the count has not been reached.
+                if ((records - count) > 0L) {
+                    ++count;
                     allow = true;
                 } else {
-                    count = -1L; //Saturate for the duration.
-                    start = peak + duration;
-                    allow = false;
+                    if ((peak - start) >= duration) {
+                        count = 1L;  //Start a new duration.
+                        start = peak;
+                        allow = true;
+                    } else {
+                        count = -1L; //Saturate for the duration.
+                        start = peak + duration;
+                        allow = false;
+                    }
+                }
+            } else {
+                //If the saturation period has expired or this is the first record
+                //then start a new duration and allow records.
+                if ((millis - start) >= 0L || count == 0L) {
+                    count = 1L;
+                    start = millis;
+                    peak = millis;
+                    allow = true;
+                } else {
+                    allow = false; //Remain in a saturated state.
                 }
             }
-        } else {
-            //If the saturation period has expired or this is the first record
-            //then start a new duration and allow records.
-            if ((millis - start) >= 0L || count == 0L) {
-                count = 1L;
-                start = millis;
-                peak = millis;
-                allow = true;
-            } else {
-                allow = false; //Remain in a saturated state.
-            }
+            return allow;
+        } finally {
+            lock.unlock();
         }
-        return allow;
     }
 
     /**

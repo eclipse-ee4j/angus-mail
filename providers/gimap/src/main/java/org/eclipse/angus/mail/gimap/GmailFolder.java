@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -15,6 +15,8 @@
  */
 
 package org.eclipse.angus.mail.gimap;
+
+import java.util.concurrent.locks.ReentrantLock;
 
 import jakarta.mail.FetchProfile;
 import jakarta.mail.FolderClosedException;
@@ -41,6 +43,9 @@ import org.eclipse.angus.mail.imap.protocol.MessageSet;
  */
 
 public class GmailFolder extends IMAPFolder {
+
+    private final ReentrantLock lock = new ReentrantLock();
+
     /**
      * A fetch profile item for fetching headers.
      * This inner class extends the <code>FetchProfile.Item</code>
@@ -117,29 +122,37 @@ public class GmailFolder extends IMAPFolder {
      * @exception MessagingException    for failures
      * @since JavaMail 1.5.5
      */
-    public synchronized void setLabels(Message[] msgs,
+    public void setLabels(Message[] msgs,
                                        String[] labels, boolean set)
             throws MessagingException {
-        checkOpened();
+        lock.lock();
+        try {
+            checkOpened();
 
-        if (msgs.length == 0) // boundary condition
-            return;
+            if (msgs.length == 0) // boundary condition
+                return;
 
-        synchronized (messageCacheLock) {
+            messageCacheLock.lock.lock();
             try {
-                IMAPProtocol ip = getProtocol();
-                assert ip instanceof GmailProtocol;
-                GmailProtocol p = (GmailProtocol) ip;
-                MessageSet[] ms = Utility.toMessageSetSorted(msgs, null);
-                if (ms == null)
-                    throw new MessageRemovedException(
-                            "Messages have been removed");
-                p.storeLabels(ms, labels, set);
-            } catch (ConnectionException cex) {
-                throw new FolderClosedException(this, cex.getMessage());
-            } catch (ProtocolException pex) {
-                throw new MessagingException(pex.getMessage(), pex);
+                try {
+                    IMAPProtocol ip = getProtocol();
+                    assert ip instanceof GmailProtocol;
+                    GmailProtocol p = (GmailProtocol) ip;
+                    MessageSet[] ms = Utility.toMessageSetSorted(msgs, null);
+                    if (ms == null)
+                        throw new MessageRemovedException(
+                                "Messages have been removed");
+                    p.storeLabels(ms, labels, set);
+                } catch (ConnectionException cex) {
+                    throw new FolderClosedException(this, cex.getMessage());
+                } catch (ProtocolException pex) {
+                    throw new MessagingException(pex.getMessage(), pex);
+                }
+            } finally {
+                messageCacheLock.lock.unlock();
             }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -153,15 +166,20 @@ public class GmailFolder extends IMAPFolder {
      * @exception MessagingException    for failures
      * @since JavaMail 1.5.5
      */
-    public synchronized void setLabels(int start, int end,
+    public void setLabels(int start, int end,
                                        String[] labels, boolean set)
             throws MessagingException {
-        checkOpened();
-        Message[] msgs = new Message[end - start + 1];
-        int i = 0;
-        for (int n = start; n <= end; n++)
-            msgs[i++] = getMessage(n);
-        setLabels(msgs, labels, set);
+        lock.lock();
+        try {
+            checkOpened();
+            Message[] msgs = new Message[end - start + 1];
+            int i = 0;
+            for (int n = start; n <= end; n++)
+                msgs[i++] = getMessage(n);
+            setLabels(msgs, labels, set);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -173,14 +191,19 @@ public class GmailFolder extends IMAPFolder {
      * @exception MessagingException    for failures
      * @since JavaMail 1.5.5
      */
-    public synchronized void setLabels(int[] msgnums,
+    public void setLabels(int[] msgnums,
                                        String[] labels, boolean set)
             throws MessagingException {
-        checkOpened();
-        Message[] msgs = new Message[msgnums.length];
-        for (int i = 0; i < msgnums.length; i++)
-            msgs[i] = getMessage(msgnums[i]);
-        setLabels(msgs, labels, set);
+        lock.lock();
+        try {
+            checkOpened();
+            Message[] msgs = new Message[msgnums.length];
+            for (int i = 0; i < msgnums.length; i++)
+                msgs[i] = getMessage(msgnums[i]);
+            setLabels(msgs, labels, set);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**

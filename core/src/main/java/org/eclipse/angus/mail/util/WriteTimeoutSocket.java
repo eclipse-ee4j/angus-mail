@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -39,6 +39,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A special Socket that uses a ScheduledExecutorService to
@@ -49,6 +50,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class WriteTimeoutSocket extends Socket {
 
+    private final ReentrantLock lock = new ReentrantLock();
     // delegate all operations to this socket
     private final Socket socket;
     // to schedule task to cancel write after timeout
@@ -170,9 +172,14 @@ public class WriteTimeoutSocket extends Socket {
     }
 
     @Override
-    public synchronized OutputStream getOutputStream() throws IOException {
-        // wrap the returned stream to implement write timeout
-        return new TimeoutOutputStream(socket, ses, timeout);
+    public OutputStream getOutputStream() throws IOException {
+        lock.lock();
+        try {
+            // wrap the returned stream to implement write timeout
+            return new TimeoutOutputStream(socket, ses, timeout);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -385,6 +392,7 @@ class TimeoutOutputStream extends OutputStream {
     private static final String WRITE_TIMEOUT_MESSAGE = "Write timed out";
     private static final String CANNOT_GET_TIMEOUT_TASK_RESULT_MESSAGE = "Couldn't get result of timeout task";
 
+    private final ReentrantLock lock = new ReentrantLock();
     private final OutputStream os;
     private final ScheduledExecutorService ses;
     private final Callable<String> timeoutTask;
@@ -413,45 +421,55 @@ class TimeoutOutputStream extends OutputStream {
     }
 
     @Override
-    public synchronized void write(int b) throws IOException {
-        if (b1 == null)
-            b1 = new byte[1];
-        b1[0] = (byte) b;
-        this.write(b1);
+    public void write(int b) throws IOException {
+        lock.lock();
+        try {
+            if (b1 == null)
+                b1 = new byte[1];
+            b1[0] = (byte) b;
+            this.write(b1);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
-    public synchronized void write(byte[] bs, int off, int len)
+    public void write(byte[] bs, int off, int len)
             throws IOException {
-        if ((off < 0) || (off > bs.length) || (len < 0) ||
-                ((off + len) > bs.length) || ((off + len) < 0)) {
-            throw new IndexOutOfBoundsException();
-        } else if (len == 0) {
-            return;
-        }
-
+        lock.lock();
         try {
-            try {
-                if (timeout > 0)
-                    sf = ses.schedule(timeoutTask,
-                            timeout, TimeUnit.MILLISECONDS);
-            } catch (RejectedExecutionException ex) {
-                if (!socket.isClosed()) {
-                    throw new IOException("Write aborted due to timeout not enforced", ex);
-                }
+            if ((off < 0) || (off > bs.length) || (len < 0) ||
+                    ((off + len) > bs.length) || ((off + len) < 0)) {
+                throw new IndexOutOfBoundsException();
+            } else if (len == 0) {
+                return;
             }
 
             try {
-                os.write(bs, off, len);
-            } catch (IOException e) {
-                if (sf != null && !sf.cancel(true)) {
-                    throw new IOException(handleTimeoutTaskResult(sf), e);
+                try {
+                    if (timeout > 0)
+                        sf = ses.schedule(timeoutTask,
+                                timeout, TimeUnit.MILLISECONDS);
+                } catch (RejectedExecutionException ex) {
+                    if (!socket.isClosed()) {
+                        throw new IOException("Write aborted due to timeout not enforced", ex);
+                    }
                 }
-                throw e;
+
+                try {
+                    os.write(bs, off, len);
+                } catch (IOException e) {
+                    if (sf != null && !sf.cancel(true)) {
+                        throw new IOException(handleTimeoutTaskResult(sf), e);
+                    }
+                    throw e;
+                }
+            } finally {
+                if (sf != null)
+                    sf.cancel(true);
             }
         } finally {
-            if (sf != null)
-                sf.cancel(true);
+            lock.unlock();
         }
     }
 

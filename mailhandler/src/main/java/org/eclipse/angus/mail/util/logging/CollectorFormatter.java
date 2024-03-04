@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2024 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2013, 2023 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -22,6 +22,7 @@ import java.text.MessageFormat;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
@@ -74,6 +75,7 @@ public class CollectorFormatter extends Formatter {
      * Avoid depending on JMX runtime bean to get the start time.
      */
     private static final long INIT_TIME = System.currentTimeMillis();
+    private final ReentrantLock lock = new ReentrantLock();
     /**
      * The message format string used as the formatted output.
      */
@@ -82,6 +84,7 @@ public class CollectorFormatter extends Formatter {
      * The formatter used to format the chosen log record.
      */
     private Formatter formatter;
+    private ReentrantLock formatterLock;
     /**
      * The comparator used to pick the log record to format.
      */
@@ -348,28 +351,33 @@ public class CollectorFormatter extends Formatter {
      * @return true if the last record was the expected record.
      * @throws NullPointerException if the update record is null.
      */
-    private synchronized boolean accept(final LogRecord e, final LogRecord u) {
-        /**
-         * LogRecord methods must be called before the check of the last stored
-         * record to guard against subclasses of LogRecord that might attempt to
-         * reset the state by triggering a call to getTail.
-         */
-        final long millis = u.getMillis(); //Null check.
-        final Throwable ex = u.getThrown();
-        if (last == e) {  //Only if the exact same reference.
-            if (++count != 1L) {
-                minMillis = Math.min(minMillis, millis);
-            } else { //Show single records as instant and not a time period.
-                minMillis = millis;
-            }
-            maxMillis = Math.max(maxMillis, millis);
+    private boolean accept(final LogRecord e, final LogRecord u) {
+        lock.lock();
+        try {
+            /**
+             * LogRecord methods must be called before the check of the last stored
+             * record to guard against subclasses of LogRecord that might attempt to
+             * reset the state by triggering a call to getTail.
+             */
+            final long millis = u.getMillis(); //Null check.
+            final Throwable ex = u.getThrown();
+            if (last == e) {  //Only if the exact same reference.
+                if (++count != 1L) {
+                    minMillis = Math.min(minMillis, millis);
+                } else { //Show single records as instant and not a time period.
+                    minMillis = millis;
+                }
+                maxMillis = Math.max(maxMillis, millis);
 
-            if (ex != null) {
-                ++thrown;
+                if (ex != null) {
+                    ++thrown;
+                }
+                return true;
+            } else {
+                return false;
             }
-            return true;
-        } else {
-            return false;
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -378,16 +386,21 @@ public class CollectorFormatter extends Formatter {
      *
      * @param min the current min milliseconds.
      */
-    private synchronized void reset(final long min) {
-        if (last != null) {
-            last = null;
-            ++generation;
-        }
+    private void reset(final long min) {
+        lock.lock();
+        try {
+            if (last != null) {
+                last = null;
+                ++generation;
+            }
 
-        count = 0L;
-        thrown = 0L;
-        minMillis = min;
-        maxMillis = Long.MIN_VALUE;
+            count = 0L;
+            thrown = 0L;
+            minMillis = min;
+            maxMillis = Long.MIN_VALUE;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -402,6 +415,7 @@ public class CollectorFormatter extends Formatter {
     private String formatRecord(final Handler h, final boolean reset) {
         final String p;
         final Formatter f;
+        final ReentrantLock fLock;
         final LogRecord record;
         final long c;
         final long t;
@@ -409,9 +423,11 @@ public class CollectorFormatter extends Formatter {
         long msl;
         long msh;
         long now;
-        synchronized (this) {
+        lock.lock();
+        try {
             p = fmt;
             f = formatter;
+            fLock = formatterLock;
             record = last;
             c = count;
             g = generation;
@@ -426,16 +442,21 @@ public class CollectorFormatter extends Formatter {
             if (reset) { //BUG ID 6351685
                 reset(msh);
             }
+        } finally {
+            lock.unlock();
         }
 
         final String head;
         final String msg;
         final String tail;
         if (f != null) {
-            synchronized (f) {
+            fLock.lock();
+            try {
                 head = f.getHead(h);
                 msg = record != null ? f.format(record) : "";
                 tail = f.getTail(h);
+            } finally {
+                fLock.unlock();
             }
         } else {
             head = "";
@@ -483,11 +504,16 @@ public class CollectorFormatter extends Formatter {
      * @param v the format pattern or null for default pattern.
      * @since Angus Mail 2.0.3
      */
-    private synchronized void setFormat0(String v) {
-        if (v == null || v.isEmpty()) {
-            v = "{0}{1}{2}{4,choice,-1#|0#|0<... {4,number,integer} more}\n";
+    private void setFormat0(String v) {
+        lock.lock();
+        try {
+            if (v == null || v.isEmpty()) {
+                v = "{0}{1}{2}{4,choice,-1#|0#|0<... {4,number,integer} more}\n";
+            }
+            this.fmt = v;
+        } finally {
+            lock.unlock();
         }
-        this.fmt = v;
     }
 
     /**
@@ -498,9 +524,14 @@ public class CollectorFormatter extends Formatter {
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
-    public synchronized String getFormat() {
-        LogManagerProperties.checkLogManagerAccess();
-        return this.fmt;
+    public String getFormat() {
+        lock.lock();
+        try {
+            LogManagerProperties.checkLogManagerAccess();
+            return this.fmt;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -522,12 +553,18 @@ public class CollectorFormatter extends Formatter {
      * @param f the target formatter or null to use a LogManager default.
      * @since Angus Mail 2.0.3
      */
-    private synchronized void setFormatter0(Formatter f) {
-        if (f == null) {
-            //Don't force the byte code verifier to load the formatter.
-            f = Formatter.class.cast(new CompactFormatter());
+    private void setFormatter0(Formatter f) {
+        lock.lock();
+        try {
+            if (f == null) {
+                //Don't force the byte code verifier to load the formatter.
+                f = Formatter.class.cast(new CompactFormatter());
+            }
+            this.formatterLock = new ReentrantLock();
+            this.formatter = f;
+        } finally {
+            lock.unlock();
         }
-        this.formatter = f;
     }
 
 
@@ -539,9 +576,14 @@ public class CollectorFormatter extends Formatter {
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
-    public synchronized Formatter getFormatter() {
-        LogManagerProperties.checkLogManagerAccess();
-        return this.formatter;
+    public Formatter getFormatter() {
+        lock.lock();
+        try {
+            LogManagerProperties.checkLogManagerAccess();
+            return this.formatter;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -565,8 +607,13 @@ public class CollectorFormatter extends Formatter {
      * used to specify choosing the last seen record.
      * @since Angus Mail 2.0.3
      */
-    private synchronized void setComparator0(Comparator<? super LogRecord> c) {
-        this.comparator = c;
+    private void setComparator0(Comparator<? super LogRecord> c) {
+        lock.lock();
+        try {
+            this.comparator = c;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -590,8 +637,13 @@ public class CollectorFormatter extends Formatter {
      * most recent record.
      * @since Angus Mail 2.0.3
      */
-    private synchronized Comparator<? super LogRecord> getComparator0() {
-        return this.comparator;
+    private Comparator<? super LogRecord> getComparator0() {
+        lock.lock();
+        try {
+            return this.comparator;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -611,8 +663,13 @@ public class CollectorFormatter extends Formatter {
      *
      * @return null or the current log record.
      */
-    private synchronized LogRecord peek() {
-        return this.last;
+    private LogRecord peek() {
+        lock.lock();
+        try {
+            return this.last;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -624,12 +681,17 @@ public class CollectorFormatter extends Formatter {
      * @return true if the update was performed.
      * @throws NullPointerException if the update record is null.
      */
-    private synchronized boolean acceptAndUpdate(LogRecord e, LogRecord u) {
-        if (accept(e, u)) {
-            this.last = u;
-            return true;
-        } else {
-            return false;
+    private boolean acceptAndUpdate(LogRecord e, LogRecord u) {
+        lock.lock();
+        try {
+            if (accept(e, u)) {
+                this.last = u;
+                return true;
+            } else {
+                return false;
+            }
+        } finally {
+            lock.unlock();
         }
     }
 

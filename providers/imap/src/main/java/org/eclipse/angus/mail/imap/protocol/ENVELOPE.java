@@ -27,6 +27,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * The ENEVELOPE item of an IMAP FETCH response.
@@ -54,6 +55,7 @@ public class ENVELOPE implements Item {
 
     // Used to parse dates
     private static final MailDateFormat mailDateFormat = new MailDateFormat();
+    private static final ReentrantLock slock = new ReentrantLock();
 
     // special debugging output to debug parsing errors
     private static final boolean parseDebug =
@@ -71,11 +73,12 @@ public class ENVELOPE implements Item {
 
         String s = r.readString();
         if (s != null) {
+            slock.lock();
             try {
-                synchronized (mailDateFormat) {
-                    date = mailDateFormat.parse(s);
-                }
+                date = mailDateFormat.parse(s);
             } catch (ParseException pex) {
+            } finally {
+                slock.unlock();
             }
         }
         if (parseDebug)

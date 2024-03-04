@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
@@ -57,6 +58,7 @@ import java.util.zip.InflaterInputStream;
  */
 
 public class Protocol {
+    private final ReentrantLock lock = new ReentrantLock();
     protected String host;
     private Socket socket;
     // in case we turn on TLS, we'll need these later
@@ -353,58 +355,63 @@ public class Protocol {
      * @param    args    the arguments
      * @return array of Response objects returned by the server
      */
-    public synchronized Response[] command(String command, Argument args) {
-        commandStart(command);
-        List<Response> v = new ArrayList<>();
-        boolean done = false;
-        String tag = null;
-
-        // write the command
+    public Response[] command(String command, Argument args) {
+        lock.lock();
         try {
-            tag = writeCommand(command, args);
-        } catch (LiteralException lex) {
-            v.add(lex.getResponse());
-            done = true;
-        } catch (Exception ex) {
-            // Convert this into a BYE response
-            v.add(Response.byeResponse(ex));
-            done = true;
-        }
+            commandStart(command);
+            List<Response> v = new ArrayList<>();
+            boolean done = false;
+            String tag = null;
 
-        Response byeResp = null;
-        while (!done) {
-            Response r = null;
+            // write the command
             try {
-                r = readResponse();
-            } catch (IOException ioex) {
-                if (byeResp == null)    // convert this into a BYE response
-                    byeResp = Response.byeResponse(ioex);
-                // else, connection closed after BYE was sent
-                break;
-            } catch (ProtocolException pex) {
-                logger.log(Level.FINE, "ignoring bad response", pex);
-                continue; // skip this response
-            }
-
-            if (r.isBYE()) {
-                byeResp = r;
-                continue;
-            }
-
-            v.add(r);
-
-            // If this is a matching command completion response, we are done
-            if (r.isTagged() && r.getTag().equals(tag))
+                tag = writeCommand(command, args);
+            } catch (LiteralException lex) {
+                v.add(lex.getResponse());
                 done = true;
-        }
+            } catch (Exception ex) {
+                // Convert this into a BYE response
+                v.add(Response.byeResponse(ex));
+                done = true;
+            }
 
-        if (byeResp != null)
-            v.add(byeResp);    // must be last
-        Response[] responses = new Response[v.size()];
-        v.toArray(responses);
-        timestamp = System.currentTimeMillis();
-        commandEnd();
-        return responses;
+            Response byeResp = null;
+            while (!done) {
+                Response r = null;
+                try {
+                    r = readResponse();
+                } catch (IOException ioex) {
+                    if (byeResp == null)    // convert this into a BYE response
+                        byeResp = Response.byeResponse(ioex);
+                    // else, connection closed after BYE was sent
+                    break;
+                } catch (ProtocolException pex) {
+                    logger.log(Level.FINE, "ignoring bad response", pex);
+                    continue; // skip this response
+                }
+
+                if (r.isBYE()) {
+                    byeResp = r;
+                    continue;
+                }
+
+                v.add(r);
+
+                // If this is a matching command completion response, we are done
+                if (r.isTagged() && r.getTag().equals(tag))
+                    done = true;
+            }
+
+            if (byeResp != null)
+                v.add(byeResp);    // must be last
+            Response[] responses = new Response[v.size()];
+            v.toArray(responses);
+            timestamp = System.currentTimeMillis();
+            commandEnd();
+            return responses;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -457,13 +464,18 @@ public class Protocol {
      * @exception IOException    for I/O errors
      * @exception ProtocolException    for protocol failures
      */
-    public synchronized void startTLS(String cmd)
+    public void startTLS(String cmd)
             throws IOException, ProtocolException {
-        if (socket instanceof SSLSocket)
-            return;    // nothing to do
-        simpleCommand(cmd, null);
-        socket = SocketFetcher.startTLS(socket, host, props, prefix);
-        initStreams();
+        lock.lock();
+        try {
+            if (socket instanceof SSLSocket)
+                return;    // nothing to do
+            simpleCommand(cmd, null);
+            socket = SocketFetcher.startTLS(socket, host, props, prefix);
+            initStreams();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -475,43 +487,48 @@ public class Protocol {
      * @exception IOException    for I/O errors
      * @exception ProtocolException    for protocol failures
      */
-    public synchronized void startCompression(String cmd)
+    public void startCompression(String cmd)
             throws IOException, ProtocolException {
-        // XXX - check whether compression is already enabled?
-        simpleCommand(cmd, null);
-
-        // need to create our own Inflater and Deflater in order to set nowrap
-        Inflater inf = new Inflater(true);
-        traceInput = new TraceInputStream(new InflaterInputStream(
-                socket.getInputStream(), inf), traceLogger);
-        traceInput.setQuote(quote);
-        input = new ResponseInputStream(traceInput);
-
-        // configure the Deflater
-        int level = PropUtil.getIntProperty(props, prefix + ".compress.level",
-                Deflater.DEFAULT_COMPRESSION);
-        int strategy = PropUtil.getIntProperty(props,
-                prefix + ".compress.strategy",
-                Deflater.DEFAULT_STRATEGY);
-        if (logger.isLoggable(Level.FINE))
-            logger.log(Level.FINE,
-                    "Creating Deflater with compression level {0} and strategy {1}",
-                    level, strategy);
-        Deflater def = new Deflater(Deflater.DEFAULT_COMPRESSION, true);
+        lock.lock();
         try {
-            def.setLevel(level);
-        } catch (IllegalArgumentException ex) {
-            logger.log(Level.FINE, "Ignoring bad compression level", ex);
+         // XXX - check whether compression is already enabled?
+            simpleCommand(cmd, null);
+
+            // need to create our own Inflater and Deflater in order to set nowrap
+            Inflater inf = new Inflater(true);
+            traceInput = new TraceInputStream(new InflaterInputStream(
+                    socket.getInputStream(), inf), traceLogger);
+            traceInput.setQuote(quote);
+            input = new ResponseInputStream(traceInput);
+
+            // configure the Deflater
+            int level = PropUtil.getIntProperty(props, prefix + ".compress.level",
+                    Deflater.DEFAULT_COMPRESSION);
+            int strategy = PropUtil.getIntProperty(props,
+                    prefix + ".compress.strategy",
+                    Deflater.DEFAULT_STRATEGY);
+            if (logger.isLoggable(Level.FINE))
+                logger.log(Level.FINE,
+                        "Creating Deflater with compression level {0} and strategy {1}",
+                        level, strategy);
+            Deflater def = new Deflater(Deflater.DEFAULT_COMPRESSION, true);
+            try {
+                def.setLevel(level);
+            } catch (IllegalArgumentException ex) {
+                logger.log(Level.FINE, "Ignoring bad compression level", ex);
+            }
+            try {
+                def.setStrategy(strategy);
+            } catch (IllegalArgumentException ex) {
+                logger.log(Level.FINE, "Ignoring bad compression strategy", ex);
+            }
+            traceOutput = new TraceOutputStream(new DeflaterOutputStream(
+                    socket.getOutputStream(), def, true), traceLogger);
+            traceOutput.setQuote(quote);
+            output = new DataOutputStream(new BufferedOutputStream(traceOutput));
+        } finally {
+            lock.unlock();
         }
-        try {
-            def.setStrategy(strategy);
-        } catch (IllegalArgumentException ex) {
-            logger.log(Level.FINE, "Ignoring bad compression strategy", ex);
-        }
-        traceOutput = new TraceOutputStream(new DeflaterOutputStream(
-                socket.getOutputStream(), def, true), traceLogger);
-        traceOutput.setQuote(quote);
-        output = new DataOutputStream(new BufferedOutputStream(traceOutput));
     }
 
     /**
@@ -641,14 +658,19 @@ public class Protocol {
     /**
      * Disconnect.
      */
-    protected synchronized void disconnect() {
-        if (socket != null) {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                // ignore it
+    protected void disconnect() {
+        lock.lock();
+        try {
+            if (socket != null) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    // ignore it
+                }
+                socket = null;
             }
-            socket = null;
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -660,38 +682,43 @@ public class Protocol {
      *
      * @return the name of the local host
      */
-    protected synchronized String getLocalHost() {
-        // get our hostname and cache it for future use
-        if (localHostName == null || localHostName.length() <= 0)
-            localHostName =
-                    props.getProperty(prefix + ".localhost");
-        if (localHostName == null || localHostName.length() <= 0)
-            localHostName =
-                    props.getProperty(prefix + ".localaddress");
+    protected String getLocalHost() {
+        lock.lock();
         try {
-            if (localHostName == null || localHostName.length() <= 0) {
-                InetAddress localHost = InetAddress.getLocalHost();
-                localHostName = localHost.getCanonicalHostName();
-                // if we can't get our name, use local address literal
-                if (localHostName == null)
-                    // XXX - not correct for IPv6
-                    localHostName = "[" + localHost.getHostAddress() + "]";
+         // get our hostname and cache it for future use
+            if (localHostName == null || localHostName.length() <= 0)
+                localHostName =
+                        props.getProperty(prefix + ".localhost");
+            if (localHostName == null || localHostName.length() <= 0)
+                localHostName =
+                        props.getProperty(prefix + ".localaddress");
+            try {
+                if (localHostName == null || localHostName.length() <= 0) {
+                    InetAddress localHost = InetAddress.getLocalHost();
+                    localHostName = localHost.getCanonicalHostName();
+                    // if we can't get our name, use local address literal
+                    if (localHostName == null)
+                        // XXX - not correct for IPv6
+                        localHostName = "[" + localHost.getHostAddress() + "]";
+                }
+            } catch (UnknownHostException uhex) {
             }
-        } catch (UnknownHostException uhex) {
-        }
 
-        // last chance, try to get our address from our socket
-        if (localHostName == null || localHostName.length() <= 0) {
-            if (socket != null && socket.isBound()) {
-                InetAddress localHost = socket.getLocalAddress();
-                localHostName = localHost.getCanonicalHostName();
-                // if we can't get our name, use local address literal
-                if (localHostName == null)
-                    // XXX - not correct for IPv6
-                    localHostName = "[" + localHost.getHostAddress() + "]";
+            // last chance, try to get our address from our socket
+            if (localHostName == null || localHostName.length() <= 0) {
+                if (socket != null && socket.isBound()) {
+                    InetAddress localHost = socket.getLocalAddress();
+                    localHostName = localHost.getCanonicalHostName();
+                    // if we can't get our name, use local address literal
+                    if (localHostName == null)
+                        // XXX - not correct for IPv6
+                        localHostName = "[" + localHost.getHostAddress() + "]";
+                }
             }
+            return localHostName;
+        } finally {
+            lock.unlock();
         }
-        return localHostName;
     }
 
     /**
