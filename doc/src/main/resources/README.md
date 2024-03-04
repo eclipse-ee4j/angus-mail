@@ -31,6 +31,12 @@ This project is part of [Eclipse Angus project](https://projects.eclipse.org/pro
 
 # <a name="Latest_News"></a>Latest News
 
+## March 4, 2024 - Angus Mail 2.0.3 Final Release ##
+
+A bug fix release of 2.0.x bringing latest bug fixes
+and enhancements. See [CHANGES.txt](docs/CHANGES.txt)
+for the full list of changes.
+
 ## May 12, 2023 - Angus Mail 2.0.2 Final Release ##
 
 A bug fix release of 2.0.x fixing integration with OSGi Mediator,
