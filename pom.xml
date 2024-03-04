@@ -31,7 +31,7 @@
     <groupId>org.eclipse.angus</groupId>
     <artifactId>all</artifactId>
     <packaging>pom</packaging>
-    <version>2.0.4-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
     <name>Angus Mail Project</name>
     <description>${project.name}</description>
     <url>http://eclipse-ee4j.github.io/angus-mail</url>
@@ -76,7 +76,7 @@
         <spotbugs.threshold>High</spotbugs.threshold>
         <spotbugs.plugin.version>4.8.3.1</spotbugs.plugin.version>
 
-        <project.build.outputTimestamp>2024-02-14T00:00:00Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2024-03-04T13:30:14Z</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <angus-mail.javadoc.source>11</angus-mail.javadoc.source>
         <angus-mail.javadoc.title>Angus Mail API documentation</angus-mail.javadoc.title>
