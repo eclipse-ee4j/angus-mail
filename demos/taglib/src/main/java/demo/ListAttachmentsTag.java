@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -24,6 +24,7 @@ import java.io.IOException;
  * within the body of the tag.
  */
 public class ListAttachmentsTag extends BodyTagSupport {
+    private static final long serialVersionUID = -1L;
     private String messageinfo;
     private int partNum = 1;
     private int numParts = 0;

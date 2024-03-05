@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -90,6 +90,7 @@ public class Response {
      * @param    supportsUtf8    allow UTF-8 in response?
      * @since JavaMail 1.6.0
      */
+    @SuppressWarnings("this-escape")
     public Response(String s, boolean supportsUtf8) {
         if (supportsUtf8)
             buffer = s.getBytes(StandardCharsets.UTF_8);
@@ -107,6 +108,7 @@ public class Response {
      * @exception IOException    for I/O errors
      * @exception ProtocolException    for protocol failures
      */
+    @SuppressWarnings("this-escape")
     public Response(Protocol p) throws IOException, ProtocolException {
         // read one response into 'buffer'
         ByteArray ba = p.getResponseBuffer();
@@ -195,7 +197,6 @@ public class Response {
             index = mark; // reset
 
         pindex = index;
-        return;
     }
 
     public void skipSpaces() {
@@ -489,7 +490,7 @@ public class Response {
             while (buffer[index] != '}')
                 index++;
 
-            int count = 0;
+            int count;
             try {
                 count = ASCIIUtility.parseInt(buffer, start, index);
             } catch (NumberFormatException nex) {

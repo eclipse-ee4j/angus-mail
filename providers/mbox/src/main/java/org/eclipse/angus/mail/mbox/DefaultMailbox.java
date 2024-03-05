@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -32,10 +32,12 @@ public class DefaultMailbox extends Mailbox {
         home = System.getProperty("user.home");
     }
 
+    @Override
     public MailFile getMailFile(String user, String folder) {
         return new DefaultMailFile(filename(user, folder));
     }
 
+    @Override
     public String filename(String user, String folder) {
         try {
             char c = folder.charAt(0);
@@ -72,18 +74,17 @@ class DefaultMailFile extends File implements MailFile {
         super(name);
     }
 
+    @Override
     public boolean lock(String mode) {
         try {
             file = new RandomAccessFile(this, mode);
             return true;
         } catch (FileNotFoundException fe) {
             return false;
-        } catch (IOException ie) {
-            file = null;
-            return false;
         }
     }
 
+    @Override
     public void unlock() {
         if (file != null) {
             try {
@@ -95,9 +96,11 @@ class DefaultMailFile extends File implements MailFile {
         }
     }
 
+    @Override
     public void touchlock() {
     }
 
+    @Override
     public FileDescriptor getFD() {
         if (file == null)
             return null;
