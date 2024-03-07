@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -28,14 +28,12 @@ import java.util.List;
  */
 public class MSMultipartDataSource extends MimePartDataSource
         implements MultipartDataSource {
-    //private List<outlook.MSBodyPart> parts;
-    private List parts;
+    private List<MSBodyPart> parts;
 
     public MSMultipartDataSource(MimePart part, byte[] content)
             throws MessagingException {
         super(part);
-        //parts = new ArrayList<outlook.MSBodyPart>();
-        parts = new ArrayList();
+        parts = new ArrayList<>();
 
         /*
          * Parse the text of the message to find the attachments.
@@ -81,10 +79,12 @@ public class MSMultipartDataSource extends MimePartDataSource
         }
     }
 
+    @Override
     public int getCount() {
         return parts.size();
     }
 
+    @Override
     public BodyPart getBodyPart(int index) throws MessagingException {
         return (BodyPart) parts.get(index);
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -32,6 +32,7 @@ import java.util.Date;
  * @author Bill Shannon
  */
 public class MessageViewer extends JPanel implements CommandObject {
+    private static final long serialVersionUID = -1L;
 
     Message displayed = null;
     DataHandler dataHandler = null;
@@ -43,6 +44,7 @@ public class MessageViewer extends JPanel implements CommandObject {
         this(null);
     }
 
+    @SuppressWarnings("this-escape")
     public MessageViewer(Message what) {
         // set our layout
         super(new GridBagLayout());

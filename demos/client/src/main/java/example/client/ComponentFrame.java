@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -20,6 +20,7 @@ import java.awt.*;
  * @author Christopher Cotton
  */
 public class ComponentFrame extends JFrame {
+    private static final long serialVersionUID = -1L;
 
     /**
      * creates the frame
@@ -36,6 +37,7 @@ public class ComponentFrame extends JFrame {
      * @param what the component to display
      * @param name the name of the Frame
      */
+    @SuppressWarnings("this-escape")
     public ComponentFrame(Component what, String name) {
         super(name);
 

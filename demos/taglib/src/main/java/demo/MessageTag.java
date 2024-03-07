@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -20,6 +20,7 @@ import jakarta.servlet.jsp.tagext.TagSupport;
  * Custom tag for retrieving a message.
  */
 public class MessageTag extends TagSupport {
+    private static final long serialVersionUID = -1L;
     private String folder;
     private String session;
     private int num = 1;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -101,6 +101,7 @@ public class Protocol {
      * @exception IOException    for I/O errors
      * @exception ProtocolException    for protocol failures
      */
+    @SuppressWarnings("this-escape")
     public Protocol(String host, int port,
                     Properties props, String prefix,
                     boolean isSSL, MailLogger logger)

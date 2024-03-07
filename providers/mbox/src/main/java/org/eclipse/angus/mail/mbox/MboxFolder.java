@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -58,14 +58,14 @@ import java.util.StringTokenizer;
 
 public class MboxFolder extends Folder {
 
-    private String name;    // null => the default folder
+    private final String name;    // null => the default folder
     private boolean is_inbox = false;
     private int total;        // total number of messages in mailbox
     private volatile boolean opened = false;
     private List<MessageMetadata> messages;
     private TempFile temp;
-    private MboxStore mstore;
-    private MailFile folder;
+    private final MboxStore mstore;
+    private final MailFile folder;
     private long file_size;    // the size the last time we read or wrote it
     private long saved_file_size; // size at the last open, close, or expunge
     private boolean special_imap_message;
@@ -108,10 +108,12 @@ public class MboxFolder extends Folder {
             saved_file_size = -1;
     }
 
+    @Override
     public char getSeparator() {
         return File.separatorChar;
     }
 
+    @Override
     public Folder[] list(String pattern) throws MessagingException {
         if (!folder.isDirectory())
             throw new MessagingException("not a directory");
@@ -153,7 +155,7 @@ public class MboxFolder extends Folder {
         } else {
             realdir = mstore.mb.filename(mstore.user, refdir);
         }
-        List<String> flist = new ArrayList<String>();
+        List<String> flist = new ArrayList<>();
         listWork(realdir, refdir, pattern, fromStore ? 0 : 1, flist);
         if (Match.path("INBOX", pattern, '\0'))
             flist.add("INBOX");
@@ -165,6 +167,7 @@ public class MboxFolder extends Folder {
         return fl;
     }
 
+    @Override
     public String getName() {
         if (name == null)
             return "";
@@ -174,6 +177,7 @@ public class MboxFolder extends Folder {
             return folder.getName();
     }
 
+    @Override
     public String getFullName() {
         if (name == null)
             return "";
@@ -181,6 +185,7 @@ public class MboxFolder extends Folder {
             return name;
     }
 
+    @Override
     public Folder getParent() {
         if (name == null)
             return null;
@@ -191,10 +196,12 @@ public class MboxFolder extends Folder {
             return createFolder(mstore, folder.getParent());
     }
 
+    @Override
     public boolean exists() {
         return folder.exists();
     }
 
+    @Override
     public int getType() {
         if (folder.isDirectory())
             return HOLDS_FOLDERS;
@@ -202,10 +209,12 @@ public class MboxFolder extends Folder {
             return HOLDS_MESSAGES;
     }
 
+    @Override
     public Flags getPermanentFlags() {
         return MboxStore.permFlags;
     }
 
+    @Override
     public synchronized boolean hasNewMessages() {
         if (folder instanceof UNIXFile) {
             UNIXFile f = (UNIXFile) folder;
@@ -229,6 +238,7 @@ public class MboxFolder extends Folder {
         return current_size > saved_file_size;
     }
 
+    @Override
     public synchronized Folder getFolder(String name)
             throws MessagingException {
         if (folder.exists() && !folder.isDirectory())
@@ -237,6 +247,7 @@ public class MboxFolder extends Folder {
                 (this.name == null ? "~" : this.name) + File.separator + name);
     }
 
+    @Override
     public synchronized boolean create(int type) throws MessagingException {
         switch (type) {
             case HOLDS_FOLDERS:
@@ -275,6 +286,7 @@ public class MboxFolder extends Folder {
         return true;
     }
 
+    @Override
     public synchronized boolean delete(boolean recurse)
             throws MessagingException {
         checkClosed();
@@ -305,6 +317,7 @@ public class MboxFolder extends Folder {
         return ret;
     }
 
+    @Override
     public synchronized boolean renameTo(Folder f)
             throws MessagingException {
         checkClosed();
@@ -364,6 +377,7 @@ public class MboxFolder extends Folder {
             throw new IllegalStateException("Folder is not Writable");
     }
 
+    @Override
     public boolean isOpen() {
         return opened;
     }
@@ -371,6 +385,8 @@ public class MboxFolder extends Folder {
     /*
      * Open the folder in the specified mode.
      */
+    @Override
+    @SuppressWarnings("fallthrough")
     public synchronized void open(int mode) throws MessagingException {
         if (opened)
             throw new IllegalStateException("Folder is already Open");
@@ -401,7 +417,7 @@ public class MboxFolder extends Folder {
         }
         if (!folder.lock("r"))
             throw new MessagingException("Failed to lock folder: " + name);
-        messages = new ArrayList<MessageMetadata>();
+        messages = new ArrayList<>();
         total = 0;
         Message[] msglist = null;
         try {
@@ -419,6 +435,7 @@ public class MboxFolder extends Folder {
         opened = true;        // now really opened
     }
 
+    @Override
     public synchronized void close(boolean expunge) throws MessagingException {
         checkOpen();
 
@@ -655,6 +672,7 @@ public class MboxFolder extends Folder {
                 date.substring(0, 20) + date.substring(24);
     }
 
+    @Override
     public synchronized int getMessageCount() throws MessagingException {
         if (!opened)
             return -1;
@@ -685,6 +703,7 @@ public class MboxFolder extends Folder {
      * Get the specified message.  Note that messages are numbered
      * from 1.
      */
+    @Override
     public synchronized Message getMessage(int msgno)
             throws MessagingException {
         checkReadable();
@@ -716,6 +735,7 @@ public class MboxFolder extends Folder {
         return temp.newStream(md.start, md.dataend);
     }
 
+    @Override
     public synchronized void appendMessages(Message[] msgs)
             throws MessagingException {
         if (!folder.lock("rw"))
@@ -758,6 +778,7 @@ public class MboxFolder extends Folder {
             throw new MessagingException("Can't append non-Mime message");
     }
 
+    @Override
     public synchronized Message[] expunge() throws MessagingException {
         checkWritable();
 
@@ -896,6 +917,7 @@ public class MboxFolder extends Folder {
     /*
      * Only here to make accessible to MboxMessage.
      */
+    @Override
     protected void notifyMessageChangedListeners(int type, Message m) {
         super.notifyMessageChangedListeners(type, m);
     }
@@ -905,6 +927,7 @@ public class MboxFolder extends Folder {
      * this is an exact duplicate of the Folder.getURL except it doesn't
      * add a beginning '/' to the URLName.
      */
+    @Override
     public URLName getURLName() {
         // XXX - note:  this should not be done this way with the
         // new jakarta.mail apis.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -41,7 +41,7 @@ import java.util.Vector;
 
 public class SimpleClient {
 
-    static Vector url = new Vector();
+    static Vector<String> url = new Vector<>();
     static FolderViewer fv;
     static MessageViewer mv;
 
@@ -60,7 +60,7 @@ public class SimpleClient {
             }
         }
 
-        if (usage || url.size() == 0) {
+        if (usage || url.isEmpty()) {
             System.out.println("Usage: client.SimpleClient -L url");
             System.out.println("   where url is protocol://username:password@hostname/");
             System.exit(1);
@@ -81,6 +81,7 @@ public class SimpleClient {
 
             JFrame frame = new JFrame("Simple Jakarta Mail Client");
             frame.addWindowListener(new WindowAdapter() {
+                @Override
                 public void windowClosing(WindowEvent e) {
                     System.exit(0);
                 }
@@ -96,8 +97,8 @@ public class SimpleClient {
             DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
 
             // create a node for each store we have
-            for (Enumeration e = url.elements(); e.hasMoreElements(); ) {
-                String urlstring = (String) e.nextElement();
+            for (Enumeration<String> e = url.elements(); e.hasMoreElements(); ) {
+                String urlstring = e.nextElement();
                 URLName urln = new URLName(urlstring);
                 Store store = session.getStore(urln);
 
@@ -130,7 +131,7 @@ public class SimpleClient {
 
             frame.getContentPane().add(jsp2);
             frame.pack();
-            frame.show();
+            frame.setVisible(true);
 
         } catch (Exception ex) {
             System.out.println("SimpletClient caught exception");
@@ -143,6 +144,7 @@ public class SimpleClient {
 
 class TreePress implements TreeSelectionListener {
 
+    @Override
     public void valueChanged(TreeSelectionEvent e) {
         TreePath path = e.getNewLeadSelectionPath();
         if (path != null) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -59,6 +59,7 @@ import java.util.Properties;
  * @author Max Spivak
  */
 public class JakartaMailServlet extends HttpServlet implements SingleThreadModel {
+    private static final long serialVersionUID = -1L;
     String protocol = "imap";
     String mbox = "INBOX";
 
@@ -95,7 +96,7 @@ public class JakartaMailServlet extends HttpServlet implements SingleThreadModel
 
             // create
             MailUserData mud = new MailUserData(url);
-            ssn.putValue("jakartamailservlet", mud);
+            ssn.setAttribute("jakartamailservlet", mud);
 
             try {
                 Properties props = System.getProperties();
@@ -614,7 +615,7 @@ public class JakartaMailServlet extends HttpServlet implements SingleThreadModel
         if (ses == null) {
             return null;
         } else {
-            if ((mud = (MailUserData) ses.getValue("jakartamailservlet")) == null) {
+            if ((mud = (MailUserData) ses.getAttribute("jakartamailservlet")) == null) {
                 return null;
             }
         }

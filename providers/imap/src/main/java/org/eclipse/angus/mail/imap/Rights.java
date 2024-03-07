@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -59,7 +59,7 @@ public class Rights implements Cloneable {
      * of standard rights objects are predefined here.
      */
     public static final class Right {
-        private static Right[] cache = new Right[128];
+        private static final Right[] cache = new Right[128];
 
         // XXX - initialization order?
         /**
@@ -163,6 +163,7 @@ public class Rights implements Cloneable {
      *
      * @param rights the rights for initialization
      */
+    @SuppressWarnings("this-escape")
     public Rights(String rights) {
         for (int i = 0; i < rights.length(); i++)
             add(Right.getInstance(rights.charAt(i)));
