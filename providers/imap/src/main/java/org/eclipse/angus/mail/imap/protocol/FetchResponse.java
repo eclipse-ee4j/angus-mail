@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -51,6 +51,7 @@ public class FetchResponse extends IMAPResponse {
     private Map<String, Object> extensionItems;
     private final FetchItem[] fitems;
 
+    @SuppressWarnings("this-escape")
     public FetchResponse(Protocol p)
             throws IOException, ProtocolException {
         super(p);
@@ -72,6 +73,7 @@ public class FetchResponse extends IMAPResponse {
      * @exception ProtocolException    for protocol failures
      * @since JavaMail 1.4.6
      */
+    @SuppressWarnings("this-escape")
     public FetchResponse(IMAPResponse r, FetchItem[] fitems)
             throws IOException, ProtocolException {
         super(r);
@@ -184,7 +186,6 @@ public class FetchResponse extends IMAPResponse {
                     "error in FETCH parsing, missing '(' at index " + index);
 
         List<Item> v = new ArrayList<>();
-        Item i = null;
         skipSpaces();
         do {
 
@@ -192,7 +193,7 @@ public class FetchResponse extends IMAPResponse {
                 throw new ParsingException(
                         "error in FETCH parsing, ran off end of buffer, size " + size);
 
-            i = parseItem();
+            Item i = parseItem();
             if (i != null)
                 v.add(i);
             else if (!parseExtensionItem())

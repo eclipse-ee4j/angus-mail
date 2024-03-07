@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -61,6 +61,7 @@ public class MultipartReport extends MimeMultipart {
      *
      * @exception MessagingException for failures
      */
+    @SuppressWarnings("this-escape")
     public MultipartReport() throws MessagingException {
         super("report");
         // always at least two body parts
@@ -80,6 +81,7 @@ public class MultipartReport extends MimeMultipart {
      * @param    report    the Report object
      * @exception MessagingException for failures
      */
+    @SuppressWarnings("this-escape")
     public MultipartReport(String text, Report report)
             throws MessagingException {
         super("report");
@@ -106,6 +108,7 @@ public class MultipartReport extends MimeMultipart {
      * @param    msg    the message this report is about
      * @exception MessagingException for failures
      */
+    @SuppressWarnings("this-escape")
     public MultipartReport(String text, Report report, MimeMessage msg)
             throws MessagingException {
         this(text, report);
@@ -126,6 +129,7 @@ public class MultipartReport extends MimeMultipart {
      * @param    hdr    the headers of the message this report is about
      * @exception MessagingException for failures
      */
+    @SuppressWarnings("this-escape")
     public MultipartReport(String text, Report report, InternetHeaders hdr)
             throws MessagingException {
         this(text, report);
@@ -143,6 +147,7 @@ public class MultipartReport extends MimeMultipart {
      * @param    ds    DataSource, can be a MultipartDataSource
      * @exception MessagingException for failures
      */
+    @SuppressWarnings("this-escape")
     public MultipartReport(DataSource ds) throws MessagingException {
         super(ds);
         parse();
@@ -298,6 +303,7 @@ public class MultipartReport extends MimeMultipart {
      * @exception MessagingException for failures
      * @deprecated use setReport instead
      */
+    @Deprecated
     public synchronized void setDeliveryStatus(DeliveryStatus status)
             throws MessagingException {
         MimeBodyPart mbp = new MimeBodyPart();
@@ -358,7 +364,7 @@ public class MultipartReport extends MimeMultipart {
     private synchronized void setBodyPart(BodyPart part, int index)
             throws MessagingException {
         if (parts == null)    // XXX - can never happen?
-            parts = new Vector<BodyPart>();
+            parts = new Vector<>();
 
         if (index < parts.size())
             super.removeBodyPart(index);
@@ -374,6 +380,7 @@ public class MultipartReport extends MimeMultipart {
      * @param    subtype        Subtype
      * @exception MessagingException    always; can't change subtype
      */
+    @Override
     public synchronized void setSubType(String subtype)
             throws MessagingException {
         throw new MessagingException("Can't change subtype of MultipartReport");
@@ -386,6 +393,7 @@ public class MultipartReport extends MimeMultipart {
      * @param part The part to remove
      * @exception MessagingException always
      */
+    @Override
     public boolean removeBodyPart(BodyPart part) throws MessagingException {
         throw new MessagingException(
                 "Can't remove body parts from multipart/report");
@@ -398,6 +406,7 @@ public class MultipartReport extends MimeMultipart {
      * @param index Index of the part to remove
      * @exception MessagingException    always
      */
+    @Override
     public void removeBodyPart(int index) throws MessagingException {
         throw new MessagingException(
                 "Can't remove body parts from multipart/report");
@@ -410,6 +419,7 @@ public class MultipartReport extends MimeMultipart {
      * @param part The Part to be appended
      * @throws MessagingException always
      */
+    @Override
     public synchronized void addBodyPart(BodyPart part)
             throws MessagingException {
         // Once constructor is done, don't allow this anymore.
@@ -428,6 +438,7 @@ public class MultipartReport extends MimeMultipart {
      * @param index Location where to insert the part
      * @throws MessagingException always
      */
+    @Override
     public synchronized void addBodyPart(BodyPart part, int index)
             throws MessagingException {
         throw new MessagingException(

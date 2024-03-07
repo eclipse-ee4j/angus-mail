@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -59,9 +59,11 @@ public class MboxMessage extends MimeMessage {
     Date rcvDate;
     int lineCount = -1;
     private static OutputStream nullOutputStream = new OutputStream() {
+        @Override
         public void write(int b) {
         }
 
+        @Override
         public void write(byte[] b, int off, int len) {
         }
     };
@@ -69,6 +71,7 @@ public class MboxMessage extends MimeMessage {
     /**
      * Construct an MboxMessage from the InputStream.
      */
+    @SuppressWarnings("this-escape")
     public MboxMessage(Session session, InputStream is)
             throws MessagingException, IOException {
         super(session);
@@ -92,6 +95,7 @@ public class MboxMessage extends MimeMessage {
      * Construct an MboxMessage using the given InternetHeaders object
      * and content from an InputStream.
      */
+    @SuppressWarnings("this-escape")
     public MboxMessage(MboxFolder folder, InternetHeaders hdrs, InputStream is,
                        int msgno, String unix_from, boolean writable)
             throws MessagingException {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -26,6 +26,7 @@ import java.io.InputStream;
  */
 public class TextViewer extends JPanel implements CommandObject {
 
+    private static final long serialVersionUID = -1L;
     private JTextArea text_area = null;
     private DataHandler dh = null;
     private String verb = null;
@@ -33,6 +34,7 @@ public class TextViewer extends JPanel implements CommandObject {
     /**
      * Constructor
      */
+    @SuppressWarnings("this-escape")
     public TextViewer() {
         super(new GridLayout(1, 1));
 

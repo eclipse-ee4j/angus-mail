@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -29,7 +29,7 @@ import java.io.IOException;
  * @author Christopher Cotton
  */
 public class MultipartViewer extends JPanel implements CommandObject {
-
+    private static final long serialVersionUID = -1L;
     protected DataHandler dh = null;
     protected String verb = null;
 
@@ -38,6 +38,7 @@ public class MultipartViewer extends JPanel implements CommandObject {
     }
 
 
+    @Override
     public void setCommandContext(String verb, DataHandler dh) throws IOException {
         this.verb = verb;
         this.dh = dh;
@@ -157,11 +158,12 @@ public class MultipartViewer extends JPanel implements CommandObject {
             bp = part;
         }
 
+        @Override
         public void actionPerformed(ActionEvent e) {
             ComponentFrame f = new ComponentFrame(
                     getComponent(bp), "Attachment");
             f.pack();
-            f.show();
+            f.setVisible(true);
         }
     }
 

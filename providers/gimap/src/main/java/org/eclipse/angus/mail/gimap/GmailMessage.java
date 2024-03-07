@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -90,7 +90,7 @@ public class GmailMessage extends IMAPMessage {
     public String[] getLabels() throws MessagingException {
         String[] labels = (String[]) getItem(GmailProtocol.LABELS_ITEM);
         if (labels != null)
-            return (String[]) (labels.clone());
+            return labels.clone();
         else
             return new String[0];
     }

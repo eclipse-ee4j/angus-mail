@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -25,12 +25,12 @@ import java.util.Date;
  * @author Bill Shannon
  */
 public class FolderModel extends AbstractTableModel {
-
+    private static final long serialVersionUID = -1L;
     Folder folder;
     Message[] messages;
 
     String[] columnNames = {"Date", "From", "Subject"};
-    Class[] columnTypes = {String.class, String.class, String.class};
+    Class<?>[] columnTypes = {String.class, String.class, String.class};
 
     public void setFolder(Folder what) throws MessagingException {
         if (what != null) {
@@ -62,19 +62,23 @@ public class FolderModel extends AbstractTableModel {
     // Implementation of the TableModel methods
     //---------------------
 
+    @Override
     public String getColumnName(int column) {
         return columnNames[column];
     }
 
-    public Class getColumnClass(int column) {
+    @Override
+    public Class<?> getColumnClass(int column) {
         return columnTypes[column];
     }
 
 
+    @Override
     public int getColumnCount() {
         return columnNames.length;
     }
 
+    @Override
     public int getRowCount() {
         if (messages == null)
             return 0;
@@ -82,6 +86,7 @@ public class FolderModel extends AbstractTableModel {
         return messages.length;
     }
 
+    @Override
     public Object getValueAt(int aRow, int aColumn) {
         switch (aColumn) {
             case 0:    // date

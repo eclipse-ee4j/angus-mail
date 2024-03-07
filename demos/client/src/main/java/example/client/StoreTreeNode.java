@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -23,7 +23,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
  * @author Christopher Cotton
  */
 public class StoreTreeNode extends DefaultMutableTreeNode {
-
+    private static final long serialVersionUID = -1L;
     protected Store store = null;
     protected Folder folder = null;
     protected String display = null;

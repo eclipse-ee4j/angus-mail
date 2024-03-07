@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -47,6 +47,7 @@ public class MSMessage extends MimeMessage {
      *                            IOException occurs when accessing the given
      *                            MimeMessage object
      */
+    @SuppressWarnings("this-escape")
     public MSMessage(Session session, MimeMessage msg)
             throws MessagingException {
         super(session);
@@ -77,6 +78,7 @@ public class MSMessage extends MimeMessage {
     /**
      * Constructor to create a outlook.MSMessage from the given InputStream.
      */
+    @SuppressWarnings("this-escape")
     public MSMessage(Session session, InputStream is)
             throws MessagingException {
         super(session); // setup headerstore etc

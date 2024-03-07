@@ -12,6 +12,7 @@ for the Eclipse EE4J Angus Mail project:
 The following bugs have been fixed in the 2.0.4 release.
 
 765: CVE
+141: Remove this-escape compiler warnings
 
           CHANGES IN THE 2.0.3 RELEASE
           ----------------------------

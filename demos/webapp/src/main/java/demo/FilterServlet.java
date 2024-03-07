@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -23,11 +23,13 @@ import java.io.IOException;
  * forwarding the request to the selected URL.
  */
 public class FilterServlet extends HttpServlet {
+    private static final long serialVersionUID = -1L;
 
     /**
      * This method handles the "POST" submission from two forms: the
      * login form and the message compose form.
      */
+    @Override
     public void doPost(HttpServletRequest request,
                        HttpServletResponse response)
             throws IOException, ServletException {

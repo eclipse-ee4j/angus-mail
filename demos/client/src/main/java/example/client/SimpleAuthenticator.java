@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -116,10 +116,11 @@ public class SimpleAuthenticator extends Authenticator {
         int result = JOptionPane.showConfirmDialog(frame, d, "Login",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 
-        if (result == JOptionPane.OK_OPTION)
+        if (result == JOptionPane.OK_OPTION) {
+            char[] pw = password.getPassword();
             return new PasswordAuthentication(username.getText(),
-                    password.getText());
-        else
+                    pw == null ? (String) null : new String(pw));
+        } else
             return null;
     }
 

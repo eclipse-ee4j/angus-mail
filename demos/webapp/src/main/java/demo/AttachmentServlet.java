@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -32,10 +32,11 @@ import java.io.InputStream;
  * content handling capabilities.
  */
 public class AttachmentServlet extends HttpServlet {
-
+    private static final long serialVersionUID = -1L;
     /**
      * This method handles the GET requests from the client.
      */
+    @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
 

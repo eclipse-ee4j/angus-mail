@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Distribution License v. 1.0, which is available at
@@ -24,6 +24,7 @@ import java.awt.*;
  * @author Bill Shannon
  */
 public class FolderViewer extends JPanel {
+    private static final long serialVersionUID = -1L;
 
     FolderModel model = new FolderModel();
     JScrollPane scrollpane;
@@ -33,6 +34,7 @@ public class FolderViewer extends JPanel {
         this(null);
     }
 
+    @SuppressWarnings("this-escape")
     public FolderViewer(Folder what) {
         super(new GridLayout(1, 1));
 
