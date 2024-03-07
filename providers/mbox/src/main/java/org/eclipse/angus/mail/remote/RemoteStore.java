@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -38,6 +38,7 @@ public abstract class RemoteStore extends MboxStore {
     protected int port;
     protected long lastUpdate = 0;
 
+    @SuppressWarnings("this-escape")
     public RemoteStore(Session session, URLName url) {
         super(session, url);
         remoteStore = getRemoteStore(session, url);
@@ -53,6 +54,7 @@ public abstract class RemoteStore extends MboxStore {
     /**
      * Connect to the store.
      */
+    @Override
     public void connect(String host, int port, String user, String password)
             throws MessagingException {
         this.host = host;
@@ -105,12 +107,14 @@ public abstract class RemoteStore extends MboxStore {
         }
     }
 
+    @Override
     public Folder getDefaultFolder() throws MessagingException {
         checkConnected();
 
         return new RemoteDefaultFolder(this, null);
     }
 
+    @Override
     public Folder getFolder(String name) throws MessagingException {
         checkConnected();
 
@@ -120,6 +124,7 @@ public abstract class RemoteStore extends MboxStore {
             return super.getFolder(name);
     }
 
+    @Override
     public Folder getFolder(URLName url) throws MessagingException {
         checkConnected();
         return getFolder(url.getFile());

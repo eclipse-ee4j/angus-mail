@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -32,15 +32,15 @@ public class SocketConnectException extends IOException {
     /**
      * The socket host name.
      */
-    private String host;
+    private final String host;
     /**
      * The socket port.
      */
-    private int port;
+    private final int port;
     /**
      * The connection timeout.
      */
-    private int cto;
+    private final int cto;
     /**
      * The generated serial id.
      */
@@ -57,8 +57,7 @@ public class SocketConnectException extends IOException {
      */
     public SocketConnectException(String msg, Exception cause,
                                   String host, int port, int cto) {
-        super(msg);
-        initCause(cause);
+        super(msg, cause);
         this.host = host;
         this.port = port;
         this.cto = cto;
@@ -71,8 +70,8 @@ public class SocketConnectException extends IOException {
      */
     public Exception getException() {
         // the "cause" is always an Exception; see constructor above
-        Throwable t = getCause();
-        assert t == null || t instanceof Exception;
+        Throwable t = super.getCause();
+        assert t == null || t instanceof Exception : t;
         return (Exception) t;
     }
 

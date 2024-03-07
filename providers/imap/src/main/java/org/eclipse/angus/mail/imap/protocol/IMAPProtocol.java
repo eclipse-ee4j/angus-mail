@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -126,6 +126,7 @@ public class IMAPProtocol extends Protocol {
      * @param    logger    the MailLogger to use for debug output
      * @exception IOException    for I/O errors
      */
+    @SuppressWarnings("this-escape")
     public IMAPProtocol(String name, String host, int port,
                         Properties props, boolean isSSL, MailLogger logger)
             throws IOException, ProtocolException {

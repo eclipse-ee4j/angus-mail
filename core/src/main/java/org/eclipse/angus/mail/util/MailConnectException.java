@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -30,9 +30,9 @@ import jakarta.mail.MessagingException;
  */
 
 public class MailConnectException extends MessagingException {
-    private String host;
-    private int port;
-    private int cto;
+    private final String host;
+    private final int port;
+    private final int cto;
 
     private static final long serialVersionUID = -3818807731125317729L;
 
@@ -40,7 +40,9 @@ public class MailConnectException extends MessagingException {
      * Constructs a MailConnectException.
      *
      * @param    cex    the SocketConnectException with the details
+     * @throws NullPointerException if given exception is {@code null}.
      */
+    @SuppressWarnings("this-escape")
     public MailConnectException(SocketConnectException cex) {
         super(
                 "Couldn't connect to host, port: " +
@@ -51,7 +53,7 @@ public class MailConnectException extends MessagingException {
         this.host = cex.getHost();
         this.port = cex.getPort();
         this.cto = cex.getConnectionTimeout();
-        setNextException(cex.getException());
+        super.setNextException(cex.getException());
     }
 
     /**
