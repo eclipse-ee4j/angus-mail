@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -40,11 +40,13 @@ import jakarta.mail.search.SizeTerm;
 import jakarta.mail.search.StringTerm;
 import jakarta.mail.search.SubjectTerm;
 import org.eclipse.angus.mail.iap.Argument;
+import org.eclipse.angus.mail.iap.Literal;
 import org.eclipse.angus.mail.imap.ModifiedSinceTerm;
 import org.eclipse.angus.mail.imap.OlderTerm;
 import org.eclipse.angus.mail.imap.YoungerTerm;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -62,7 +64,7 @@ import java.util.GregorianCalendar;
  */
 public class SearchSequence {
 
-    private IMAPProtocol protocol;    // for hasCapability checks; may be null
+    private final IMAPProtocol protocol;    // for hasCapability checks; may be null
 
     /**
      * Create a SearchSequence for this IMAPProtocol.
@@ -79,6 +81,7 @@ public class SearchSequence {
      */
     @Deprecated
     public SearchSequence() {
+        protocol = null; //TODO Deprecate for remove???
     }
 
     /**
@@ -283,7 +286,12 @@ public class SearchSequence {
         Argument result = new Argument();
         result.writeAtom("HEADER");
         result.writeString(term.getHeaderName());
-        result.writeString(term.getPattern(), charset);
+        String pattern = term.getPattern();
+        if (protocol != null && protocol.supportsUtf8() && !isAscii(term)) {
+            result.writeBytes(new Utf8Literal(pattern, charset));
+        } else {
+            result.writeString(pattern, charset);
+        }
         return result;
     }
 
@@ -335,7 +343,11 @@ public class SearchSequence {
             throws SearchException, IOException {
         Argument result = new Argument();
         result.writeAtom("FROM");
-        result.writeString(address, charset);
+        if (protocol != null && protocol.supportsUtf8() && !isAscii(address)) {
+            result.writeBytes(new Utf8Literal(address, charset));
+        } else {
+            result.writeString(address, charset);
+        }
         return result;
     }
 
@@ -353,7 +365,12 @@ public class SearchSequence {
         else
             throw new SearchException("Illegal Recipient type");
 
-        result.writeString(address, charset);
+        
+        if (protocol != null && protocol.supportsUtf8() && !isAscii(address)) {
+            result.writeBytes(new Utf8Literal(address, charset));
+        } else {
+            result.writeString(address, charset);
+        }
         return result;
     }
 
@@ -362,7 +379,12 @@ public class SearchSequence {
         Argument result = new Argument();
 
         result.writeAtom("SUBJECT");
-        result.writeString(term.getPattern(), charset);
+        String pattern = term.getPattern();
+        if (protocol != null && protocol.supportsUtf8() && !isAscii(term)) {
+            result.writeBytes(new Utf8Literal(pattern, charset));
+        } else {
+            result.writeString(pattern, charset);
+        }
         return result;
     }
 
@@ -371,7 +393,12 @@ public class SearchSequence {
         Argument result = new Argument();
 
         result.writeAtom("BODY");
-        result.writeString(term.getPattern(), charset);
+        String pattern = term.getPattern();
+        if (protocol != null && protocol.supportsUtf8() && !isAscii(term)) {
+            result.writeBytes(new Utf8Literal(pattern, charset));
+        } else {
+            result.writeString(pattern, charset);
+        }
         return result;
     }
 
@@ -410,7 +437,7 @@ public class SearchSequence {
      *
      * Note that this format does not contain the TimeZone
      */
-    private static String[] monthTable = {
+    private static final String[] monthTable = {
             "Jan", "Feb", "Mar", "Apr", "May", "Jun",
             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     };
@@ -542,5 +569,23 @@ public class SearchSequence {
         result.writeAtom("MODSEQ");
         result.writeNumber(term.getModSeq());
         return result;
+    }
+    
+    private static final class Utf8Literal implements Literal {
+        private final byte[] bytes;
+        
+        Utf8Literal(String data, String charset) throws IOException {
+            this.bytes = data.getBytes(charset == null ? "UTF-8" : charset);
+        }
+        
+        @Override
+        public int size() {
+            return bytes.length;
+        }
+
+        @Override
+        public void writeTo(OutputStream os) throws IOException {
+            os.write(this.bytes);
+        }
     }
 }
