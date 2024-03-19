@@ -437,7 +437,7 @@ public class SearchSequence {
      *
      * Note that this format does not contain the TimeZone
      */
-    private static String[] monthTable = {
+    private static final String[] monthTable = {
             "Jan", "Feb", "Mar", "Apr", "May", "Jun",
             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     };
@@ -580,16 +580,12 @@ public class SearchSequence {
         
         @Override
         public int size() {
-            return bytes.length + 4;
+            return bytes.length;
         }
 
         @Override
         public void writeTo(OutputStream os) throws IOException {
-            os.write('\n');
-            os.write('\r');
             os.write(this.bytes);
-            os.write('\n');
-            os.write('\r');
         }
     }
 }

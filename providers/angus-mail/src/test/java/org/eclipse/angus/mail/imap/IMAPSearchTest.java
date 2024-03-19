@@ -103,8 +103,7 @@ public final class IMAPSearchTest {
      */
     //TODO: Fix this TestServer/ProtocolHandler so this test passes.
     //TODO: Fix the test.
-    //@Test
-    @org.junit.Ignore
+    @Test
     public void testUtf8Search() {
         final String find = "\u2019\u7cfb\u7edf";
         TestServer server = null;
@@ -154,13 +153,12 @@ public final class IMAPSearchTest {
         }
     }
     
-    //TODO: Fix the test.
     //@Test
     @org.junit.Ignore
     public void testUtf8SubjectLiteral() throws Exception {
         final String find = "\u2019\u7cfb\u7edf";
         SubjectTerm term = new SubjectTerm(find);
-        InputStream in = new ByteArrayInputStream(new byte[0]);
+        InputStream in = new ByteArrayInputStream(find.getBytes("UTF-8"));
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(baos, true, "UTF-8");
         Properties props = new Properties();
