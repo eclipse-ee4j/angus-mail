@@ -53,9 +53,10 @@ Get your Client ID and Client secret from the
 The general procedure above should work to connect to
 imap-mail.outlook.com, but the access token will need to be acquired as
 described on the Outlook.com page.
+For POP3 you need the additional `mail.pop3.auth.xoauth2.two.line.authentication.format=true` property.
 
 OAuth2 is also supported with SMTP; change "imap" to "smtp" in the
-property names. OAuth2 is **not** supported for pop3.
+property names.
 
 Please send feedback to [angus-dev@eclipse.org](https://accounts.eclipse.org/mailing-list/angus-dev).
 
