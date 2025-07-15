@@ -67,7 +67,7 @@ public class Issue299Test {
         };
     }
     public static Session getSession(){
-        return Session.getDefaultInstance(properties, authenticator);
+        return Session.getInstance(properties, authenticator);
     }
 
     @Test
@@ -100,6 +100,7 @@ public class Issue299Test {
             }
         } finally {
             server.stop();
+            service.shutdown();
             service.awaitTermination(5, TimeUnit.SECONDS);
         }
     }

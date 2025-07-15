@@ -2471,7 +2471,7 @@ public class SMTPTransport extends Transport {
         final byte LF = '\n';
         for (byte b : cmdBytes) {
             if (b == LF || b == CR) {
-                throw new IllegalArgumentException("Command contains illegal character: " + b);
+                throw new IllegalArgumentException("Command contains illegal character: " + String.format("0x%02x",b));
             }
         }
     }
