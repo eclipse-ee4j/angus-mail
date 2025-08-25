@@ -12,6 +12,7 @@ for the Eclipse EE4J Angus Mail project:
 The following bugs have been fixed in the 2.1.0 release.
 
 141: Remove this-escape compiler warnings
+151: Rename resource files so JakartaMail and JavaMail can co-exist
 
           CHANGES IN THE 2.0.3 RELEASE
           ----------------------------
