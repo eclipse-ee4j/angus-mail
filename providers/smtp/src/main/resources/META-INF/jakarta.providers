@@ -1,0 +1,3 @@
+# Jakarta Mail SMTP provider Oracle
+protocol=smtp; type=transport; class=org.eclipse.angus.mail.smtp.SMTPTransport; vendor=Oracle;
+protocol=smtps; type=transport; class=org.eclipse.angus.mail.smtp.SMTPSSLTransport; vendor=Oracle;

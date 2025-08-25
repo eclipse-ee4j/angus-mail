@@ -3,6 +3,7 @@ copyright-exclude
 /META-INF/services/
 /META-INF/javamail
 /META-INF/mailcap
+/META-INF/jakarta
 /README
 /NOTICE
 /Jenkinsfile

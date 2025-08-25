@@ -3,6 +3,24 @@
 
 		    Angus Mail ${angus-mail.version} release
 		    ------------------------------
+-- Angus Mail 2.1.0 --
+
+- Resource File Duplication due to Jakartification
+
+    After the migration of Mail to Jakarta packages, it was discovered that some
+    resource files had the same name as those used in the legacy `javax.mail`
+    implementation. As a result, when both the old `javax.mail` and the new
+    `jakarta.mail` libraries were present in the classpath, conflicts could occur,
+    as documented in:
+    https://github.com/jakartaee/mail-api/issues/527
+
+    To resolve this issue, the resource files within Angus Mail that could lead
+    to conflicts have been duplicated with a `jakarta.` prefix. The Mail-API
+    will now attempt to load resources prefixed with `jakarta.` first. If no
+    such resource is found, it will fall back to the older resource files.
+
+    Over time, the legacy resource files (without the `jakarta.` prefix) will be
+    removed entirely, and only the `jakarta.`-prefixed resources will be kept.
 
 -- Angus Mail 2.0.3 --
 

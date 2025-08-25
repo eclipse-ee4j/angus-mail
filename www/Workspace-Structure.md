@@ -170,7 +170,7 @@ upper module; is that too weird?)
     providers/mbox/src/main/java/org/eclipse/angus/mail/remote/POP3RemoteStore.java
     ...
     providers/mbox/src/main/java/module-info.java
-    providers/mbox/src/main/resources/META-INF/javamail.providers
+    providers/mbox/src/main/resources/META-INF/jakarta.providers
     providers/mbox/src/main/resources/META-INF/services/jakarta.mail.Provider
     providers/mbox/src/test/java/org/eclipse/angus/mail/mbox/MboxFolderExpungeTest.java
     providers/mbox/src/test/java/org/eclipse/angus/mail/mbox/MboxFolderTest.java
