@@ -18,6 +18,21 @@
       },
       {
         "pattern": "\\QMETA-INF/javamail.providers\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/jakarta.charset.map\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/jakarta.address.map\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/jakarta.default.address.map\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/jakarta.default.providers\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/jakarta.providers\\E"
       }
     ]
   }
