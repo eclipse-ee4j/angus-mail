@@ -453,6 +453,7 @@ public class IMAPProtocol extends Protocol {
      *
      * @since JavaMail 1.6.0
      */
+    @Override
     public boolean supportsUtf8() {
         return utf8;
     }
@@ -2497,9 +2498,11 @@ public class IMAPProtocol extends Protocol {
         // Check if the search "text" terms contain only ASCII chars,
         // or if utf8 support has been enabled (in which case CHARSET
         // is not allowed; see RFC 6855, section 3, last paragraph)
-        if (supportsUtf8() || SearchSequence.isAscii(term)) {
+        String charset = supportsUtf8() ? MimeUtility.mimeCharset(
+                StandardCharsets.UTF_8.name()) : null;
+        if (charset != null || SearchSequence.isAscii(term)) {
             try {
-                return issueSearch(msgSequence, term, null);
+                return issueSearch(msgSequence, term, charset);
             } catch (IOException ioex) { /* will not happen */ }
         }
 
@@ -2551,14 +2554,17 @@ public class IMAPProtocol extends Protocol {
 
         // Generate a search-sequence with the given charset
         Argument args = getSearchSequence().generateSequence(term,
-                charset == null ? null :
+                charset == null ? (String) null :
                         MimeUtility.javaCharset(charset)
         );
         args.writeAtom(msgSequence);
 
+        //A charset of null in this specific case means term is ASCII only.
+        //If term is ASCII only or if utf8 support has been enabled
+        //(in which case CHARSET is not allowed; see RFC 6855, section 3,
+        //last paragraph)
         Response[] r;
-
-        if (charset == null) // text is all US-ASCII
+        if (charset == null || supportsUtf8())
             r = command("SEARCH", args);
         else
             r = command("SEARCH CHARSET " + charset, args);
@@ -2874,7 +2880,7 @@ public class IMAPProtocol extends Protocol {
 	List<Quota> v = new ArrayList<Quota>();
 
 	// Grab all QUOTA responses
-	if (response.isOK()) { // command succesful 
+	if (response.isOK()) { // command succesful
 	    for (int i = 0, len = r.length; i < len; i++) {
 		if (!(r[i] instanceof IMAPResponse))
 		    continue;

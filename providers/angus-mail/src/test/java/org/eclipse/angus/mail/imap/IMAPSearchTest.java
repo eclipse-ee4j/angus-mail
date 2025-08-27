@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -22,12 +22,18 @@ import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.search.SearchException;
 import jakarta.mail.search.SubjectTerm;
+import org.eclipse.angus.mail.imap.protocol.IMAPProtocol;
+import org.eclipse.angus.mail.imap.protocol.SearchSequence;
 import org.eclipse.angus.mail.test.TestServer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.Properties;
 
 import static org.junit.Assert.fail;
@@ -95,13 +101,17 @@ public final class IMAPSearchTest {
      * term includes a non-ASCII character.
      * (see RFC 6855, section 3, last paragraph)
      */
+    //TODO: Fix this TestServer/ProtocolHandler so this test passes.
+    //TODO: Fix the test.
     @Test
     public void testUtf8Search() {
+        final String find = "\u2019\u7cfb\u7edf";
         TestServer server = null;
         try {
             server = new TestServer(new IMAPUtf8Handler() {
                 @Override
                 public void search(String line) throws IOException {
+                    System.out.println(line);
                     if (line.contains("CHARSET"))
                         bad("CHARSET not supported");
                     else
@@ -115,14 +125,15 @@ public final class IMAPSearchTest {
             properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             final Session session = Session.getInstance(properties);
             //session.setDebug(true);
-
+            
             final Store store = session.getStore("imap");
             Folder folder = null;
             try {
                 store.connect("test", "test");
                 folder = store.getFolder("INBOX");
                 folder.open(Folder.READ_ONLY);
-                Message[] msgs = folder.search(new SubjectTerm("\u2019"));
+                SubjectTerm term = new SubjectTerm(find);
+                Message[] msgs = folder.search(term);
             } catch (Exception ex) {
                 System.out.println(ex);
                 //ex.printStackTrace();
@@ -140,6 +151,28 @@ public final class IMAPSearchTest {
                 server.quit();
             }
         }
+    }
+    
+    //@Test
+    @org.junit.Ignore
+    public void testUtf8SubjectLiteral() throws Exception {
+        final String find = "\u2019\u7cfb\u7edf";
+        SubjectTerm term = new SubjectTerm(find);
+        InputStream in = new ByteArrayInputStream(find.getBytes("UTF-8"));
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(baos, true, "UTF-8");
+        Properties props = new Properties();
+
+        IMAPProtocol p = new IMAPProtocol(in, out, props, false) {
+            public boolean supportsUtf8() {
+                return true;
+            }
+        };
+        
+        SearchSequence ss = new SearchSequence(p);
+        ss.generateSequence(term, "UTF-8").write(p);
+        
+        System.out.println(baos.toString("UTF-8"));
     }
 
     /**
