@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -50,18 +50,24 @@ public class FetchResponse extends IMAPResponse {
     private Item[] items;
     private Map<String, Object> extensionItems;
     private final FetchItem[] fitems;
+    private final boolean strict;
 
     @SuppressWarnings("this-escape")
     public FetchResponse(Protocol p)
             throws IOException, ProtocolException {
         super(p);
         fitems = null;
+        strict = p.isStrict();
         parse();
     }
 
-    public FetchResponse(IMAPResponse r)
+    // Test
+    FetchResponse(IMAPResponse r, boolean strict)
             throws IOException, ProtocolException {
-        this(r, null);
+        super(r);
+        this.fitems = null;
+        this.strict = strict;
+        parse();
     }
 
     /**
@@ -69,16 +75,22 @@ public class FetchResponse extends IMAPResponse {
      *
      * @param    r    the IMAPResponse
      * @param    fitems    the fetch items
+     * @param    p    the protocol
      * @exception IOException    for I/O errors
      * @exception ProtocolException    for protocol failures
      * @since JavaMail 1.4.6
      */
     @SuppressWarnings("this-escape")
-    public FetchResponse(IMAPResponse r, FetchItem[] fitems)
+    public FetchResponse(IMAPResponse r, FetchItem[] fitems, Protocol p)
             throws IOException, ProtocolException {
         super(r);
         this.fitems = fitems;
+        this.strict = p.isStrict();
         parse();
+    }
+
+    boolean isStrict() {
+        return strict;
     }
 
     public int getItemCount() {
