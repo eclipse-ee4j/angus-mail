@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -39,6 +39,7 @@ public class ENVELOPE implements Item {
 
     // IMAP item name
     static final char[] name = {'E', 'N', 'V', 'E', 'L', 'O', 'P', 'E'};
+    private final boolean strict;
     public int msgno;
 
     public Date date = null;
@@ -62,6 +63,7 @@ public class ENVELOPE implements Item {
     public ENVELOPE(FetchResponse r) throws ParsingException {
         if (parseDebug)
             System.out.println("parse ENVELOPE");
+        strict = r.isStrict();
         msgno = r.getNumber();
 
         r.skipSpaces();
@@ -133,6 +135,13 @@ public class ENVELOPE implements Item {
                 IMAPAddress a = new IMAPAddress(r);
                 if (parseDebug)
                     System.out.println("    Address: " + a);
+                if (strict) {
+                    try {
+                        a.validate();
+                    } catch (AddressException e) {
+                        throw new ParsingException("ADDRESS parse error", e);
+                    }
+                }
                 // if we see an end-of-group address at the top, ignore it
                 if (!a.isEndOfGroup())
                     v.add(a);
