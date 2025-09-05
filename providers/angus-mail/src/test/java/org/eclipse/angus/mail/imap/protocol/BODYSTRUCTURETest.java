@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -39,7 +39,7 @@ public class BODYSTRUCTURETest {
                         "784 11 NIL (\"inline\" NIL) NIL NIL) \"alternative\" " +
                         "(\"boundary\" \"__139957996218379.example.com\" \"name\" NIL) NIL NIL))");
         // here's the incorrect NIL that should be "" ............^
-        FetchResponse fr = new FetchResponse(response);
+        FetchResponse fr = new FetchResponse(response, true);
         BODYSTRUCTURE bs = fr.getItem(BODYSTRUCTURE.class);
         ParameterList p = bs.cParams;
         assertNotNull(p.get("name"));
@@ -62,7 +62,7 @@ public class BODYSTRUCTURETest {
                         "\"mixed\" (\"boundary\" \"----=_Part_0_-1731707885.1504253815584\") " +
                         "\"S/MIME Encrypted Message\" NIL))");
         //    ^^^^^^^ here's the string that should be the disposition
-        FetchResponse fr = new FetchResponse(response);
+        FetchResponse fr = new FetchResponse(response, true);
         BODYSTRUCTURE bs = fr.getItem(BODYSTRUCTURE.class);
         assertEquals("S/MIME Encrypted Message", bs.description);
     }

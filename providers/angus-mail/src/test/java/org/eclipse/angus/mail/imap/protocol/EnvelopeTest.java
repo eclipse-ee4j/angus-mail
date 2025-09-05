@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -16,6 +16,7 @@
 
 package org.eclipse.angus.mail.imap.protocol;
 
+import org.eclipse.angus.mail.iap.ParsingException;
 import org.junit.Test;
 
 /**
@@ -40,7 +41,7 @@ public class EnvelopeTest {
                         // here's the space inserted by Yahoo IMAP ^
                         "NIL NIL NIL " +
                         "\"<xxx@mail.gmail.com>\"))");
-        FetchResponse fr = new FetchResponse(response);
+        FetchResponse fr = new FetchResponse(response, true);
         // no exception means it worked
     }
 
@@ -57,7 +58,32 @@ public class EnvelopeTest {
                         "((\"xxx\" NIL \"xxx\" \"milium.com.br\")) " +
                         "((NIL NIL \"xxx\" \"live.hk\")) () NIL NIL NIL " +
                         "\"<20110429134718.70333732030A@mail2.milium.com.br>\"))");
-        FetchResponse fr = new FetchResponse(response);
+        FetchResponse fr = new FetchResponse(response, true);
+        // no exception means it worked
+    }
+
+    @Test(expected = ParsingException.class)
+    public void testSpaceBugStrict() throws Exception {
+        IMAPResponse response = new IMAPResponse(
+                "* 44 FETCH (ENVELOPE (\"Tue, 28 Jan 2025 11:44:12 +0000\" \"Some Subject\" "
+                + "((\"info@\" NIL \"some-url.com info\" \"some-url.com\")) "
+                + "((NIL NIL \"info\" \"some-url.com\")) ((NIL NIL \"info\" \"some-url.com\")) "
+                + "((NIL NIL \"receiver\" \"target-url.org\")) NIL NIL NIL"
+                + " \"<XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX@YYYYYYYYYYYYYYY.eurprd05.prod.outlook.com>\") "
+                + "INTERNALDATE \"28-Jan-2025 11:44:12 +0100\" RFC822.SIZE 55818)");
+        FetchResponse fr = new FetchResponse(response, true);
+    }
+
+    @Test
+    public void testSpaceBugNotStrict() throws Exception {
+        IMAPResponse response = new IMAPResponse(
+                "* 44 FETCH (ENVELOPE (\"Tue, 28 Jan 2025 11:44:12 +0000\" \"Some Subject\" "
+                + "((\"info@\" NIL \"some-url.com info\" \"some-url.com\")) "
+                + "((NIL NIL \"info\" \"some-url.com\")) ((NIL NIL \"info\" \"some-url.com\")) "
+                + "((NIL NIL \"receiver\" \"target-url.org\")) NIL NIL NIL"
+                + " \"<XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX@YYYYYYYYYYYYYYY.eurprd05.prod.outlook.com>\") "
+                + "INTERNALDATE \"28-Jan-2025 11:44:12 +0100\" RFC822.SIZE 55818)");
+        FetchResponse fr = new FetchResponse(response, false);
         // no exception means it worked
     }
 }
