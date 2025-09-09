@@ -132,16 +132,9 @@ public class ENVELOPE implements Item {
             List<InternetAddress> v = new ArrayList<>();
 
             do {
-                IMAPAddress a = new IMAPAddress(r);
+                IMAPAddress a = new IMAPAddress(r, strict);
                 if (parseDebug)
                     System.out.println("    Address: " + a);
-                if (strict) {
-                    try {
-                        a.validate();
-                    } catch (AddressException e) {
-                        throw new ParsingException("ADDRESS parse error", e);
-                    }
-                }
                 // if we see an end-of-group address at the top, ignore it
                 if (!a.isEndOfGroup())
                     v.add(a);
@@ -163,7 +156,7 @@ class IMAPAddress extends InternetAddress {
 
     private static final long serialVersionUID = -3835822029483122232L;
 
-    IMAPAddress(Response r) throws ParsingException {
+    IMAPAddress(Response r, boolean strict) throws ParsingException {
         r.skipSpaces(); // skip leading spaces
 
         if (r.readByte() != '(')
@@ -193,7 +186,7 @@ class IMAPAddress extends InternetAddress {
             sb.append(groupname).append(':');
             List<InternetAddress> v = new ArrayList<>();
             while (r.peekByte() != ')') {
-                IMAPAddress a = new IMAPAddress(r);
+                IMAPAddress a = new IMAPAddress(r, strict);
                 if (a.isEndOfGroup())    // reached end of group
                     break;
                 if (v.size() != 0)    // if not first element, need a comma
@@ -212,7 +205,13 @@ class IMAPAddress extends InternetAddress {
             else
                 address = mb + "@" + host;
         }
-
+        if (strict) {
+            try {
+                validate();
+            } catch (AddressException e) {
+                throw new ParsingException("ADDRESS parse error", e);
+            }
+        }
     }
 
     boolean isEndOfGroup() {
