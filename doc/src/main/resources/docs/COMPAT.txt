@@ -3,7 +3,7 @@
 
 		    Angus Mail ${angus-mail.version} release
 		    ------------------------------
--- Angus Mail 2.1.0 --
+-- Angus Mail 2.0.5 --
 
 - Resource File Duplication due to Jakartification
 
