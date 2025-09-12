@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -39,6 +39,7 @@ public class ENVELOPE implements Item {
 
     // IMAP item name
     static final char[] name = {'E', 'N', 'V', 'E', 'L', 'O', 'P', 'E'};
+    private final boolean strict;
     public int msgno;
 
     public Date date = null;
@@ -62,6 +63,7 @@ public class ENVELOPE implements Item {
     public ENVELOPE(FetchResponse r) throws ParsingException {
         if (parseDebug)
             System.out.println("parse ENVELOPE");
+        strict = r.isStrict();
         msgno = r.getNumber();
 
         r.skipSpaces();
@@ -130,7 +132,7 @@ public class ENVELOPE implements Item {
             List<InternetAddress> v = new ArrayList<>();
 
             do {
-                IMAPAddress a = new IMAPAddress(r);
+                IMAPAddress a = new IMAPAddress(r, strict);
                 if (parseDebug)
                     System.out.println("    Address: " + a);
                 // if we see an end-of-group address at the top, ignore it
@@ -154,7 +156,7 @@ class IMAPAddress extends InternetAddress {
 
     private static final long serialVersionUID = -3835822029483122232L;
 
-    IMAPAddress(Response r) throws ParsingException {
+    IMAPAddress(Response r, boolean strict) throws ParsingException {
         r.skipSpaces(); // skip leading spaces
 
         if (r.readByte() != '(')
@@ -184,7 +186,7 @@ class IMAPAddress extends InternetAddress {
             sb.append(groupname).append(':');
             List<InternetAddress> v = new ArrayList<>();
             while (r.peekByte() != ')') {
-                IMAPAddress a = new IMAPAddress(r);
+                IMAPAddress a = new IMAPAddress(r, strict);
                 if (a.isEndOfGroup())    // reached end of group
                     break;
                 if (v.size() != 0)    // if not first element, need a comma
@@ -203,7 +205,13 @@ class IMAPAddress extends InternetAddress {
             else
                 address = mb + "@" + host;
         }
-
+        if (strict) {
+            try {
+                validate();
+            } catch (AddressException e) {
+                throw new ParsingException("ADDRESS parse error", e);
+            }
+        }
     }
 
     boolean isEndOfGroup() {

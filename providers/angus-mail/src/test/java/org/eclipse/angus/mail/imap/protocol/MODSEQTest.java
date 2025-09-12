@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -31,7 +31,7 @@ public class MODSEQTest {
     public void testAll() throws Exception {
         IMAPResponse response = new IMAPResponse(
                 "* 1 FETCH (MODSEQ (624140003))");
-        FetchResponse fr = new FetchResponse(response);
+        FetchResponse fr = new FetchResponse(response, true);
         MODSEQ m = fr.getItem(MODSEQ.class);
         assertEquals(1, m.seqnum);
         assertEquals(624140003, m.modseq);
@@ -44,7 +44,7 @@ public class MODSEQTest {
     public void testSpaces() throws Exception {
         IMAPResponse response = new IMAPResponse(
                 "* 1 FETCH ( MODSEQ ( 624140003 ) )");
-        FetchResponse fr = new FetchResponse(response);
+        FetchResponse fr = new FetchResponse(response, true);
         MODSEQ m = fr.getItem(MODSEQ.class);
         assertEquals(1, m.seqnum);
         assertEquals(624140003, m.modseq);
