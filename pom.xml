@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!--
 
-    Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Public License v. 2.0, which is available at
@@ -66,6 +66,7 @@
     </licenses>
 
     <properties>
+        <maven.compiler.release>11</maven.compiler.release>
         <project.build.commonResourcesDirectory>${project.build.directory}/common-resources</project.build.commonResourcesDirectory>
         <legal.doc.source>${project.build.commonResourcesDirectory}/legal</legal.doc.source>
         <copyright.exclude>${project.build.commonResourcesDirectory}/config/copyright-exclude</copyright.exclude>
@@ -85,12 +86,12 @@
 Comments to: <a href="mailto:angus-dev@eclipse.org">angus-dev@eclipse.org</a>.<br>
 Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]]></angus-mail.javadoc.bottom>
 
-        <mail.spec.version>2.1</mail.spec.version>
-        <mail-api.version>2.1.3</mail-api.version>
-        <activation-api.version>2.1.3</activation-api.version>
+        <mail.spec.version>2.2</mail.spec.version>
+        <mail-api.version>2.2.0-M1</mail-api.version>
+        <activation-api.version>2.2.0-M1</activation-api.version>
         <jsp-api.version>3.0.0</jsp-api.version>
         <servlet-api.version>5.0.0</servlet-api.version>
-        <angus.activation.version>2.0.2</angus.activation.version>
+        <angus.activation.version>2.1.0-M1</angus.activation.version>
         <angus-mail.version>${project.version}</angus-mail.version>
         <graal.sdk.version>23.1.2</graal.sdk.version>
         <!-- used in jakarta.mail/jakarta.mail.Version -->
@@ -476,85 +477,23 @@ Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]
                 </executions>
             </plugin>
 
-            <!--
-            Use the JDK 11+ compiler for Jakarta Mail itself,
-            but restrict it to 1.8 source and target.
-                    The 11+ compiler is used *only* to compile module-info descriptors.
-            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
+                    <showDeprecation>true</showDeprecation>
                     <createMissingPackageInfoClass>false</createMissingPackageInfoClass>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>default-compile</id>
-                        <configuration>
-                            <skipMain>${skip9}</skipMain>
-                            <release>9</release>
-                            <excludes>
-                                <!-- This is for some demos -->
-                                <exclude>example/app/internal/**</exclude>
-                            </excludes>
-                            <showDeprecation>true</showDeprecation>
+                        <compilerArgs>
+                            <arg>-Xlint</arg>
+                            <arg>-Xlint:-options</arg>
+                            <arg>-Xlint:-path</arg>
                             <!--
-                                Configure compiler plugin to print lint warnings.
-                                Need to exclude options warning because bootstrap
-                                classpath isn't set (on purpose).
-                                Need to exclude path warnings because Maven includes
-                                source directories that don't exist (e.g., generated-sources).
-                            -->
-                            <compilerArgs>
-                                <arg>-Xlint</arg>
-                                <arg>-Xlint:-options</arg>
-                                <arg>-Xlint:-path</arg>
-                                <!--
                                     Too many finalize warnings.
                                 <arg>-Werror</arg>
                                 -->
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>base-compile</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <createMissingPackageInfoClass>false</createMissingPackageInfoClass>
-                            <source>8</source>
-                            <target>8</target>
-                            <excludes>
-                                <exclude>module-info.java</exclude>
-                                <exclude>**/nativeimage/**</exclude>
-                                <!-- This is for some demos -->
-                                <exclude>example/app/internal/**</exclude>
-                            </excludes>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>default-testCompile</id>
-                        <configuration>
-                            <skip>${skip9}</skip>
-                            <release>9</release>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>test-base-compile</id>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${skip8}</skip>
-                            <source>8</source>
-                            <target>8</target>
-                            <testExcludes>
-                                <testExclude>module-info.java</testExclude>
-                            </testExcludes>
-                        </configuration>
-                    </execution>
-                </executions>
+                        </compilerArgs>
+                    <showWarnings>true</showWarnings>
+                </configuration>
             </plugin>
 
             <plugin>
