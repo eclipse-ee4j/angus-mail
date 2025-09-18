@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -3262,7 +3262,9 @@ public class IMAPFolder extends Folder implements UIDFolder, ResponseHandler {
                     if (r.isBYE() && r.isSynthetic() && idleState == IDLE) {
                         /*
                          * If it was a timeout and no bytes were transferred
-                         * we ignore it and go back and read again.
+                         * we abort IDLE and request IDLE again,
+                         * so the server can continue pushing.
+                         *
                          * If the I/O was otherwise interrupted, and no
                          * bytes were transferred, we take it as a request
                          * to abort the IDLE.
@@ -3272,9 +3274,13 @@ public class IMAPFolder extends Folder implements UIDFolder, ResponseHandler {
                                 ((InterruptedIOException) ex).
                                         bytesTransferred == 0) {
                             if (ex instanceof SocketTimeoutException) {
-                                logger.finest(
-                                        "handleIdle: ignoring socket timeout");
-                                r = null;    // repeat do/while loop
+                                logger.finest("handleIdle: socket timeout");
+                                // Next aborts and read responses
+                                idleAbortWait();
+                                // Reissue the IDLE
+                                if (startIdle(idleManager)) {
+                                    r = null;    // repeat do/while loop
+                                }
                             } else {
                                 logger.finest("handleIdle: interrupting IDLE");
                                 IdleManager im = idleManager;
