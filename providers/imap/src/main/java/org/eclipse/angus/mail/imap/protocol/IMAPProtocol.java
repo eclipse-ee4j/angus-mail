@@ -413,7 +413,7 @@ public class IMAPProtocol extends Protocol {
         // can't assert because it's called from constructor
         IMAPResponse r = new IMAPResponse(this);
         if (r.keyEquals("FETCH"))
-            r = new FetchResponse(r, getFetchItems());
+            r = new FetchResponse(r, getFetchItems(), this);
         return r;
     }
 

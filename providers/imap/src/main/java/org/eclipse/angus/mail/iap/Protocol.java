@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -639,6 +639,15 @@ public class Protocol {
         return false;
     }
 
+    /**
+     * Should we be strict about address parsing?.
+     *
+     * @return true if we should be strict (default true)
+     */
+    public boolean isStrict() {
+        return PropUtil.getBooleanProperty(props, "mail.mime.address.strict", true);
+    }
+    
     /**
      * Disconnect.
      */
