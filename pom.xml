@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!--
 
-    Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
 
     This program and the accompanying materials are made available under the
     terms of the Eclipse Public License v. 2.0, which is available at
@@ -86,11 +86,11 @@ Comments to: <a href="mailto:angus-dev@eclipse.org">angus-dev@eclipse.org</a>.<b
 Copyright &#169; 2019, ${current.year} Eclipse Foundation. All rights reserved.]]></angus-mail.javadoc.bottom>
 
         <mail.spec.version>2.1</mail.spec.version>
-        <mail-api.version>2.1.3</mail-api.version>
-        <activation-api.version>2.1.3</activation-api.version>
+        <mail-api.version>2.1.5</mail-api.version>
+        <activation-api.version>2.1.4</activation-api.version>
         <jsp-api.version>3.0.0</jsp-api.version>
         <servlet-api.version>5.0.0</servlet-api.version>
-        <angus.activation.version>2.0.2</angus.activation.version>
+        <angus.activation.version>2.0.3</angus.activation.version>
         <angus-mail.version>${project.version}</angus-mail.version>
         <graal.sdk.version>23.1.2</graal.sdk.version>
         <!-- used in jakarta.mail/jakarta.mail.Version -->
