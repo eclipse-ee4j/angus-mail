@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2025 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -59,7 +59,6 @@ import java.net.InetAddress;
 import java.net.URLConnection;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
-import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -420,11 +419,10 @@ public class MailHandler extends Handler {
     /**
      * The action to set the context class loader for use with the Jakarta Mail API.
      * Load and pin this before it is loaded in the close method. The field is
-     * declared as java.security.PrivilegedAction so
-     * WebappClassLoader.clearReferencesStaticFinal() method will ignore this
-     * field.
+     * named with '$' so WebappClassLoader.clearReferencesStaticFinal() method will
+     * ignore this field. However there is no standard documentation about this.
      */
-    private static final PrivilegedAction<Object> MAILHANDLER_LOADER
+    private static final GetAndSetContext $MAILHANDLER_LOADER
             = new GetAndSetContext(MailHandler.class);
     /**
      * A thread local mutex used to prevent logging loops.  This code has to be
@@ -594,8 +592,6 @@ public class MailHandler extends Handler {
      * Creates a <code>MailHandler</code> that is configured by the
      * <code>LogManager</code> configuration properties.
      *
-     * @throws SecurityException if a security manager exists and the
-     *                           caller does not have <code>LoggingPermission("control")</code>.
      */
     @SuppressWarnings("this-escape")
     public MailHandler() {
@@ -609,8 +605,6 @@ public class MailHandler extends Handler {
      *
      * @param capacity of the internal buffer. If less than one the default of
      * 1000 is used.
-     * @throws SecurityException        if a security manager exists and the
-     *                                  caller does not have <code>LoggingPermission("control")</code>.
      */
     @SuppressWarnings("this-escape")
     public MailHandler(final int capacity) {
@@ -626,8 +620,6 @@ public class MailHandler extends Handler {
      *
      * @param props a properties object or null. A null value will supply the
      * <code>mailEntries</code> from the <code>LogManager</code>.
-     * @throws SecurityException    if a security manager exists and the
-     *                              caller does not have <code>LoggingPermission("control")</code>.
      */
     @SuppressWarnings("this-escape")
     public MailHandler(Properties props) {
@@ -930,8 +922,6 @@ public class MailHandler extends Handler {
      * be turned on and or <code>mailEntries</code> should be declared to define
      * the mail properties.
      *
-     * @throws SecurityException if a security manager exists and the
-     *                           caller does not have <code>LoggingPermission("control")</code>.
      * @see #flush()
      */
     @Override
@@ -994,8 +984,6 @@ public class MailHandler extends Handler {
      * The internal buffer is then cleared.
      *
      * @param enabled true to enable and false to disable.
-     * @throws SecurityException if a security manager exists and if the caller
-     * does not have <code>LoggingPermission("control")</code>.
      * @see #flush()
      * @see #isEnabled()
      * @since Angus Mail 2.0.3
@@ -1028,9 +1016,6 @@ public class MailHandler extends Handler {
      * @param newLevel the new value for the log level
      * @throws NullPointerException if <code>newLevel</code> is
      *                              <code>null</code>.
-     * @throws SecurityException    if a security manager exists and
-     *                              the caller does not have
-     *                              <code>LoggingPermission("control")</code>.
      */
     @Override
     public void setLevel(final Level newLevel) {
@@ -1068,8 +1053,6 @@ public class MailHandler extends Handler {
      * Retrieves the ErrorManager for this Handler.
      *
      * @return the ErrorManager for this Handler
-     * @throws SecurityException if a security manager exists and if the caller
-     *                           does not have <code>LoggingPermission("control")</code>.
      */
     @Override
     public ErrorManager getErrorManager() {
@@ -1084,8 +1067,6 @@ public class MailHandler extends Handler {
      * while using this Handler.
      *
      * @param em the new ErrorManager
-     * @throws SecurityException    if a security manager exists and if the
-     *                              caller does not have <code>LoggingPermission("control")</code>.
      * @throws NullPointerException if the given error manager is null.
      */
     @Override
@@ -1132,8 +1113,6 @@ public class MailHandler extends Handler {
      * <code>LogRecord</code> should be published or discarded.
      *
      * @param newFilter a <code>Filter</code> object (may be null)
-     * @throws SecurityException if a security manager exists and if the caller
-     *                           does not have <code>LoggingPermission("control")</code>.
      */
     @Override
     public void setFilter(final Filter newFilter) {
@@ -1167,8 +1146,6 @@ public class MailHandler extends Handler {
      *
      * @param encoding The name of a supported character encoding.  May be
      *                 null, to indicate the default platform encoding.
-     * @throws SecurityException            if a security manager exists and if the caller
-     *                                      does not have <code>LoggingPermission("control")</code>.
      * @throws UnsupportedEncodingException if the named encoding is not
      *                                      supported.
      */
@@ -1219,12 +1196,10 @@ public class MailHandler extends Handler {
      * case the <code>Formatter</code> will be remembered, but not used.
      *
      * @param newFormatter the <code>Formatter</code> to use (may not be null)
-     * @throws SecurityException    if a security manager exists and if the caller
-     *                              does not have <code>LoggingPermission("control")</code>.
      * @throws NullPointerException if the given formatter is null.
      */
     @Override
-    public synchronized void setFormatter(Formatter newFormatter) throws SecurityException {
+    public synchronized void setFormatter(Formatter newFormatter) {
         checkAccess();
         this.formatter = Objects.requireNonNull(newFormatter);
     }
@@ -1246,8 +1221,6 @@ public class MailHandler extends Handler {
      * high importance with urgent priority.
      *
      * @param level any level object or null meaning off.
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
     public final synchronized void setPushLevel(Level level) {
@@ -1279,8 +1252,6 @@ public class MailHandler extends Handler {
      * resulting email is flagged as high importance with urgent priority.
      *
      * @param filter push filter or <code>null</code>
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
     public final synchronized void setPushFilter(final Filter filter) {
@@ -1306,8 +1277,6 @@ public class MailHandler extends Handler {
      * prior to formatting.  If <code>null</code> then the order is unspecified.
      *
      * @param c the <code>LogRecord</code> comparator.
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
     public final synchronized void setComparator(Comparator<? super LogRecord> c) {
@@ -1338,8 +1307,6 @@ public class MailHandler extends Handler {
      *
      * @param newCapacity the max number of records. The default capacity of
      * 1000 is used if the given capacity is less than one.
-     * @throws SecurityException if a security manager exists and the caller
-     * does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      * @see #flush()
      * @since Angus Mail 2.0.3
@@ -1354,8 +1321,6 @@ public class MailHandler extends Handler {
      *
      * @return an <code>Authenticator</code> or <code>null</code> if none is
      * required.
-     * @throws SecurityException if a security manager exists and the
-     *                           caller does not have <code>LoggingPermission("control")</code>.
      */
     public final synchronized Authenticator getAuthenticator() {
         checkAccess();
@@ -1367,8 +1332,6 @@ public class MailHandler extends Handler {
      *
      * @param auth an <code>Authenticator</code> object or null if none is
      *             required.
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
     public final void setAuthenticator(final Authenticator auth) {
@@ -1381,8 +1344,6 @@ public class MailHandler extends Handler {
      * @param password a password, empty array can be used to only supply a
      *                 user name set by <code>mail.user</code> property, or null if no
      *                 credentials are required.
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      * @see String#toCharArray()
      * @since JavaMail 1.4.6
@@ -1403,8 +1364,6 @@ public class MailHandler extends Handler {
      * empty string can be used to only supply a user name set by
      * <code>mail.user</code> property. A null value can be used if no
      * credentials are required.
-     * @throws SecurityException if a security manager exists and the caller
-     * does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      * @see #getAuthenticator()
      * @see #setAuthenticator(char...)
@@ -1418,8 +1377,6 @@ public class MailHandler extends Handler {
      * A private hook to handle possible future overrides. See public method.
      *
      * @param auth see public method.
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
     private void setAuthenticator0(final Authenticator auth) {
@@ -1447,8 +1404,6 @@ public class MailHandler extends Handler {
      * <code>mailEntries</code> from the <code>LogManager</code>.  An empty
      * properties will clear all existing mail properties assigned to this
      * handler.
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
     public final void setMailProperties(Properties props) {
@@ -1508,8 +1463,6 @@ public class MailHandler extends Handler {
      * Gets a copy of the mail properties used for the session.
      *
      * @return a non null properties object.
-     * @throws SecurityException if a security manager exists and the
-     *                           caller does not have <code>LoggingPermission("control")</code>.
      */
     public final Properties getMailProperties() {
         checkAccess();
@@ -1550,8 +1503,6 @@ public class MailHandler extends Handler {
      * <code>mailEntries</code> from the <code>LogManager</code>.  An empty
      * string or the literal null are all treated as empty properties and will
      * clear all existing mail properties assigned to this handler.
-     * @throws SecurityException if a security manager exists and the caller
-     * does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      * @see #getMailProperties()
      * @see java.io.StringReader
@@ -1577,8 +1528,6 @@ public class MailHandler extends Handler {
      * support.
      *
      * @return string representation of the mail properties.
-     * @throws SecurityException if a security manager exists and the caller
-     * does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      * @see #getMailProperties()
      * @see java.io.StringWriter
@@ -1632,8 +1581,6 @@ public class MailHandler extends Handler {
      * the same as an empty array and will remove all attachments.  A
      * <code>null</code> index value means that all records are allowed for the
      * attachment at that index.
-     * @throws SecurityException         if a security manager exists and the
-     *                                   caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException     if called from inside a push.
      */
     public final void setAttachmentFilters(Filter... filters) {
@@ -1688,8 +1635,6 @@ public class MailHandler extends Handler {
      * @param formatters an array of formatters.  A null array is treated as an
      * empty array.  Any null indexes is replaced with a
      * {@linkplain java.util.logging.SimpleFormatter SimpleFormatter}.
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      */
     public final void setAttachmentFormatters(Formatter... formatters) {
@@ -1741,8 +1686,6 @@ public class MailHandler extends Handler {
      * @param names an array of names.  A null array is treated as an empty
      * array.  Any null or empty indexes are replaced with the string
      * representation of the attachment formatter.
-     * @throws SecurityException         if a security manager exists and the
-     *                                   caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException     if called from inside a push.
      * @see Character#isISOControl(char)
      * @see Character#isISOControl(int)
@@ -1790,8 +1733,6 @@ public class MailHandler extends Handler {
      * to provide a useful attachment file name, if possible.
      *
      * @param formatters and array of attachment name formatters.
-     * @throws SecurityException         if a security manager exists and the
-     *                                   caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException     if called from inside a push.
      * @see Character#isISOControl(char)
      * @see Character#isISOControl(int)
@@ -1813,8 +1754,6 @@ public class MailHandler extends Handler {
      * to provide a useful attachment file name, if possible.
      *
      * @param formatters and array of attachment name formatters.
-     * @throws SecurityException         if a security manager exists and the
-     *                                   caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException     if called from inside a push.
      * @see Character#isISOControl(char)
      * @see Character#isISOControl(int)
@@ -1874,8 +1813,6 @@ public class MailHandler extends Handler {
      * removed from the subject line of the email
      *
      * @param subject a non <code>null</code> string.
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws NullPointerException  if <code>subject</code> is
      *                               <code>null</code>.
      * @throws IllegalStateException if called from inside a push.
@@ -1904,8 +1841,6 @@ public class MailHandler extends Handler {
      * subject, if possible.
      *
      * @param format the subject formatter or null for default formatter.
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      * @see Character#isISOControl(char)
      * @see Character#isISOControl(int)
@@ -1927,8 +1862,6 @@ public class MailHandler extends Handler {
      * subject, if possible.
      *
      * @param format the subject formatter or null for default formatter.
-     * @throws SecurityException     if a security manager exists and the
-     *                               caller does not have <code>LoggingPermission("control")</code>.
      * @throws IllegalStateException if called from inside a push.
      * @see Character#isISOControl(char)
      * @see Character#isISOControl(int)
@@ -1982,18 +1915,11 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Checks logging permissions if this handler has been sealed.
-     * Otherwise, this will check that this object was fully constructed.
+     * This will check that this object was fully constructed.
      *
-     * @throws SecurityException if a security manager exists and the caller
-     *                           does not have {@code LoggingPermission("control")}.
      */
     private void checkAccess() {
-        if (this.sealed) {
-            LogManagerProperties.checkLogManagerAccess();
-        } else {
-            throw new SecurityException("this-escape");
-        }
+        LogManagerProperties.checkLogManagerAccess();
     }
 
     /**
@@ -2086,7 +2012,7 @@ public class MailHandler extends Handler {
      */
     @SuppressWarnings({"UseSpecificCatch", "ThrowableResultIgnored"})
     final boolean isMissingContent(Message msg, Throwable t) {
-        final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+        final Object ccl = getAndSetContextClassLoader($MAILHANDLER_LOADER);
         try {
             msg.writeTo(new ByteArrayOutputStream(MIN_HEADER_SIZE));
         } catch (final RuntimeException RE) {
@@ -2485,8 +2411,6 @@ public class MailHandler extends Handler {
      *
      * @param props the given mail properties.  Maybe null and are never
      *              captured by this handler.
-     * @throws SecurityException if a security manager exists and the
-     *                           caller does not have <code>LoggingPermission("control")</code>.
      * @see #sealed
      */
     private synchronized void init(final Properties props) {
@@ -2635,8 +2559,6 @@ public class MailHandler extends Handler {
      * @param m the map used to record the interned values.
      * @param o the object to try an intern.
      * @return the original object or an intern replacement.
-     * @throws SecurityException if this operation is not allowed by the
-     *                           security manager.
      * @throws Exception         if there is an unexpected problem.
      * @since JavaMail 1.5.0
      */
@@ -2744,7 +2666,6 @@ public class MailHandler extends Handler {
      * Parses LogManager string values into objects used by this handler.
      *
      * @param list the list of attachment filter class names.
-     * @throws SecurityException    if not allowed.
      */
     private void initAttachmentFilters(final String list) {
         assert Thread.holdsLock(this);
@@ -2757,8 +2678,6 @@ public class MailHandler extends Handler {
                 if (!"null".equalsIgnoreCase(names[i])) {
                     try {
                         a[i] = LogManagerProperties.newFilter(names[i]);
-                    } catch (final SecurityException SE) {
-                        throw SE; //Avoid catch all.
                     } catch (final Exception E) {
                         reportError(Integer.toString(i), E, ErrorManager.OPEN_FAILURE);
                     }
@@ -2780,7 +2699,6 @@ public class MailHandler extends Handler {
      * Parses LogManager string values into objects used by this handler.
      *
      * @param list the list of attachment formatter class names or literal names.
-     * @throws SecurityException    if not allowed.
      */
     private void initAttachmentFormaters(final String list) {
         assert Thread.holdsLock(this);
@@ -2803,8 +2721,6 @@ public class MailHandler extends Handler {
                             reportError("Attachment formatter.", CNFE, ErrorManager.OPEN_FAILURE);
                             a[i] = createSimpleFormatter();
                         }
-                    } catch (final SecurityException SE) {
-                        throw SE; //Avoid catch all.
                     } catch (final Exception E) {
                         reportError(Integer.toString(i), E, ErrorManager.OPEN_FAILURE);
                         a[i] = createSimpleFormatter();
@@ -2824,7 +2740,6 @@ public class MailHandler extends Handler {
      * Parses LogManager string values into objects used by this handler.
      *
      * @param list of formatter class names or literals.
-     * @throws SecurityException    if not allowed.
      */
     private void initAttachmentNames(final String list) {
         assert Thread.holdsLock(this);
@@ -2843,8 +2758,6 @@ public class MailHandler extends Handler {
                                  | ClassCastException literal) {
                             a[i] = TailNameFormatter.of(names[i]);
                         }
-                    } catch (final SecurityException SE) {
-                        throw SE; //Avoid catch all.
                     } catch (final Exception E) {
                         reportError(Integer.toString(i), E, ErrorManager.OPEN_FAILURE);
                     }
@@ -2868,7 +2781,6 @@ public class MailHandler extends Handler {
      * Parses LogManager string values into objects used by this handler.
      *
      * @param name the authenticator class name, literal password, or empty string.
-     * @throws SecurityException    if not allowed.
      */
     private Authenticator newAuthenticator(final String name) {
         Authenticator a = null;
@@ -2877,8 +2789,6 @@ public class MailHandler extends Handler {
                 try {
                     a = LogManagerProperties
                             .newObjectFrom(name, Authenticator.class);
-                } catch (final SecurityException SE) {
-                    throw SE;
                 } catch (final ClassNotFoundException
                                | ClassCastException literalAuth) {
                     a = DefaultAuthenticator.of(name);
@@ -2900,7 +2810,6 @@ public class MailHandler extends Handler {
      * Parses LogManager string values into objects used by this handler.
      *
      * @param nameOrNumber the level name or number.
-     * @throws SecurityException    if not allowed.
      */
     private Level parseLevel(final String nameOrNumber) {
         assert Thread.holdsLock(this);
@@ -2910,8 +2819,6 @@ public class MailHandler extends Handler {
             if (!isEmpty(nameOrNumber)) {
                 lvl = Level.parse(nameOrNumber);
             }
-        } catch (final SecurityException SE) {
-            throw SE; //Avoid catch all.
         } catch (final RuntimeException RE) {
             reportError(nameOrNumber, RE, ErrorManager.OPEN_FAILURE);
         }
@@ -2992,7 +2899,6 @@ public class MailHandler extends Handler {
      * Parses LogManager string values into objects used by this handler.
      *
      * @param name the filter class name or null.
-     * @throws SecurityException    if not allowed.
      */
     private void initFilter(final String name) {
         assert Thread.holdsLock(this);
@@ -3002,8 +2908,6 @@ public class MailHandler extends Handler {
             } else {
                 filter = null;
             }
-        } catch (final SecurityException SE) {
-            throw SE; //Avoid catch all.
         } catch (final Exception E) {
             reportError("Unable to create filter",
                             E, ErrorManager.OPEN_FAILURE);
@@ -3014,7 +2918,6 @@ public class MailHandler extends Handler {
      * Parses LogManager string values into objects used by this handler.
      *
      * @param value the capacity value.
-     * @throws SecurityException    if not allowed.
      */
     private int parseCapacity(final String value) {
         assert Thread.holdsLock(this);
@@ -3023,8 +2926,6 @@ public class MailHandler extends Handler {
             if (value != null) {
                 cap = Integer.parseInt(value);
             }
-        } catch (final SecurityException SE) {
-            throw SE; //Avoid catch all.
         } catch (final RuntimeException RE) {
             reportError("Unable to set capacity", RE, ErrorManager.OPEN_FAILURE);
         }
@@ -3039,14 +2940,11 @@ public class MailHandler extends Handler {
      * Sets the encoding of this handler.
      *
      * @param e the encoding name or null.
-     * @throws SecurityException    if not allowed.
      */
     private void initEncoding(final String e) {
         assert Thread.holdsLock(this);
         try {
             setEncoding0(e);
-        } catch (final SecurityException SE) {
-            throw SE; //Avoid catch all.
         } catch (UnsupportedEncodingException | RuntimeException UEE) {
             reportError(e, UEE, ErrorManager.OPEN_FAILURE);
         }
@@ -3077,7 +2975,6 @@ public class MailHandler extends Handler {
      * Creates the error manager for this handler.
      *
      * @param name the error manager class name.
-     * @throws SecurityException    if not allowed.
      */
     @SuppressWarnings("this-escape")
     private void initErrorManager(final String name) {
@@ -3085,8 +2982,6 @@ public class MailHandler extends Handler {
             if (name != null) {
                 setErrorManager0(LogManagerProperties.newErrorManager(name));
             }
-        } catch (final SecurityException SE) {
-            throw SE; //Avoid catch all.
         } catch (final Exception E) {
             reportError("Unable to create error manager",
                         E, ErrorManager.OPEN_FAILURE);
@@ -3097,7 +2992,6 @@ public class MailHandler extends Handler {
      * Parses LogManager string values into objects used by this handler.
      *
      * @param name the formatter class name or null.
-     * @throws SecurityException    if not allowed.
      */
     private void initFormatter(final String name) {
         assert Thread.holdsLock(this);
@@ -3113,8 +3007,6 @@ public class MailHandler extends Handler {
             } else {
                 formatter = createSimpleFormatter();
             }
-        } catch (final SecurityException SE) {
-            throw SE; //Avoid catch all.
         } catch (final Exception E) {
             reportError("Unable to create formatter",
                             E, ErrorManager.OPEN_FAILURE);
@@ -3126,7 +3018,6 @@ public class MailHandler extends Handler {
      * Creates the comparator for this handler.
      *
      * @param p the handler class name used as the prefix.
-     * @throws SecurityException    if not allowed.
      */
     private void initComparator(final String name) {
         assert Thread.holdsLock(this);
@@ -3136,8 +3027,6 @@ public class MailHandler extends Handler {
             } else {
                 comparator = null;
             }
-        } catch (final SecurityException SE) {
-            throw SE; //Avoid catch all.
         } catch (final Exception E) {
             reportError("Unable to create comparator", E, ErrorManager.OPEN_FAILURE);
         }
@@ -3163,7 +3052,7 @@ public class MailHandler extends Handler {
      */
     private void initContentTypes() {
         try {
-            Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+            Object ccl = getAndSetContextClassLoader($MAILHANDLER_LOADER);
             try {
                 this.contentTypes = FileTypeMap.getDefaultFileTypeMap();
             } finally { //reset ccl before reporting errors
@@ -3183,7 +3072,6 @@ public class MailHandler extends Handler {
      * Parses LogManager string values into objects used by this handler.
      *
      * @param nameOrNumber the level name, number, or null for OFF.
-     * @throws SecurityException    if not allowed.
      */
     private void initPushLevel(final String nameOrNumber) {
         assert Thread.holdsLock(this);
@@ -3206,7 +3094,6 @@ public class MailHandler extends Handler {
      * Parses LogManager string values into objects used by this handler.
      *
      * @param name the push filter class name.
-     * @throws SecurityException    if not allowed.
      */
     private void initPushFilter(final String name) {
         assert Thread.holdsLock(this);
@@ -3216,8 +3103,6 @@ public class MailHandler extends Handler {
             } else {
                 this.pushFilter = null;
             }
-        } catch (final SecurityException SE) {
-            throw SE; //Avoid catch all.
         } catch (final Exception E) {
             reportError("Unable to create push filter", E, ErrorManager.OPEN_FAILURE);
         }
@@ -3227,7 +3112,6 @@ public class MailHandler extends Handler {
      * Creates the subject formatter used by this handler.
      *
      * @param name the formatter class name, string literal, or null.
-     * @throws SecurityException    if not allowed.
      */
     private void initSubject(String name) {
         assert Thread.holdsLock(this);
@@ -3242,8 +3126,6 @@ public class MailHandler extends Handler {
         if (hasValue(name)) {
             try {
                 this.subjectFormatter = LogManagerProperties.newFormatter(name);
-            } catch (final SecurityException SE) {
-                throw SE; //Avoid catch all.
             } catch (ClassNotFoundException
                      | ClassCastException literalSubject) {
                 this.subjectFormatter = TailNameFormatter.of(name);
@@ -3344,7 +3226,7 @@ public class MailHandler extends Handler {
     private void send(Message msg, boolean priority, int code) {
         try {
             envelopeFor(msg, priority);
-            final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+            final Object ccl = getAndSetContextClassLoader($MAILHANDLER_LOADER);
             try {  //JDK-8025251
                 Transport.send(msg); //Calls save changes.
             } finally {
@@ -3690,7 +3572,7 @@ public class MailHandler extends Handler {
                 }
             } catch (final MessagingException protocol) {
                 //Switching the CCL emulates the current send behavior.
-                Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+                Object ccl = getAndSetContextClassLoader($MAILHANDLER_LOADER);
                 try {
                     t = session.getTransport();
                 } catch (final MessagingException fail) {
@@ -3804,7 +3686,7 @@ public class MailHandler extends Handler {
                 }
 
                 try { //Verify that the DataHandler can be loaded.
-                    Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+                    Object ccl = getAndSetContextClassLoader($MAILHANDLER_LOADER);
                     try {
                         //Always load the multipart classes.
                         MimeMultipart multipart = new MimeMultipart();
@@ -3951,8 +3833,6 @@ public class MailHandler extends Handler {
      * @param host the host or null.
      * @return the address.
      * @throws IOException       if the host name is not valid.
-     * @throws SecurityException if security manager is present and doesn't
-     *                           allow access to check connect permission.
      * @since JavaMail 1.5.0
      */
     private static InetAddress verifyHost(String host) throws IOException {
@@ -4081,7 +3961,7 @@ public class MailHandler extends Handler {
     private Session initSession() {
         assert Thread.holdsLock(this);
         final String p = getClass().getName();
-        final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+        final Object ccl = getAndSetContextClassLoader($MAILHANDLER_LOADER);
         try {
             LogManagerProperties proxy = new LogManagerProperties(mailProps, p);
             session = Session.getInstance(proxy, auth);
@@ -4131,7 +4011,7 @@ public class MailHandler extends Handler {
      */
     private MimeMultipart createMultipart() throws MessagingException {
         assert Thread.holdsLock(this);
-        final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+        final Object ccl = getAndSetContextClassLoader($MAILHANDLER_LOADER);
         try {
             return new MimeMultipart();
         } finally {
@@ -4147,7 +4027,7 @@ public class MailHandler extends Handler {
      */
     private MimeBodyPart createBodyPart() throws MessagingException {
         assert Thread.holdsLock(this);
-        final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+        final Object ccl = getAndSetContextClassLoader($MAILHANDLER_LOADER);
         try {
             final MimeBodyPart part = new MimeBodyPart();
             part.setDisposition(Part.INLINE);
@@ -4171,7 +4051,7 @@ public class MailHandler extends Handler {
      */
     private MimeBodyPart createBodyPart(int index) throws MessagingException {
         assert Thread.holdsLock(this);
-        final Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+        final Object ccl = getAndSetContextClassLoader($MAILHANDLER_LOADER);
         try {
             final MimeBodyPart part = new MimeBodyPart();
             part.setDisposition(Part.ATTACHMENT);
@@ -4793,7 +4673,7 @@ public class MailHandler extends Handler {
      */
     private String toRawString(final Message msg) throws MessagingException, IOException {
         if (msg != null) {
-            Object ccl = getAndSetContextClassLoader(MAILHANDLER_LOADER);
+            Object ccl = getAndSetContextClassLoader($MAILHANDLER_LOADER);
             try {  //JDK-8025251
                 int nbytes = Math.max(msg.getSize() + MIN_HEADER_SIZE, MIN_HEADER_SIZE);
                 ByteArrayOutputStream out = new ByteArrayOutputStream(nbytes);
@@ -4847,16 +4727,8 @@ public class MailHandler extends Handler {
      */
     private Object getAndSetContextClassLoader(final Object ccl) {
         if (ccl != GetAndSetContext.NOT_MODIFIED) {
-            try {
-                final PrivilegedAction<?> pa;
-                if (ccl instanceof PrivilegedAction) {
-                    pa = (PrivilegedAction<?>) ccl;
-                } else {
-                    pa = new GetAndSetContext(ccl);
-                }
-                return LogManagerProperties.runOrDoPrivileged(pa);
-            } catch (final SecurityException ignore) {
-            }
+            final GetAndSetContext pa = new GetAndSetContext(ccl);
+            return pa.run();
         }
         return GetAndSetContext.NOT_MODIFIED;
     }
@@ -4906,7 +4778,7 @@ public class MailHandler extends Handler {
     private String getLocalHost(final Service s) {
         try {
             return LogManagerProperties.getLocalHost(s);
-        } catch (SecurityException | NoSuchMethodException
+        } catch (NoSuchMethodException
                  | LinkageError ignore) {
         } catch (final Exception ex) {
             reportError(String.valueOf(s), ex, ErrorManager.OPEN_FAILURE);
@@ -4983,12 +4855,11 @@ public class MailHandler extends Handler {
     }
 
     /**
-     * Performs a get and set of the context class loader with privileges
-     * enabled.
+     * Performs a get and set of the context class loader.
      *
      * @since JavaMail 1.4.6
      */
-    private static final class GetAndSetContext implements PrivilegedAction<Object> {
+    private static final class GetAndSetContext {
         /**
          * A marker object used to signal that the class loader was not
          * modified.
@@ -5017,7 +4888,6 @@ public class MailHandler extends Handler {
          * @return the replaced context class loader which can be null or
          * NOT_MODIFIED to indicate that nothing was modified.
          */
-        @SuppressWarnings("override") //JDK-6954234
         public final Object run() {
             final Thread current = Thread.currentThread();
             final ClassLoader ccl = current.getContextClassLoader();

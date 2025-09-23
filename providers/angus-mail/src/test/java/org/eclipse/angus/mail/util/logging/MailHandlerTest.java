@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2025 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -251,12 +251,6 @@ public class MailHandlerTest extends AbstractLogging {
         return debug;
     }
 
-    static void securityDebugPrint(Throwable se) {
-        @SuppressWarnings("UseOfSystemOutOrSystemErr") final PrintStream err = System.err;
-        err.println("Suppressed security exception to allow access:");
-        se.printStackTrace(err);
-    }
-
     static void checkContextClassLoader(ClassLoader expect) {
         Object ccl = Thread.currentThread().getContextClassLoader();
         if (expect != ccl) {
@@ -276,10 +270,7 @@ public class MailHandlerTest extends AbstractLogging {
                 URLClassLoader child = new URLClassLoader(new URL[0], ccl);
 
                 thread.setContextClassLoader(child);
-                testCallingClassLoader(false, child);
-
-                thread.setContextClassLoader(child);
-                testCallingClassLoader(true, child);
+                testCallingClassLoader(child);
             } finally {
                 thread.setContextClassLoader(ccl);
             }
@@ -292,35 +283,30 @@ public class MailHandlerTest extends AbstractLogging {
         assertNull(f.get());
     }
 
-    private void testCallingClassLoader(boolean secure, ClassLoader expect) {
+    private void testCallingClassLoader(ClassLoader expect) {
         Thread clt = Thread.currentThread();
         assertEquals(ClassLoaderThread.class, clt.getClass());
         assert clt instanceof ClassLoaderThread : clt;
 
         InternalErrorManager em = new ClassLoaderErrorManager(expect);
+        MailHandler instance = new MailHandler(createInitProperties(""));
         try {
-            MailHandler instance = new MailHandler(createInitProperties(""));
-            try {
-                ((ClassLoaderThread) clt).secure = secure;
-                instance.setErrorManager(em);
-                instance.setLevel(Level.ALL);
-                instance.setPushLevel(Level.SEVERE);
-                instance.setComparator(new ClassLoaderComparator(expect));
-                instance.setFilter(new ClassLoaderFilterFormatter(expect));
-                instance.setPushFilter(new ClassLoaderFilterFormatter(expect));
-                instance.setSubject(new ClassLoaderFilterFormatter(expect));
-                instance.setFormatter(new ClassLoaderFilterFormatter(expect));
-                instance.setAttachmentFormatters(
-                        new ClassLoaderFilterFormatter(expect, "testCCL"));
-                instance.setAttachmentFilters(new ClassLoaderFilterFormatter(expect));
-                instance.setAttachmentNames(new ClassLoaderFilterFormatter(expect));
-                instance.publish(new LogRecord(Level.WARNING, ""));
-                instance.publish(new LogRecord(Level.SEVERE, ""));
-            } finally {
-                instance.close();
-            }
+            instance.setErrorManager(em);
+            instance.setLevel(Level.ALL);
+            instance.setPushLevel(Level.SEVERE);
+            instance.setComparator(new ClassLoaderComparator(expect));
+            instance.setFilter(new ClassLoaderFilterFormatter(expect));
+            instance.setPushFilter(new ClassLoaderFilterFormatter(expect));
+            instance.setSubject(new ClassLoaderFilterFormatter(expect));
+            instance.setFormatter(new ClassLoaderFilterFormatter(expect));
+            instance.setAttachmentFormatters(
+                    new ClassLoaderFilterFormatter(expect, "testCCL"));
+            instance.setAttachmentFilters(new ClassLoaderFilterFormatter(expect));
+            instance.setAttachmentNames(new ClassLoaderFilterFormatter(expect));
+            instance.publish(new LogRecord(Level.WARNING, ""));
+            instance.publish(new LogRecord(Level.SEVERE, ""));
         } finally {
-            ((ClassLoaderThread) clt).secure = false;
+            instance.close();
         }
 
         assert em != null;
@@ -343,10 +329,7 @@ public class MailHandlerTest extends AbstractLogging {
                 URLClassLoader child = new URLClassLoader(new URL[0], ccl);
 
                 thread.setContextClassLoader(child);
-                testVerify(false, child);
-
-                thread.setContextClassLoader(child);
-                testVerify(true, child);
+                testVerify(child);
             } finally {
                 thread.setContextClassLoader(ccl);
             }
@@ -379,7 +362,7 @@ public class MailHandlerTest extends AbstractLogging {
         testWebappClassLoaderFieldNames(MailHandler.class);
     }
 
-    private void testVerify(boolean secure, ClassLoader expect) throws Exception {
+    private void testVerify(ClassLoader expect) throws Exception {
         Thread clt = Thread.currentThread();
         assertEquals(ClassLoaderThread.class, clt.getClass());
         assert clt instanceof ClassLoaderThread : clt;
@@ -398,8 +381,6 @@ public class MailHandlerTest extends AbstractLogging {
 
             read(manager, props);
 
-
-            ((ClassLoaderThread) clt).secure = secure;
             MailHandler instance = new MailHandler();
             try {
                 em = internalErrorManagerFrom(instance);
@@ -407,7 +388,6 @@ public class MailHandlerTest extends AbstractLogging {
                 instance.close();
             }
         } finally {
-            ((ClassLoaderThread) clt).secure = false;
             set((ClassLoader) null);
             manager.reset();
         }
@@ -453,27 +433,21 @@ public class MailHandlerTest extends AbstractLogging {
         assert clt instanceof ClassLoaderThread : clt;
 
         InternalErrorManager em = new ClassLoaderErrorManager(expect);
+        Properties props = createInitProperties("");
+        props.put("verify", "local");
+
+        MailHandler instance = new MailHandler();
         try {
-            Properties props = createInitProperties("");
-            props.put("verify", "local");
+            instance.setErrorManager(em);
+            instance.setComparator(new ClassLoaderComparator(expect));
+            instance.setFilter(new ClassLoaderFilterFormatter(expect));
+            instance.setPushFilter(new ClassLoaderFilterFormatter(expect));
+            instance.setSubject(new ClassLoaderFilterFormatter(expect));
+            instance.setFormatter(new ClassLoaderFilterFormatter(expect));
 
-            ((ClassLoaderThread) clt).secure = secure;
-
-            MailHandler instance = new MailHandler();
-            try {
-                instance.setErrorManager(em);
-                instance.setComparator(new ClassLoaderComparator(expect));
-                instance.setFilter(new ClassLoaderFilterFormatter(expect));
-                instance.setPushFilter(new ClassLoaderFilterFormatter(expect));
-                instance.setSubject(new ClassLoaderFilterFormatter(expect));
-                instance.setFormatter(new ClassLoaderFilterFormatter(expect));
-
-                instance.setMailProperties(props);
-            } finally {
-                instance.close();
-            }
+            instance.setMailProperties(props);
         } finally {
-            ((ClassLoaderThread) clt).secure = false;
+            instance.close();
         }
 
         assert em != null;
@@ -8418,32 +8392,18 @@ public class MailHandlerTest extends AbstractLogging {
     }
 
     private final static class ClassLoaderThread extends Thread {
-        volatile boolean secure;
-        private final boolean debug;
 
         public ClassLoaderThread(Runnable r) {
             super(r);
-            debug = isSecurityDebug();
         }
 
         @Override
         public void setContextClassLoader(ClassLoader cl) {
-            if (secure) {
-                throw new SecurityException();
-            }
-
-            if (debug) {
-                securityDebugPrint(new SecurityException());
-            }
             super.setContextClassLoader(cl);
         }
 
         @Override
         public ClassLoader getContextClassLoader() {
-            //It is too strict to enforce security here
-            if (debug) {
-                securityDebugPrint(new SecurityException());
-            }
             return super.getContextClassLoader();
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -37,10 +37,8 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.security.AccessController;
 import java.security.cert.CertificateException;
 import java.security.GeneralSecurityException;
-import java.security.PrivilegedAction;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -963,22 +961,9 @@ public class SocketFetcher {
 
     /**
      * Convenience method to get our context class loader.
-     * Assert any privileges we might have and then call the
-     * Thread.getContextClassLoader method.
      */
     private static ClassLoader getContextClassLoader() {
-        return
-                AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
-                    @Override
-                    public ClassLoader run() {
-                        ClassLoader cl = null;
-                        try {
-                            cl = Thread.currentThread().getContextClassLoader();
-                        } catch (SecurityException ex) {
-                        }
-                        return cl;
-                    }
-                });
+        return Thread.currentThread().getContextClassLoader();
     }
 
     /**
@@ -1061,7 +1046,7 @@ public class SocketFetcher {
             }
 
             // XXX - following is a *very* crude parse of the name and ignores
-            //	 all sorts of important issues such as quoting
+            // all sorts of important issues such as quoting
             Pattern p = Pattern.compile("CN=([^,]*)");
             Matcher m = p.matcher(cert.getSubjectX500Principal().getName());
             if (m.find() && matchServer(server, m.group(1).trim()))

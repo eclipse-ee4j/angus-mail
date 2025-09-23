@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -73,11 +73,7 @@ public class OAuth2SaslClientFactory implements SaslClientFactory {
      * If we're not allowed to add this provider, just give up silently.
      */
     public static void init() {
-        try {
-            if (Security.getProvider(PROVIDER_NAME) == null)
-                Security.addProvider(new OAuth2Provider());
-        } catch (SecurityException ex) {
-            // oh well...
-        }
+        if (Security.getProvider(PROVIDER_NAME) == null)
+            Security.addProvider(new OAuth2Provider());
     }
 }
