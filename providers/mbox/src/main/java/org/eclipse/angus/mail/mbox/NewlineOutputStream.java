@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -33,12 +33,7 @@ public class NewlineOutputStream extends FilterOutputStream {
     private static final byte[] newline;
 
     static {
-        String s = null;
-        try {
-            s = System.lineSeparator();
-        } catch (SecurityException sex) {
-            // ignore, should never happen
-        }
+        String s = System.lineSeparator();
         if (s == null || s.length() <= 0)
             s = "\n";
         newline = s.getBytes(StandardCharsets.ISO_8859_1);

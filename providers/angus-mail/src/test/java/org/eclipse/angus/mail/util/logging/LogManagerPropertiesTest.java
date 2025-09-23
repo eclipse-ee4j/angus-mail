@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2025 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -91,114 +91,13 @@ public class LogManagerPropertiesTest extends AbstractLogging {
         assertEquals(Arrays.toString(declared), 0, declared.length);
     }
 
-    @Test
-    public void testCheckLogManagerAccess() {
-        try {
-            LogManagerProperties.checkLogManagerAccess();
-            //okay if we return normally, this is a weak test.
-        } catch (SecurityException allowed) {
-        }
-    }
-
     private static boolean isInvokeAccessController() {
-        for (StackTraceElement frame : new Throwable().getStackTrace()) {
-            if ("invokeAccessController".equals(frame.getMethodName())
-                    && LogManagerProperties.class.getName().equals(frame.getClassName())) {
-                return true;
-            }
-        }
         return false;
     }
 
     private static boolean isAccessController() {
-        for (StackTraceElement frame : new Throwable().getStackTrace()) {
-            if ("doPrivileged".equals(frame.getMethodName())
-                    && "java.security.AccessController".equals(
-                            frame.getClassName())) {
-                return true;
-            }
-        }
         return false;
     }
-
-    @Test
-    public void testRun() {
-        PrivilegedAction<Boolean> p = () -> {
-            assertFalse(isInvokeAccessController());
-            assertFalse(isAccessController());
-            return true;
-        };
-        assertTrue(LogManagerProperties.runOrDoPrivileged(p));
-    }
-
-    @Test
-    public void testDoPrivileged() {
-        PrivilegedAction<Boolean> p = () -> {
-            if (isInvokeAccessController()) {
-                return isAccessController();
-            }
-            throw new SecurityException();
-        };
-
-        try {
-            assertTrue(LogManagerProperties.runOrDoPrivileged(p));
-        } catch (UndeclaredThrowableException removed) {
-            assertTrue(removed.getCause() instanceof ClassNotFoundException);
-        } catch (UnsupportedOperationException terminal) {
-        }
-    }
-
-    @Test
-    public void testDoPrivilegedRuntimeException() {
-        RuntimeException cause = new RuntimeException();
-        PrivilegedAction<Boolean> p = () -> {
-            if (isInvokeAccessController()) {
-                throw cause;
-            }
-            throw new SecurityException();
-        };
-
-        boolean ran = false;
-        try {
-            LogManagerProperties.runOrDoPrivileged(p);
-            ran = true;
-        } catch (UndeclaredThrowableException removed) {
-            assertTrue(removed.getCause() instanceof ClassNotFoundException);
-        } catch (UnsupportedOperationException terminal) {
-        } catch (RuntimeException re) {
-            assertSame(re, cause);
-        }
-        assertFalse(ran);
-    }
-
-    @Test
-    public void testDoPrivilegedError() {
-        Error cause = new Error();
-        PrivilegedAction<Boolean> p = () -> {
-            if (isInvokeAccessController()) {
-                throw cause;
-            }
-            throw new SecurityException();
-        };
-
-        boolean ran = false;
-        try {
-            LogManagerProperties.runOrDoPrivileged(p);
-            ran = true;
-        } catch (UndeclaredThrowableException removed) {
-            assertTrue(removed.getCause() instanceof ClassNotFoundException);
-        } catch (UnsupportedOperationException terminal) {
-        } catch (Error e) {
-            assertSame(e, cause);
-        }
-        assertFalse(ran);
-    }
-
-    @Test(expected=NullPointerException.class)
-    public void testRunOrDoPrivilegedNull() {
-        LogManagerProperties.runOrDoPrivileged((PrivilegedAction<?>) null);
-    }
-
 
     @Test
     public void testFromLogManagerPresent() throws Exception {
@@ -381,18 +280,6 @@ public class LogManagerPropertiesTest extends AbstractLogging {
             LogManagerProperties.getLocalHost(svc);
             fail("");
         } catch (NoSuchMethodException expect) {
-        }
-    }
-
-    @Test
-    public void testGetLocalHostSecure() throws Exception {
-        Session session = Session.getInstance(new Properties());
-        Service svc = new NotAllowedService(session);
-        try {
-            LogManagerProperties.getLocalHost(svc);
-        } catch (SecurityException allowed) {
-        } catch (InvocationTargetException expect) {
-            Assert.assertTrue(expect.getCause() instanceof SecurityException);
         }
     }
 
@@ -1386,14 +1273,4 @@ public class LogManagerPropertiesTest extends AbstractLogging {
         }
     }
 
-    private static final class NotAllowedService extends Service {
-
-        public NotAllowedService(Session session) {
-            super(session, new URLName("test://somehost"));
-        }
-
-        public String getLocalHost() {
-            throw new SecurityException();
-        }
-    }
 }

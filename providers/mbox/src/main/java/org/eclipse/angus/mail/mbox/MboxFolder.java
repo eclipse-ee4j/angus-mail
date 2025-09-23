@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -1030,11 +1030,7 @@ public class MboxFolder extends Folder {
                           int level, List<String> flist) {
         String[] sl;
         File fdir = new File(realdir);
-        try {
-            sl = fdir.list();
-        } catch (SecurityException e) {
-            return;    // can't read it, ignore it
-        }
+        sl = fdir.list();
 
         if (level == 0 && dir != null &&
                 Match.path(dir, pat, File.separatorChar))

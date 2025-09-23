@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2025 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -25,7 +25,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.UndeclaredThrowableException;
-import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -237,10 +236,8 @@ final class LogManagerProperties extends Properties {
 
     /**
      * Check that the current context is trusted to modify the logging
-     * configuration. This requires LoggingPermission("control").
+     * configuration.
      *
-     * @throws SecurityException if a security manager exists and the caller
-     *                           does not have {@code LoggingPermission("control")}.
      * @since JavaMail 1.5.3
      */
     static void checkLogManagerAccess() {
@@ -254,10 +251,6 @@ final class LogManagerProperties extends Properties {
                         checked = true;
                     } catch (InvocationTargetException ite) {
                         Throwable cause = ite.getCause();
-                        if (cause instanceof SecurityException) {
-                            checked = true;
-                            throw (SecurityException) cause;
-                        }
 
                         if (cause instanceof UnsupportedOperationException) {
                            checked = true;
@@ -266,10 +259,6 @@ final class LogManagerProperties extends Properties {
                         checked = true;
                     } catch (ReflectiveOperationException fallthrough) {
                     }
-                }
-            } catch (final SecurityException notAllowed) {
-                if (checked) {
-                    throw notAllowed;
                 }
             } catch (final LinkageError | RuntimeException restricted) {
             } //GAE will forbid access to LogManager
@@ -384,7 +373,6 @@ final class LogManagerProperties extends Properties {
      * @throws Exception                   if there is a problem.
      * @throws NoSuchMethodException       if the given service does not have a method
      *                                     to get the local host name as a string.
-     * @throws SecurityException           if unable to inspect properties of object.
      * @since JavaMail 1.5.3
      */
     static String getLocalHost(final Object s) throws Exception {
@@ -418,8 +406,6 @@ final class LogManagerProperties extends Properties {
      * @throws ExceptionInInitializerError if the static initializer fails.
      * @throws Exception                   if there is a problem.
      * @throws NoSuchMethodException       if the correct time methods are missing.
-     * @throws SecurityException           if reflective access to the java.time classes
-     *                                     are not allowed.
      * @since JavaMail 1.5.5
      */
     static long parseDurationToMillis(final CharSequence value) throws Exception {
@@ -622,7 +608,6 @@ final class LogManagerProperties extends Properties {
      * @throws LinkageError                if the linkage fails.
      * @throws ExceptionInInitializerError if the static initializer fails.
      * @throws Exception                   to match the error method of the ErrorManager.
-     * @throws SecurityException           if unable to inspect properties of class.
      * @since JavaMail 1.5.2
      */
     static boolean isStaticUtilityClass(String name) throws Exception {
@@ -656,7 +641,6 @@ final class LogManagerProperties extends Properties {
      * @throws LinkageError                if the linkage fails.
      * @throws ExceptionInInitializerError if the static initializer fails.
      * @throws Exception                   to match the error method of the ErrorManager.
-     * @throws SecurityException           if unable to inspect properties of class.
      * @since JavaMail 1.5.2
      */
     static boolean isReflectionClass(String name) throws Exception {
@@ -844,82 +828,15 @@ final class LogManagerProperties extends Properties {
     }
 
     /**
-     * Gets the class loaders using elevated privileges.
+     * Gets the class loaders.
      *
-     * @return any array of class loaders. Indexes may be null.
+     * @return any array of class loaders.
      */
     private static ClassLoader[] getClassLoaders() {
-        return runOrDoPrivileged(new PrivilegedAction<ClassLoader[]>() {
-
-            @SuppressWarnings("override") //JDK-6954234
-            public ClassLoader[] run() {
-                final ClassLoader[] loaders = new ClassLoader[2];
-                try {
-                    loaders[0] = ClassLoader.getSystemClassLoader();
-                } catch (SecurityException ignore) {
-                    loaders[0] = null;
-                }
-
-                try {
-                    loaders[1] = Thread.currentThread().getContextClassLoader();
-                } catch (SecurityException ignore) {
-                    loaders[1] = null;
-                }
-                return loaders;
-            }
-        });
-    }
-
-    /**
-     * Executes a PrivilegedAction without permissions then falling back to
-     * running with elevated permissions.
-     *
-     * Any unchecked exceptions from the action are passed through this API.
-     *
-     * @param <T> the action return type.
-     * @param a the PrivilegedAction object.
-     * @return the result.
-     * @throws NullPointerException if the given action is null.
-     * @throws UndeclaredThrowableException if a checked exception is thrown.
-     * @since Angus Mail 2.0.3
-     */
-    static <T> T runOrDoPrivileged(final PrivilegedAction<T> a) {
-        Objects.requireNonNull(a);
-        try {
-            return a.run();
-        } catch (SecurityException sandbox) {
-            return invokeAccessController(a);
-        }
-    }
-
-    /**
-     * Reflective call to access controller for sandbox environments.
-     * Any unchecked exceptions from the action are passed through this API.
-     *
-     * @param <T> the return type of the action.
-     * @param a a non-null action.
-     * @return the result.
-     * @throws UnsupportedOperationException if not allowed.
-     * @throws UndeclaredThrowableException if a checked exception is thrown.
-     * @since Angus Mail 2.0.3
-     */
-    @SuppressWarnings("unchecked")
-    private static <T> T invokeAccessController(final PrivilegedAction<T> a) {
-        assert a != null;
-        try {
-            Class<?> c = Class.forName("java.security.AccessController");
-            return (T) c.getMethod("doPrivileged", PrivilegedAction.class)
-                    .invoke((Object) null, a);
-        } catch (ReflectiveOperationException roe) {
-            Throwable cause = roe.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
-            } else if (cause instanceof Error) {
-                throw (Error) cause;
-            } else {
-                throw new UndeclaredThrowableException(roe);
-            }
-        }
+        final ClassLoader[] loaders = new ClassLoader[2];
+        loaders[0] = ClassLoader.getSystemClassLoader();
+        loaders[1] = Thread.currentThread().getContextClassLoader();
+        return loaders;
     }
 
     /**

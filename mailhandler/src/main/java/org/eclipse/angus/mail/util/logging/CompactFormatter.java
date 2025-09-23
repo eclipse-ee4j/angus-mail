@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2025 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2013, 2024 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -640,7 +640,6 @@ public class CompactFormatter extends java.util.logging.Formatter {
      * Gets the format pattern for this formatter.
      *
      * @return the format pattern.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
@@ -653,7 +652,6 @@ public class CompactFormatter extends java.util.logging.Formatter {
      * Sets the format pattern for this formatter.
      *
      * @param format the format pattern. If null, the default pattern is used.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
