@@ -21,8 +21,10 @@ import jakarta.activation.DataSource;
 import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.ParseException;
 
+import javax.xml.XMLConstants;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
@@ -86,8 +88,16 @@ public class text_xml extends text_plain {
         }
 
         try {
-            Transformer transformer =
-                    TransformerFactory.newInstance().newTransformer();
+            TransformerFactory tf = TransformerFactory.newInstance();
+            // a DataSource/Source can carry attacker controlled XML, so don't
+            // let the identity transform resolve external entities or DTDs
+            try {
+                tf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            } catch (TransformerConfigurationException ignored) {
+            }
+            setAttribute(tf, XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            setAttribute(tf, XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
+            Transformer transformer = tf.newTransformer();
             StreamResult result = new StreamResult(os);
             if (obj instanceof DataSource) {
                 // Streaming transform applies only to
@@ -104,6 +114,15 @@ public class text_xml extends text_plain {
                             + ex.getMessage());
             ioex.initCause(ex);
             throw ioex;
+        }
+    }
+
+    private static void setAttribute(TransformerFactory tf, String name,
+                                     Object value) {
+        try {
+            tf.setAttribute(name, value);
+        } catch (IllegalArgumentException ignored) {
+            // attribute not supported by this implementation
         }
     }
 
