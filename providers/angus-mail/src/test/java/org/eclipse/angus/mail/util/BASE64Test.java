@@ -279,6 +279,37 @@ public class BASE64Test {
     }
 
     /**
+     * A byte that is not part of the base64 alphabet must be skipped,
+     * the same way whitespace is.  The 0xFF byte in particular must not
+     * be treated as a valid character.
+     */
+    @Test
+    public void testNonBase64ByteSkipped() throws IOException {
+        // "TWFu" is the base64 encoding of "Man"; inject a stray 0xFF byte
+        byte[] clean = new byte[]{'T', 'W', 'F', 'u'};
+        byte[] withStray = new byte[]{'T', 'W', (byte) 0xFF, 'F', 'u'};
+
+        byte[] expected = readFully(new BASE64DecoderStream(
+                new ByteArrayInputStream(clean)));
+        byte[] actual = readFully(new BASE64DecoderStream(
+                new ByteArrayInputStream(withStray)));
+
+        Assert.assertArrayEquals("0xFF must be ignored like whitespace",
+                expected, actual);
+        // cross-check against a conformant decoder that ignores non-alphabet bytes
+        Assert.assertArrayEquals("must match JDK MIME decoder",
+                Base64.getMimeDecoder().decode(withStray), actual);
+    }
+
+    private static byte[] readFully(InputStream in) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        int b;
+        while ((b = in.read()) != -1)
+            bos.write(b);
+        return bos.toByteArray();
+    }
+
+    /**
      * Fill the buffer from the stream.
      */
     private static void readAll(InputStream in, byte[] buf, int readsize)
