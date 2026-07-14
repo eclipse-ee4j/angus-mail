@@ -66,6 +66,28 @@ public final class SocketFetcherTest {
     @Rule
     public Timeout deadlockTimeout = Timeout.seconds(20);
 
+    private static boolean matchServer(String server, String name)
+            throws Exception {
+        Class<?> c = Class.forName(
+                "org.eclipse.angus.mail.util.SocketFetcher$MailHostnameVerifier");
+        java.lang.reflect.Method m =
+                c.getDeclaredMethod("matchServer", String.class, String.class);
+        m.setAccessible(true);
+        return (Boolean) m.invoke(null, server, name);
+    }
+
+    /**
+     * A wildcard certificate name matches a single leftmost label only.
+     */
+    @Test
+    public void testWildcardMatchesSingleLabel() throws Exception {
+        assertTrue(matchServer("foo.example.com", "*.example.com"));
+        assertTrue(matchServer("FOO.EXAMPLE.COM", "*.example.com"));
+        assertFalse(matchServer("a.b.example.com", "*.example.com"));
+        assertFalse(matchServer("example.com", "*.example.com"));
+        assertTrue(matchServer("example.com", "example.com"));
+    }
+
     /**
      * Test connecting with proxy host and port.
      */
