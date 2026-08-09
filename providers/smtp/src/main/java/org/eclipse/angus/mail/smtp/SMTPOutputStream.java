@@ -31,15 +31,22 @@ import java.io.OutputStream;
  * @see CRLFOutputStream
  */
 public class SMTPOutputStream extends CRLFOutputStream {
+    private final boolean dotStuffing;
+
     public SMTPOutputStream(OutputStream os) {
+        this(os, true);
+    }
+
+    SMTPOutputStream(OutputStream os, boolean dotStuffing) {
         super(os);
+        this.dotStuffing = dotStuffing;
     }
 
     @Override
     public void write(int b) throws IOException {
-        // if that last character was a newline, and the current
-        // character is ".", we always write out an extra ".".
-        if ((lastb == '\n' || lastb == '\r' || lastb == -1) && b == '.') {
+        // DATA requires an extra dot when a line starts with ".".
+        if (dotStuffing &&
+                (lastb == '\n' || lastb == '\r' || lastb == -1) && b == '.') {
             out.write('.');
         }
 
@@ -51,6 +58,11 @@ public class SMTPOutputStream extends CRLFOutputStream {
      */
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
+        if (!dotStuffing) {
+            super.write(b, off, len);
+            return;
+        }
+
         int lastc = (lastb == -1) ? '\n' : lastb;
         int start = off;
 
