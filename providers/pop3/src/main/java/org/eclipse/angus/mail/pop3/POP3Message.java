@@ -621,7 +621,7 @@ public class POP3Message extends MimeMessage implements ReadableMime {
                 } else {
                     try {
                         hdrSize = hdrs.available();
-                        headers = new InternetHeaders(hdrs);
+                        headers = createInternetHeaders(hdrs);
                     } finally {
                         hdrs.close();
                     }
