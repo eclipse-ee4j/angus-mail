@@ -22,6 +22,20 @@
     Over time, the legacy resource files (without the `jakarta.` prefix) will be
     removed entirely, and only the `jakarta.`-prefixed resources will be kept.
 
+- External entity resolution disabled in the text/xml handler
+
+    The text/xml DataContentHandler used by writeTo transformed the supplied
+    content with a default TransformerFactory, which resolved external general
+    entities and external DTDs.  Writing a text/xml body part built from
+    untrusted XML could therefore disclose local files or reach internal URLs
+    (XXE).  The handler now enables FEATURE_SECURE_PROCESSING and sets
+    ACCESS_EXTERNAL_DTD and ACCESS_EXTERNAL_STYLESHEET to the empty string on
+    the factory.
+
+    As a result, content that relies on external DTDs or external entities is
+    no longer resolved and may fail to transform.  Well-formed XML without
+    external references is unaffected.
+
 -- Angus Mail 2.0.3 --
 
 - Server Identity Check performed by SSL endpoint identification algorithm
