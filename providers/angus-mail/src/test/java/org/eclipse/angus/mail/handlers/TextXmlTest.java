@@ -112,26 +112,30 @@ public class TextXmlTest {
     @Test
     public void testExternalEntityNotResolved() throws Exception {
         File secret = File.createTempFile("textxml", ".txt");
-        secret.deleteOnExit();
-        try (Writer w = new FileWriter(secret)) {
-            w.write("TOPSECRET");
-        }
-        String doc = "<?xml version=\"1.0\"?>\n" +
-                "<!DOCTYPE r [ <!ENTITY x SYSTEM \"" +
-                secret.toURI() + "\"> ]>\n<r>&x;</r>";
-        DataContentHandler dch = new text_xml();
-        DataSource ds = new ByteArrayDataSource(
-                doc.getBytes(StandardCharsets.US_ASCII), "text/xml");
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try {
-            dch.writeTo(ds, "text/xml", bos);
-        } catch (IOException expected) {
-            // entity resolution disabled, transform refuses the document
-            return;
+            try (Writer w = new FileWriter(secret)) {
+                w.write("TOPSECRET");
+            }
+            String doc = "<?xml version=\"1.0\"?>\n" +
+                    "<!DOCTYPE r [ <!ENTITY x SYSTEM \"" +
+                    secret.toURI() + "\"> ]>\n<r>&x;</r>";
+            DataContentHandler dch = new text_xml();
+            DataSource ds = new ByteArrayDataSource(
+                    doc.getBytes(StandardCharsets.US_ASCII), "text/xml");
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            try {
+                dch.writeTo(ds, "text/xml", bos);
+            } catch (IOException expected) {
+                // entity resolution disabled, transform refuses the document
+                return;
+            }
+            String out = new String(bos.toByteArray(),
+                    StandardCharsets.US_ASCII);
+            assertFalse("external entity was resolved: " + out,
+                    out.contains("TOPSECRET"));
+        } finally {
+            secret.delete();
         }
-        String out = new String(bos.toByteArray(), StandardCharsets.US_ASCII);
-        assertFalse("external entity was resolved: " + out,
-                out.contains("TOPSECRET"));
     }
 
     /**
