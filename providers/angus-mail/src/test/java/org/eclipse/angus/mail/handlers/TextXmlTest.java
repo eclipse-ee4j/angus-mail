@@ -25,11 +25,15 @@ import org.junit.Test;
 import javax.xml.transform.stream.StreamSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -102,6 +106,36 @@ public class TextXmlTest {
         String sc = new String(bos.toByteArray(), StandardCharsets.US_ASCII);
         // transformer adds an <?xml> header, so can't check for exact match
         assertTrue(sc.contains(xml.trim()));
+    }
+
+    // an external entity in the source must not be resolved into the output
+    @Test
+    public void testExternalEntityNotResolved() throws Exception {
+        File secret = File.createTempFile("textxml", ".txt");
+        try {
+            try (Writer w = new FileWriter(secret)) {
+                w.write("TOPSECRET");
+            }
+            String doc = "<?xml version=\"1.0\"?>\n" +
+                    "<!DOCTYPE r [ <!ENTITY x SYSTEM \"" +
+                    secret.toURI() + "\"> ]>\n<r>&x;</r>";
+            DataContentHandler dch = new text_xml();
+            DataSource ds = new ByteArrayDataSource(
+                    doc.getBytes(StandardCharsets.US_ASCII), "text/xml");
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            try {
+                dch.writeTo(ds, "text/xml", bos);
+            } catch (IOException expected) {
+                // entity resolution disabled, transform refuses the document
+                return;
+            }
+            String out = new String(bos.toByteArray(),
+                    StandardCharsets.US_ASCII);
+            assertFalse("external entity was resolved: " + out,
+                    out.contains("TOPSECRET"));
+        } finally {
+            secret.delete();
+        }
     }
 
     /**
