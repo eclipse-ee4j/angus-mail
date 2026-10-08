@@ -31,6 +31,8 @@ import java.io.InputStream;
 
 public class ResponseInputStream {
 
+    private static final Integer INPUT_STREAM_BUFFER_MAX_SIZE =
+        Integer.parseInt(System.getProperty("org.eclipse.angus.mail.iap.inputStreamBufferMaxSize", "0"));
     private static final int minIncrement = 256;
     private static final int maxIncrement = 256 * 1024;
     private static final int incrementSlop = 16;
@@ -86,6 +88,9 @@ public class ResponseInputStream {
                     int incr = buffer.length;
                     if (incr > maxIncrement)
                         incr = maxIncrement;
+                    if (INPUT_STREAM_BUFFER_MAX_SIZE > 0 && buffer.length + incr > INPUT_STREAM_BUFFER_MAX_SIZE) {
+                      throw new IOException("Response in ResponseInputStream grows too large.");
+                    }
                     ba.grow(incr);
                     buffer = ba.getBytes();
                 }
@@ -122,7 +127,11 @@ public class ResponseInputStream {
                 int avail = buffer.length - idx; // available space in buffer
                 if (count + incrementSlop > avail) {
                     // need count-avail more bytes
-                    ba.grow(Math.max(minIncrement, count + incrementSlop - avail));
+                    int amountToGrow = Math.max(minIncrement, count + incrementSlop - avail);
+                    if (INPUT_STREAM_BUFFER_MAX_SIZE > 0 && buffer.length + amountToGrow > INPUT_STREAM_BUFFER_MAX_SIZE) {
+                      throw new IOException("Response in ResponseInputStream grows too large while parsing literal.");
+                    }
+                    ba.grow(amountToGrow);
                     buffer = ba.getBytes();
                 }
 
