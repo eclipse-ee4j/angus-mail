@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -108,27 +108,7 @@ public class PropUtil {
      * @return the property value
      */
     public static boolean getBooleanSystemProperty(String name, boolean def) {
-        try {
-            return getBoolean(getProp(System.getProperties(), name), def);
-        } catch (SecurityException sex) {
-            // fall through...
-        }
-
-        /*
-         * If we can't get the entire System Properties object because
-         * of a SecurityException, just ask for the specific property.
-         */
-        try {
-            String value = System.getProperty(name);
-            if (value == null)
-                return def;
-            if (def)
-                return !value.equalsIgnoreCase("false");
-            else
-                return value.equalsIgnoreCase("true");
-        } catch (SecurityException sex) {
-            return def;
-        }
+        return getBoolean(getProp(System.getProperties(), name), def);
     }
 
     /**

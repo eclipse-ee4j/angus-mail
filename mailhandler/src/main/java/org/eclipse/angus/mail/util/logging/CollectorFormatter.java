@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2025 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2013, 2023 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -468,7 +468,6 @@ public class CollectorFormatter extends Formatter {
      * Sets the message format string for this formatter.
      *
      * @param format the format pattern or null for default pattern.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
@@ -494,7 +493,6 @@ public class CollectorFormatter extends Formatter {
      * Gets the message format string for this formatter.
      *
      * @return a non null format pattern.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
@@ -507,7 +505,6 @@ public class CollectorFormatter extends Formatter {
      * Sets the target formatter.
      *
      * @param f the target formatter or null to use a LogManager default.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
@@ -535,7 +532,6 @@ public class CollectorFormatter extends Formatter {
      * Gets the target formatter.
      *
      * @return a non null formatter.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
@@ -549,7 +545,6 @@ public class CollectorFormatter extends Formatter {
      *
      * @param c the comparator used to order LogRecords. A null value can be
      * used to specify choosing the last seen record.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
@@ -574,7 +569,6 @@ public class CollectorFormatter extends Formatter {
      *
      * @return the comparator used to order LogRecords or null if choosing the
      * most recent record.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */

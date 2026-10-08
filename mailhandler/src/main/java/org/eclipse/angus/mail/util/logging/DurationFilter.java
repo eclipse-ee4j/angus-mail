@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2025 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2015, 2023 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -211,7 +211,6 @@ public class DurationFilter implements Filter {
      * Gets the max number of records per duration.
      *
      * @return the max number of records per duration.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
@@ -224,7 +223,6 @@ public class DurationFilter implements Filter {
      * Sets the max number of records per duration.
      *
      * @param records the max number of records per duration.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
@@ -237,7 +235,6 @@ public class DurationFilter implements Filter {
      * Sets the duration in milliseconds used to determine the log record rate.
      *
      * @param duration in milliseconds to determine the log record rate.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
@@ -250,7 +247,6 @@ public class DurationFilter implements Filter {
      * Gets the duration in milliseconds used to determine the log record rate.
      *
      * @return duration in milliseconds used to determine the log record rate.
-     * @throws SecurityException if a security manager exists and the caller
      * does not have <code>LoggingPermission("control")</code>.
      * @since Angus Mail 2.0.3
      */
