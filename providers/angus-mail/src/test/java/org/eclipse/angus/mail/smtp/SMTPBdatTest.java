@@ -39,7 +39,7 @@ public final class SMTPBdatTest {
     private byte[] message;
 
     @Test
-    public void testBdatSuccess() throws Exception {
+    public void testBdatDoesNotDotStuff() throws Exception {
         TestServer server = null;
         try {
             SMTPHandler handler = new SMTPHandler() {
@@ -69,7 +69,7 @@ public final class SMTPBdatTest {
                 MimeMessage msg = new MimeMessage(session);
                 msg.setRecipients(Message.RecipientType.TO, "joe@example.com");
                 msg.setSubject("test");
-                msg.setText("test\r\n");
+                msg.setText("first line\r\n.leading dot\r\n.\r\nlast line\r\n");
                 t.connect();
                 t.sendMessage(msg, msg.getAllRecipients());
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();

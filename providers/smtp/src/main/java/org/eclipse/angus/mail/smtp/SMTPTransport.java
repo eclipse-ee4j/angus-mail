@@ -2745,7 +2745,7 @@ public class SMTPTransport extends Transport {
          * @param    size    the chunk size
          */
         public BDATOutputStream(OutputStream out, int size) {
-            super(new ChunkedOutputStream(out, size));
+            super(new ChunkedOutputStream(out, size), false);
         }
 
         /**
