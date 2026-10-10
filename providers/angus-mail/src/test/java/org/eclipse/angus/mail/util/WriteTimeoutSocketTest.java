@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -111,8 +111,9 @@ public final class WriteTimeoutSocketTest {
         assertTrue(sf.getSocketCreated());
     }
 
-    @Test(expected = MessagingException.class)
+    @Test
     public void testSSLCheckserveridentityDefaultsTrue() throws Exception {
+        // Localhost should not fail if mail.imap.ssl.trust = localhost
         final Properties properties = new Properties();
         properties.setProperty("mail.imap.host", "localhost");
         properties.setProperty("mail.imap.writetimeout", "" + TIMEOUT);

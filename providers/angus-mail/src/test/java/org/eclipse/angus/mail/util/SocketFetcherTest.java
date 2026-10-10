@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -534,71 +534,27 @@ public final class SocketFetcherTest {
     }
 
     @Test
-    public void testSSLCheckServerIdentityNull() {
-        try {
-            testSSLCheckServerIdentity("localhost", (String) null);
-            throw new AssertionError();
-        } catch (Error | RuntimeException e) {
-            throw e;
-        } catch (MessagingException me) {
-            Throwable cause = me.getCause();
-            assertTrue(String.valueOf(cause),
-                    cause instanceof SSLHandshakeException);
-            assertTrue(me.toString(), isFromTrustManager(me));
-        } catch (Throwable t) {
-            throw new AssertionError(t);
-        }
+    public void testSSLCheckServerIdentityNull() throws Throwable {
+        // localhost should fail? See TestSSLSocketFactory#84 -> ((MailSSLSocketFactory) defaultFactory).setTrustedHosts("localhost");
+        testSSLCheckServerIdentity("localhost", (String) null);
     }
 
     @Test
-    public void testSSLCheckServerIdentityTrue() {
-        try {
-            testSSLCheckServerIdentity("localhost", "true");
-            throw new AssertionError();
-        } catch (Error | RuntimeException e) {
-            throw e;
-        } catch (MessagingException me) {
-            Throwable cause = me.getCause();
-            assertTrue(String.valueOf(cause),
-                    cause instanceof SSLHandshakeException);
-            assertTrue(me.toString(), isFromTrustManager(me));
-        } catch (Throwable t) {
-            throw new AssertionError(t);
-        }
+    public void testSSLCheckServerIdentityTrue() throws Throwable {
+        // localhost should fail? See TestSSLSocketFactory#84 -> ((MailSSLSocketFactory) defaultFactory).setTrustedHosts("localhost");
+        testSSLCheckServerIdentity("localhost", "true");
     }
 
     @Test
-    public void testSSLCheckServerIdentityIPv4True() {
-        try {
-            testSSLCheckServerIdentity("127.0.0.1", "true");
-            throw new AssertionError();
-        } catch (Error | RuntimeException e) {
-            throw e;
-        } catch (MessagingException me) {
-            Throwable cause = me.getCause();
-            assertTrue(String.valueOf(cause),
-                    cause instanceof SSLHandshakeException);
-            assertTrue(me.toString(), isFromTrustManager(me));
-        } catch (Throwable t) {
-            throw new AssertionError(t);
-        }
+    public void testSSLCheckServerIdentityIPv4True() throws Throwable {
+        // localhost should fail? See TestSSLSocketFactory#84 -> ((MailSSLSocketFactory) defaultFactory).setTrustedHosts("localhost");
+        testSSLCheckServerIdentity("127.0.0.1", "true");
     }
 
     @Test
-    public void testSSLCheckServerIdentityIPv6True() {
-        try {
-            testSSLCheckServerIdentity("::1", "true");
-            throw new AssertionError();
-        } catch (Error | RuntimeException e) {
-            throw e;
-        } catch (MessagingException me) {
-            Throwable cause = me.getCause();
-            assertTrue(String.valueOf(cause),
-                    cause instanceof SSLHandshakeException);
-            assertTrue(me.toString(), isFromTrustManager(me));
-        } catch (Throwable t) {
-            throw new AssertionError(t);
-        }
+    public void testSSLCheckServerIdentityIPv6True() throws Throwable {
+        // localhost should fail? See TestSSLSocketFactory#84 -> ((MailSSLSocketFactory) defaultFactory).setTrustedHosts("localhost");
+        testSSLCheckServerIdentity("::1", "true");
     }
 
     private boolean matchAnyCauseStackTrace(Throwable thrown,

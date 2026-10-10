@@ -30,6 +30,8 @@ mailhandler/src/main/resources/META-INF/hk2-locator/default
 docker/JTReportParser/
 providers/angus-mail/src/test/resources/org/eclipse/angus/mail/util/paramdatanostrict
 providers/angus-mail/src/test/resources/org/eclipse/angus/mail/util/paramdata
+providers/angus-mail/src/test/resources/keystore.jks
+providers/angus-mail/src/test/resources/test-hosts
 .txt
 .TXT
 www/

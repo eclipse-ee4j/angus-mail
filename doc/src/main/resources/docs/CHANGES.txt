@@ -7,6 +7,12 @@ for the Eclipse EE4J Angus Mail project:
 
     https://github.com/eclipse-ee4j/angus-mail/issues/<bug-number>
 
+          CHANGES IN THE 2.1.0 RELEASE
+          ----------------------------
+The following bugs have been fixed in the 2.1.0 release.
+
+187: "mail.smtp.ssl.trust" seems to be broken
+
           CHANGES IN THE 2.0.5 RELEASE
           ----------------------------
 The following bugs have been fixed in the 2.0.5 release.

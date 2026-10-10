@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -628,15 +628,15 @@ public class SocketFetcher {
                     Arrays.asList(sslsocket.getEnabledCipherSuites()));
         }
 
+        boolean checkServerIdentity =
+                PropUtil.getBooleanProperty(props, prefix + ".ssl.checkserveridentity", true);
         try {
             /*
              * Check server identity and trust.
              * See: JDK-8062515 and JDK-7192189
              * LDAPS requires the same regex handling as we need
              */
-            String eia = PropUtil.getBooleanProperty(props,
-                    prefix + ".ssl.checkserveridentity", true)
-                    ? "LDAPS" : (String) null;
+            String eia = checkServerIdentity ? "LDAPS" : (String) null;
             SSLParameters params = sslsocket.getSSLParameters();
             params.setEndpointIdentificationAlgorithm(eia);
             sslsocket.setSSLParameters(params);
@@ -679,7 +679,7 @@ public class SocketFetcher {
 
         if (sf instanceof MailSSLSocketFactory) {
             MailSSLSocketFactory msf = (MailSSLSocketFactory) sf;
-            if (!msf.isServerTrusted(host, sslsocket)) {
+            if (checkServerIdentity && !msf.isServerTrusted(host, sslsocket)) {
                 throw cleanupAndThrow(sslsocket,
                         new IOException("Server is not trusted: " + host));
             }

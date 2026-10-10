@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -18,10 +18,12 @@ package org.eclipse.angus.mail.util;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -334,51 +336,120 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
      *
      * @author Stephan Sann
      */
-    private class MailTrustManager implements X509TrustManager {
+    private class MailTrustManager extends X509ExtendedTrustManager {
 
         /**
-         * A TrustManager to pass method calls to
+         * A TrustManager to delegate to
          */
-        private X509TrustManager adapteeTrustManager = null;
+        private final X509ExtendedTrustManager adapteeTrustManager;
 
-        /**
-         * Initializes a new TrustManager instance.
-         */
         private MailTrustManager() throws GeneralSecurityException {
             TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
             tmf.init((KeyStore) null);
-            adapteeTrustManager = (X509TrustManager) tmf.getTrustManagers()[0];
+
+            TrustManager tm = tmf.getTrustManagers()[0];
+
+            if (tm instanceof X509ExtendedTrustManager) {
+                adapteeTrustManager = (X509ExtendedTrustManager) tm;
+            } else {
+                // Should not happen, but wrap X509TrustManager if needed
+                adapteeTrustManager = new X509ExtendedTrustManager() {
+                    private final X509TrustManager base = (X509TrustManager) tm;
+
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket)
+                            throws CertificateException {
+                        base.checkClientTrusted(chain, authType);
+                    }
+
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
+                            throws CertificateException {
+                        base.checkClientTrusted(chain, authType);
+                    }
+
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket)
+                            throws CertificateException {
+                        base.checkServerTrusted(chain, authType);
+                    }
+
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
+                            throws CertificateException {
+                        base.checkServerTrusted(chain, authType);
+                    }
+
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] chain, String authType)
+                            throws CertificateException {
+                        base.checkClientTrusted(chain, authType);
+                    }
+
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] chain, String authType)
+                            throws CertificateException {
+                        base.checkServerTrusted(chain, authType);
+                    }
+
+                    @Override
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return base.getAcceptedIssuers();
+                    }
+                };
+            }
         }
 
-        /* (non-Javadoc)
-         * @see javax.net.ssl.X509TrustManager#checkClientTrusted(
-         *		java.security.cert.X509Certificate[], java.lang.String)
-         */
+        private boolean shouldDelegate() {
+            return !(isTrustAllHosts() || getTrustedHosts() != null);
+        }
+
         @Override
         public void checkClientTrusted(X509Certificate[] certs, String authType)
                 throws CertificateException {
-            if (!(isTrustAllHosts() || getTrustedHosts() != null))
+            if (shouldDelegate())
                 adapteeTrustManager.checkClientTrusted(certs, authType);
         }
 
-        /* (non-Javadoc)
-         * @see javax.net.ssl.X509TrustManager#checkServerTrusted(
-         *		java.security.cert.X509Certificate[], java.lang.String)
-         */
         @Override
         public void checkServerTrusted(X509Certificate[] certs, String authType)
                 throws CertificateException {
-
-            if (!(isTrustAllHosts() || getTrustedHosts() != null))
+            if (shouldDelegate())
                 adapteeTrustManager.checkServerTrusted(certs, authType);
         }
 
-        /* (non-Javadoc)
-         * @see javax.net.ssl.X509TrustManager#getAcceptedIssuers()
-         */
         @Override
         public X509Certificate[] getAcceptedIssuers() {
             return adapteeTrustManager.getAcceptedIssuers();
         }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket)
+                throws CertificateException {
+            if (shouldDelegate())
+                adapteeTrustManager.checkClientTrusted(chain, authType, socket);
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
+                throws CertificateException {
+            if (shouldDelegate())
+                adapteeTrustManager.checkClientTrusted(chain, authType, engine);
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket)
+                throws CertificateException {
+            if (shouldDelegate())
+                adapteeTrustManager.checkServerTrusted(chain, authType, socket);
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
+                throws CertificateException {
+            if (shouldDelegate())
+                adapteeTrustManager.checkServerTrusted(chain, authType, engine);
+        }
     }
+
 }

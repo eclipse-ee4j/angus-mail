@@ -3,6 +3,19 @@
 
 		    Angus Mail ${angus-mail.version} release
 		    ------------------------------
+
+-- Angus Mail 2.1.0 --
+
+- MailTrustManager updated to extend X509ExtendedTrustManager
+
+    The internal MailTrustManager implementation has been updated to extend
+    X509ExtendedTrustManager instead of X509TrustManager.  This allows Angus Mail
+    to pass the connected SSLSocket or SSLEngine to the TrustManager during
+    certificate validation.
+
+	As a result of this, setting mail.<protocol>.ssl.checkserveridentity = true
+	will check trusted hosts.
+
 -- Angus Mail 2.0.5 --
 
 - Resource File Duplication due to Jakartification
