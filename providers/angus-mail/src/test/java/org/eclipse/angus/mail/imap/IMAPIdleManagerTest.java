@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2026 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -20,6 +20,8 @@ import jakarta.mail.FetchProfile;
 import jakarta.mail.Folder;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.event.ConnectionAdapter;
+import jakarta.mail.event.ConnectionEvent;
 import org.eclipse.angus.mail.test.TestServer;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,6 +32,7 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -176,6 +179,68 @@ public final class IMAPIdleManagerTest {
     @Test
     public void testIdleDrop() {
         testFailure(new IMAPHandlerIdleDrop(), false);
+    }
+
+    @Test
+    public void testIdleByeSendsClosedEvent() {
+        TestServer server = null;
+        IdleManager idleManager = null;
+        ExecutorService executor = Executors.newCachedThreadPool();
+        IMAPHandlerIdleBye handler = new IMAPHandlerIdleBye();
+        try {
+            server = new TestServer(handler);
+            server.start();
+
+            final Properties properties = new Properties();
+            properties.setProperty("mail.imap.host", "localhost");
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
+            properties.setProperty("mail.imap.usesocketchannels", "true");
+            final Session session = Session.getInstance(properties);
+            //session.setDebug(true);
+
+            idleManager = new IdleManager(session, executor);
+
+            final IMAPStore store = (IMAPStore) session.getStore("imap");
+            Folder folder = null;
+            try {
+                store.connect("test", "test");
+                folder = store.getFolder("INBOX");
+                CountDownLatch closedLatch = new CountDownLatch(1);
+                folder.addConnectionListener(new ConnectionAdapter() {
+                    @Override
+                    public void closed(ConnectionEvent e) {
+                        closedLatch.countDown();
+                    }
+                });
+                folder.open(Folder.READ_WRITE);
+                idleManager.watch(folder);
+                handler.waitForIdle();
+
+                assertTrue("No folder closed event",
+                        closedLatch.await(2 * TIMEOUT, TimeUnit.MILLISECONDS));
+                assertTrue("Folder is still open", !folder.isOpen());
+            } catch (Exception ex) {
+                System.out.println("Failed with exception: " + ex);
+                ex.printStackTrace();
+                fail(ex.toString());
+            } finally {
+                try {
+                    folder.close(false);
+                } catch (Exception ex2) {
+                }
+                store.close();
+            }
+        } catch (final Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            executor.shutdown();
+            if (idleManager != null)
+                idleManager.stop();
+            if (server != null) {
+                server.quit();
+            }
+        }
     }
 
     @Test
@@ -514,6 +579,25 @@ public final class IMAPIdleManagerTest {
             cont();
             latch.countDown();
             exit();
+        }
+
+        @Override
+        public void waitForIdle() throws InterruptedException {
+            latch.await();
+        }
+    }
+
+    /**
+     * Custom handler.  Send BYE after IDLE started.
+     */
+    private static final class IMAPHandlerIdleBye extends IMAPHandlerIdle {
+        private final CountDownLatch latch = new CountDownLatch(1);
+
+        @Override
+        public void idle() throws IOException {
+            cont();
+            latch.countDown();
+            bye("Server shutting down.");
         }
 
         @Override

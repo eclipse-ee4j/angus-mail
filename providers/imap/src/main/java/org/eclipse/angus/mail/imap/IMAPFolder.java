@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2026 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -3321,6 +3321,10 @@ public class IMAPFolder extends Folder implements UIDFolder, ResponseHandler {
                 }
             } catch (ConnectionException cex) {
                 // Oops, the folder died on us.
+                synchronized (messageCacheLock) {
+                    if (opened)
+                        cleanup(false);
+                }
                 throw new FolderClosedException(this, cex.getMessage());
             } catch (ProtocolException pex) {
                 throw new MessagingException(pex.getMessage(), pex);
