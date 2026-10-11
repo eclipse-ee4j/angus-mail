@@ -202,7 +202,7 @@ public class BASE64DecoderStream extends FilterInputStream {
     private final static byte[] pem_convert_array = new byte[256];
 
     static {
-        for (int i = 0; i < 255; i++)
+        for (int i = 0; i < pem_convert_array.length; i++)
             pem_convert_array[i] = -1;
         for (int i = 0; i < pem_array.length; i++)
             pem_convert_array[pem_array[i]] = (byte) i;
