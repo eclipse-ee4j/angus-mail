@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2026 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -20,6 +20,7 @@ import jakarta.mail.Folder;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
+import jakarta.mail.StoreClosedException;
 import org.eclipse.angus.mail.test.TestServer;
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,6 +29,7 @@ import org.junit.rules.Timeout;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -370,6 +372,47 @@ public final class IMAPStoreTest {
                     @Override
                     public void namespace() throws IOException {
                         exit();
+                    }
+                });
+    }
+
+    /**
+     * Test that a dead store connection borrowed by a Folder isn't
+     * returned to the pool for reuse.
+     */
+    @Test
+    public void testDeadBorrowedStoreConnectionIsDiscarded() {
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void test(Store store, TestServer server)
+                            throws Exception {
+                        store.connect("test", "test");
+                        Folder inbox = store.getFolder("INBOX");
+
+                        assertTrue(inbox.exists());
+                        try {
+                            inbox.exists();
+                            fail("StoreClosedException expected");
+                        } catch (StoreClosedException expected) {
+                            // expected
+                        }
+                        assertTrue(inbox.exists());
+                        assertEquals(2, server.clientCount());
+                    }
+                },
+                new IMAPHandler() {
+                    private final AtomicInteger listCount = new AtomicInteger();
+
+                    @Override
+                    public void list(String line) throws IOException {
+                        int count = listCount.incrementAndGet();
+                        if (count == 2) {
+                            exit();
+                            return;
+                        }
+                        untagged("LIST (\\HasNoChildren) \"/\" \"INBOX\"");
+                        ok();
                     }
                 });
     }

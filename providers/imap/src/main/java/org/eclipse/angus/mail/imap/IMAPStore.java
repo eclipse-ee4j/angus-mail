@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2026 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -1044,6 +1044,13 @@ public class IMAPStore extends Store
                     p = pool.authenticatedConnections.lastElement();
                     pool.authenticatedConnections.removeElement(p);
 
+                    if (!p.isAuthenticated()) {
+                        logger.fine("discarding dead connection from pool");
+                        discardProtocol(p);
+                        p = null;
+                        continue;   // try again, from the top
+                    }
+
                     // check if the connection is still live
                     long lastUsed = System.currentTimeMillis() - p.getTimestamp();
                     if (lastUsed > pool.serverTimeoutInterval) {
@@ -1179,6 +1186,15 @@ public class IMAPStore extends Store
                                 pool.authenticatedConnections.size());
                     p = pool.authenticatedConnections.firstElement();
 
+                    if (!p.isAuthenticated()) {
+                        pool.logger.fine(
+                                "getStoreProtocol() - discarding dead connection");
+                        pool.authenticatedConnections.removeElementAt(0);
+                        discardProtocol(p);
+                        p = null;
+                        continue;   // try again, from the top
+                    }
+
                     // if proxyAuthUser has changed, switch to new user
                     if (proxyAuthUser != null &&
                             !proxyAuthUser.equals(p.getProxyAuthUser()) &&
@@ -1283,6 +1299,29 @@ public class IMAPStore extends Store
     }
 
     /**
+     * Disconnect a protocol object that can no longer be reused.
+     */
+    private void discardProtocol(IMAPProtocol protocol) {
+        if (protocol == null)
+            return;
+        try {
+            protocol.removeResponseHandler(this);
+        } catch (RuntimeException ignored) {
+            // don't let cleanup failures hide the original problem
+        }
+        try {
+            protocol.removeResponseHandler(nonStoreResponseHandler);
+        } catch (RuntimeException ignored) {
+            // don't let cleanup failures hide the original problem
+        }
+        try {
+            protocol.disconnect();
+        } catch (RuntimeException ignored) {
+            // don't let cleanup failures hide the original problem
+        }
+    }
+
+    /**
      * Report whether the connection pool is full.
      */
     boolean isConnectionPoolFull() {
@@ -1307,7 +1346,10 @@ public class IMAPStore extends Store
             if (protocol != null) {
                 // If the pool is not full, add the store as a response handler
                 // and return the protocol object to the connection pool.
-                if (!isConnectionPoolFull()) {
+                if (!protocol.isAuthenticated()) {
+                    logger.fine("discarding dead authenticated connection");
+                    discardProtocol(protocol);
+                } else if (!isConnectionPoolFull()) {
                     protocol.addResponseHandler(this);
                     pool.authenticatedConnections.addElement(protocol);
 
@@ -1383,8 +1425,15 @@ public class IMAPStore extends Store
         if (protocol == null)
             return;        // should never happen
         protocol.removeResponseHandler(nonStoreResponseHandler);
-        protocol.addResponseHandler(this);
         synchronized (pool) {
+            if (!protocol.isAuthenticated()) {
+                pool.logger.fine(
+                        "releaseFolderStoreProtocol() discarding dead connection");
+                pool.authenticatedConnections.removeElement(protocol);
+                discardProtocol(protocol);
+            } else {
+                protocol.addResponseHandler(this);
+            }
             pool.storeConnectionInUse = false;
             pool.notifyAll();    // in case anyone waiting
 
