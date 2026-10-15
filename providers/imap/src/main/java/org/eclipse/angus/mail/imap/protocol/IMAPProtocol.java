@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -2549,16 +2550,23 @@ public class IMAPProtocol extends Protocol {
                               String charset)
             throws ProtocolException, SearchException, IOException {
 
-        // Generate a search-sequence with the given charset
+        // Generate a search-sequence with the given charset; without
+        // one, the text is US-ASCII, or UTF-8 if it has been enabled
+        // (RFC 6855)
+        String javaCharset;
+        if (charset != null)
+            javaCharset = MimeUtility.javaCharset(charset);
+        else if (supportsUtf8())
+            javaCharset = "UTF-8";
+        else
+            javaCharset = null;
         Argument args = getSearchSequence().generateSequence(term,
-                charset == null ? null :
-                        MimeUtility.javaCharset(charset)
-        );
+                javaCharset);
         args.writeAtom(msgSequence);
 
         Response[] r;
 
-        if (charset == null) // text is all US-ASCII
+        if (charset == null) // text is US-ASCII or UTF-8
             r = command("SEARCH", args);
         else
             r = command("SEARCH CHARSET " + charset, args);

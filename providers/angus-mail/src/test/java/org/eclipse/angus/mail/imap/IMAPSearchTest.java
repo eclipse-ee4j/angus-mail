@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -145,6 +146,56 @@ public final class IMAPSearchTest {
     /**
      * An IMAPHandler that enables UTF-8 support.
      */
+    /**
+     * Test that when the server supports UTF8 and the client enables it,
+     * non-ASCII search text is sent in UTF-8.
+     */
+    @Test
+    public void testUtf8SearchText() {
+        TestServer server = null;
+        try {
+            server = new TestServer(new IMAPUtf8Handler() {
+                @Override
+                public void search(String line) throws IOException {
+                    if (line.contains("\"\u00e4\u00fc\"")) {
+                        untagged("SEARCH");
+                        ok();
+                    } else
+                        bad("search text is not UTF-8");
+                }
+            });
+            server.start();
+
+            final Properties properties = new Properties();
+            properties.setProperty("mail.imap.host", "localhost");
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
+            properties.setProperty("mail.imap.throwsearchexception", "true");
+            final Session session = Session.getInstance(properties);
+
+            final Store store = session.getStore("imap");
+            Folder folder = null;
+            try {
+                store.connect("test", "test");
+                folder = store.getFolder("INBOX");
+                folder.open(Folder.READ_ONLY);
+                folder.search(new SubjectTerm("\u00e4\u00fc"));
+            } catch (Exception ex) {
+                fail(ex.toString());
+            } finally {
+                if (folder != null)
+                    folder.close(false);
+                store.close();
+            }
+        } catch (final Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
+    }
+
     private static class IMAPUtf8Handler extends IMAPHandler {
         {
             {
