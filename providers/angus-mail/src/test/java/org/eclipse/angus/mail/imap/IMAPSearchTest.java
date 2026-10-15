@@ -144,9 +144,6 @@ public final class IMAPSearchTest {
     }
 
     /**
-     * An IMAPHandler that enables UTF-8 support.
-     */
-    /**
      * Test that when the server supports UTF8 and the client enables it,
      * non-ASCII search text is sent in UTF-8.
      */
@@ -196,6 +193,9 @@ public final class IMAPSearchTest {
         }
     }
 
+    /**
+     * An IMAPHandler that enables UTF-8 support.
+     */
     private static class IMAPUtf8Handler extends IMAPHandler {
         {
             {
