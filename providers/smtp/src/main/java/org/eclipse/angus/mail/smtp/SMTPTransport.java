@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -871,6 +872,26 @@ public class SMTPTransport extends Transport {
     }
 
     /**
+     * The maximum length of an SMTP command line, without the CRLF.
+     */
+    private static final int MAX_COMMAND_LINE_LENGTH = 510;
+
+    /**
+     * Is the AUTH command for the given mechanism with the given initial
+     * response within the command line length limit of 512 octets,
+     * including the CRLF (RFC 5321, section 4.5.3.1.4)?  If not, RFC 4954
+     * requires the initial response to be sent in reply to the first
+     * challenge instead.
+     *
+     * @param    mech    the authentication mechanism
+     * @param    ir    the initial response
+     * @return    true if the initial response can be sent with the command
+     */
+    static boolean fitsAuthCommand(String mech, String ir) {
+        return "AUTH ".length() + mech.length() + 1 + ir.length() <= MAX_COMMAND_LINE_LENGTH;
+    }
+
+    /**
      * Abstract base class for SMTP authentication mechanism implementations.
      */
     private abstract class Authenticator {
@@ -906,6 +927,13 @@ public class SMTPTransport extends Transport {
             try {
                 // use "initial response" capability, if supported
                 String ir = getInitialResponse(host, authzid, user, passwd);
+                // an initial response that does not fit on the command line
+                // is sent in reply to the first challenge (RFC 4954)
+                String deferredIr = null;
+                if (ir != null && !fitsAuthCommand(mech, ir)) {
+                    deferredIr = ir;
+                    ir = null;
+                }
                 if (noauthdebug && isTracing()) {
                     logger.fine("AUTH " + mech + " command trace suppressed");
                     suspendTracing();
@@ -927,6 +955,8 @@ public class SMTPTransport extends Transport {
                     else
                         resp = simpleCommand("AUTH " + mech);
                 }
+                if (resp == 334 && deferredIr != null)
+                    resp = simpleCommand(deferredIr);
                 if (resp == 334)
                     doAuth(host, authzid, user, passwd);
             } catch (IOException ex) {    // should never happen, ignore
