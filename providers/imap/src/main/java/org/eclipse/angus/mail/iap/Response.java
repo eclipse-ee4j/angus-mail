@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -22,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -449,6 +451,25 @@ public class Response {
      * Literal or Atom and return the parsed token as a String
      * or a ByteArray. Errors or NIL data will return null.
      */
+    /**
+     * Return the bytes of a quoted string without its escape characters.
+     *
+     * @param b     the bytes of the quoted string
+     * @param start the index of the first byte, after the opening quote
+     * @param end   the index of the closing quote
+     * @return the unescaped bytes
+     */
+    private static byte[] unescape(byte[] b, int start, int end) {
+        byte[] unescaped = new byte[end - start];
+        int count = 0;
+        for (int i = start; i < end; i++) {
+            if (b[i] == '\\') // keep the escaped byte only
+                i++;
+            unescaped[count++] = b[i];
+        }
+        return Arrays.copyOf(unescaped, count);
+    }
+
     private Object parseString(boolean parseAtoms, boolean returnString) {
         byte b;
 
@@ -459,17 +480,13 @@ public class Response {
         if (b == '"') { // QuotedString
             index++; // skip the quote
             int start = index;
-            int copyto = index;
+            boolean escaped = false;
 
             while (index < size && (b = buffer[index]) != '"') {
-                if (b == '\\') // skip escaped byte
+                if (b == '\\') { // skip escaped byte
                     index++;
-                if (index != copyto) { // only copy if we need to
-                    // Beware: this is a destructive copy. I'm
-                    // pretty sure this is OK, but ... ;>
-                    buffer[copyto] = buffer[index];
+                    escaped = true;
                 }
-                copyto++;
                 index++;
             }
             if (index >= size) {
@@ -477,13 +494,19 @@ public class Response {
                 //throw new ArrayIndexOutOfBoundsException(
                 //		    "index = " + index + ", size = " + size);
                 return null;
-            } else
-                index++; // skip past the terminating quote
+            }
+            int end = index;
+            index++; // skip past the terminating quote
 
+            // Unescape into a new array, the buffer may be shared with
+            // copies of this response and may be parsed again.
+            byte[] bytes = escaped ? unescape(buffer, start, end) : buffer;
+            int from = escaped ? 0 : start;
+            int to = escaped ? bytes.length : end;
             if (returnString)
-                return toString(buffer, start, copyto);
+                return toString(bytes, from, to);
             else
-                return new ByteArray(buffer, start, copyto - start);
+                return new ByteArray(bytes, from, to - from);
         } else if (b == '{') { // Literal
             int start = ++index; // note the start position
 
