@@ -447,11 +447,6 @@ public class Response {
     }
 
     /**
-     * Generic parsing routine that can parse out a Quoted-String,
-     * Literal or Atom and return the parsed token as a String
-     * or a ByteArray. Errors or NIL data will return null.
-     */
-    /**
      * Return the bytes of a quoted string without its escape characters.
      *
      * @param b     the bytes of the quoted string
@@ -470,6 +465,11 @@ public class Response {
         return Arrays.copyOf(unescaped, count);
     }
 
+    /**
+     * Generic parsing routine that can parse out a Quoted-String,
+     * Literal or Atom and return the parsed token as a String
+     * or a ByteArray. Errors or NIL data will return null.
+     */
     private Object parseString(boolean parseAtoms, boolean returnString) {
         byte b;
 
