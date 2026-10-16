@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2021, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Benny Bottema.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -150,8 +151,8 @@
  * Set the <code>mail.smtp.chunksize</code> property to the desired chunk
  * size in bytes.
  * If the server supports the CHUNKING extension, the BDAT command will be
- * used to send the message in chunksize pieces.  Note that no pipelining is
- * done so this will be slower than sending the message in one piece.
+ * used to send the message in chunksize pieces.  BDAT chunks are not
+ * pipelined, so this will be slower than sending the message in one piece.
  * Note also that the BINARYMIME extension described in RFC 3030 is NOT supported.
  * </P>
  * <A ID="properties"><STRONG>Properties</STRONG></A>
@@ -241,6 +242,25 @@
  * Instead of shutdownNow you can use {@link java.util.concurrent.ScheduledThreadPoolExecutor#shutdown()} ()}
  * and
  * {@link java.util.concurrent.ScheduledThreadPoolExecutor#awaitTermination(long, java.util.concurrent.TimeUnit)} ()}.
+ * </TD>
+ * </TR>
+ *
+ * <TR>
+ * <TD><A ID="mail.smtp.pipelining">mail.smtp.pipelining</A></TD>
+ * <TD>boolean</TD>
+ * <TD>
+ * If true, pipeline MAIL FROM and RCPT TO commands when the current
+ * connection advertises PIPELINING. Defaults to false. Without that
+ * capability, or for a subclass that has not opted in through
+ * {@link org.eclipse.angus.mail.smtp.SMTPTransport#isPipeliningCompatible},
+ * the ordinary sequential envelope is used. For SMTPS use
+ * <code>mail.smtps.pipelining</code>.
+ * All envelope replies are checked before DATA or BDAT. BDAT chunks
+ * themselves are not pipelined. One short-lived reader thread is used
+ * per active pipelined envelope, with groups limited to 32 commands or
+ * 32 KiB of encoded commands; a larger individual command is sent alone.
+ * These limits bound queued commands, not socket buffers or reply sizes.
+ * The reader is joined before the connection is used for anything else.
  * </TD>
  * </TR>
  *
