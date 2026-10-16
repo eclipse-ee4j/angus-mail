@@ -674,6 +674,7 @@ public class SMTPTransport extends Transport {
     protected synchronized boolean protocolConnect(String host, int port,
                                                    String user, String password)
             throws MessagingException {
+        extMap = null;
         Properties props = session.getProperties();
 
         // setting mail.smtp.auth to true enables attempts to use AUTH
@@ -1420,6 +1421,7 @@ public class SMTPTransport extends Transport {
             serverOutput = null;
             serverInput = null;
             lineInputStream = null;
+            extMap = null;
             if (super.isConnected())    // only notify if already connected
                 super.close();
         }
@@ -1662,6 +1664,7 @@ public class SMTPTransport extends Transport {
      * @since JavaMail 1.4.1
      */
     protected void helo(String domain) throws MessagingException {
+        extMap = null;
         if (domain != null)
             issueCommand("HELO " + domain, 250);
         else
@@ -1678,6 +1681,8 @@ public class SMTPTransport extends Transport {
      * @since JavaMail 1.4.1
      */
     protected boolean ehlo(String domain) throws MessagingException {
+        // A rejected EHLO must not leave an earlier advertisement available.
+        extMap = null;
         String cmd;
         if (domain != null)
             cmd = "EHLO " + domain;
@@ -2163,6 +2168,7 @@ public class SMTPTransport extends Transport {
      */
     protected void startTLS() throws MessagingException {
         issueCommand("STARTTLS", 220);
+        extMap = null;
         // it worked, now switch the socket into TLS mode
         try {
             serverSocket = SocketFetcher.startTLS(serverSocket, host,

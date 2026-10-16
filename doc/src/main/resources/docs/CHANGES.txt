@@ -7,6 +7,10 @@ for the Eclipse EE4J Angus Mail project:
 
     https://github.com/eclipse-ee4j/angus-mail/issues/<bug-number>
 
+          UNRELEASED CHANGES
+          ------------------
+217: Discard stale EHLO capabilities
+
           CHANGES IN THE 2.0.5 RELEASE
           ----------------------------
 The following bugs have been fixed in the 2.0.5 release.
