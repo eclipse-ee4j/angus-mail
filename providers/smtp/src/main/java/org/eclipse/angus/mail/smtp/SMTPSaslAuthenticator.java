@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -151,6 +152,13 @@ public class SMTPSaslAuthenticator implements SaslAuthenticator {
                 } else
                     ir = "=";
             }
+            // an initial response that does not fit on the command line
+            // is sent in reply to the first challenge (RFC 4954)
+            String deferredIr = null;
+            if (ir != null && !SMTPTransport.fitsAuthCommand(mech, ir)) {
+                deferredIr = ir;
+                ir = null;
+            }
             if (ir != null)
                 resp = pr.simpleCommand("AUTH " + mech + " " + ir);
             else
@@ -167,6 +175,9 @@ public class SMTPSaslAuthenticator implements SaslAuthenticator {
                 else
                     resp = pr.simpleCommand("AUTH " + mech);
             }
+
+            if (resp == 334 && deferredIr != null)
+                resp = pr.simpleCommand(deferredIr);
 
             if (resp == 235)
                 return true;    // success already!
