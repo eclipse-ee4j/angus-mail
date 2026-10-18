@@ -121,7 +121,14 @@ public final class TestServer extends Thread {
         return ss;
     }
 
-    private static SSLContext createSSLContext()
+    /**
+     * Create an SSL context using the shared test keystore.
+     *
+     * @return the SSL context
+     * @exception IOException if the keystore cannot be read
+     * @exception GeneralSecurityException if the context cannot be initialized
+     */
+    public static SSLContext createSSLContext()
             throws IOException, GeneralSecurityException {
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(
