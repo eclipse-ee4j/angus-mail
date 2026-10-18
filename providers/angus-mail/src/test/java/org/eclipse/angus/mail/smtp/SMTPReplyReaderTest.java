@@ -53,6 +53,8 @@ import static org.junit.Assert.fail;
  */
 public class SMTPReplyReaderTest {
     private static final int BYTES = 4 * 1024 * 1024;
+    // Still much smaller than the payload, without tiny TCP windows on Linux.
+    private static final int SOCKET_BUFFER_SIZE = 64 * 1024;
 
     @Test(timeout = 60000)
     public void testPlainBackpressure() throws Exception {
@@ -94,7 +96,7 @@ public class SMTPReplyReaderTest {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         SMTPReplyReader reader = null;
         try (Pair pair = new Pair(mode, executor)) {
-            Socket client = new WriteTimeoutSocket(pair.client, 30000);
+            Socket client = pair.client;
             byte[] command = new byte[BYTES];
             Arrays.fill(command, (byte) 'x');
             CountDownLatch serverWriting = new CountDownLatch(1);
@@ -186,6 +188,7 @@ public class SMTPReplyReaderTest {
     /**
      * Real connected sockets with deliberately small buffers. In STARTTLS
      * mode a plaintext command/reply precedes wrapping and the handshake.
+     * Owns the client's write-timeout wrapper, including its timer on failure.
      */
     private static final class Pair implements AutoCloseable {
         final Socket client;
@@ -196,7 +199,7 @@ public class SMTPReplyReaderTest {
             try (ServerSocket listener = mode == 2 ?
                     context.getServerSocketFactory().createServerSocket(0) :
                     new ServerSocket(0)) {
-                listener.setReceiveBufferSize(8192);
+                listener.setReceiveBufferSize(SOCKET_BUFFER_SIZE);
                 Future<Socket> accept = executor.submit(() -> {
                     Socket socket = listener.accept();
                     configure(socket);
@@ -222,14 +225,14 @@ public class SMTPReplyReaderTest {
                 }
                 if (mode != 0)
                     ((SSLSocket) socket).startHandshake();
-                client = socket;
                 server = accept.get(10, TimeUnit.SECONDS);
+                client = new WriteTimeoutSocket(socket, 30000);
             }
         }
 
         private static void configure(Socket socket) throws IOException {
-            socket.setSendBufferSize(8192);
-            socket.setReceiveBufferSize(8192);
+            socket.setSendBufferSize(SOCKET_BUFFER_SIZE);
+            socket.setReceiveBufferSize(SOCKET_BUFFER_SIZE);
             socket.setSoTimeout(20000);
             socket.setTcpNoDelay(true);
         }
@@ -253,8 +256,8 @@ public class SMTPReplyReaderTest {
             try {
                 if (!client.isClosed()) {
                     client.setSoLinger(true, 0);
-                    client.close();
                 }
+                client.close();
             } finally {
                 if (!server.isClosed()) {
                     server.setSoLinger(true, 0);
