@@ -3,6 +3,17 @@
 
 		    Angus Mail ${angus-mail.version} release
 		    ------------------------------
+-- Unreleased --
+
+- SMTP capability state
+
+    Cached EHLO capabilities are discarded before a new EHLO or HELO,
+    when STARTTLS is accepted, and when opening or closing a connection.
+    A rejected EHLO no longer leaves earlier SIZE, AUTH or other
+    advertisements available.  Capability queries after close return no
+    extensions.  The existing policy for continuing after a failed
+    post-STARTTLS EHLO is unchanged.
+
 -- Angus Mail 2.0.5 --
 
 - Resource File Duplication due to Jakartification
