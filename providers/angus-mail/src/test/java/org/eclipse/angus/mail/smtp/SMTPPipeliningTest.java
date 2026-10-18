@@ -156,6 +156,74 @@ public class SMTPPipeliningTest {
     }
 
     @Test(timeout = 20000)
+    public void testInvalidSubclassCallbacksCloseBeforeWriting() throws Exception {
+        String[] failures = {"Envelope command was not queued",
+                "More than one envelope command", "Reply read while queuing envelope"};
+        for (int i = 0; i < failures.length; i++) {
+            final int mode = i;
+            try (Exchange exchange = new Exchange(1, 2)) {
+                SMTPTransport transport = new SMTPTransport(exchange.session(),
+                        new URLName("smtp://localhost")) {
+                    @Override
+                    protected boolean isPipeliningCompatible() {
+                        return true;
+                    }
+
+                    @Override
+                    protected void sendCommand(String cmd) throws MessagingException {
+                        if (cmd.startsWith("MAIL ")) {
+                            if (mode == 0)
+                                return;
+                            if (mode == 1) {
+                                super.sendCommand(cmd);
+                                super.sendCommand(cmd);
+                                return;
+                            }
+                            readServerResponse();
+                        }
+                        super.sendCommand(cmd);
+                    }
+                };
+                exchange.connect(transport);
+                try {
+                    exchange.send();
+                    fail("Invalid subclass callback accepted");
+                } catch (MessagingException expected) {
+                    assertEquals(failures[i], expected.getMessage());
+                }
+                assertFalse(transport.isConnected());
+                assertFalse(exchange.handler.commands.stream()
+                        .anyMatch(command -> command.startsWith("MAIL ")));
+                exchange.assertNoReader();
+            }
+        }
+    }
+
+    @Test(timeout = 20000)
+    public void testSenderRejectionStopsBeforeWritingNextByteGroup() throws Exception {
+        try (Exchange exchange = new Exchange(2, 1, 1, 1)) {
+            ObservedTransport transport = new ObservedTransport(exchange.session(), true);
+            transport.padding = "x".repeat(33000);
+            exchange.handler.responsePlan.set(new String[]{
+                    "550 sender rejected", "503 no sender", "503 no sender"});
+            exchange.connect(transport);
+            try {
+                exchange.send();
+                fail("Sender accepted");
+            } catch (SMTPSendFailedException expected) {
+                assertEquals(550, expected.getReturnCode());
+                assertArrayEquals(exchange.addresses, expected.getValidUnsentAddresses());
+            }
+            // The next command is customized before its size forces a flush.
+            assertEquals(Arrays.asList("MAIL", "RCPT"), transport.envelopeWrites);
+            assertEquals(Arrays.asList(1), exchange.handler.groups);
+            assertEquals(0, exchange.handler.commands.stream()
+                    .filter(command -> command.startsWith("RCPT ")).count());
+            assertTrue(transport.isConnected());
+        }
+    }
+
+    @Test(timeout = 20000)
     public void testSenderRejectionDrainsBeforeResetAndReuse() throws Exception {
         try (Exchange exchange = new Exchange(2, 3)) {
             exchange.handler.responsePlan.set(new String[]{"550 sender rejected", "503 no sender", "503 no sender"});
@@ -418,6 +486,8 @@ public class SMTPPipeliningTest {
     @Test(timeout = 20000)
     public void testSenderRejectionStopsAtGroupBoundary() throws Exception {
         try (Exchange exchange = new Exchange(70, 32, 32, 7)) {
+            ObservedTransport transport = new ObservedTransport(exchange.session(), true);
+            exchange.connect(transport);
             String[] responses = new String[71];
             Arrays.fill(responses, "503 no sender");
             responses[0] = "550 sender rejected";
@@ -430,6 +500,7 @@ public class SMTPPipeliningTest {
                 assertArrayEquals(exchange.addresses, expected.getValidUnsentAddresses());
             }
             assertEquals(Arrays.asList(32), exchange.handler.groups);
+            assertEquals(32, transport.envelopeWrites.size());
             assertEquals(31, exchange.handler.commands.stream().filter(s -> s.startsWith("RCPT ")).count());
             assertTrue(exchange.transport.isConnected());
         }
