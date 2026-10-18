@@ -164,8 +164,8 @@ public class SMTPTransport extends Transport {
 
     // These fields belong to the sending thread for pipelining, under the transport monitor.
     private SMTPEnvelopeExchange envelopeExchange;
-    private boolean capturingEnvelope;
-    private EnvelopeCommand capturedEnvelopeCommand;
+    // Non-null only while a subclass callback prepares one envelope command.
+    private EnvelopeCommandCapture envelopeCommandCapture;
 
     /**
      * Headers that should not be included when sending
@@ -1928,49 +1928,11 @@ public class SMTPTransport extends Transport {
         String from = envelopeFrom();
         String notify = recipientNotify();
         EnvelopeState state = new EnvelopeState(from);
-        List<EnvelopeCommand> group = new ArrayList<>();
-        long bytes = 0;
         boolean complete = false;
         envelopeExchange = new SMTPEnvelopeExchange(
                 (DuplexSocket) serverSocket, serverInput);
         try {
-            for (int i = -1; i < addresses.length; i++) {
-                if (group.size() == SMTPEnvelopeExchange.MAX_COMMANDS) {
-                    sendEnvelopeGroup(group, state);
-                    group.clear();
-                    bytes = 0;
-                    if (state.failure != null)
-                        break;
-                }
-                if (Thread.currentThread().isInterrupted())
-                    throw new MessagingException("SMTP envelope interrupted",
-                            new IOException("Sending thread interrupted"));
-                InternetAddress address = i < 0 ? null :
-                        (InternetAddress) addresses[i];
-                String cmd = i < 0 ? mailCommand(from) :
-                        recipientCommand(address, notify);
-                EnvelopeCommand command = captureEnvelopeCommand(cmd, address);
-                long size = (long) command.bytes.length + CRLF.length;
-                if (!group.isEmpty() && bytes + size >
-                        SMTPEnvelopeExchange.MAX_COMMAND_BYTES) {
-                    sendEnvelopeGroup(group, state);
-                    group.clear();
-                    bytes = 0;
-                    if (state.failure != null)
-                        break;
-                }
-                group.add(command);
-                bytes += size;
-                if (size > SMTPEnvelopeExchange.MAX_COMMAND_BYTES) {
-                    sendEnvelopeGroup(group, state);
-                    group.clear();
-                    bytes = 0;
-                    if (state.failure != null)
-                        break;
-                }
-            }
-            if (state.failure == null && !group.isEmpty())
-                sendEnvelopeGroup(group, state);
+            sendEnvelopeCommands(state, notify);
             complete = true;
         } catch (MessagingException ex) {
             IOException cause = envelopeExchange.getFailure();
@@ -1981,19 +1943,48 @@ public class SMTPTransport extends Transport {
             else
                 state.failure.addSuppressed(failure);
         } finally {
-            envelopeExchange.finish(complete);
-            envelopeExchange = null;
-            capturedEnvelopeCommand = null;
-            capturingEnvelope = false;
-            if (!complete || Thread.currentThread().isInterrupted()) {
-                try {
-                    closeConnection();
-                } catch (MessagingException ex) {
-                    if (state.failure != null)
-                        state.failure.addSuppressed(ex);
-                }
+            finishEnvelopeExchange(state, complete);
+        }
+        checkEnvelopeResult(state, complete);
+    }
+
+    /**
+     * Queues MAIL first, then recipients, stopping at the first failed group.
+     */
+    private void sendEnvelopeCommands(EnvelopeState state, String notify)
+            throws MessagingException {
+        EnvelopeGroup group = new EnvelopeGroup(state);
+        if (!group.addMailFrom())
+            return;
+        for (Address address : addresses) {
+            if (!group.addRecipient((InternetAddress) address, notify))
+                return;
+        }
+        group.flush();
+    }
+
+    /**
+     * Finishes envelope I/O before delivery results or RSET are processed.
+     */
+    private void finishEnvelopeExchange(EnvelopeState state, boolean complete) {
+        envelopeExchange.finish(complete);
+        envelopeExchange = null;
+        envelopeCommandCapture = null;
+        if (!complete || Thread.currentThread().isInterrupted()) {
+            try {
+                closeConnection();
+            } catch (MessagingException ex) {
+                if (state.failure != null)
+                    state.failure.addSuppressed(ex);
             }
         }
+    }
+
+    /**
+     * Publishes recipient results, retaining the first failure across RSET.
+     */
+    private void checkEnvelopeResult(EnvelopeState state, boolean complete)
+            throws MessagingException {
         if (Thread.currentThread().isInterrupted() && state.failure == null)
             state.fail(new MessagingException("SMTP envelope interrupted",
                     new IOException("Sending thread interrupted")));
@@ -2023,17 +2014,13 @@ public class SMTPTransport extends Transport {
     private EnvelopeCommand captureEnvelopeCommand(String cmd,
                                                    InternetAddress address)
             throws MessagingException {
-        capturingEnvelope = true;
-        capturedEnvelopeCommand = null;
+        EnvelopeCommandCapture capture = new EnvelopeCommandCapture(address);
+        envelopeCommandCapture = capture;
         try {
             sendCommand(cmd);
-            if (capturedEnvelopeCommand == null)
-                throw new MessagingException("Envelope command was not queued");
-            return new EnvelopeCommand(capturedEnvelopeCommand.command,
-                    capturedEnvelopeCommand.bytes, address);
+            return capture.getCommand();
         } finally {
-            capturingEnvelope = false;
-            capturedEnvelopeCommand = null;
+            envelopeCommandCapture = null;
         }
     }
 
@@ -2115,6 +2102,37 @@ public class SMTPTransport extends Transport {
         }
     }
 
+    /**
+     * Captures exactly one customized command without writing to the socket.
+     * Its lifetime is limited to a sendCommand callback on the sending thread.
+     */
+    private final class EnvelopeCommandCapture {
+        private final InternetAddress address;
+        private EnvelopeCommand command;
+
+        EnvelopeCommandCapture(InternetAddress address) {
+            this.address = address;
+        }
+
+        void capture(String cmd) throws MessagingException {
+            if (command != null)
+                throw new MessagingException("More than one envelope command");
+            byte[] bytes = toBytes(cmd);
+            try {
+                validateCommand(bytes);
+            } catch (RuntimeException ex) {
+                throw new MessagingException("Invalid SMTP envelope command", ex);
+            }
+            command = new EnvelopeCommand(cmd, bytes, address);
+        }
+
+        EnvelopeCommand getCommand() throws MessagingException {
+            if (command == null)
+                throw new MessagingException("Envelope command was not queued");
+            return command;
+        }
+    }
+
     private static final class EnvelopeCommand {
         final String command;
         final byte[] bytes;
@@ -2124,6 +2142,64 @@ public class SMTPTransport extends Transport {
             this.command = command;
             this.bytes = bytes;
             this.address = address;
+        }
+    }
+
+    /**
+     * Owns one command group and its byte count. Count limits are checked before
+     * invoking a subclass; byte limits are checked after its customization.
+     */
+    private final class EnvelopeGroup {
+        private final EnvelopeState state;
+        private final List<EnvelopeCommand> commands = new ArrayList<>();
+        private long bytes;
+
+        EnvelopeGroup(EnvelopeState state) {
+            this.state = state;
+        }
+
+        boolean addMailFrom() throws MessagingException {
+            return add(null, null);
+        }
+
+        boolean addRecipient(InternetAddress address, String notify)
+                throws MessagingException {
+            return add(address, notify);
+        }
+
+        private boolean add(InternetAddress address, String notify)
+                throws MessagingException {
+            if (commands.size() == SMTPEnvelopeExchange.MAX_COMMANDS) {
+                flush();
+                if (state.failure != null)
+                    return false;
+            }
+            if (Thread.currentThread().isInterrupted())
+                throw new MessagingException("SMTP envelope interrupted",
+                        new IOException("Sending thread interrupted"));
+            String cmd = address == null ? mailCommand(state.from) :
+                    recipientCommand(address, notify);
+            EnvelopeCommand command = captureEnvelopeCommand(cmd, address);
+            long size = (long) command.bytes.length + CRLF.length;
+            if (!commands.isEmpty() &&
+                    bytes + size > SMTPEnvelopeExchange.MAX_COMMAND_BYTES) {
+                flush();
+                if (state.failure != null)
+                    return false;
+            }
+            commands.add(command);
+            bytes += size;
+            if (size > SMTPEnvelopeExchange.MAX_COMMAND_BYTES)
+                flush();
+            return state.failure == null;
+        }
+
+        private void flush() throws MessagingException {
+            if (commands.isEmpty())
+                return;
+            sendEnvelopeGroup(commands, state);
+            commands.clear();
+            bytes = 0;
         }
     }
 
@@ -2775,16 +2851,8 @@ public class SMTPTransport extends Transport {
      */
     protected void sendCommand(String cmd) throws MessagingException {
         assert Thread.holdsLock(this);
-        if (capturingEnvelope) {
-            if (capturedEnvelopeCommand != null)
-                throw new MessagingException("More than one envelope command");
-            byte[] bytes = toBytes(cmd);
-            try {
-                validateCommand(bytes);
-            } catch (RuntimeException ex) {
-                throw new MessagingException("Invalid SMTP envelope command", ex);
-            }
-            capturedEnvelopeCommand = new EnvelopeCommand(cmd, bytes, null);
+        if (envelopeCommandCapture != null) {
+            envelopeCommandCapture.capture(cmd);
             return;
         }
         sendCommand(toBytes(cmd));
@@ -2826,7 +2894,7 @@ public class SMTPTransport extends Transport {
      */
     protected int readServerResponse() throws MessagingException {
         assert Thread.holdsLock(this);
-        if (capturingEnvelope)
+        if (envelopeCommandCapture != null)
             throw new MessagingException("Reply read while queuing envelope");
         if (envelopeExchange != null) {
             try {

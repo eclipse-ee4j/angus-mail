@@ -54,6 +54,11 @@ import java.util.function.BooleanSupplier;
 public final class DuplexSocket extends Socket {
     private static final ByteBuffer EMPTY = ByteBuffer.allocate(0);
     private static final int APPLICATION_HIGH_WATER = 8192;
+    private static final int MIN_BUFFER_SIZE = 64 * 1024;
+    private static final int MAX_TLS_STEPS = 64;
+    private static final int SELECT_TIMEOUT_MILLIS = 20;
+    private static final int CLOSE_TIMEOUT_MILLIS = 1000;
+    private static final int TASK_SHUTDOWN_TIMEOUT_SECONDS = 3;
 
     private final Socket socket;
     private final SocketChannel channel;
@@ -63,9 +68,9 @@ public final class DuplexSocket extends Socket {
     private int readTimeout;
     private long inputDeadline = Long.MAX_VALUE;
     private final ArrayDeque<ByteBuffer> received = new ArrayDeque<>();
-    private ByteBuffer networkInput = ByteBuffer.allocate(65536);
-    private ByteBuffer networkOutput = ByteBuffer.allocate(65536);
-    private ByteBuffer applicationInput = ByteBuffer.allocate(65536);
+    private ByteBuffer networkInput = ByteBuffer.allocate(MIN_BUFFER_SIZE);
+    private ByteBuffer networkOutput = ByteBuffer.allocate(MIN_BUFFER_SIZE);
+    private ByteBuffer applicationInput = ByteBuffer.allocate(MIN_BUFFER_SIZE);
     private ByteBuffer applicationOutput = EMPTY;
     private SSLEngine engine;
     private ExecutorService tasks;
@@ -148,9 +153,9 @@ public final class DuplexSocket extends Socket {
         try {
             this.engine = engine;
             int packet = engine.getSession().getPacketBufferSize();
-            networkInput = ByteBuffer.allocate(Math.max(65536, packet * 2));
-            networkOutput = ByteBuffer.allocate(Math.max(65536, packet * 2));
-            applicationInput = ByteBuffer.allocate(Math.max(65536,
+            networkInput = ByteBuffer.allocate(Math.max(MIN_BUFFER_SIZE, packet * 2));
+            networkOutput = ByteBuffer.allocate(Math.max(MIN_BUFFER_SIZE, packet * 2));
+            applicationInput = ByteBuffer.allocate(Math.max(MIN_BUFFER_SIZE,
                     engine.getSession().getApplicationBufferSize()));
             tasks = Executors.newSingleThreadExecutor(work -> {
                 Thread thread = new Thread(work, "Angus TLS task");
@@ -286,27 +291,9 @@ public final class DuplexSocket extends Socket {
         if (closed)
             throw new SocketException("Socket closed");
         boolean progress = writeNetwork();
-        if (!eof && networkInput.hasRemaining()) {
-            int count = channel.read(networkInput);
-            if (count < 0)
-                eof = true;
-            if (count > 0 && handler != null)
-                inputDeadline = deadline(readTimeout);
-            progress |= count != 0;
-        }
+        progress |= readNetwork();
         if (engine == null) {
-            networkInput.flip();
-            progress |= networkInput.hasRemaining();
-            deliver(networkInput);
-            networkInput.compact();
-            if (networkOutput.position() == 0 && applicationOutput.hasRemaining()) {
-                int count = Math.min(networkOutput.remaining(), applicationOutput.remaining());
-                int limit = applicationOutput.limit();
-                applicationOutput.limit(applicationOutput.position() + count);
-                networkOutput.put(applicationOutput);
-                applicationOutput.limit(limit);
-                progress = true;
-            }
+            progress |= processPlaintext();
         } else {
             progress |= processTLS();
             if (eof && delegated == null && !engine.isInboundDone() &&
@@ -317,84 +304,126 @@ public final class DuplexSocket extends Socket {
             }
         }
         progress |= writeNetwork();
-        if (!progress) {
-            int interests = !eof && networkInput.hasRemaining() ? SelectionKey.OP_READ : 0;
-            if (networkOutput.position() > 0)
-                interests |= SelectionKey.OP_WRITE;
-            key.interestOps(interests);
-            // Polling also observes delegated-task completion and interruption.
-            selector.select(20);
-            selector.selectedKeys().clear();
-        }
+        if (!progress)
+            waitForNetwork();
     }
 
+    /**
+     * Delivers plaintext input and stages pending output without TLS wrapping.
+     */
+    private boolean processPlaintext() throws IOException {
+        networkInput.flip();
+        boolean progress = networkInput.hasRemaining();
+        deliver(networkInput);
+        networkInput.compact();
+        if (networkOutput.position() == 0 && applicationOutput.hasRemaining()) {
+            int count = Math.min(networkOutput.remaining(), applicationOutput.remaining());
+            int limit = applicationOutput.limit();
+            applicationOutput.limit(applicationOutput.position() + count);
+            networkOutput.put(applicationOutput);
+            applicationOutput.limit(limit);
+            progress = true;
+        }
+        return progress;
+    }
+
+    /**
+     * Advances the engine on its owner thread, yielding regularly to channel I/O.
+     */
     private boolean processTLS() throws IOException {
         boolean progress = false;
-        for (int i = 0; i < 64; i++) {
+        for (int i = 0; i < MAX_TLS_STEPS; i++) {
             if (delegated != null) {
                 if (!delegated.isDone())
                     break;
-                try {
-                    delegated.get();
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                    throw new InterruptedIOException("TLS task interrupted");
-                } catch (ExecutionException ex) {
-                    throw new SSLException("TLS task failed", ex.getCause());
-                }
-                delegated = null;
+                completeDelegatedTasks();
                 progress = true;
             }
             SSLEngineResult.HandshakeStatus state = engine.getHandshakeStatus();
             if (state == SSLEngineResult.HandshakeStatus.NEED_TASK) {
-                List<Runnable> work = new ArrayList<>();
-                Runnable task;
-                while ((task = engine.getDelegatedTask()) != null)
-                    work.add(task);
-                if (work.isEmpty())
-                    throw new SSLException("TLS engine requested an absent task");
-                delegated = tasks.submit(() -> work.forEach(Runnable::run));
+                submitDelegatedTasks();
                 return true;
             }
-            boolean step = false;
+            boolean step;
             if (state == SSLEngineResult.HandshakeStatus.NEED_WRAP) {
                 if (networkOutput.remaining() < engine.getSession().getPacketBufferSize())
                     break;
-                SSLEngineResult result = engine.wrap(EMPTY, networkOutput);
-                checkResult(result);
-                step = result.bytesProduced() != 0 || result.getHandshakeStatus() != state;
+                step = wrapOutput(EMPTY, state);
             } else {
-                if (!engine.isInboundDone() && (networkInput.position() > 0 ||
-                        state == SSLEngineResult.HandshakeStatus.NEED_UNWRAP_AGAIN)) {
-                    networkInput.flip();
-                    SSLEngineResult result = engine.unwrap(networkInput, applicationInput);
-                    networkInput.compact();
-                    checkResult(result);
-                    applicationInput.flip();
-                    deliver(applicationInput);
-                    applicationInput.clear();
-                    tlsClosed |= result.getStatus() == SSLEngineResult.Status.CLOSED;
-                    step = result.bytesConsumed() != 0 || result.bytesProduced() != 0 ||
-                            result.getHandshakeStatus() != state;
-                    if (result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW &&
-                            !networkInput.hasRemaining())
-                        throw new SSLException("TLS record exceeds packet buffer");
-                }
+                step = unwrapInput(state);
                 if (!step && engine.getHandshakeStatus() ==
                         SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING &&
                         applicationOutput.hasRemaining() &&
-                        networkOutput.position() < APPLICATION_HIGH_WATER) {
-                    SSLEngineResult result = engine.wrap(applicationOutput, networkOutput);
-                    checkResult(result);
-                    step = result.bytesConsumed() != 0 || result.bytesProduced() != 0 ||
-                            result.getHandshakeStatus() != state;
-                }
+                        networkOutput.position() < APPLICATION_HIGH_WATER)
+                    step = wrapOutput(applicationOutput, state);
             }
             progress |= step;
             if (!step)
                 break;
         }
         return progress;
+    }
+
+    /**
+     * Observes task completion before the owner calls the engine again.
+     */
+    private void completeDelegatedTasks() throws IOException {
+        try {
+            delegated.get();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new InterruptedIOException("TLS task interrupted");
+        } catch (ExecutionException ex) {
+            throw new SSLException("TLS task failed", ex.getCause());
+        }
+        delegated = null;
+    }
+
+    /**
+     * Hands off only JSSE's delegated work; the worker never performs I/O.
+     */
+    private void submitDelegatedTasks() throws SSLException {
+        List<Runnable> work = new ArrayList<>();
+        Runnable task;
+        while ((task = engine.getDelegatedTask()) != null)
+            work.add(task);
+        if (work.isEmpty())
+            throw new SSLException("TLS engine requested an absent task");
+        delegated = tasks.submit(() -> work.forEach(Runnable::run));
+    }
+
+    /**
+     * Wraps handshake or application output, reporting engine progress.
+     */
+    private boolean wrapOutput(ByteBuffer input,
+            SSLEngineResult.HandshakeStatus previous) throws SSLException {
+        SSLEngineResult result = engine.wrap(input, networkOutput);
+        checkResult(result);
+        return result.bytesConsumed() != 0 || result.bytesProduced() != 0 ||
+                result.getHandshakeStatus() != previous;
+    }
+
+    /**
+     * Unwraps available records and delivers their plaintext to the consumer.
+     */
+    private boolean unwrapInput(SSLEngineResult.HandshakeStatus previous)
+            throws IOException {
+        if (engine.isInboundDone() || (networkInput.position() == 0 &&
+                previous != SSLEngineResult.HandshakeStatus.NEED_UNWRAP_AGAIN))
+            return false;
+        networkInput.flip();
+        SSLEngineResult result = engine.unwrap(networkInput, applicationInput);
+        networkInput.compact();
+        checkResult(result);
+        applicationInput.flip();
+        deliver(applicationInput);
+        applicationInput.clear();
+        tlsClosed |= result.getStatus() == SSLEngineResult.Status.CLOSED;
+        if (result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW &&
+                !networkInput.hasRemaining())
+            throw new SSLException("TLS record exceeds packet buffer");
+        return result.bytesConsumed() != 0 || result.bytesProduced() != 0 ||
+                result.getHandshakeStatus() != previous;
     }
 
     private void checkResult(SSLEngineResult result) throws SSLException {
@@ -413,6 +442,20 @@ public final class DuplexSocket extends Socket {
             handler.available();
     }
 
+    /**
+     * Reads without blocking and refreshes an active protocol input deadline.
+     */
+    private boolean readNetwork() throws IOException {
+        if (eof || !networkInput.hasRemaining())
+            return false;
+        int count = channel.read(networkInput);
+        if (count < 0)
+            eof = true;
+        if (count > 0 && handler != null)
+            inputDeadline = deadline(readTimeout);
+        return count != 0;
+    }
+
     private boolean writeNetwork() throws IOException {
         if (networkOutput.position() == 0)
             return false;
@@ -422,6 +465,18 @@ public final class DuplexSocket extends Socket {
         } finally {
             networkOutput.compact();
         }
+    }
+
+    /**
+     * Waits for channel readiness while also observing tasks and interruption.
+     */
+    private void waitForNetwork() throws IOException {
+        int interests = !eof && networkInput.hasRemaining() ? SelectionKey.OP_READ : 0;
+        if (networkOutput.position() > 0)
+            interests |= SelectionKey.OP_WRITE;
+        key.interestOps(interests);
+        selector.select(SELECT_TIMEOUT_MILLIS);
+        selector.selectedKeys().clear();
     }
 
     /** Aborts physical I/O, including when invoked by a cancelling thread. */
@@ -451,7 +506,8 @@ public final class DuplexSocket extends Socket {
                     !Thread.currentThread().isInterrupted()) {
                 enter();
                 engine.closeOutbound();
-                long deadline = deadline(writeTimeout > 0 ? Math.min(writeTimeout, 1000) : 1000);
+                long deadline = deadline(writeTimeout > 0 ?
+                        Math.min(writeTimeout, CLOSE_TIMEOUT_MILLIS) : CLOSE_TIMEOUT_MILLIS);
                 while (!engine.isOutboundDone() || networkOutput.position() > 0)
                     pump(deadline);
             }
@@ -463,7 +519,7 @@ public final class DuplexSocket extends Socket {
             owner = null;
             if (tasks != null) {
                 try {
-                    if (!tasks.awaitTermination(3, TimeUnit.SECONDS)) {
+                    if (!tasks.awaitTermination(TASK_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                         IOException cleanup = new IOException("TLS task did not stop");
                         if (failure == null)
                             throw cleanup;
