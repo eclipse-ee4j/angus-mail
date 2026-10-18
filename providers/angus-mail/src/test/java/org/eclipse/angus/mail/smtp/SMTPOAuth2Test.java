@@ -23,6 +23,9 @@ import org.junit.Test;
 
 import java.util.Properties;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Test XOAUTH2 authentication with access tokens too long to be sent as
  * the initial response of the AUTH command (RFC 4954, section 4).
@@ -50,6 +53,17 @@ public class SMTPOAuth2Test {
     @Test
     public void testLongTokenWithSasl() throws Exception {
         connect(LONG_TOKEN, true);
+    }
+
+    /**
+     * The AUTH command line, "AUTH " + mechanism + " " + initial response,
+     * may have at most 510 characters without the CRLF.
+     */
+    @Test
+    public void testFitsAuthCommand() {
+        String ir = "x".repeat(510 - "AUTH XOAUTH2 ".length());
+        assertTrue(SMTPTransport.fitsAuthCommand("XOAUTH2", ir));
+        assertFalse(SMTPTransport.fitsAuthCommand("XOAUTH2", ir + "x"));
     }
 
     private static void connect(String token, boolean sasl) throws Exception {

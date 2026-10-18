@@ -889,7 +889,10 @@ public class SMTPTransport extends Transport {
      * @return    true if the initial response can be sent with the command
      */
     static boolean fitsAuthCommand(String mech, String ir) {
-        return "AUTH ".length() + mech.length() + 1 + ir.length() <= MAX_COMMAND_LINE_LENGTH;
+        // "AUTH " + mech + " " + ir, compared with what is left of the
+        // limit so that the lengths are never added and cannot overflow
+        int available = MAX_COMMAND_LINE_LENGTH - "AUTH ".length() - mech.length() - 1;
+        return ir.length() <= available;
     }
 
     /**
