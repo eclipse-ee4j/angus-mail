@@ -10,6 +10,7 @@ for the Eclipse EE4J Angus Mail project:
           UNRELEASED CHANGES
           ------------------
 217: Discard stale EHLO capabilities
+213: Opt-in SMTP envelope PIPELINING
 
           CHANGES IN THE 2.0.5 RELEASE
           ----------------------------
