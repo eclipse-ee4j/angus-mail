@@ -9,6 +9,7 @@ for the Eclipse EE4J Angus Mail project:
 
           UNRELEASED CHANGES
           ------------------
+104: IMAPProtocol: Problem with searching emails when the subject contains umlauts
 217: Discard stale EHLO capabilities
 
           CHANGES IN THE 2.0.5 RELEASE
