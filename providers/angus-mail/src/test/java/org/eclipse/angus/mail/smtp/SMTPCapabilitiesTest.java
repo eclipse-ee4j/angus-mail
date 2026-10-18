@@ -23,14 +23,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.TrustManagerFactory;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.Socket;
-import java.security.KeyStore;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -202,26 +198,13 @@ public final class SMTPCapabilitiesTest {
 
         Connection(boolean rejectFirstEhlo, boolean refresh, boolean rejectTls)
                 throws Exception {
-            // Public localhost fixture, not a deployment key or trust store.
-            KeyStore keys = KeyStore.getInstance("JKS");
-            try (InputStream input = SMTPCapabilitiesTest.class
-                    .getResourceAsStream("capabilities.jks")) {
-                keys.load(input, "changeit".toCharArray());
-            }
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance(
-                    KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(keys, "changeit".toCharArray());
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(
-                    TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(keys);
-            SSLContext context = SSLContext.getInstance("TLS");
-            context.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+            SSLContext context = TestServer.createSSLContext();
             properties.setProperty("mail.smtp.localhost", "localhost");
             properties.setProperty("mail.smtp.connectiontimeout", "5000");
             properties.setProperty("mail.smtp.timeout", "5000");
             properties.setProperty("mail.smtp.writetimeout", "5000");
-            properties.setProperty("mail.smtp.ssl.checkserveridentity", "true");
-            properties.put("mail.smtp.ssl.socketFactory", context.getSocketFactory());
+            properties.setProperty("mail.smtp.ssl.trust", "localhost");
+            properties.setProperty("mail.smtp.ssl.checkserveridentity", "false");
             transport = (SMTPTransport) Session.getInstance(properties).getTransport("smtp");
             handler = new CapabilityHandler(context, rejectFirstEhlo, refresh, rejectTls);
             server = new TestServer(handler);
