@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -29,8 +30,12 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Properties;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -46,8 +51,11 @@ public final class POP3ReadableMimeTest {
     private static Folder folder;
 
     private static void startServer(boolean cached) {
+        startServer(new POP3Handler(), cached);
+    }
+
+    private static void startServer(POP3Handler handler, boolean cached) {
         try {
-            final POP3Handler handler = new POP3Handler();
             server = new TestServer(handler);
             server.start();
             Thread.sleep(1000);
@@ -101,6 +109,129 @@ public final class POP3ReadableMimeTest {
         test(true);
     }
 
+    /**
+     * Test that writeTo does not write a message that it streams from the
+     * server to the output stream one byte at a time (issue #99).
+     */
+    @Test
+    public void testWriteToWritesInBlocks() throws Exception {
+        startServer(false);
+        try {
+            for (Message msg : folder.getMessages()) {
+                CountingOutputStream os = new CountingOutputStream();
+                msg.writeTo(os);
+                assertTrue("block writes", os.blockWrites > 0);
+                assertEquals("single byte writes", 0, os.singleByteWrites);
+                verifyData(msg, os.toByteArray());
+            }
+        } finally {
+            stopServer();
+        }
+    }
+
+    /**
+     * Test that writeTo writes messages of sizes around and above the size
+     * of the blocks it writes, with lines that start with a dot, exactly as
+     * the server sent them, without the dot stuffing.
+     */
+    @Test
+    public void testWriteToMessagesAroundBlockSize() throws Exception {
+        // the messages are written in blocks of 8192 bytes
+        for (int size : new int[] {8191, 8192, 8193, 3 * 8192})
+            assertWriteTo(message(size));
+    }
+
+    /**
+     * Test that an exception thrown by the output stream is thrown by
+     * writeTo after the whole message has been read, so that the
+     * connection can still be used.
+     */
+    @Test
+    public void testWriteToThrowsStreamException() throws Exception {
+        for (Exception failure : new Exception[] {
+                new IOException("write failed"), new IllegalStateException("write failed")}) {
+            startServer(false);
+            try {
+                Message[] msgs = folder.getMessages();
+                OutputStream failing = new OutputStream() {
+                    @Override
+                    public void write(int b) throws IOException {
+                        throwIt();
+                    }
+
+                    @Override
+                    public void write(byte[] b, int off, int len) throws IOException {
+                        throwIt();
+                    }
+
+                    private void throwIt() throws IOException {
+                        if (failure instanceof IOException)
+                            throw (IOException) failure;
+                        throw (RuntimeException) failure;
+                    }
+                };
+                Exception thrown = assertThrows(Exception.class, () -> msgs[0].writeTo(failing));
+                assertSame(failure, thrown);
+                verifyData(msgs[1]);
+            } finally {
+                stopServer();
+            }
+        }
+    }
+
+    /**
+     * A message of the given size, in which some lines start with a dot.
+     */
+    private static String message(int size) {
+        StringBuilder sb = new StringBuilder("Mime-Version: 1.0\r\nSubject: test\r\n\r\n");
+        for (int i = 0; sb.length() + 20 < size; i++)
+            sb.append(i % 7 == 0 ? ".line " : "line ").append(i).append("\r\n");
+        while (sb.length() < size - 2)
+            sb.append('x');
+        return sb.append("\r\n").toString();
+    }
+
+    /**
+     * Serve the message from a server and check that writeTo writes it exactly.
+     */
+    private static void assertWriteTo(final String message) throws Exception {
+        startServer(new POP3Handler() {
+            @Override
+            public void retr(String arg) throws IOException {
+                println("+OK " + message.length() + " octets");
+                writer.write(message.replace("\r\n.", "\r\n.."));
+                println(".");
+            }
+        }, false);
+        try {
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            folder.getMessage(1).writeTo(os);
+            assertEquals("message of " + message.length() + " bytes", message, os.toString("US-ASCII"));
+        } finally {
+            stopServer();
+        }
+    }
+
+    /**
+     * Counts the calls of write(int).
+     */
+    private static final class CountingOutputStream extends ByteArrayOutputStream {
+        int singleByteWrites;
+        int blockWrites;
+
+        @Override
+        public synchronized void write(int b) {
+            singleByteWrites++;
+            super.write(b);
+        }
+
+        @Override
+        public synchronized void write(byte[] b, int off, int len) {
+            blockWrites++;
+            super.write(b, off, len);
+        }
+    }
+
     private void test(boolean cached) throws Exception {
         startServer(cached);
         try {
@@ -114,14 +245,17 @@ public final class POP3ReadableMimeTest {
     }
 
     private void verifyData(Part p) throws MessagingException, IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        p.writeTo(bos);
+        bos.close();
+        verifyData(p, bos.toByteArray());
+    }
+
+    private void verifyData(Part p, byte[] buf) throws MessagingException, IOException {
         assertTrue("ReadableMime", p instanceof ReadableMime);
         InputStream is = null;
         try {
             ReadableMime rp = (ReadableMime) p;
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            p.writeTo(bos);
-            bos.close();
-            byte[] buf = bos.toByteArray();
             is = rp.getMimeStream();
             int i, b;
             for (i = 0; (b = is.read()) != -1; i++)

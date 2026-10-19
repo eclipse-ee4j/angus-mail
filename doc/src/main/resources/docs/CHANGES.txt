@@ -14,6 +14,7 @@ for the Eclipse EE4J Angus Mail project:
 201: SMTP XOAUTH2 authentication fails with large access tokens
 104: IMAPProtocol: Problem with searching emails when the subject contains umlauts
 217: Discard stale EHLO capabilities
+99: POP3Message.writeTo(OutputStream os); writes each byte individually to the OutputStream
 
           CHANGES IN THE 2.0.5 RELEASE
           ----------------------------
