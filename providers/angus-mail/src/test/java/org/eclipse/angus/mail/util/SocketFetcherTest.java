@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -148,6 +149,70 @@ public final class SocketFetcherTest {
         StringBuilder error = new StringBuilder();
         assertFalse(SocketFetcher.readProxyResponse(proxyResponse, error));
         assertEquals(errorMessage, error.toString());
+    }
+
+    /**
+     * Test that an SSL socket factory set by the application is used when
+     * the ssl.trust property is set as well, which only enables a
+     * MailSSLSocketFactory if no socket factory has been specified (#65).
+     */
+    @Test
+    public void testSSLSocketFactoryWithSSLTrust() throws Exception {
+        TestSSLSocketFactory sf = new TestSSLSocketFactory();
+        connectWithSSLTrust("mail.imap.ssl.socketFactory", sf);
+        assertTrue("SSL socket factory was not used.", sf.getSocketWrapped());
+    }
+
+    /**
+     * Same as above, with the SSL socket factory set as the socket factory.
+     */
+    @Test
+    public void testSocketFactoryWithSSLTrust() throws Exception {
+        TestSSLSocketFactory sf = new TestSSLSocketFactory();
+        connectWithSSLTrust("mail.imap.socketFactory", sf);
+        assertTrue("SSL socket factory was not used.", sf.getSocketWrapped());
+    }
+
+    /**
+     * Test that ssl.trust still applies when the socket factory class is
+     * javax.net.ssl.SSLSocketFactory, whose default factory does not trust
+     * the test server's certificate.
+     */
+    @Test
+    public void testSocketFactoryClassWithSSLTrust() throws Exception {
+        connectWithSSLTrust("mail.imap.socketFactory.class",
+                "javax.net.ssl.SSLSocketFactory");
+    }
+
+    private void connectWithSSLTrust(String factoryProperty, Object factory)
+            throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.imap.host", "localhost");
+        properties.setProperty("mail.imap.ssl.enable", "true");
+        properties.setProperty("mail.imap.ssl.trust", "*");
+        // the test server's certificate is not issued for localhost
+        properties.setProperty("mail.imap.ssl.checkserveridentity", "false");
+        // don't fall back to non-SSL
+        properties.setProperty("mail.imap.socketFactory.fallback", "false");
+        properties.put(factoryProperty, factory);
+
+        TestServer server = null;
+        try {
+            server = new TestServer(new IMAPHandler(), true);
+            server.start();
+
+            properties.setProperty("mail.imap.port",
+                    Integer.toString(server.getPort()));
+            final Session session = Session.getInstance(properties);
+
+            try (Store store = session.getStore("imap")) {
+                store.connect("test", "test");
+            }
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
     }
 
     @Test

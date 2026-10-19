@@ -14,6 +14,7 @@ for the Eclipse EE4J Angus Mail project:
 201: SMTP XOAUTH2 authentication fails with large access tokens
 104: IMAPProtocol: Problem with searching emails when the subject contains umlauts
 217: Discard stale EHLO capabilities
+65: mail.smtp.ssl.trust creates a new SocketFactory
 
           CHANGES IN THE 2.0.5 RELEASE
           ----------------------------
