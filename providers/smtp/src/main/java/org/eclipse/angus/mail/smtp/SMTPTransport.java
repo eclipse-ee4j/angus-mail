@@ -1963,12 +1963,19 @@ public class SMTPTransport extends Transport {
             complete = true;
         } catch (MessagingException ex) {
             IOException cause = envelopeReader.getFailure();
-            MessagingException failure = cause == null ? ex :
-                    new MessagingException("SMTP envelope read failed", cause);
-            if (state.failure == null)
-                state.fail(failure);
-            else
-                state.failure.addSuppressed(failure);
+            if (state.failure == null) {
+                Exception next = cause == null ? ex : cause;
+                if (state.recipients != null)
+                    next = state.recipients.failureChain(next);
+                state.fail(next == ex ? ex : new MessagingException(
+                        cause == null ? ex.getMessage() :
+                                "SMTP envelope read failed", next));
+            } else {
+                MessagingException failure = cause == null ? ex :
+                        new MessagingException("SMTP envelope read failed", cause);
+                if (failure != state.failure)
+                    state.failure.addSuppressed(failure);
+            }
         } finally {
             finishEnvelopeExchange(state, complete);
         }
@@ -2012,9 +2019,12 @@ public class SMTPTransport extends Transport {
      */
     private void checkEnvelopeResult(EnvelopeState state, boolean complete)
             throws MessagingException {
-        if (Thread.currentThread().isInterrupted() && state.failure == null)
-            state.fail(new MessagingException("SMTP envelope interrupted",
-                    new IOException("Sending thread interrupted")));
+        if (Thread.currentThread().isInterrupted() && state.failure == null) {
+            Exception cause = new IOException("Sending thread interrupted");
+            if (state.recipients != null)
+                cause = state.recipients.failureChain(cause);
+            state.fail(new MessagingException("SMTP envelope interrupted", cause));
+        }
         if (state.failure == null) {
             try {
                 state.recipients.finish();
@@ -2023,13 +2033,11 @@ public class SMTPTransport extends Transport {
             }
         }
         if (state.failure != null) {
-            if (!complete) {
-                if (state.recipients == null) {
-                    validSentAddr = null;
-                    validUnsentAddr = addresses;
-                } else {
-                    state.recipients.notSent();
-                }
+            if (state.recipients != null) {
+                state.recipients.notSent();
+            } else if (!complete) {
+                validSentAddr = null;
+                validUnsentAddr = addresses;
             }
             resetPipelinedEnvelope(state.failure);
             lastReturnCode = state.code;
@@ -2105,9 +2113,14 @@ public class SMTPTransport extends Transport {
             }
         }
         if (code == 421) {
+            Exception cause = envelopeReader.getFailure();
+            if (state.recipients != null) {
+                state.recipients.notSent();
+                cause = state.recipients.failureChain(cause);
+            }
             SMTPSendFailedException ex = new SMTPSendFailedException(
-                    command.command, code, lastServerResponse,
-                    envelopeReader.getFailure(), null, addresses, null);
+                    command.command, code, lastServerResponse, cause,
+                    validSentAddr, validUnsentAddr, invalidAddr);
             if (state.failure == null)
                 state.fail(ex);
             throw ex;
@@ -2402,8 +2415,11 @@ public class SMTPTransport extends Transport {
                             issueCommand("RSET", -1);
                         lastServerResponse = _lsr;    // restore, for get
                         lastReturnCode = _lrc;
-                        throw new SMTPAddressFailedException(ia, cmd, retCode,
+                        sfex = new SMTPAddressFailedException(ia, cmd, retCode,
                                 _lsr);
+                        if (pipelined && mex != null)
+                            sfex.setNextException(mex);
+                        throw sfex;
                     }
                     if (!sendPartial)
                         sendFailed = true;
@@ -2417,6 +2433,18 @@ public class SMTPTransport extends Transport {
                     break;
             }
             replies++;
+        }
+
+        /**
+         * Retains collected address details before a terminal failure.
+         * A non-MessagingException ends Jakarta Mail's exception chain.
+         */
+        Exception failureChain(Exception failure) {
+            if (mex == null)
+                return failure;
+            if (failure != null)
+                mex.setNextException(failure);
+            return mex;
         }
 
         void notSent() {
