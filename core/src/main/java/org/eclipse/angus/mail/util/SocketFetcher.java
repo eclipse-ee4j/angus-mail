@@ -1095,8 +1095,10 @@ public class SocketFetcher {
                 int off = server.length() - tail.length();
                 if (off < 1)
                     return false;
-                // if tail matches and is preceeded by "."
+                // the wildcard matches a single leftmost label only, so the
+                // tail must be preceeded by "." with no earlier "." in server
                 return server.charAt(off - 1) == '.' &&
+                       server.lastIndexOf('.', off - 2) < 0 &&
                        server.regionMatches(true, off, tail, 0, tail.length());
             } else {
                return server.equalsIgnoreCase(name);

@@ -3,6 +3,17 @@
 
 		    Angus Mail ${angus-mail.version} release
 		    ------------------------------
+-- Unreleased --
+
+- SMTP capability state
+
+    Cached EHLO capabilities are discarded before a new EHLO or HELO,
+    when STARTTLS is accepted, and when opening or closing a connection.
+    A rejected EHLO no longer leaves earlier SIZE, AUTH or other
+    advertisements available.  Capability queries after close return no
+    extensions.  The existing policy for continuing after a failed
+    post-STARTTLS EHLO is unchanged.
+
 -- Angus Mail 2.0.5 --
 
 - Resource File Duplication due to Jakartification
@@ -21,6 +32,20 @@
 
     Over time, the legacy resource files (without the `jakarta.` prefix) will be
     removed entirely, and only the `jakarta.`-prefixed resources will be kept.
+
+- External entity resolution disabled in the text/xml handler
+
+    The text/xml DataContentHandler used by writeTo transformed the supplied
+    content with a default TransformerFactory, which resolved external general
+    entities and external DTDs.  Writing a text/xml body part built from
+    untrusted XML could therefore disclose local files or reach internal URLs
+    (XXE).  The handler now enables FEATURE_SECURE_PROCESSING and sets
+    ACCESS_EXTERNAL_DTD and ACCESS_EXTERNAL_STYLESHEET to the empty string on
+    the factory.
+
+    As a result, content that relies on external DTDs or external entities is
+    no longer resolved and may fail to transform.  Well-formed XML without
+    external references is unaffected.
 
 -- Angus Mail 2.0.3 --
 
