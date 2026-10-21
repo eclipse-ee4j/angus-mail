@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2026 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -202,7 +202,7 @@ public class BASE64DecoderStream extends FilterInputStream {
     private final static byte[] pem_convert_array = new byte[256];
 
     static {
-        for (int i = 0; i < 255; i++)
+        for (int i = 0; i < pem_convert_array.length; i++)
             pem_convert_array[i] = -1;
         for (int i = 0; i < pem_array.length; i++)
             pem_convert_array[pem_array[i]] = (byte) i;
