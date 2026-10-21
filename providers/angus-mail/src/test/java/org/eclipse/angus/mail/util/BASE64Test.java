@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2026 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -276,6 +276,37 @@ public class BASE64Test {
         //byte[] result = sut.readAllBytes();
         // Verify
         //assertArrayEquals(decoded, result);
+    }
+
+    /**
+     * A byte that is not part of the base64 alphabet must be skipped,
+     * the same way whitespace is.  The 0xFF byte in particular must not
+     * be treated as a valid character.
+     */
+    @Test
+    public void testNonBase64ByteSkipped() throws IOException {
+        // "TWFu" is the base64 encoding of "Man"; inject a stray 0xFF byte
+        byte[] clean = new byte[]{'T', 'W', 'F', 'u'};
+        byte[] withStray = new byte[]{'T', 'W', (byte) 0xFF, 'F', 'u'};
+
+        byte[] expected = readFully(new BASE64DecoderStream(
+                new ByteArrayInputStream(clean)));
+        byte[] actual = readFully(new BASE64DecoderStream(
+                new ByteArrayInputStream(withStray)));
+
+        Assert.assertArrayEquals("0xFF must be ignored like whitespace",
+                expected, actual);
+        // cross-check against a conformant decoder that ignores non-alphabet bytes
+        Assert.assertArrayEquals("must match JDK MIME decoder",
+                Base64.getMimeDecoder().decode(withStray), actual);
+    }
+
+    private static byte[] readFully(InputStream in) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        int b;
+        while ((b = in.read()) != -1)
+            bos.write(b);
+        return bos.toByteArray();
     }
 
     /**

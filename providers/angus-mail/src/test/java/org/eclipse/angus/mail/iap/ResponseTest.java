@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -15,6 +16,8 @@
  */
 
 package org.eclipse.angus.mail.iap;
+
+import java.nio.charset.StandardCharsets;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -154,6 +157,44 @@ public class ResponseTest {
         Response r = new Response("* " + "() atom");
         assertArrayEquals(new String[0], r.readAtomStringList());
         assertEquals("atom", r.readAtomString());
+    }
+
+    /**
+     * Test that reading a quoted string with escaped characters can be
+     * repeated: the response itself must not be modified.
+     */
+    @Test
+    public void testQuotedStringWithEscapesReadTwice() throws Exception {
+        Response r = new Response("* \"\\\\Sent\" atom");
+        assertEquals("\\Sent", r.readString());
+        r.reset();
+        assertEquals("\\Sent", r.readString());
+        assertEquals("atom", r.readAtomString());
+    }
+
+    /**
+     * Test that a copy of a response, which shares its data, reads a quoted
+     * string with escaped characters the same after the original read it.
+     */
+    @Test
+    public void testQuotedStringWithEscapesReadFromCopy() throws Exception {
+        Response r = new Response("* \"\\\\Sent\"");
+        Response copy = new Response(r);
+        assertEquals("\\Sent", r.readString());
+        assertEquals("\\Sent", copy.readString());
+    }
+
+    /**
+     * Test that reading a quoted string with escaped characters as bytes
+     * returns the unescaped bytes and keeps the response unchanged.
+     */
+    @Test
+    public void testQuotedStringWithEscapesAsByteArray() throws Exception {
+        String s = "* \"a\\\"b\\\\c\"";
+        Response r = new Response(s);
+        assertArrayEquals("a\"b\\c".getBytes(StandardCharsets.US_ASCII),
+                r.readByteArray().getNewBytes());
+        assertEquals(s, r.toString());
     }
 
     /**
