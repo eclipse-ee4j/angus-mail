@@ -14,6 +14,34 @@
     extensions.  The existing policy for continuing after a failed
     post-STARTTLS EHLO is unchanged.
 
+- SMTP envelope PIPELINING
+
+    Disabled by default.  Enable mail.smtp.pipelining (or the smtps
+    equivalent) to use it when the current connection advertises PIPELINING.
+    DATA and BDAT still wait for every envelope reply; BDAT chunks are
+    not pipelined.
+
+    Existing SMTPTransport subclasses remain sequential unless they override
+    isPipeliningCompatible.  An opted-in subclass receives command and reply
+    callbacks on the sending thread, but several command callbacks can precede
+    their replies.  Use sendEnvelope for preparation common to both paths.
+    See those protected methods' Javadoc before opting in.
+
+    The opt-in path uses channel I/O and SSLEngine, with no SMTP reader
+    thread.  Disabling pipelining keeps the existing socket implementation.
+    Socket factories without a channel, SOCKS sockets and caller-supplied
+    sockets retain sequential sending.  Custom TLS factories also remain
+    sequential unless mail.smtp.ssl.engineFactory (or the smtps equivalent)
+    supplies an engine with the corresponding key and trust managers.
+    This hook is a BiFunction<String, Integer, SSLEngine> instance, supplied
+    with Properties.put, and receives the destination host and port.
+    Angus still applies its protocol, cipher and hostname-verification policy.
+    A failed hook does not fall back to different trust settings.
+    Default JSSE and the stock MailSSLSocketFactory need no hook.
+    Each channel connection owns a selector and buffers.  TLS additionally
+    uses an owned worker for delegated TLS tasks, stopped on close.
+    No connection is retried or downgraded after an envelope failure.
+
 -- Angus Mail 2.0.5 --
 
 - Resource File Duplication due to Jakartification

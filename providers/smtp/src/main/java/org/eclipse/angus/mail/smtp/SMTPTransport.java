@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 1997, 2025 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2026 Contributors to the Eclipse Foundation
+ * Copyright (c) 2026 Benny Bottema.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -44,6 +45,7 @@ import org.eclipse.angus.mail.util.SocketConnectException;
 import org.eclipse.angus.mail.util.SocketFetcher;
 import org.eclipse.angus.mail.util.TraceInputStream;
 import org.eclipse.angus.mail.util.TraceOutputStream;
+import org.eclipse.angus.mail.util.DuplexSocket;
 
 import javax.net.ssl.SSLSocket;
 import java.io.BufferedInputStream;
@@ -159,6 +161,12 @@ public class SMTPTransport extends Transport {
     private boolean debugpassword;    // include password in debug output?
     private boolean allowutf8;        // allow UTF-8 usernames and passwords?
     private int chunkSize;        // chunk size if CHUNKING supported
+    private boolean pipelining;   // pipeline the message envelope?
+
+    // These fields belong to the sending thread for pipelining, under the transport monitor.
+    private SMTPEnvelopeExchange envelopeExchange;
+    // Non-null only while a subclass callback prepares one envelope command.
+    private EnvelopeCommandCapture envelopeCommandCapture;
 
     /**
      * Headers that should not be included when sending
@@ -204,6 +212,8 @@ public class SMTPTransport extends Transport {
         if (urlname != null)
             name = urlname.getProtocol();
         this.name = name;
+        pipelining = PropUtil.getBooleanProperty(props,
+                "mail." + name + ".pipelining", false);
         if (!isSSL)
             isSSL = PropUtil.getBooleanProperty(props,
                     "mail." + name + ".ssl.enable", false);
@@ -582,7 +592,9 @@ public class SMTPTransport extends Transport {
      * @since JavaMail 1.4.6
      */
     public synchronized boolean isSSL() {
-        return serverSocket instanceof SSLSocket;
+        return serverSocket instanceof SSLSocket ||
+                (serverSocket instanceof DuplexSocket &&
+                        ((DuplexSocket) serverSocket).isSSL());
     }
 
     /**
@@ -737,7 +749,7 @@ public class SMTPTransport extends Transport {
                 helo(getLocalHost());
 
             if (useStartTLS || requireStartTLS) {
-                if (serverSocket instanceof SSLSocket) {
+                if (isSSL()) {
                     logger.fine("STARTTLS requested but already using SSL");
                 } else if (supportsExtension("STARTTLS")) {
                     startTLS();
@@ -1321,8 +1333,7 @@ public class SMTPTransport extends Transport {
         }
 
         try {
-            mailFrom();
-            rcptTo();
+            sendEnvelope();
             if (chunkSize > 0 && supportsExtension("CHUNKING")) {
                 /*
                  * Use BDAT to send the data in chunks.
@@ -1772,6 +1783,17 @@ public class SMTPTransport extends Transport {
      * @since JavaMail 1.4.1
      */
     protected void mailFrom() throws MessagingException {
+        String from = envelopeFrom();
+        String cmd = mailCommand(from);
+        try {
+            issueSendCommand(cmd, 250);
+        } catch (SMTPSendFailedException ex) {
+            addSenderFailure(ex, from, cmd);
+            throw ex;
+        }
+    }
+
+    private String envelopeFrom() throws MessagingException {
         String from = null;
         if (message instanceof SMTPMessage)
             from = ((SMTPMessage) message).getEnvelopeFrom();
@@ -1792,7 +1814,10 @@ public class SMTPTransport extends Transport {
                 throw new MessagingException(
                         "can't determine local email address");
         }
+        return from;
+    }
 
+    private String mailCommand(String from) {
         String cmd = "MAIL FROM:" + normalizeAddress(from);
 
         if (allowutf8 && supportsExtension("SMTPUTF8"))
@@ -1845,30 +1870,400 @@ public class SMTPTransport extends Transport {
             ext = session.getProperty("mail." + name + ".mailextension");
         if (ext != null && ext.length() > 0)
             cmd += " " + ext;
+        return cmd;
+    }
 
+    private void addSenderFailure(SMTPSendFailedException ex, String from,
+                                  String cmd) {
+        switch (ex.getReturnCode()) {
+            case 550:
+            case 553:
+            case 503:
+            case 551:
+            case 501:
+                try {
+                    ex.setNextException(new SMTPSenderFailedException(
+                            new InternetAddress(from), cmd,
+                            ex.getReturnCode(), ex.getMessage()));
+                } catch (AddressException aex) {
+                    // oh well...
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    private String recipientNotify() {
+        String notify = null;
+        if (supportsExtension("DSN")) {
+            if (message instanceof SMTPMessage)
+                notify = ((SMTPMessage) message).getDSNNotify();
+            if (notify == null)
+                notify = session.getProperty("mail." + name + ".dsn.notify");
+        }
+        return notify;
+    }
+
+    private String recipientCommand(InternetAddress address, String notify) {
+        String cmd = "RCPT TO:" + normalizeAddress(address.getAddress());
+        if (notify != null)
+            cmd += " NOTIFY=" + notify;
+        return cmd;
+    }
+
+    /**
+     * Sends and checks the envelope after any message conversion. The default
+     * implementation calls {@link #mailFrom} and {@link #rcptTo}, unless
+     * pipelining is enabled, advertised, and permitted by
+     * {@link #isPipeliningCompatible}, and the socket supports duplex I/O.
+     * A custom TLS factory without an engine hook, or a socket without a
+     * channel, retains sequential sending and its original TLS configuration.
+     * The caller holds this transport's monitor throughout the exchange.
+     *
+     * @exception MessagingException for failures
+     */
+    protected void sendEnvelope() throws MessagingException {
+        assert Thread.holdsLock(this);
+        if (pipelining && supportsExtension("PIPELINING") &&
+                isPipeliningCompatible() && serverSocket instanceof DuplexSocket)
+            sendPipelinedEnvelope();
+        else {
+            mailFrom();
+            rcptTo();
+        }
+    }
+
+    /**
+     * Returns whether this implementation can use envelope pipelining.
+     * Only the stock SMTP and SMTPS transports opt in by default.
+     * Subclasses must explicitly opt in after checking their overrides.
+     * <p>
+     * With pipelining, {@link #mailFrom} and {@link #rcptTo} are not called.
+     * {@link #sendCommand} is called once per envelope command, on the sending
+     * thread, but queues the command instead of immediately writing it.
+     * An override must pass exactly one command to its superclass and must
+     * not read a reply or issue another command during that callback.
+     * {@link #readServerResponse} is called on the same thread, in command
+     * order, after a group has been written. Overrides must therefore track
+     * more than one outstanding command. The I/O pump calls no transport hooks.
+     * A command prepared for the next group may remain unwritten if an
+     * earlier group fails; a command callback is not proof of a write.
+     *
+     * @return true if the subclass supports this callback timing
+     */
+    protected boolean isPipeliningCompatible() {
+        return getClass() == SMTPTransport.class ||
+                getClass() == SMTPSSLTransport.class;
+    }
+
+    private void sendPipelinedEnvelope() throws MessagingException {
+        String from = envelopeFrom();
+        String notify = recipientNotify();
+        EnvelopeState state = new EnvelopeState(from);
+        boolean complete = false;
+        envelopeExchange = new SMTPEnvelopeExchange(
+                (DuplexSocket) serverSocket, serverInput);
         try {
-            issueSendCommand(cmd, 250);
-        } catch (SMTPSendFailedException ex) {
-            int retCode = ex.getReturnCode();
-            switch (retCode) {
-                case 550:
-                case 553:
-                case 503:
-                case 551:
-                case 501:
-                    // given address is invalid
-                    try {
-                        ex.setNextException(new SMTPSenderFailedException(
-                                new InternetAddress(from), cmd,
-                                retCode, ex.getMessage()));
-                    } catch (AddressException aex) {
-                        // oh well...
-                    }
-                    break;
-                default:
-                    break;
+            sendEnvelopeCommands(state, notify);
+            complete = true;
+        } catch (MessagingException ex) {
+            IOException cause = envelopeExchange.getFailure();
+            if (state.failure == null) {
+                Exception next = cause == null ? ex : cause;
+                if (state.recipients != null)
+                    next = state.recipients.failureChain(next);
+                state.fail(next == ex ? ex : new MessagingException(
+                        cause == null ? ex.getMessage() :
+                                "SMTP envelope read failed", next));
+            } else {
+                MessagingException failure = cause == null ? ex :
+                        new MessagingException("SMTP envelope read failed", cause);
+                if (failure != state.failure)
+                    state.failure.addSuppressed(failure);
             }
+        } finally {
+            finishEnvelopeExchange(state, complete);
+        }
+        checkEnvelopeResult(state, complete);
+    }
+
+    /**
+     * Queues MAIL first, then recipients, stopping at the first failed group.
+     */
+    private void sendEnvelopeCommands(EnvelopeState state, String notify)
+            throws MessagingException {
+        EnvelopeGroup group = new EnvelopeGroup(state);
+        if (!group.addMailFrom())
+            return;
+        for (Address address : addresses) {
+            if (!group.addRecipient((InternetAddress) address, notify))
+                return;
+        }
+        group.flush();
+    }
+
+    /**
+     * Finishes envelope I/O before delivery results or RSET are processed.
+     */
+    private void finishEnvelopeExchange(EnvelopeState state, boolean complete) {
+        envelopeExchange.finish(complete);
+        envelopeExchange = null;
+        envelopeCommandCapture = null;
+        if (!complete || Thread.currentThread().isInterrupted()) {
+            try {
+                closeConnection();
+            } catch (MessagingException ex) {
+                if (state.failure != null)
+                    state.failure.addSuppressed(ex);
+            }
+        }
+    }
+
+    /**
+     * Publishes recipient results, retaining the first failure across RSET.
+     */
+    private void checkEnvelopeResult(EnvelopeState state, boolean complete)
+            throws MessagingException {
+        if (Thread.currentThread().isInterrupted() && state.failure == null) {
+            Exception cause = new IOException("Sending thread interrupted");
+            if (state.recipients != null)
+                cause = state.recipients.failureChain(cause);
+            state.fail(new MessagingException("SMTP envelope interrupted", cause));
+        }
+        if (state.failure == null) {
+            try {
+                state.recipients.finish();
+            } catch (MessagingException ex) {
+                state.fail(ex);
+            }
+        }
+        if (state.failure != null) {
+            if (state.recipients != null) {
+                state.recipients.notSent();
+            } else if (!complete) {
+                validSentAddr = null;
+                validUnsentAddr = addresses;
+            }
+            resetPipelinedEnvelope(state.failure);
+            lastReturnCode = state.code;
+            lastServerResponse = state.response;
+            throw state.failure;
+        }
+    }
+
+    private EnvelopeCommand captureEnvelopeCommand(String cmd,
+                                                   InternetAddress address)
+            throws MessagingException {
+        EnvelopeCommandCapture capture = new EnvelopeCommandCapture(address);
+        envelopeCommandCapture = capture;
+        try {
+            sendCommand(cmd);
+            return capture.getCommand();
+        } finally {
+            envelopeCommandCapture = null;
+        }
+    }
+
+    private void sendEnvelopeGroup(List<EnvelopeCommand> group,
+                                   EnvelopeState state)
+            throws MessagingException {
+        envelopeExchange.reserve(group.size());
+        try {
+            for (EnvelopeCommand command : group) {
+                serverOutput.write(command.bytes);
+                serverOutput.write(CRLF);
+            }
+            serverOutput.flush();
+        } catch (IOException ex) {
+            // Retain a MAIL rejection already read before a later reply
+            // aborted this write. Do not wait for replies to unwritten bytes.
+            for (EnvelopeCommand command : group) {
+                if (!envelopeExchange.hasReply())
+                    break;
+                try {
+                    acceptEnvelopeReply(command, state);
+                } catch (MessagingException readEx) {
+                    ex.addSuppressed(readEx);
+                    break;
+                }
+            }
+            throw new MessagingException("Can't send SMTP envelope", ex);
+        }
+        for (EnvelopeCommand command : group)
+            acceptEnvelopeReply(command, state);
+    }
+
+    private void acceptEnvelopeReply(EnvelopeCommand command,
+                                     EnvelopeState state)
+            throws MessagingException {
+        int code = readServerResponse();
+        if (state.failure == null) {
+            if (command.address == null) {
+                if (code != 250) {
+                    SMTPSendFailedException ex = new SMTPSendFailedException(
+                            command.command, code, lastServerResponse, null,
+                            null, addresses, null);
+                    addSenderFailure(ex, state.from, command.command);
+                    state.fail(ex);
+                } else {
+                    state.recipients = new RecipientState(true);
+                }
+            } else {
+                try {
+                    state.recipients.accept(command.address,
+                            command.command, code);
+                } catch (MessagingException ex) {
+                    state.fail(ex);
+                }
+            }
+        }
+        if (code == 421) {
+            Exception cause = envelopeExchange.getFailure();
+            if (state.recipients != null) {
+                state.recipients.notSent();
+                cause = state.recipients.failureChain(cause);
+            }
+            SMTPSendFailedException ex = new SMTPSendFailedException(
+                    command.command, code, lastServerResponse, cause,
+                    validSentAddr, validUnsentAddr, invalidAddr);
+            if (state.failure == null)
+                state.fail(ex);
             throw ex;
+        }
+    }
+
+    private void resetPipelinedEnvelope(MessagingException failure) {
+        // The collector is detached; no envelope replies can reach RSET.
+        try {
+            if (serverSocket != null)
+                issueCommand("RSET", 250);
+        } catch (MessagingException ex) {
+            failure.addSuppressed(ex);
+            try {
+                closeConnection();
+            } catch (MessagingException closeEx) {
+                failure.addSuppressed(closeEx);
+            }
+        }
+    }
+
+    /**
+     * Captures exactly one customized command without writing to the socket.
+     * Its lifetime is limited to a sendCommand callback on the sending thread.
+     */
+    private final class EnvelopeCommandCapture {
+        private final InternetAddress address;
+        private EnvelopeCommand command;
+
+        EnvelopeCommandCapture(InternetAddress address) {
+            this.address = address;
+        }
+
+        void capture(String cmd) throws MessagingException {
+            if (command != null)
+                throw new MessagingException("More than one envelope command");
+            byte[] bytes = toBytes(cmd);
+            try {
+                validateCommand(bytes);
+            } catch (RuntimeException ex) {
+                throw new MessagingException("Invalid SMTP envelope command", ex);
+            }
+            command = new EnvelopeCommand(cmd, bytes, address);
+        }
+
+        EnvelopeCommand getCommand() throws MessagingException {
+            if (command == null)
+                throw new MessagingException("Envelope command was not queued");
+            return command;
+        }
+    }
+
+    private static final class EnvelopeCommand {
+        final String command;
+        final byte[] bytes;
+        final InternetAddress address;
+
+        EnvelopeCommand(String command, byte[] bytes, InternetAddress address) {
+            this.command = command;
+            this.bytes = bytes;
+            this.address = address;
+        }
+    }
+
+    /**
+     * Owns one command group and its byte count. Count limits are checked before
+     * invoking a subclass; byte limits are checked after its customization.
+     */
+    private final class EnvelopeGroup {
+        private final EnvelopeState state;
+        private final List<EnvelopeCommand> commands = new ArrayList<>();
+        private long bytes;
+
+        EnvelopeGroup(EnvelopeState state) {
+            this.state = state;
+        }
+
+        boolean addMailFrom() throws MessagingException {
+            return add(null, null);
+        }
+
+        boolean addRecipient(InternetAddress address, String notify)
+                throws MessagingException {
+            return add(address, notify);
+        }
+
+        private boolean add(InternetAddress address, String notify)
+                throws MessagingException {
+            if (commands.size() == SMTPEnvelopeExchange.MAX_COMMANDS) {
+                flush();
+                if (state.failure != null)
+                    return false;
+            }
+            if (Thread.currentThread().isInterrupted())
+                throw new MessagingException("SMTP envelope interrupted",
+                        new IOException("Sending thread interrupted"));
+            String cmd = address == null ? mailCommand(state.from) :
+                    recipientCommand(address, notify);
+            EnvelopeCommand command = captureEnvelopeCommand(cmd, address);
+            long size = (long) command.bytes.length + CRLF.length;
+            if (!commands.isEmpty() &&
+                    bytes + size > SMTPEnvelopeExchange.MAX_COMMAND_BYTES) {
+                flush();
+                if (state.failure != null)
+                    return false;
+            }
+            commands.add(command);
+            bytes += size;
+            if (size > SMTPEnvelopeExchange.MAX_COMMAND_BYTES)
+                flush();
+            return state.failure == null;
+        }
+
+        private void flush() throws MessagingException {
+            if (commands.isEmpty())
+                return;
+            sendEnvelopeGroup(commands, state);
+            commands.clear();
+            bytes = 0;
+        }
+    }
+
+    private final class EnvelopeState {
+        final String from;
+        RecipientState recipients;
+        MessagingException failure;
+        int code;
+        String response;
+
+        EnvelopeState(String from) {
+            this.from = from;
+        }
+
+        void fail(MessagingException ex) {
+            failure = ex;
+            code = lastReturnCode;
+            response = lastServerResponse;
         }
     }
 
@@ -1895,47 +2290,47 @@ public class SMTPTransport extends Transport {
      * valid addr: 552 (quota), 450, 451, 452 (quota), 421 (srvr abort)
      */
     protected void rcptTo() throws MessagingException {
-        List<InternetAddress> valid = new ArrayList<>();
-        List<InternetAddress> validUnsent = new ArrayList<>();
-        List<InternetAddress> invalid = new ArrayList<>();
-        int retCode = -1;
-        MessagingException mex = null;
-        boolean sendFailed = false;
-        MessagingException sfex = null;
-        validSentAddr = validUnsentAddr = invalidAddr = null;
-        boolean sendPartial = false;
-        if (message instanceof SMTPMessage)
-            sendPartial = ((SMTPMessage) message).getSendPartial();
-        if (!sendPartial)
-            sendPartial = PropUtil.getBooleanProperty(session.getProperties(),
-                    "mail." + name + ".sendpartial", false);
-        if (sendPartial)
-            logger.fine("sendPartial set");
+        RecipientState recipients = new RecipientState(false);
+        String notify = recipientNotify();
+        for (Address address : addresses) {
+            InternetAddress ia = (InternetAddress) address;
+            String cmd = recipientCommand(ia, notify);
+            sendCommand(cmd);
+            recipients.accept(ia, cmd, readServerResponse());
+        }
+        recipients.finish();
+    }
 
-        boolean dsn = false;
-        String notify = null;
-        if (supportsExtension("DSN")) {
+    /**
+     * The same reply classification is used by both envelope paths.
+     * Only the sending thread, holding the transport monitor, uses this state.
+     */
+    private final class RecipientState {
+        private final List<InternetAddress> valid = new ArrayList<>();
+        private final List<InternetAddress> validUnsent = new ArrayList<>();
+        private final List<InternetAddress> invalid = new ArrayList<>();
+        private final boolean pipelined;
+        private boolean sendPartial;
+        private boolean sendFailed;
+        private MessagingException mex;
+        private int replies;
+
+        RecipientState(boolean pipelined) {
+            this.pipelined = pipelined;
+            validSentAddr = validUnsentAddr = invalidAddr = null;
             if (message instanceof SMTPMessage)
-                notify = ((SMTPMessage) message).getDSNNotify();
-            if (notify == null)
-                notify = session.getProperty("mail." + name + ".dsn.notify");
-            // XXX - check for legal syntax?
-            if (notify != null)
-                dsn = true;
+                sendPartial = ((SMTPMessage) message).getSendPartial();
+            if (!sendPartial)
+                sendPartial = PropUtil.getBooleanProperty(
+                        session.getProperties(),
+                        "mail." + name + ".sendpartial", false);
+            if (sendPartial)
+                logger.fine("sendPartial set");
         }
 
-        // try the addresses one at a time
-        for (int i = 0; i < addresses.length; i++) {
-
-            sfex = null;
-            InternetAddress ia = (InternetAddress) addresses[i];
-            String cmd = "RCPT TO:" + normalizeAddress(ia.getAddress());
-            if (dsn)
-                cmd += " NOTIFY=" + notify;
-            // send the addresses to the SMTP server
-            sendCommand(cmd);
-            // check the server's response for address validity
-            retCode = readServerResponse();
+        void accept(InternetAddress ia, String cmd, int retCode)
+                throws MessagingException {
+            MessagingException sfex;
             switch (retCode) {
                 case 250:
                 case 251:
@@ -2022,12 +2417,15 @@ public class SMTPTransport extends Transport {
                                     ", with response: " + lastServerResponse);
                         String _lsr = lastServerResponse; // else rset will nuke it
                         int _lrc = lastReturnCode;
-                        if (serverSocket != null)    // hasn't already been closed
+                        if (!pipelined && serverSocket != null)
                             issueCommand("RSET", -1);
                         lastServerResponse = _lsr;    // restore, for get
                         lastReturnCode = _lrc;
-                        throw new SMTPAddressFailedException(ia, cmd, retCode,
+                        sfex = new SMTPAddressFailedException(ia, cmd, retCode,
                                 _lsr);
+                        if (pipelined && mex != null)
+                            sfex.setNextException(mex);
+                        throw sfex;
                     }
                     if (!sendPartial)
                         sendFailed = true;
@@ -2040,101 +2438,126 @@ public class SMTPTransport extends Transport {
                         mex.setNextException(sfex);
                     break;
             }
+            replies++;
         }
 
-        // if we're willing to send to a partial list, and we found no
-        // valid addresses, that's complete failure
-        if (sendPartial && valid.size() == 0)
-            sendFailed = true;
-
-        // copy the lists into appropriate arrays
-        if (sendFailed) {
-            // copy invalid addrs
-            invalidAddr = new Address[invalid.size()];
-            invalid.toArray(invalidAddr);
-
-            // copy all valid addresses to validUnsent, since something failed
-            validUnsentAddr = new Address[valid.size() + validUnsent.size()];
-            int i = 0;
-            for (int j = 0; j < valid.size(); j++)
-                validUnsentAddr[i++] = (Address) valid.get(j);
-            for (int j = 0; j < validUnsent.size(); j++)
-                validUnsentAddr[i++] = (Address) validUnsent.get(j);
-        } else if (reportSuccess || (sendPartial &&
-                (invalid.size() > 0 || validUnsent.size() > 0))) {
-            // we'll go on to send the message, but after sending we'll
-            // throw an exception with this exception nested
-            sendPartiallyFailed = true;
-            exception = mex;
-
-            // copy invalid addrs
-            invalidAddr = new Address[invalid.size()];
-            invalid.toArray(invalidAddr);
-
-            // copy valid unsent addresses to validUnsent
-            validUnsentAddr = new Address[validUnsent.size()];
-            validUnsent.toArray(validUnsentAddr);
-
-            // copy valid addresses to validSent
-            validSentAddr = new Address[valid.size()];
-            valid.toArray(validSentAddr);
-        } else {        // all addresses pass
-            validSentAddr = addresses;
+        /**
+         * Retains collected address details before a terminal failure.
+         * A non-MessagingException ends Jakarta Mail's exception chain.
+         */
+        Exception failureChain(Exception failure) {
+            if (mex == null)
+                return failure;
+            if (failure != null)
+                mex.setNextException(failure);
+            return mex;
         }
 
-
-        // print out the debug info
-        if (logger.isLoggable(Level.FINE)) {
-            if (validSentAddr != null && validSentAddr.length > 0) {
-                logger.fine("Verified Addresses");
-                for (int l = 0; l < validSentAddr.length; l++) {
-                    logger.fine("  " + validSentAddr[l]);
-                }
-            }
-            if (validUnsentAddr != null && validUnsentAddr.length > 0) {
-                logger.fine("Valid Unsent Addresses");
-                for (int j = 0; j < validUnsentAddr.length; j++) {
-                    logger.fine("  " + validUnsentAddr[j]);
-                }
-            }
-            if (invalidAddr != null && invalidAddr.length > 0) {
-                logger.fine("Invalid Addresses");
-                for (int k = 0; k < invalidAddr.length; k++) {
-                    logger.fine("  " + invalidAddr[k]);
-                }
-            }
+        void notSent() {
+            validSentAddr = null;
+            invalidAddr = invalid.toArray(new Address[0]);
+            List<Address> unsent = new ArrayList<>(valid);
+            unsent.addAll(validUnsent);
+            for (int i = replies; i < addresses.length; i++)
+                unsent.add(addresses[i]);
+            validUnsentAddr = unsent.toArray(new Address[0]);
         }
 
-        // throw the exception, fire TransportEvent.MESSAGE_NOT_DELIVERED event
-        if (sendFailed) {
-            logger.fine(
-                    "Sending failed because of invalid destination addresses");
-            notifyTransportListeners(TransportEvent.MESSAGE_NOT_DELIVERED,
-                    validSentAddr, validUnsentAddr,
-                    invalidAddr, this.message);
+        void finish() throws MessagingException {
+            // if we're willing to send to a partial list, and we found no
+            // valid addresses, that's complete failure
+            if (sendPartial && valid.size() == 0)
+                sendFailed = true;
 
-            // reset the connection so more sends are allowed
-            String lsr = lastServerResponse;    // save, for get
-            int lrc = lastReturnCode;
-            try {
-                if (serverSocket != null)
-                    issueCommand("RSET", -1);
-            } catch (MessagingException ex) {
-                // if can't reset, best to close the connection
+            // copy the lists into appropriate arrays
+            if (sendFailed) {
+                // copy invalid addrs
+                invalidAddr = new Address[invalid.size()];
+                invalid.toArray(invalidAddr);
+
+                // copy all valid addresses to validUnsent, since something failed
+                validUnsentAddr = new Address[valid.size() + validUnsent.size()];
+                int i = 0;
+                for (int j = 0; j < valid.size(); j++)
+                    validUnsentAddr[i++] = (Address) valid.get(j);
+                for (int j = 0; j < validUnsent.size(); j++)
+                    validUnsentAddr[i++] = (Address) validUnsent.get(j);
+            } else if (reportSuccess || (sendPartial &&
+                    (invalid.size() > 0 || validUnsent.size() > 0))) {
+                // we'll go on to send the message, but after sending we'll
+                // throw an exception with this exception nested
+                sendPartiallyFailed = true;
+                exception = mex;
+
+                // copy invalid addrs
+                invalidAddr = new Address[invalid.size()];
+                invalid.toArray(invalidAddr);
+
+                // copy valid unsent addresses to validUnsent
+                validUnsentAddr = new Address[validUnsent.size()];
+                validUnsent.toArray(validUnsentAddr);
+
+                // copy valid addresses to validSent
+                validSentAddr = new Address[valid.size()];
+                valid.toArray(validSentAddr);
+            } else {        // all addresses pass
+                validSentAddr = addresses;
+            }
+
+
+            // print out the debug info
+            if (logger.isLoggable(Level.FINE)) {
+                if (validSentAddr != null && validSentAddr.length > 0) {
+                    logger.fine("Verified Addresses");
+                    for (int l = 0; l < validSentAddr.length; l++) {
+                        logger.fine("  " + validSentAddr[l]);
+                    }
+                }
+                if (validUnsentAddr != null && validUnsentAddr.length > 0) {
+                    logger.fine("Valid Unsent Addresses");
+                    for (int j = 0; j < validUnsentAddr.length; j++) {
+                        logger.fine("  " + validUnsentAddr[j]);
+                    }
+                }
+                if (invalidAddr != null && invalidAddr.length > 0) {
+                    logger.fine("Invalid Addresses");
+                    for (int k = 0; k < invalidAddr.length; k++) {
+                        logger.fine("  " + invalidAddr[k]);
+                    }
+                }
+            }
+
+            // throw the exception, fire TransportEvent.MESSAGE_NOT_DELIVERED event
+            if (sendFailed) {
+                logger.fine(
+                        "Sending failed because of invalid destination addresses");
+                notifyTransportListeners(TransportEvent.MESSAGE_NOT_DELIVERED,
+                        validSentAddr, validUnsentAddr,
+                        invalidAddr, SMTPTransport.this.message);
+
+                // reset the connection so more sends are allowed
+                String lsr = lastServerResponse;    // save, for get
+                int lrc = lastReturnCode;
                 try {
-                    close();
-                } catch (MessagingException ex2) {
-                    // thrown by close()--ignore, will close() later anyway
-                    logger.log(Level.FINE, "close failed", ex2);
+                    if (!pipelined && serverSocket != null)
+                        issueCommand("RSET", -1);
+                } catch (MessagingException ex) {
+                    // if can't reset, best to close the connection
+                    try {
+                        close();
+                    } catch (MessagingException ex2) {
+                        // thrown by close()--ignore, will close() later anyway
+                        logger.log(Level.FINE, "close failed", ex2);
+                    }
+                } finally {
+                    lastServerResponse = lsr;    // restore
+                    lastReturnCode = lrc;
                 }
-            } finally {
-                lastServerResponse = lsr;    // restore
-                lastReturnCode = lrc;
-            }
 
-            throw new SendFailedException("Invalid Addresses", mex,
-                    validSentAddr,
-                    validUnsentAddr, invalidAddr);
+                throw new SendFailedException("Invalid Addresses", mex,
+                        validSentAddr,
+                        validUnsentAddr, invalidAddr);
+            }
         }
     }
 
@@ -2230,7 +2653,8 @@ public class SMTPTransport extends Transport {
             Properties props = session.getProperties();
 
             serverSocket = SocketFetcher.getSocket(host, port,
-                    props, "mail." + name, isSSL);
+                    props, "mail." + name, isSSL,
+                    pipelining && isPipeliningCompatible());
 
             // socket factory may've chosen a different port,
             // update it for the debug messages that follow
@@ -2487,6 +2911,11 @@ public class SMTPTransport extends Transport {
      * @since JavaMail 1.4.1
      */
     protected void sendCommand(String cmd) throws MessagingException {
+        assert Thread.holdsLock(this);
+        if (envelopeCommandCapture != null) {
+            envelopeCommandCapture.capture(cmd);
+            return;
+        }
         sendCommand(toBytes(cmd));
     }
 
@@ -2526,6 +2955,26 @@ public class SMTPTransport extends Transport {
      */
     protected int readServerResponse() throws MessagingException {
         assert Thread.holdsLock(this);
+        if (envelopeCommandCapture != null)
+            throw new MessagingException("Reply read while queuing envelope");
+        if (envelopeExchange != null) {
+            try {
+                SMTPEnvelopeExchange.Reply reply = envelopeExchange.take();
+                lastServerResponse = reply.text;
+                lastReturnCode = reply.code;
+                return reply.code;
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new MessagingException("SMTP envelope interrupted", ex);
+            } catch (IOException ex) {
+                SMTPEnvelopeExchange.Reply reply = envelopeExchange.getTerminalReply();
+                lastServerResponse = reply == null ? ex.getMessage() : reply.text;
+                lastReturnCode = reply == null ? -1 : reply.code;
+                if (lastReturnCode == 421)
+                    return lastReturnCode;
+                throw new MessagingException("SMTP envelope read failed", ex);
+            }
+        }
         String serverResponse = "";
         int returnCode = 0;
         StringBuilder buf = new StringBuilder(100);
