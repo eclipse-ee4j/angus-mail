@@ -14,6 +14,23 @@
     extensions.  The existing policy for continuing after a failed
     post-STARTTLS EHLO is unchanged.
 
+- SMTP envelope PIPELINING
+
+    Disabled by default.  Enable mail.smtp.pipelining (or the smtps
+    equivalent) to use it when the current connection advertises PIPELINING.
+    DATA and BDAT still wait for every envelope reply; BDAT chunks are
+    not pipelined.
+
+    Existing SMTPTransport subclasses remain sequential unless they override
+    isPipeliningCompatible.  An opted-in subclass receives command and reply
+    callbacks on the sending thread, but several command callbacks can precede
+    their replies.  Use sendEnvelope for preparation common to both paths.
+    See those protected methods' Javadoc before opting in.
+
+    With no write timeout, simultaneous blocked TLS reads and writes can
+    still stall during TLS 1.3 KeyUpdate processing.  Timeout requirements
+    for this option remain under review.
+
 -- Angus Mail 2.0.5 --
 
 - Resource File Duplication due to Jakartification
