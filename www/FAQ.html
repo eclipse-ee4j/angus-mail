@@ -335,6 +335,9 @@ title: Jakarta Mail FAQ
     <LI><A HREF="#starttls">I get "Must issue a STARTTLS command first"
         when trying to send a message.</A>
         <BR>
+    <LI><A HREF="#badgreeting">I get "Got bad greeting from SMTP host: ..., response: [EOF]"
+        when trying to send a message.</A>
+        <BR>
     <LI><A HREF="#badaddr">If I send a message to a bad address, why don't I get a
         SendFailedException or TransportEvent indicating that the address is
         bad?</A><BR>
@@ -3169,6 +3172,36 @@ class MyMessage extends MimeMessage {
 <P>
     Note that your server is most likely also going to want you to authenticate,
     as described in <A HREF="#smtpauth">this</A> entry.
+</P>
+
+<P>
+    <A NAME="badgreeting">
+        <strong>Q:</strong> I get "Got bad greeting from SMTP host: &lt;host&gt;, port: &lt;port&gt;,
+        response: [EOF]" when trying to send a message.</A>
+    <BR>
+    <strong>A:</strong> The server closed the connection before sending its greeting.
+    This usually means that the port expects an SSL connection from the start,
+    as port 465 does for SMTP over SSL, but the SMTP protocol provider connected
+    with a plain text connection, for example to switch to a secure connection
+    later with the STARTTLS command. The server waits for the SSL handshake,
+    the client waits for the greeting, and the server eventually closes the connection.
+</P>
+<P>
+    To connect to such a port, set the Session property
+    "mail.smtp.ssl.enable" to "true" and remove the
+    "mail.smtp.starttls.enable" property:
+</P>
+<pre>
+    props.setProperty("mail.smtp.ssl.enable", "true");
+    props.setProperty("mail.smtp.port", "465");
+</pre>
+<P>
+    Alternatively, if your server supports the STARTTLS command on another port,
+    usually port 587, connect to that port with "mail.smtp.starttls.enable"
+    set to "true" instead, as described in <A HREF="#starttls">this</A> entry.
+    See the file
+    <A HREF="docs/SSLNOTES.txt">SSLNOTES.txt</A>
+    for additional information.
 </P>
 
 <P>
