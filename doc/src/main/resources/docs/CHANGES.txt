@@ -15,6 +15,7 @@ for the Eclipse EE4J Angus Mail project:
 104: IMAPProtocol: Problem with searching emails when the subject contains umlauts
 217: Discard stale EHLO capabilities
 206: BASE64DecoderStream does not skip 0xFF bytes
+205: Create POP3 and mbox message cache files with owner-only permissions
 
           CHANGES IN THE 2.0.5 RELEASE
           ----------------------------

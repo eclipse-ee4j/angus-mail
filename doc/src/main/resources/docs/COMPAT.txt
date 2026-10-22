@@ -14,6 +14,17 @@
     extensions.  The existing policy for continuing after a failed
     post-STARTTLS EHLO is unchanged.
 
+- Owner-only permissions for POP3 and mbox message cache files
+
+    The POP3 and mbox providers cache message content in temporary files.
+    These were created with File.createTempFile, so on POSIX systems the
+    file permissions followed the process umask (typically rw-r--r--) and
+    cached mail could be read by other local users.  The cache files are
+    now created with owner-only (rw-------) permissions.  If the file
+    system does not support POSIX permissions, or the cache directory
+    can't be converted to a Path, the file is created with
+    File.createTempFile and the platform default permissions as before.
+
 -- Angus Mail 2.0.5 --
 
 - Resource File Duplication due to Jakartification

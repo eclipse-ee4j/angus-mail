@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermissions;
 
@@ -60,11 +61,13 @@ class TempFile {
                 return Files.createTempFile(
                         dir.toPath(), prefix, suffix, attr).toFile();
             return Files.createTempFile(prefix, suffix, attr).toFile();
-        } catch (UnsupportedOperationException ex) {
-            if (dir != null)
-                return Files.createTempFile(
-                        dir.toPath(), prefix, suffix).toFile();
-            return Files.createTempFile(prefix, suffix).toFile();
+        } catch (UnsupportedOperationException | InvalidPathException ex) {
+            try {
+                return File.createTempFile(prefix, suffix, dir);
+            } catch (IOException | RuntimeException e) {
+                e.addSuppressed(ex);
+                throw e;
+            }
         }
     }
 
