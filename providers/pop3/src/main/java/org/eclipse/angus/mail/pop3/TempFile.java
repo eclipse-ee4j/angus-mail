@@ -44,8 +44,8 @@ class TempFile {
     /**
      * Create the cache file with owner-only permissions so that the
      * cached message content isn't readable by other local users.  On
-     * file systems without POSIX permissions the platform default is
-     * used.
+     * file systems without POSIX permissions the file is created with
+     * File.createTempFile and the owner-only access bits are set on it.
      */
     private static File createTempFile(String prefix, String suffix, File dir)
             throws IOException {
@@ -57,12 +57,20 @@ class TempFile {
                         dir.toPath(), prefix, suffix, attr).toFile();
             return Files.createTempFile(prefix, suffix, attr).toFile();
         } catch (UnsupportedOperationException | InvalidPathException ex) {
+            File f;
             try {
-                return File.createTempFile(prefix, suffix, dir);
+                f = File.createTempFile(prefix, suffix, dir);
             } catch (IOException | RuntimeException e) {
                 e.addSuppressed(ex);
                 throw e;
             }
+            // best effort to restrict access to the owner
+            f.setReadable(false, false);
+            f.setReadable(true, true);
+            f.setWritable(false, false);
+            f.setWritable(true, true);
+            f.setExecutable(false, false);
+            return f;
         }
     }
 

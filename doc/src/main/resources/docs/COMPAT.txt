@@ -23,7 +23,8 @@
     now created with owner-only (rw-------) permissions.  If the file
     system does not support POSIX permissions, or the cache directory
     can't be converted to a Path, the file is created with
-    File.createTempFile and the platform default permissions as before.
+    File.createTempFile and the java.io.File setReadable, setWritable and
+    setExecutable methods are used to restrict access to the owner.
 
 -- Angus Mail 2.0.5 --
 
