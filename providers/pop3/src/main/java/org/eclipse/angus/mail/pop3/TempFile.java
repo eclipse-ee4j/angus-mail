@@ -18,6 +18,10 @@ package org.eclipse.angus.mail.pop3;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermissions;
 
 /**
  * A temporary file used to cache POP3 messages.
@@ -32,10 +36,42 @@ class TempFile {
      * The file will be deleted when the JVM exits.
      */
     public TempFile(File dir) throws IOException {
-        file = File.createTempFile("pop3.", ".mbox", dir);
-        // XXX - need JDK 6 to set permissions on the file to owner-only
+        file = createTempFile("pop3.", ".mbox", dir);
         file.deleteOnExit();
         sf = new WritableSharedFile(file);
+    }
+
+    /**
+     * Create the cache file with owner-only permissions so that the
+     * cached message content isn't readable by other local users.  On
+     * file systems without POSIX permissions the file is created with
+     * File.createTempFile and the owner-only access bits are set on it.
+     */
+    private static File createTempFile(String prefix, String suffix, File dir)
+            throws IOException {
+        try {
+            FileAttribute<?> attr = PosixFilePermissions.asFileAttribute(
+                    PosixFilePermissions.fromString("rw-------"));
+            if (dir != null)
+                return Files.createTempFile(
+                        dir.toPath(), prefix, suffix, attr).toFile();
+            return Files.createTempFile(prefix, suffix, attr).toFile();
+        } catch (UnsupportedOperationException | InvalidPathException ex) {
+            File f;
+            try {
+                f = File.createTempFile(prefix, suffix, dir);
+            } catch (IOException | RuntimeException e) {
+                e.addSuppressed(ex);
+                throw e;
+            }
+            // best effort to restrict access to the owner
+            f.setReadable(false, false);
+            f.setReadable(true, true);
+            f.setWritable(false, false);
+            f.setWritable(true, true);
+            f.setExecutable(false, false);
+            return f;
+        }
     }
 
     /**
