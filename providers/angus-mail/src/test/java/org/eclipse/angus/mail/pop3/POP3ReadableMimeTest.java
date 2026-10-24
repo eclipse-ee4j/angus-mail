@@ -28,11 +28,13 @@ import org.eclipse.angus.mail.util.ReadableMime;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
@@ -176,6 +178,45 @@ public final class POP3ReadableMimeTest {
             } finally {
                 stopServer();
             }
+        }
+    }
+
+    /**
+     * Test that when the server closes the connection after a write to the
+     * output stream failed, the EOFException keeps the write failure as a
+     * suppressed exception.
+     */
+    @Test
+    public void testWriteToKeepsStreamExceptionOnEOF() throws Exception {
+        final String message = message(3 * 8192).replace("\r\n.", "\r\n..");
+        startServer(new POP3Handler() {
+            @Override
+            public void retr(String arg) throws IOException {
+                println("+OK " + message.length() + " octets");
+                // two blocks of the message, then close the connection
+                writer.write(message.substring(0, 2 * 8192));
+                writer.flush();
+                exit();
+            }
+        }, false);
+        try {
+            final IOException failure = new IOException("write failed");
+            OutputStream failing = new OutputStream() {
+                @Override
+                public void write(int b) throws IOException {
+                    throw failure;
+                }
+
+                @Override
+                public void write(byte[] b, int off, int len) throws IOException {
+                    throw failure;
+                }
+            };
+            EOFException eof = assertThrows(EOFException.class,
+                    () -> folder.getMessage(1).writeTo(failing));
+            assertArrayEquals(new Throwable[] {failure}, eof.getSuppressed());
+        } finally {
+            stopServer();
         }
     }
 

@@ -1026,12 +1026,19 @@ class Protocol {
                 socket.close();
             } catch (IOException cex) {
             }
+            if (terr != null)
+                iioex.addSuppressed(terr);
             throw iioex;
         }
         if (terr == null && len > 0)
             terr = writeDeferringError(os, buf, len);
-        if (b < 0)
-            throw new EOFException("EOF on socket");
+        if (b < 0) {
+            EOFException eof = new EOFException("EOF on socket");
+            // don't lose an earlier error writing to the stream
+            if (terr != null)
+                eof.addSuppressed(terr);
+            throw eof;
+        }
 
         // was there a deferred error?
         if (terr != null) {
