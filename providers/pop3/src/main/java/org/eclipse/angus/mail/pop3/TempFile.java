@@ -64,7 +64,11 @@ class TempFile {
                 e.addSuppressed(ex);
                 throw e;
             }
-            // best effort to restrict access to the owner
+            // Best effort to restrict access to the owner.  With
+            // ownerOnly=true, setReadable/setWritable only change the
+            // owner bit and leave any group/other bits from the umask in
+            // place, so first clear the bit for everybody (ownerOnly=false)
+            // and then grant it back to the owner alone.
             f.setReadable(false, false);
             f.setReadable(true, true);
             f.setWritable(false, false);
