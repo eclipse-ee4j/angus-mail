@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2021, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Benny Bottema.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -150,8 +151,8 @@
  * Set the <code>mail.smtp.chunksize</code> property to the desired chunk
  * size in bytes.
  * If the server supports the CHUNKING extension, the BDAT command will be
- * used to send the message in chunksize pieces.  Note that no pipelining is
- * done so this will be slower than sending the message in one piece.
+ * used to send the message in chunksize pieces.  BDAT chunks are not
+ * pipelined, so this will be slower than sending the message in one piece.
  * Note also that the BINARYMIME extension described in RFC 3030 is NOT supported.
  * </P>
  * <A ID="properties"><STRONG>Properties</STRONG></A>
@@ -241,6 +242,55 @@
  * Instead of shutdownNow you can use {@link java.util.concurrent.ScheduledThreadPoolExecutor#shutdown()} ()}
  * and
  * {@link java.util.concurrent.ScheduledThreadPoolExecutor#awaitTermination(long, java.util.concurrent.TimeUnit)} ()}.
+ * </TD>
+ * </TR>
+ *
+ * <TR>
+ * <TD><A ID="mail.smtp.pipelining">mail.smtp.pipelining</A></TD>
+ * <TD>boolean</TD>
+ * <TD>
+ * If true, pipeline MAIL FROM and RCPT TO commands when the current
+ * connection advertises PIPELINING. Defaults to false. Without that
+ * capability, or for a subclass that has not opted in through
+ * {@link org.eclipse.angus.mail.smtp.SMTPTransport#isPipeliningCompatible},
+ * the ordinary sequential envelope is used. For SMTPS use
+ * <code>mail.smtps.pipelining</code>.
+ * All envelope replies are checked before DATA or BDAT. BDAT chunks
+ * themselves are not pipelined. Groups are limited to 32 commands or
+ * 32 KiB of encoded commands; a larger individual command is sent alone.
+ * These limits bound queued commands, not socket buffers or reply sizes.
+ * A nonblocking channel processes input and output on the sending thread.
+ * Each such connection owns a selector and buffers; a TLS connection also
+ * owns a worker for delegated TLS tasks, stopped when the connection closes.
+ * There is no SMTP reader thread. Sockets without a channel (including SOCKS
+ * sockets and caller-supplied sockets) retain sequential sending. Custom TLS
+ * socket factories also retain sequential sending unless an engine factory
+ * is supplied; their key and trust settings are never replaced by defaults.
+ * Disabling pipelining retains the existing socket and TLS implementation.
+ * </TD>
+ * </TR>
+ *
+ * <TR>
+ * <TD><A ID="mail.smtp.ssl.engineFactory">mail.smtp.ssl.engineFactory</A></TD>
+ * <TD>BiFunction&lt;String, Integer, SSLEngine&gt;</TD>
+ * <TD>
+ * Optional instance of {@link java.util.function.BiFunction}, installed with
+ * <code>Properties.put</code>. Called with the destination host and port to
+ * create a fresh {@link javax.net.ssl.SSLEngine} for each TLS connection.
+ * For example, supply a method reference to
+ * {@link javax.net.ssl.SSLContext#createSSLEngine(String, int)}.
+ * The engine must identify that same peer and use the application's required
+ * key and trust managers. Angus applies client mode, configured protocols,
+ * cipher suites and server identity checks before the handshake. This hook
+ * supplies the TLS context instead of the socket factory or ssl.trust setting.
+ * A failing hook aborts connection setup; it does not fall back to other trust.
+ * The default is unset. Default JSSE and the stock
+ * {@link org.eclipse.angus.mail.util.MailSSLSocketFactory} work without a hook.
+ * Other TLS socket factories remain sequential when it is absent.
+ * Used only with pipelining enabled and a channel-backed socket. For SMTPS use
+ * <code>mail.smtps.ssl.engineFactory</code>. This does not replace a custom raw
+ * socket factory or proxy. TLS key/trust-manager work may run on the connection's
+ * TLS worker; transport callbacks remain on the sending thread.
  * </TD>
  * </TR>
  *

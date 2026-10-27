@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Benny Bottema.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -18,6 +19,8 @@ package org.eclipse.angus.mail.util;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -40,6 +43,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.cert.CertificateException;
 import java.security.GeneralSecurityException;
+import java.security.Security;
 import java.security.PrivilegedAction;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
@@ -51,6 +55,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.function.BiFunction;
 import java.util.StringTokenizer;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
@@ -151,6 +156,28 @@ public class SocketFetcher {
                                    String prefix, boolean useSSL)
             throws IOException {
 
+        return getSocket(host, port, props, prefix, useSSL, false);
+    }
+
+    /**
+     * Opens a connection, optionally using duplex channel I/O. A custom socket
+     * without a channel, or a TLS factory without an engine equivalent, keeps
+     * its original socket implementation. This option does not replace a
+     * caller's socket factory, trust configuration, or proxy.
+     *
+     * @param host the destination host
+     * @param port the destination port
+     * @param props socket properties
+     * @param prefix property prefix
+     * @param useSSL whether to use implicit TLS
+     * @param useEngine whether to prefer duplex channel I/O
+     * @return the connected socket
+     * @exception IOException for connection or TLS failures
+     */
+    public static Socket getSocket(String host, int port, Properties props,
+                                   String prefix, boolean useSSL,
+                                   boolean useEngine) throws IOException {
+
         if (logger.isLoggable(Level.FINER))
             logger.finer("getSocket" + ", host " + host + ", port " + port +
                     ", prefix " + prefix + ", useSSL " + useSSL);
@@ -220,7 +247,7 @@ public class SocketFetcher {
                 if (sfPort == -1)
                     sfPort = port;
                 socket = createSocket(localaddr, localport,
-                        host, sfPort, cto, to, props, prefix, sf, useSSL);
+                        host, sfPort, cto, to, props, prefix, sf, useSSL, useEngine);
             }
         } catch (SocketTimeoutException sex) {
             throw sex;
@@ -241,7 +268,7 @@ public class SocketFetcher {
 
         if (socket == null) {
             socket = createSocket(localaddr, localport,
-                    host, port, cto, to, props, prefix, null, useSSL);
+                    host, port, cto, to, props, prefix, null, useSSL, useEngine);
 
         } else {
             if (to >= 0) {
@@ -269,7 +296,8 @@ public class SocketFetcher {
     private static Socket createSocket(InetAddress localaddr, int localport,
                                        String host, int port, int cto, int to,
                                        Properties props, String prefix,
-                                       SocketFactory sf, boolean useSSL)
+                                       SocketFactory sf, boolean useSSL,
+                                       boolean useEngine)
             throws IOException {
         Socket socket = null;
 
@@ -332,7 +360,7 @@ public class SocketFetcher {
                 socket = new Socket(
                         new java.net.Proxy(java.net.Proxy.Type.SOCKS,
                                 new InetSocketAddress(socksHost, socksPort)));
-            } else if (PropUtil.getBooleanProperty(props,
+            } else if (useEngine || PropUtil.getBooleanProperty(props,
                     prefix + ".usesocketchannels", false)) {
                 logger.finer("using SocketChannels");
                 socket = SocketChannel.open().socket();
@@ -398,6 +426,18 @@ public class SocketFetcher {
                 ssf = (SSLSocketFactory) sf;
             else
                 ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            if (useEngine && socket.getChannel() != null) {
+                try {
+                    SSLEngine engine = createSSLEngine(ssf, host, port, props, prefix);
+                    if (engine != null) {
+                        DuplexSocket duplex = new DuplexSocket(socket, writeTimeout);
+                        configureSSLEngine(duplex, engine, host, props, prefix);
+                        return duplex;
+                    }
+                } catch (IOException ex) {
+                    throw cleanupAndThrow(socket, ex);
+                }
+            }
             socket = ssf.createSocket(socket, host, port, true);
             sf = ssf;
         }
@@ -407,6 +447,10 @@ public class SocketFetcher {
          * SSLSocket, configure it.
          */
         configureSSLSocket(socket, host, props, prefix, sf);
+
+        if (useEngine && !(socket instanceof SSLSocket) &&
+                socket.getChannel() != null)
+            socket = new DuplexSocket(socket, writeTimeout);
 
         return socket;
     }
@@ -559,6 +603,15 @@ public class SocketFetcher {
                 }
             }
 
+            if (socket instanceof DuplexSocket) {
+                DuplexSocket duplex = (DuplexSocket) socket;
+                SSLEngine engine = createSSLEngine(ssf, host, port, props, prefix);
+                if (engine != null) {
+                    configureSSLEngine(duplex, engine, host, props, prefix);
+                    return duplex;
+                }
+                socket = duplex.release();
+            }
             socket = ssf.createSocket(socket, host, port, true);
             configureSSLSocket(socket, host, props, prefix, ssf);
         } catch (Exception ex) {
@@ -580,6 +633,87 @@ public class SocketFetcher {
             throw ioex;
         }
         return socket;
+    }
+
+    /** Resolves an engine without guessing a custom socket factory's trust. */
+    @SuppressWarnings("unchecked")
+    private static SSLEngine createSSLEngine(SSLSocketFactory factory,
+            String host, int port, Properties props, String prefix)
+            throws IOException {
+        Object hook = props.get(prefix + ".ssl.engineFactory");
+        if (hook != null) {
+            if (!(hook instanceof BiFunction))
+                throw new IOException("Invalid SSL engine factory: " + prefix);
+            try {
+                SSLEngine engine = ((BiFunction<String, Integer, SSLEngine>) hook)
+                        .apply(host, port);
+                if (engine == null)
+                    throw new IOException("SSL engine factory returned null");
+                if (!host.equalsIgnoreCase(engine.getPeerHost()) ||
+                        port != engine.getPeerPort())
+                    throw new SSLException("SSL engine factory returned a different peer");
+                return engine;
+            } catch (RuntimeException ex) {
+                throw new IOException("Could not create SSL engine", ex);
+            }
+        }
+        if (factory.getClass() == MailSSLSocketFactory.class)
+            return ((MailSSLSocketFactory) factory).createSSLEngine(host, port);
+        // There is no portable way to recover the context behind an arbitrary
+        // socket factory. Never substitute default trust or client credentials.
+        if (props.get(prefix + ".ssl.socketFactory") != null ||
+                props.getProperty(prefix + ".ssl.socketFactory.class") != null ||
+                props.get(prefix + ".socketFactory") instanceof SSLSocketFactory ||
+                props.getProperty(prefix + ".socketFactory.class") != null ||
+                Security.getProperty("ssl.SocketFactory.provider") != null)
+            return null;
+        try {
+            return SSLContext.getDefault().createSSLEngine(host, port);
+        } catch (GeneralSecurityException ex) {
+            throw new IOException("Could not create default SSL engine", ex);
+        }
+    }
+
+    /** Applies the same TLS policy as configureSSLSocket to a channel engine. */
+    private static void configureSSLEngine(DuplexSocket socket, SSLEngine engine,
+            String host, Properties props, String prefix) throws IOException {
+        try {
+            engine.setUseClientMode(true);
+            String protocols = props.getProperty(prefix + ".ssl.protocols");
+            if (protocols != null)
+                engine.setEnabledProtocols(stringArray(protocols));
+            else {
+                List<String> enabled = new ArrayList<>();
+                for (String protocol : engine.getEnabledProtocols()) {
+                    if (protocol != null && !protocol.startsWith("SSL"))
+                        enabled.add(protocol);
+                }
+                engine.setEnabledProtocols(enabled.toArray(new String[0]));
+            }
+            String ciphers = props.getProperty(prefix + ".ssl.ciphersuites");
+            if (ciphers != null)
+                engine.setEnabledCipherSuites(stringArray(ciphers));
+            SSLParameters parameters = engine.getSSLParameters();
+            parameters.setEndpointIdentificationAlgorithm(
+                    PropUtil.getBooleanProperty(props,
+                            prefix + ".ssl.checkserveridentity", true) ? "LDAPS" : null);
+            engine.setSSLParameters(parameters);
+            socket.startTLS(engine);
+            HostnameVerifier verifier = getHostnameVerifier(props, prefix);
+            if (verifier != null && !verifier.verify(host, engine.getSession()))
+                throw new SSLException("Server identity does not match " +
+                        "authentication scheme: " + verifier + " DENY");
+        } catch (IOException | ReflectiveOperationException | RuntimeException | LinkageError ex) {
+            IOException failure = ex instanceof IOException ? (IOException) ex :
+                    new IOException("Could not configure SSL engine for: " + host, ex);
+            socket.abort();
+            try {
+                socket.close();
+            } catch (IOException cleanup) {
+                failure.addSuppressed(cleanup);
+            }
+            throw failure;
+        }
     }
 
     /**
