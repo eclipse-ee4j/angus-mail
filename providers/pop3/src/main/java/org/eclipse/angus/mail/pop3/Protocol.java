@@ -1228,6 +1228,13 @@ class Protocol {
             throw new IOException("Folder is closed");    // XXX
 
         if (cmd != null) {
+            for (int i = 0; i < cmd.length(); i++) {
+                char c = cmd.charAt(i);
+                if (c == '\r' || c == '\n')
+                    throw new IllegalArgumentException(
+                            "Command contains illegal character: " +
+                                    String.format("0x%02x", (int) c));
+            }
             cmd += CRLF;
             output.print(cmd);    // do it in one write
             output.flush();
