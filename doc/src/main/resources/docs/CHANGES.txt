@@ -18,6 +18,7 @@ for the Eclipse EE4J Angus Mail project:
 65: mail.smtp.ssl.trust creates a new SocketFactory
 99: POP3Message.writeTo(OutputStream os); writes each byte individually to the OutputStream
 206: BASE64DecoderStream does not skip 0xFF bytes
+213: Opt-in SMTP envelope PIPELINING
 
           CHANGES IN THE 2.0.5 RELEASE
           ----------------------------
