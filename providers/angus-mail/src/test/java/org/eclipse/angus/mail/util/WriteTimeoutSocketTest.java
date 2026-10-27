@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -145,10 +146,8 @@ public final class WriteTimeoutSocketTest {
         properties.setProperty("mail.imap.ssl.checkserveridentity", "false");
         properties.setProperty("mail.imap.writetimeout", "" + TIMEOUT);
         properties.setProperty("mail.imap.ssl.enable", "true");
-        // TestSSLSocketFactory always trusts "localhost"; setting
-        // this property would cause MailSSLSocketFactory to be used instead
-        // of TestSSLSocketFactory, which we don't want.
-        //properties.setProperty("mail.imap.ssl.trust", "localhost");
+        // ssl.trust is ignored because an SSL socket factory instance is set
+        properties.setProperty("mail.imap.ssl.trust", "localhost");
         TestSSLSocketFactory sf = new TestSSLSocketFactory();
         properties.put("mail.imap.ssl.socketFactory", sf);
         // don't fall back to non-SSL
