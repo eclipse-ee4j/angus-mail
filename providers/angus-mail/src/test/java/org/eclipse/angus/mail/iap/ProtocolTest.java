@@ -20,6 +20,7 @@ import org.eclipse.angus.mail.test.NullOutputStream;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
@@ -30,6 +31,7 @@ import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test the Protocol class.
@@ -88,6 +90,49 @@ public final class ProtocolTest {
         p = new Protocol(nullis, nullps, props, false);
         tag = p.writeCommand("CMD", null);
         assertEquals("A0", tag);
+    }
+
+    /**
+     * Test that a CR or LF in the command line is rejected, including
+     * characters whose low byte is CR or LF.
+     */
+    @Test
+    public void testWriteCommandRejectsCRLF() throws IOException {
+        assertCommandRejected("STORE 1 +FLAGS (foo\r\nA1 DELETE INBOX)");
+        assertCommandRejected("STORE 1 +FLAGS (foo\u750D\u750AA1 DELETE INBOX)");
+    }
+
+    /**
+     * Test that a CR or LF in an atom argument is rejected.
+     */
+    @Test
+    public void testWriteAtomRejectsCRLF() throws IOException {
+        assertAtomRejected("(foo\r\nA1 DELETE INBOX)");
+        assertAtomRejected("(foo\u750D\u750AA1 DELETE INBOX)");
+    }
+
+    private void assertCommandRejected(String cmd) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        Protocol p = new Protocol(nullis, new PrintStream(bos), new Properties(), false);
+        try {
+            p.writeCommand(cmd, null);
+            fail("command not rejected: " + bos);
+        } catch (ProtocolException ex) {
+            // expected
+        }
+        assertEquals(0, bos.size());
+    }
+
+    private void assertAtomRejected(String atom) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        Protocol p = new Protocol(nullis, new PrintStream(bos), new Properties(), false);
+        try {
+            p.writeCommand("APPEND INBOX", new Argument().writeAtom(atom));
+            fail("atom not rejected: " + bos);
+        } catch (ProtocolException ex) {
+            // expected
+        }
+        assertFalse(bos.toString("ISO-8859-1").contains("DELETE"));
     }
 
     @Test

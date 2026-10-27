@@ -113,6 +113,43 @@ public final class POP3StoreTest {
     }
 
     /**
+     * Check that a CR or LF in the password can't inject another command.
+     */
+    @Test
+    public void testPasswordWithCRLF() {
+        TestServer server = null;
+        try {
+            final POP3HandlerDele handler = new POP3HandlerDele();
+            server = new TestServer(handler);
+            server.start();
+
+            final Properties properties = new Properties();
+            properties.setProperty("mail.pop3.host", "localhost");
+            properties.setProperty("mail.pop3.port", String.valueOf(server.getPort()));
+            final Session session = Session.getInstance(properties);
+            //session.setDebug(true);
+
+            final Store store = session.getStore("pop3");
+            try {
+                store.connect("test", "test\r\nDELE 1");
+                fail("password with CRLF accepted");
+            } catch (AuthenticationFailedException ex) {
+                // expected
+            } finally {
+                store.close();
+            }
+            assertFalse(POP3HandlerDele.deleted);
+        } catch (final Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
+    }
+
+    /**
      * Check whether POP3 XOAUTH2 connection can be established using single line authentication format (default)
      */
     @Test
@@ -252,6 +289,22 @@ public final class POP3StoreTest {
             this.writer.println("+OK");
             this.writer.println("SASL PLAIN XOAUTH2");
             this.println(".");
+        }
+    }
+
+    /**
+     * Custom handler. Records whether DELE was received.
+     */
+    private static final class POP3HandlerDele extends POP3Handler {
+        static volatile boolean deleted;
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void dele() throws IOException {
+            deleted = true;
+            this.println("+OK");
         }
     }
 
