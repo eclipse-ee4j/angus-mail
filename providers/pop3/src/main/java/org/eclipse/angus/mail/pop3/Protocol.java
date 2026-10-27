@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -93,6 +94,8 @@ class Protocol {
     private static final String CRLF = "\r\n";
     // sometimes the returned size isn't quite big enough
     private static final int SLOP = 128;
+    // size of the blocks in which retr writes a message to a stream
+    private static final int STREAM_BLOCK_SIZE = 8192;
 
     /**
      * Open a connection to the POP3 server.
@@ -983,8 +986,14 @@ class Protocol {
             return false;
         }
 
-        Throwable terr = null;
+        Exception terr = null;
         int b, lastb = '\n';
+        /*
+         * The data is read one byte at a time to find its end and to remove
+         * the dot stuffing, but written to the stream in blocks.
+         */
+        byte[] buf = new byte[STREAM_BLOCK_SIZE];
+        int len = 0;
         try {
             while ((b = input.read()) >= 0) {
                 if (lastb == '\n' && b == '.') {
@@ -1001,11 +1010,10 @@ class Protocol {
                  * which we defer until all of the data has been read.
                  */
                 if (terr == null) {
-                    try {
-                        os.write(b);
-                    } catch (IOException | RuntimeException ex) {
-                        logger.log(Level.FINE, "exception while streaming", ex);
-                        terr = ex;
+                    buf[len++] = (byte) b;
+                    if (len == buf.length) {
+                        terr = writeDeferringError(os, buf, len);
+                        len = 0;
                     }
                 }
                 lastb = b;
@@ -1018,10 +1026,19 @@ class Protocol {
                 socket.close();
             } catch (IOException cex) {
             }
+            if (terr != null)
+                iioex.addSuppressed(terr);
             throw iioex;
         }
-        if (b < 0)
-            throw new EOFException("EOF on socket");
+        if (terr == null && len > 0)
+            terr = writeDeferringError(os, buf, len);
+        if (b < 0) {
+            EOFException eof = new EOFException("EOF on socket");
+            // don't lose an earlier error writing to the stream
+            if (terr != null)
+                eof.addSuppressed(terr);
+            throw eof;
+        }
 
         // was there a deferred error?
         if (terr != null) {
@@ -1033,6 +1050,21 @@ class Protocol {
         }
         multilineCommandEnd();
         return true;
+    }
+
+    /**
+     * Write the data to the stream.  An exception thrown by the stream is
+     * returned instead of thrown, so that it can be deferred until all of
+     * the data has been read.
+     */
+    private Exception writeDeferringError(OutputStream os, byte[] data, int len) {
+        try {
+            os.write(data, 0, len);
+            return null;
+        } catch (IOException | RuntimeException ex) {
+            logger.log(Level.FINE, "exception while streaming", ex);
+            return ex;
+        }
     }
 
     /**
