@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -380,7 +381,12 @@ public class SocketFetcher {
                 !(socket instanceof SSLSocket)) {
             String trusted;
             SSLSocketFactory ssf;
-            if ((trusted = props.getProperty(prefix + ".ssl.trust")) != null) {
+            // ssl.trust only applies if no SSL socket factory instance was
+            // specified; a socket factory class name, such as
+            // javax.net.ssl.SSLSocketFactory, usually gives the default factory
+            if (isSSLSocketFactoryInstance(sf, props, prefix))
+                ssf = (SSLSocketFactory) sf;
+            else if ((trusted = props.getProperty(prefix + ".ssl.trust")) != null) {
                 try {
                     MailSSLSocketFactory msf = new MailSSLSocketFactory();
                     if (trusted.equals("*"))
@@ -409,6 +415,17 @@ public class SocketFetcher {
         configureSSLSocket(socket, host, props, prefix, sf);
 
         return socket;
+    }
+
+    /**
+     * Is the socket factory an SSL socket factory instance that was set
+     * in the properties, rather than one created from a class name?
+     */
+    private static boolean isSSLSocketFactoryInstance(SocketFactory sf,
+                                                      Properties props, String prefix) {
+        return sf instanceof SSLSocketFactory &&
+                (sf == props.get(prefix + ".ssl.socketFactory") ||
+                        sf == props.get(prefix + ".socketFactory"));
     }
 
     /**
