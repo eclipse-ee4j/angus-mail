@@ -431,34 +431,34 @@
  * </TR>
  *
  * <TR>
- * <TD><A ID="mail.pop3.socketFactory.raw">mail.pop3.socketFactory.raw</A></TD>
+ * <TD><A ID="mail.pop3.socketFactory.transport">mail.pop3.socketFactory.transport</A></TD>
  * <TD>SocketFactory</TD>
  * <TD>
  * Optional <code>javax.net.SocketFactory</code> instance used to create the
  * unconnected, open, non-SSL transport socket independently of TLS factory
  * selection. Set the instance with <code>put</code>, not <code>setProperty</code>.
- * It takes precedence over <code>mail.pop3.socketFactory.raw.class</code>.
+ * It takes precedence over <code>mail.pop3.socketFactory.transport.class</code>.
  * The selected regular or SSL factory still controls TLS wrapping and its
  * existing factory-port setting. A non-SSL regular factory is not also called
  * to create the transport when this property is set.
  * Angus applies socket options, timeouts, local binding, connection handling
- * and HTTP proxy handling to the returned socket. The raw factory replaces
+ * and HTTP proxy handling to the returned socket. The transport factory replaces
  * built-in SOCKS and SocketChannel socket creation and is responsible for
  * providing any such transport behavior. Angus closes its socket if setup fails.
- * Raw-factory resolution failures and failures after raw creation is attempted
- * do not fall back to another transport or retry the raw factory.
+ * Transport factory resolution failures and failures after transport creation
+ * is attempted do not fall back to another transport or retry the factory.
  * </TD>
  * </TR>
  *
  * <TR>
- * <TD><A ID="mail.pop3.socketFactory.raw.class">mail.pop3.socketFactory.raw.class</A></TD>
+ * <TD><A ID="mail.pop3.socketFactory.transport.class">mail.pop3.socketFactory.transport.class</A></TD>
  * <TD>String</TD>
  * <TD>
  * Optional class name for the independent transport socket factory, used only
- * when <code>mail.pop3.socketFactory.raw</code> is absent. Its public static
+ * when <code>mail.pop3.socketFactory.transport</code> is absent. Its public static
  * <code>getDefault()</code> method must return a <code>javax.net.SocketFactory</code>.
  * The factory is resolved once per connection attempt using the normal socket
- * factory class-loader rules. No separate raw-factory port setting is defined.
+ * factory class-loader rules. No separate port setting is defined for this factory.
  * </TD>
  * </TR>
  *

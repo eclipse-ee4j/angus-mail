@@ -51,20 +51,20 @@ import static org.junit.Assert.assertTrue;
 /**
  * Tests composition of transport creation with Angus socket and TLS policy.
  */
-public final class SocketFetcherRawFactoryTest {
+public final class SocketFetcherTransportFactoryTest {
 
     @Rule
     public Timeout deadlockTimeout = Timeout.seconds(20);
 
     @Test
-    public void rawTransportComposesWithSslFactoryForAllProtocols()
+    public void transportComposesWithSslFactoryForAllProtocols()
             throws Exception {
         for (String protocol : new String[]{"smtp", "imap", "pop3"})
             connectWithTlsFactory("mail." + protocol, true);
     }
 
     @Test
-    public void rawTransportComposesWithGeneralTlsFactoryForAllProtocols()
+    public void transportComposesWithGeneralTlsFactoryForAllProtocols()
             throws Exception {
         for (String protocol : new String[]{"smtp", "imap", "pop3"})
             connectWithTlsFactory("mail." + protocol, false);
@@ -125,7 +125,7 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void rawTransportUsesDefaultTlsAndSslTrust() throws Exception {
+    public void transportUsesDefaultTlsAndSslTrust() throws Exception {
         TestServer server = new TestServer(new EchoHandler(), true);
         try (RecordingSocket raw = new RecordingSocket()) {
             TestFactory factory = new TestFactory(raw);
@@ -146,7 +146,7 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void startTlsWrapsExistingRawTransportWithoutCreatingAnother()
+    public void startTlsWrapsExistingTransportWithoutCreatingAnother()
             throws Exception {
         TestServer server = new TestServer(new EchoHandler(), true);
         RecordingTlsFactory tls = new RecordingTlsFactory();
@@ -209,7 +209,7 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void withoutRawHookPreservesRegularFactoryAndItsPort() throws Exception {
+    public void withoutTransportHookPreservesRegularFactoryAndItsPort() throws Exception {
         try (FiniteSocket socket = new FiniteSocket()) {
             TestFactory factory = new TestFactory(socket);
             Properties props = properties("mail.smtp", null);
@@ -224,14 +224,14 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void instanceTakesPrecedenceOverRawClass() throws Exception {
+    public void instanceTakesPrecedenceOverTransportClass() throws Exception {
         synchronized (DefaultFactory.class) {
             DefaultFactory.resolutions = 0;
             DefaultFactory.factory = null;
             try (FiniteSocket raw = new FiniteSocket()) {
                 TestFactory factory = new TestFactory(raw);
                 Properties props = properties("mail.imap", factory);
-                props.setProperty("mail.imap.socketFactory.raw.class",
+                props.setProperty("mail.imap.socketFactory.transport.class",
                         DefaultFactory.class.getName());
                 assertSame(raw, SocketFetcher.getSocket("127.0.0.1", 143,
                         props, "mail.imap", false));
@@ -242,11 +242,11 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void rawClassIsResolvedOncePerConnection() throws Exception {
+    public void transportClassIsResolvedOncePerConnection() throws Exception {
         synchronized (DefaultFactory.class) {
             DefaultFactory.resolutions = 0;
             Properties props = properties("mail.pop3", null);
-            props.setProperty("mail.pop3.socketFactory.raw.class",
+            props.setProperty("mail.pop3.socketFactory.transport.class",
                     DefaultFactory.class.getName());
             try {
                 for (int connection = 1; connection <= 2; connection++) {
@@ -266,19 +266,19 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void invalidRawClassCannotUseLegacyFactoryFallback() throws Exception {
-        for (String className : new String[]{"no.such.RawSocketFactory",
+    public void invalidTransportClassCannotUseLegacyFactoryFallback() throws Exception {
+        for (String className : new String[]{"no.such.TransportSocketFactory",
                 WrongDefaultFactory.class.getName()}) {
             try (FiniteSocket legacySocket = new FiniteSocket()) {
                 TestFactory legacy = new TestFactory(legacySocket);
                 Properties props = properties("mail.smtp", null);
-                props.setProperty("mail.smtp.socketFactory.raw.class", className);
+                props.setProperty("mail.smtp.socketFactory.transport.class", className);
                 props.put("mail.smtp.socketFactory", legacy);
                 IOException failure = assertThrows(IOException.class, () ->
                         SocketFetcher.getSocket("127.0.0.1", 25,
                                 props, "mail.smtp", false));
                 assertTrue(failure.getMessage(),
-                        failure.getMessage().contains("socketFactory.raw.class"));
+                        failure.getMessage().contains("socketFactory.transport.class"));
                 assertNotNull(failure.getCause());
                 assertEquals(0, legacy.calls);
             }
@@ -293,7 +293,7 @@ public final class SocketFetcherRawFactoryTest {
             try (FiniteSocket legacySocket = new FiniteSocket()) {
                 TestFactory legacy = new TestFactory(legacySocket);
                 Properties props = properties("mail.smtp", null);
-                props.setProperty("mail.smtp.socketFactory.raw.class",
+                props.setProperty("mail.smtp.socketFactory.transport.class",
                         DefaultFactory.class.getName());
                 props.put("mail.smtp.socketFactory", legacy);
                 assertThrows(IOException.class, () -> SocketFetcher.getSocket(
@@ -305,7 +305,7 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void nullRawSocketCannotUseLegacyFactoryFallback() throws Exception {
+    public void nullTransportSocketCannotUseLegacyFactoryFallback() throws Exception {
         try (FiniteSocket legacySocket = new FiniteSocket()) {
             TestFactory raw = new TestFactory(null);
             TestFactory legacy = new TestFactory(legacySocket);
@@ -319,9 +319,9 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void rawCreationFailureIsNotRetriedOrBypassed() throws Exception {
+    public void transportCreationFailureIsNotRetriedOrBypassed() throws Exception {
         try (FiniteSocket legacySocket = new FiniteSocket()) {
-            IOException expected = new IOException("raw transport creation failed");
+            IOException expected = new IOException("transport creation failed");
             TestFactory raw = new TestFactory(null) {
                 @Override
                 public Socket createSocket() throws IOException {
@@ -341,7 +341,7 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void closedConnectedAndSslRawSocketsAreRejected() throws Exception {
+    public void closedConnectedAndSslTransportSocketsAreRejected() throws Exception {
         FiniteSocket closed = new FiniteSocket();
         closed.close();
         FiniteSocket connected = new FiniteSocket();
@@ -366,7 +366,7 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void legacyClassResolutionMayFallBackBeforeRawCreation()
+    public void legacyClassResolutionMayFallBackBeforeTransportCreation()
             throws Exception {
         try (FiniteSocket rawSocket = new FiniteSocket()) {
             TestFactory raw = new TestFactory(rawSocket);
@@ -381,7 +381,7 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void connectFailureClosesRawAndRetainsSuppressedCloseFailure()
+    public void connectFailureClosesTransportAndRetainsSuppressedCloseFailure()
             throws Exception {
         IOException connectFailure = new IOException("connect failed");
         IOException closeFailure = new IOException("close failed");
@@ -406,7 +406,7 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void tlsFactoryFailureClosesRawWithoutRetry() throws Exception {
+    public void tlsFactoryFailureClosesTransportWithoutRetry() throws Exception {
         IOException expected = new IOException("TLS wrapping failed");
         RecordingTlsFactory tls = new RecordingTlsFactory() {
             @Override
@@ -430,7 +430,7 @@ public final class SocketFetcherRawFactoryTest {
     }
 
     @Test
-    public void handshakeFailureClosesRawAndTlsSockets() throws Exception {
+    public void handshakeFailureClosesTransportAndTlsSockets() throws Exception {
         TestServer server = new TestServer(new NonTlsHandler());
         RecordingTlsFactory tls = new RecordingTlsFactory();
         try (RecordingSocket rawSocket = new RecordingSocket()) {
@@ -453,7 +453,7 @@ public final class SocketFetcherRawFactoryTest {
     private static Properties properties(String prefix, SocketFactory raw) {
         Properties props = new Properties();
         if (raw != null)
-            props.put(prefix + ".socketFactory.raw", raw);
+            props.put(prefix + ".socketFactory.transport", raw);
         props.setProperty(prefix + ".socketFactory.fallback", "true");
         props.setProperty(prefix + ".connectiontimeout", "1000");
         props.setProperty(prefix + ".timeout", "2000");

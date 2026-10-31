@@ -72,6 +72,9 @@ title: Jakarta Mail FAQ
     <LI><A HREF="#proxy">How do I configure Jakarta Mail to work through my proxy server?</A>
         <IMG SRC="assets/images/updated.gif" ALT="[updated!]" TITLE="Updated 11/6/2017">
         <BR>
+    <LI><A HREF="#customtransport">How can I connect through a custom proxy or tunnel
+        while keeping my TLS settings?</A>
+        <BR>
     <LI><A HREF="#installcert">When connecting to my mail server over SSL I get an exception like
         "unable to find valid certification path to requested target".
     </A>
@@ -980,6 +983,55 @@ pplet_dev_guide.html">
     <A HREF="https://bitbucket.org/gotoh/connect/wiki/Home">connect</A>
     to tunnel TCP connections through an HTTP proxy server.
     Configure Jakarta Mail to use the connect instance as the SOCKS server.
+</P>
+
+<P>
+    <A NAME="customtransport">
+        <strong>Q:</strong> How can I connect through a custom proxy or tunnel
+        while keeping my TLS settings?</A>
+    <BR>
+    <strong>A:</strong> Your application may need its own code to connect through
+    a proxy, while also using a client certificate or custom trust settings for
+    the mail server. Angus lets you configure those two parts separately.
+</P>
+<P>
+    For example, this configures SMTP with TLS from the start:
+</P>
+<PRE>
+Properties properties = new Properties();
+properties.setProperty("mail.smtp.host", "smtp.example.com");
+properties.setProperty("mail.smtp.port", "465");
+properties.setProperty("mail.smtp.ssl.enable", "true");
+properties.setProperty("mail.smtp.ssl.checkserveridentity", "true");
+
+// Supply sockets that know how to connect through the proxy.
+properties.put("mail.smtp.socketFactory.transport", proxySockets);
+
+// Use the application's existing certificates and trust settings.
+properties.put("mail.smtp.ssl.socketFactory",
+        tlsContext.getSocketFactory());
+
+Session session = Session.getInstance(properties);
+</PRE>
+<P>
+    The example assumes you already have these two objects:
+</P>
+<UL>
+    <LI><CODE>proxySockets</CODE>: a <CODE>SocketFactory</CODE> from your
+        application or proxy library. It returns an open, unconnected socket
+        that handles the proxy connection and any proxy login when Angus calls
+        <CODE>connect()</CODE>.
+    <LI><CODE>tlsContext</CODE>: an <CODE>SSLContext</CODE> configured with the
+        certificates and trust settings you want to use.
+</UL>
+<P>
+    Angus first connects through the supplied socket. It then applies TLS to
+    that connection using your <CODE>tlsContext</CODE> and continues the normal
+    SMTP conversation.
+</P>
+<P>
+    The proxy handling comes from your application or library. Angus continues
+    to handle encryption, certificate checks and the mail protocol.
 </P>
 
 <P>

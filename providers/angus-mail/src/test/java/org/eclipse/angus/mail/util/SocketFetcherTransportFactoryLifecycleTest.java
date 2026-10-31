@@ -37,14 +37,14 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-/** Tests raw factory input and transport resource ownership. */
-public class SocketFetcherRawFactoryLifecycleTest {
+/** Tests transport factory input and transport resource ownership. */
+public class SocketFetcherTransportFactoryLifecycleTest {
     @Test(timeout = 10000)
-    public void usesRawSocketForOrdinaryTransport() throws Exception {
+    public void usesSuppliedSocketForOrdinaryTransport() throws Exception {
         try (RecordingSocket transport = new RecordingSocket()) {
             SingleSocketFactory factory = new SingleSocketFactory(transport);
             Properties properties = new Properties();
-            properties.put("mail.smtp.socketFactory.raw", factory);
+            properties.put("mail.smtp.socketFactory.transport", factory);
             properties.setProperty("mail.smtp.connectiontimeout", "200");
             properties.setProperty("mail.smtp.timeout", "456");
             Socket actual = null;
@@ -64,23 +64,23 @@ public class SocketFetcherRawFactoryLifecycleTest {
     }
 
     @Test
-    public void invalidRawFactoryDoesNotFallThroughToOrdinarySocketCreation() {
+    public void invalidTransportFactoryDoesNotFallThroughToOrdinarySocketCreation() {
         Properties properties = new Properties();
-        properties.put("mail.smtp.socketFactory.raw", "not a SocketFactory");
+        properties.put("mail.smtp.socketFactory.transport", "not a SocketFactory");
         properties.setProperty("mail.smtp.socketFactory.fallback", "true");
         IOException failure = assertThrows(IOException.class, () ->
                 SocketFetcher.getSocket("127.0.0.1", -1, properties, "mail.smtp", false));
-        assertTrue(failure.getMessage(), failure.getMessage().contains("socketFactory.raw"));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("socketFactory.transport"));
     }
 
     @Test
-    public void rawClassMustBeNonemptyText() {
+    public void transportClassMustBeNonemptyText() {
         for (Object invalid : new Object[]{42, ""}) {
             Properties properties = new Properties();
-            properties.put("mail.smtp.socketFactory.raw.class", invalid);
+            properties.put("mail.smtp.socketFactory.transport.class", invalid);
             IOException failure = assertThrows(IOException.class, () ->
                     SocketFetcher.getSocket("127.0.0.1", -1, properties, "mail.smtp", false));
-            assertTrue(failure.getMessage(), failure.getMessage().contains("socketFactory.raw.class"));
+            assertTrue(failure.getMessage(), failure.getMessage().contains("socketFactory.transport.class"));
         }
     }
 
@@ -89,8 +89,8 @@ public class SocketFetcherRawFactoryLifecycleTest {
         for (Object ignored : new Object[]{42, ""}) {
             try (RecordingSocket transport = new RecordingSocket()) {
                 Properties properties = new Properties();
-                properties.put("mail.smtp.socketFactory.raw", new SingleSocketFactory(transport));
-                properties.put("mail.smtp.socketFactory.raw.class", ignored);
+                properties.put("mail.smtp.socketFactory.transport", new SingleSocketFactory(transport));
+                properties.put("mail.smtp.socketFactory.transport.class", ignored);
                 assertSame(transport, SocketFetcher.getSocket("127.0.0.1", 2525,
                         properties, "mail.smtp", false));
             }
@@ -98,11 +98,11 @@ public class SocketFetcherRawFactoryLifecycleTest {
     }
 
     @Test
-    public void rawFactoryReplacesNativeSocketChoices() throws Exception {
+    public void transportFactoryReplacesNativeSocketChoices() throws Exception {
         for (boolean socks : new boolean[]{false, true}) {
             try (RecordingSocket transport = new RecordingSocket()) {
                 Properties properties = new Properties();
-                properties.put("mail.smtp.socketFactory.raw", new SingleSocketFactory(transport));
+                properties.put("mail.smtp.socketFactory.transport", new SingleSocketFactory(transport));
                 properties.setProperty("mail.smtp.usesocketchannels", "true");
                 if (socks) {
                     properties.setProperty("mail.smtp.socks.host", "127.0.0.1");
@@ -117,14 +117,14 @@ public class SocketFetcherRawFactoryLifecycleTest {
     }
 
     @Test
-    public void rawConnectFailureDoesNotClaimBypassedNativeSocksRouting() throws Exception {
+    public void transportConnectFailureDoesNotClaimBypassedNativeSocksRouting() throws Exception {
         try (RecordingSocket transport = new RecordingSocket() {
             @Override public void connect(SocketAddress endpoint, int timeout) throws IOException {
                 throw new IOException("transport refused connection");
             }
         }) {
             Properties properties = new Properties();
-            properties.put("mail.smtp.socketFactory.raw", new SingleSocketFactory(transport));
+            properties.put("mail.smtp.socketFactory.transport", new SingleSocketFactory(transport));
             properties.setProperty("mail.smtp.socks.host", "127.0.0.1");
             properties.setProperty("mail.smtp.socks.port", "1");
             IOException failure = assertThrows(IOException.class, () ->
@@ -152,7 +152,7 @@ public class SocketFetcherRawFactoryLifecycleTest {
             }
         };
         Properties properties = new Properties();
-        properties.put("mail.smtps.socketFactory.raw", new SingleSocketFactory(transport));
+        properties.put("mail.smtps.socketFactory.transport", new SingleSocketFactory(transport));
         properties.put("mail.smtps.ssl.socketFactory", tls);
         properties.setProperty("mail.smtps.proxy.host", "127.0.0.1");
         properties.setProperty("mail.smtps.writetimeout", "5000");
