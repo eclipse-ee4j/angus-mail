@@ -90,6 +90,8 @@ public class SocketFetcher {
      * <li> <i>prefix</i>.socketFactory.class
      * <li> <i>prefix</i>.socketFactory.fallback
      * <li> <i>prefix</i>.socketFactory.port
+     * <li> <i>prefix</i>.socketFactory.transport
+     * <li> <i>prefix</i>.socketFactory.transport.class
      * <li> <i>prefix</i>.ssl.socketFactory
      * <li> <i>prefix</i>.ssl.socketFactory.class
      * <li> <i>prefix</i>.ssl.socketFactory.port
@@ -101,6 +103,18 @@ public class SocketFetcher {
      * </ul> <p>
      * If we're making an SSL connection, the ssl.socketFactory
      * properties are used first, if set. <p>
+     *
+     * The optional socketFactory.transport instance, or
+     * socketFactory.transport.class when no instance is supplied, creates the
+     * unconnected, open, non-SSL transport socket independently of the selected
+     * TLS factory. The class form uses the normal public static getDefault
+     * convention. Existing options, timeouts, binding, connection and TLS
+     * handling then apply. This replaces built-in SOCKS and SocketChannel
+     * socket creation; the transport factory is responsible for any such
+     * transport behavior. Resolution failures, and failures after transport
+     * creation is attempted, do not retry through socketFactory.fallback.
+     * A returned transport socket is closed on setup failure. Without either
+     * transport setting, behavior is unchanged. <p>
      *
      * If the socketFactory property is set, the value is an
      * instance of a SocketFactory class, not a string.  The
@@ -171,6 +185,8 @@ public class SocketFetcher {
 
         boolean fb = PropUtil.getBooleanProperty(props,
                 prefix + ".socketFactory.fallback", true);
+        SocketFactory transportFactory = getTransportSocketFactory(props, prefix);
+        boolean transportAttempted = false;
 
         int sfPort = -1;
         String sfErr = "unknown socket factory";
@@ -213,20 +229,29 @@ public class SocketFetcher {
             }
 
             // if we now have a socket factory, use it
-            if (sf != null) {
-                sfPort = PropUtil.getIntProperty(props,
-                        prefix + sfPortName, -1);
+            if (sf != null || transportFactory != null) {
+                if (sf != null)
+                    sfPort = PropUtil.getIntProperty(props,
+                            prefix + sfPortName, -1);
 
                 // if port passed in via property isn't valid, use param
                 if (sfPort == -1)
                     sfPort = port;
-                socket = createSocket(localaddr, localport,
-                        host, sfPort, cto, to, props, prefix, sf, useSSL);
+                if (transportFactory != null) {
+                    transportAttempted = true;
+                    socket = createSocketWithTransportFactory(localaddr, localport,
+                            host, sfPort, cto, to, props, prefix, sf, useSSL,
+                            transportFactory);
+                } else {
+                    socket = createSocket(localaddr, localport,
+                            host, sfPort, cto, to, props, prefix, sf, useSSL,
+                            null);
+                }
             }
         } catch (SocketTimeoutException sex) {
             throw sex;
         } catch (Exception ex) {
-            if (!fb) {
+            if (!fb || transportAttempted) {
                 if (ex instanceof InvocationTargetException) {
                     Throwable t =
                             ((InvocationTargetException) ex).getTargetException();
@@ -241,11 +266,16 @@ public class SocketFetcher {
         }
 
         if (socket == null) {
-            socket = createSocket(localaddr, localport,
-                    host, port, cto, to, props, prefix, null, useSSL);
+            if (transportFactory != null)
+                socket = createSocketWithTransportFactory(localaddr, localport,
+                        host, port, cto, to, props, prefix, null, useSSL,
+                        transportFactory);
+            else
+                socket = createSocket(localaddr, localport,
+                        host, port, cto, to, props, prefix, null, useSSL, null);
 
         } else {
-            if (to >= 0) {
+            if (to >= 0 && transportFactory == null) {
                 if (logger.isLoggable(Level.FINEST))
                     logger.finest("set socket read timeout " + to);
                 socket.setSoTimeout(to);
@@ -270,9 +300,10 @@ public class SocketFetcher {
     private static Socket createSocket(InetAddress localaddr, int localport,
                                        String host, int port, int cto, int to,
                                        Properties props, String prefix,
-                                       SocketFactory sf, boolean useSSL)
+                                       SocketFactory sf, boolean useSSL,
+                                       TransportSocketResources transportResources)
             throws IOException {
-        Socket socket = null;
+        Socket socket = transportResources == null ? null : transportResources.physical;
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest("create socket: prefix " + prefix +
@@ -308,7 +339,7 @@ public class SocketFetcher {
                     logger.finer("web proxy user " + proxyUser + ", password " +
                             (proxyPassword == null ? "<null>" : "<non-null>"));
             }
-        } else if ((socksHost =
+        } else if (transportResources == null && (socksHost =
                 props.getProperty(prefix + ".socks.host", null)) != null) {
             int i = socksHost.indexOf(':');
             if (i >= 0) {
@@ -326,7 +357,7 @@ public class SocketFetcher {
                 logger.finer("socks host " + socksHost + ", port " + socksPort);
         }
 
-        if (sf != null && !(sf instanceof SSLSocketFactory))
+        if (socket == null && sf != null && !(sf instanceof SSLSocketFactory))
             socket = sf.createSocket();
         if (socket == null) {
             if (socksHost != null) {
@@ -355,6 +386,8 @@ public class SocketFetcher {
             socket = executorService == null ?
                     new WriteTimeoutSocket(socket, writeTimeout) :
                     new WriteTimeoutSocket(socket, writeTimeout, executorService);
+            if (transportResources != null)
+                transportResources.writeTimeout = socket;
         }
         if (localaddr != null)
             socket.bind(new InetSocketAddress(localaddr, localport));
@@ -405,6 +438,8 @@ public class SocketFetcher {
             else
                 ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();
             socket = ssf.createSocket(socket, host, port, true);
+            if (transportResources != null)
+                transportResources.layered = socket;
             sf = ssf;
         }
 
@@ -415,6 +450,109 @@ public class SocketFetcher {
         configureSSLSocket(socket, host, props, prefix, sf);
 
         return socket;
+    }
+
+    /**
+     * Resolve the independent transport factory without allowing an invalid
+     * declaration to select a different transport through legacy fallback.
+     */
+    private static SocketFactory getTransportSocketFactory(Properties props,
+                                                            String prefix)
+            throws IOException {
+        String key = prefix + ".socketFactory.transport";
+        Object instance = props.get(key);
+        if (instance != null) {
+            if (!(instance instanceof SocketFactory))
+                throw new IOException(key + " must be a SocketFactory instance");
+            return (SocketFactory) instance;
+        }
+        String classKey = key + ".class";
+        Object declaredClass = props.get(classKey);
+        if (declaredClass != null && !(declaredClass instanceof String))
+            throw new IOException(classKey + " must be a class name");
+        String className = props.getProperty(classKey);
+        if (className == null)
+            return null;
+        if (className.length() == 0)
+            throw new IOException(classKey + " must not be empty");
+        try {
+            SocketFactory factory = getSocketFactory(className);
+            if (factory == null)
+                throw new IOException(key + ".class returned no factory");
+            return factory;
+        } catch (InvocationTargetException ex) {
+            Throwable cause = ex.getTargetException();
+            if (cause instanceof Error)
+                throw (Error) cause;
+            if (cause instanceof IOException)
+                throw (IOException) cause;
+            throw new IOException("Can't create " + key + ".class", cause);
+        } catch (ReflectiveOperationException | ClassCastException |
+                 IllegalArgumentException ex) {
+            throw new IOException("Can't create " + key + ".class", ex);
+        }
+    }
+
+    /**
+     * Own the supplied transport while the normal connection and TLS pipeline
+     * runs.  An unsuccessful attempt must not leave it open or create a second
+     * transport through fallback.
+     */
+    private static Socket createSocketWithTransportFactory(InetAddress localaddr,
+            int localport, String host, int port, int cto, int to,
+            Properties props, String prefix, SocketFactory sf, boolean useSSL,
+            SocketFactory transportFactory) throws IOException {
+        TransportSocketResources resources = new TransportSocketResources();
+        try {
+            Socket rawSocket = transportFactory.createSocket();
+            resources.physical = rawSocket;
+            if (rawSocket == null || rawSocket.isClosed() ||
+                    rawSocket.isConnected() || rawSocket instanceof SSLSocket)
+                throw new IOException(prefix + ".socketFactory.transport must return " +
+                        "an open, unconnected, non-SSL socket");
+            Socket socket = createSocket(localaddr, localport, host, port, cto,
+                    to, props, prefix, sf, useSSL, resources);
+            if (socket == null)
+                throw new IOException("Socket factory returned no socket");
+            // A TLS factory can change the timeout while wrapping the transport.
+            if (to >= 0)
+                socket.setSoTimeout(to);
+            return socket;
+        } catch (IOException | RuntimeException | Error failure) {
+            resources.closeAfterFailure(failure);
+            throw failure;
+        }
+    }
+
+    /** Retain layers whose own resources must retire even after the TCP socket closes. */
+    private static final class TransportSocketResources {
+        private Socket physical;
+        private Socket writeTimeout;
+        private Socket layered;
+
+        private void closeAfterFailure(Throwable failure) {
+            // This closes the plain transport and retires an internally owned
+            // timer, without shutting down a caller-supplied scheduler.
+            close(writeTimeout, false, failure);
+            close(physical, true, failure);
+            // Dispose of transport resources before the outer TLS wrapper.
+            // Native TLS setup may already have closed it on a setup failure.
+            if (layered != physical && layered != writeTimeout)
+                close(layered, false, failure);
+        }
+
+        private static void close(Socket socket, boolean checkClosed,
+                                  Throwable failure) {
+            if (socket == null)
+                return;
+            try {
+                if (!checkClosed || !socket.isClosed())
+                    socket.close();
+            } catch (IOException | RuntimeException | Error cleanup) {
+                if (cleanup != failure)
+                    failure.addSuppressed(cleanup);
+            }
+        }
     }
 
     /**
