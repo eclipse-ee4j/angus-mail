@@ -75,8 +75,8 @@ public final class SocketFetcherTransportFactoryTest {
         TestServer server = new TestServer(new EchoHandler(), true);
         RecordingScheduler scheduler = new RecordingScheduler();
         RecordingTlsFactory tls = new RecordingTlsFactory();
-        try (RecordingSocket raw = new RecordingSocket()) {
-            TestFactory factory = new TestFactory(raw);
+        try (RecordingSocket transport = new RecordingSocket()) {
+            TestFactory factory = new TestFactory(transport);
             Properties props = properties(prefix, factory);
             String factoryKey = sslSlot ? ".ssl.socketFactory" : ".socketFactory";
             props.put(prefix + factoryKey, tls);
@@ -91,31 +91,31 @@ public final class SocketFetcherTransportFactoryTest {
             props.put(prefix + ".executor.writetimeout", scheduler);
             server.start();
 
-            // The legacy factory's port selection must also apply to the raw socket.
+            // The legacy factory's port selection must also apply to the transport socket.
             try (Socket socket = SocketFetcher.getSocket("localhost", 2,
                     props, prefix, sslSlot)) {
                 assertEquals(prefix, 1, factory.calls);
                 assertTrue(prefix, socket instanceof SSLSocket);
                 assertEquals(1, tls.wrapCalls);
                 assertTrue(tls.transport instanceof WriteTimeoutSocket);
-                assertEquals(raw.getLocalSocketAddress(),
+                assertEquals(transport.getLocalSocketAddress(),
                         tls.transport.getLocalSocketAddress());
                 assertEquals("localhost", tls.host);
                 assertEquals(server.getPort(), tls.port);
                 assertTrue(tls.autoClose);
                 assertEquals(new InetSocketAddress("localhost", server.getPort()),
-                        raw.endpoint);
-                assertEquals(1000, raw.connectTimeout);
-                assertEquals(new InetSocketAddress("127.0.0.1", 0), raw.bound);
+                        transport.endpoint);
+                assertEquals(1000, transport.connectTimeout);
+                assertEquals(new InetSocketAddress("127.0.0.1", 0), transport.bound);
                 assertEquals(Arrays.asList("timeout", "bind", "connect"),
-                        raw.events.subList(0, 3));
+                        transport.events.subList(0, 3));
                 assertEquals(2000, socket.getSoTimeout());
                 assertEquals("TLSv1.2", ((SSLSocket) socket).getSession().getProtocol());
                 exchangeByte(socket);
                 assertTrue("Native write timeout must cover TLS writes",
                         scheduler.schedules > 0);
             }
-            assertTrue(raw.isClosed());
+            assertTrue(transport.isClosed());
             assertFalse("Angus must leave a caller-owned scheduler running",
                     scheduler.isShutdown());
         } finally {
@@ -127,8 +127,8 @@ public final class SocketFetcherTransportFactoryTest {
     @Test
     public void transportUsesDefaultTlsAndSslTrust() throws Exception {
         TestServer server = new TestServer(new EchoHandler(), true);
-        try (RecordingSocket raw = new RecordingSocket()) {
-            TestFactory factory = new TestFactory(raw);
+        try (RecordingSocket transport = new RecordingSocket()) {
+            TestFactory factory = new TestFactory(transport);
             Properties props = properties("mail.smtp", factory);
             props.setProperty("mail.smtp.ssl.trust", "localhost");
             server.start();
@@ -136,10 +136,10 @@ public final class SocketFetcherTransportFactoryTest {
                     props, "mail.smtp", true)) {
                 assertTrue(socket instanceof SSLSocket);
                 assertEquals(1, factory.calls);
-                assertEquals(server.getPort(), raw.getPort());
+                assertEquals(server.getPort(), transport.getPort());
                 exchangeByte(socket);
             }
-            assertTrue(raw.isClosed());
+            assertTrue(transport.isClosed());
         } finally {
             server.quit();
         }
@@ -150,8 +150,8 @@ public final class SocketFetcherTransportFactoryTest {
             throws Exception {
         TestServer server = new TestServer(new EchoHandler(), true);
         RecordingTlsFactory tls = new RecordingTlsFactory();
-        try (RecordingSocket raw = new RecordingSocket()) {
-            TestFactory factory = new TestFactory(raw);
+        try (RecordingSocket transport = new RecordingSocket()) {
+            TestFactory factory = new TestFactory(transport);
             Properties props = properties("mail.imap", factory);
             props.put("mail.imap.ssl.socketFactory", tls);
             server.start();
@@ -159,9 +159,9 @@ public final class SocketFetcherTransportFactoryTest {
                     props, "mail.imap", false);
                  Socket secure = SocketFetcher.startTLS(plain, "localhost", props,
                          "mail.imap")) {
-                assertSame(raw, plain);
+                assertSame(transport, plain);
                 assertTrue(secure instanceof SSLSocket);
-                assertSame(raw, tls.transport);
+                assertSame(transport, tls.transport);
                 assertEquals(1, factory.calls);
                 assertEquals(1, tls.wrapCalls);
                 exchangeByte(secure);
@@ -177,8 +177,8 @@ public final class SocketFetcherTransportFactoryTest {
         for (boolean accept : new boolean[]{true, false}) {
             TestServer server = new TestServer(new EchoHandler(), true);
             TrustCheckingFactory tls = new TrustCheckingFactory(accept);
-            try (RecordingSocket raw = new RecordingSocket()) {
-                TestFactory factory = new TestFactory(raw);
+            try (RecordingSocket transport = new RecordingSocket()) {
+                TestFactory factory = new TestFactory(transport);
                 Properties props = properties("mail.pop3", factory);
                 props.put("mail.pop3.ssl.socketFactory", tls);
                 props.setProperty("mail.pop3.ssl.trust", "*");
@@ -195,7 +195,7 @@ public final class SocketFetcherTransportFactoryTest {
                                     props, "mail.pop3", true));
                     assertTrue(failure.getMessage(),
                             failure.getMessage().contains("not trusted"));
-                    assertTrue(raw.isClosed());
+                    assertTrue(transport.isClosed());
                     assertTrue(tls.checkedSocket.isClosed());
                 }
                 assertEquals(1, factory.calls);
@@ -228,12 +228,12 @@ public final class SocketFetcherTransportFactoryTest {
         synchronized (DefaultFactory.class) {
             DefaultFactory.resolutions = 0;
             DefaultFactory.factory = null;
-            try (FiniteSocket raw = new FiniteSocket()) {
-                TestFactory factory = new TestFactory(raw);
+            try (FiniteSocket transport = new FiniteSocket()) {
+                TestFactory factory = new TestFactory(transport);
                 Properties props = properties("mail.imap", factory);
                 props.setProperty("mail.imap.socketFactory.transport.class",
                         DefaultFactory.class.getName());
-                assertSame(raw, SocketFetcher.getSocket("127.0.0.1", 143,
+                assertSame(transport, SocketFetcher.getSocket("127.0.0.1", 143,
                         props, "mail.imap", false));
                 assertEquals(1, factory.calls);
                 assertEquals(0, DefaultFactory.resolutions);
@@ -250,10 +250,10 @@ public final class SocketFetcherTransportFactoryTest {
                     DefaultFactory.class.getName());
             try {
                 for (int connection = 1; connection <= 2; connection++) {
-                    try (FiniteSocket raw = new FiniteSocket()) {
-                        TestFactory factory = new TestFactory(raw);
+                    try (FiniteSocket transport = new FiniteSocket()) {
+                        TestFactory factory = new TestFactory(transport);
                         DefaultFactory.factory = factory;
-                        assertSame(raw, SocketFetcher.getSocket("127.0.0.1", 110,
+                        assertSame(transport, SocketFetcher.getSocket("127.0.0.1", 110,
                                 props, "mail.pop3", false));
                         assertEquals(1, factory.calls);
                         assertEquals(connection, DefaultFactory.resolutions);
@@ -307,13 +307,13 @@ public final class SocketFetcherTransportFactoryTest {
     @Test
     public void nullTransportSocketCannotUseLegacyFactoryFallback() throws Exception {
         try (FiniteSocket legacySocket = new FiniteSocket()) {
-            TestFactory raw = new TestFactory(null);
+            TestFactory transport = new TestFactory(null);
             TestFactory legacy = new TestFactory(legacySocket);
-            Properties props = properties("mail.imap", raw);
+            Properties props = properties("mail.imap", transport);
             props.put("mail.imap.socketFactory", legacy);
             assertThrows(IOException.class, () -> SocketFetcher.getSocket(
                     "127.0.0.1", 143, props, "mail.imap", false));
-            assertEquals(1, raw.calls);
+            assertEquals(1, transport.calls);
             assertEquals(0, legacy.calls);
         }
     }
@@ -322,7 +322,7 @@ public final class SocketFetcherTransportFactoryTest {
     public void transportCreationFailureIsNotRetriedOrBypassed() throws Exception {
         try (FiniteSocket legacySocket = new FiniteSocket()) {
             IOException expected = new IOException("transport creation failed");
-            TestFactory raw = new TestFactory(null) {
+            TestFactory transport = new TestFactory(null) {
                 @Override
                 public Socket createSocket() throws IOException {
                     calls++;
@@ -330,12 +330,12 @@ public final class SocketFetcherTransportFactoryTest {
                 }
             };
             TestFactory legacy = new TestFactory(legacySocket);
-            Properties props = properties("mail.pop3", raw);
+            Properties props = properties("mail.pop3", transport);
             props.put("mail.pop3.socketFactory", legacy);
             assertSame(expected, assertThrows(IOException.class, () ->
                     SocketFetcher.getSocket("127.0.0.1", 110,
                             props, "mail.pop3", false)));
-            assertEquals(1, raw.calls);
+            assertEquals(1, transport.calls);
             assertEquals(0, legacy.calls);
         }
     }
@@ -349,13 +349,13 @@ public final class SocketFetcherTransportFactoryTest {
         try (Socket ssl = TestServer.createSSLContext().getSocketFactory().createSocket();
              FiniteSocket legacySocket = new FiniteSocket()) {
             for (Socket invalid : new Socket[]{closed, connected, ssl}) {
-                TestFactory raw = new TestFactory(invalid);
+                TestFactory transport = new TestFactory(invalid);
                 TestFactory legacy = new TestFactory(legacySocket);
-                Properties props = properties("mail.smtp", raw);
+                Properties props = properties("mail.smtp", transport);
                 props.put("mail.smtp.socketFactory", legacy);
                 assertThrows(IOException.class, () -> SocketFetcher.getSocket(
                         "127.0.0.1", 25, props, "mail.smtp", false));
-                assertEquals(1, raw.calls);
+                assertEquals(1, transport.calls);
                 assertEquals(0, legacy.calls);
                 assertTrue(invalid.isClosed());
             }
@@ -368,15 +368,15 @@ public final class SocketFetcherTransportFactoryTest {
     @Test
     public void legacyClassResolutionMayFallBackBeforeTransportCreation()
             throws Exception {
-        try (FiniteSocket rawSocket = new FiniteSocket()) {
-            TestFactory raw = new TestFactory(rawSocket);
-            Properties props = properties("mail.imap", raw);
+        try (FiniteSocket transportSocket = new FiniteSocket()) {
+            TestFactory transport = new TestFactory(transportSocket);
+            Properties props = properties("mail.imap", transport);
             props.setProperty("mail.imap.socketFactory.class",
                     "no.such.LegacySocketFactory");
-            assertSame(rawSocket, SocketFetcher.getSocket("127.0.0.1", 143,
+            assertSame(transportSocket, SocketFetcher.getSocket("127.0.0.1", 143,
                     props, "mail.imap", false));
-            assertEquals(1, raw.calls);
-            assertEquals(new InetSocketAddress("127.0.0.1", 143), rawSocket.endpoint);
+            assertEquals(1, transport.calls);
+            assertEquals(new InetSocketAddress("127.0.0.1", 143), transportSocket.endpoint);
         }
     }
 
@@ -385,13 +385,13 @@ public final class SocketFetcherTransportFactoryTest {
             throws Exception {
         IOException connectFailure = new IOException("connect failed");
         IOException closeFailure = new IOException("close failed");
-        FiniteSocket rawSocket = new FiniteSocket();
-        rawSocket.connectFailure = connectFailure;
-        rawSocket.closeFailure = closeFailure;
+        FiniteSocket transportSocket = new FiniteSocket();
+        transportSocket.connectFailure = connectFailure;
+        transportSocket.closeFailure = closeFailure;
         try (FiniteSocket legacySocket = new FiniteSocket()) {
-            TestFactory raw = new TestFactory(rawSocket);
+            TestFactory transport = new TestFactory(transportSocket);
             TestFactory legacy = new TestFactory(legacySocket);
-            Properties props = properties("mail.smtp", raw);
+            Properties props = properties("mail.smtp", transport);
             props.put("mail.smtp.socketFactory", legacy);
             IOException failure = assertThrows(IOException.class, () ->
                     SocketFetcher.getSocket("127.0.0.1", 25,
@@ -399,8 +399,8 @@ public final class SocketFetcherTransportFactoryTest {
             assertSame(connectFailure, failure.getCause());
             assertEquals(1, failure.getSuppressed().length);
             assertSame(closeFailure, failure.getSuppressed()[0]);
-            assertTrue(rawSocket.isClosed());
-            assertEquals(1, raw.calls);
+            assertTrue(transportSocket.isClosed());
+            assertEquals(1, transport.calls);
             assertEquals(0, legacy.calls);
         }
     }
@@ -416,15 +416,15 @@ public final class SocketFetcherTransportFactoryTest {
                 throw expected;
             }
         };
-        try (FiniteSocket rawSocket = new FiniteSocket()) {
-            TestFactory raw = new TestFactory(rawSocket);
-            Properties props = properties("mail.imap", raw);
+        try (FiniteSocket transportSocket = new FiniteSocket()) {
+            TestFactory transport = new TestFactory(transportSocket);
+            Properties props = properties("mail.imap", transport);
             props.put("mail.imap.ssl.socketFactory", tls);
             assertSame(expected, assertThrows(IOException.class, () ->
                     SocketFetcher.getSocket("127.0.0.1", 0,
                             props, "mail.imap", true)));
-            assertTrue(rawSocket.isClosed());
-            assertEquals(1, raw.calls);
+            assertTrue(transportSocket.isClosed());
+            assertEquals(1, transport.calls);
             assertEquals(1, tls.wrapCalls);
         }
     }
@@ -433,16 +433,16 @@ public final class SocketFetcherTransportFactoryTest {
     public void handshakeFailureClosesTransportAndTlsSockets() throws Exception {
         TestServer server = new TestServer(new NonTlsHandler());
         RecordingTlsFactory tls = new RecordingTlsFactory();
-        try (RecordingSocket rawSocket = new RecordingSocket()) {
-            TestFactory raw = new TestFactory(rawSocket);
-            Properties props = properties("mail.pop3", raw);
+        try (RecordingSocket transportSocket = new RecordingSocket()) {
+            TestFactory transport = new TestFactory(transportSocket);
+            Properties props = properties("mail.pop3", transport);
             props.put("mail.pop3.ssl.socketFactory", tls);
             server.start();
             assertThrows(IOException.class, () -> SocketFetcher.getSocket(
                     "localhost", server.getPort(), props, "mail.pop3", true));
-            assertEquals(1, raw.calls);
+            assertEquals(1, transport.calls);
             assertEquals(1, tls.wrapCalls);
-            assertTrue(rawSocket.isClosed());
+            assertTrue(transportSocket.isClosed());
             assertNotNull(tls.layered);
             assertTrue(tls.layered.isClosed());
         } finally {
@@ -450,10 +450,10 @@ public final class SocketFetcherTransportFactoryTest {
         }
     }
 
-    private static Properties properties(String prefix, SocketFactory raw) {
+    private static Properties properties(String prefix, SocketFactory transport) {
         Properties props = new Properties();
-        if (raw != null)
-            props.put(prefix + ".socketFactory.transport", raw);
+        if (transport != null)
+            props.put(prefix + ".socketFactory.transport", transport);
         props.setProperty(prefix + ".socketFactory.fallback", "true");
         props.setProperty(prefix + ".connectiontimeout", "1000");
         props.setProperty(prefix + ".timeout", "2000");

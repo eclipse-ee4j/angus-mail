@@ -504,10 +504,10 @@ public class SocketFetcher {
             SocketFactory transportFactory) throws IOException {
         TransportSocketResources resources = new TransportSocketResources();
         try {
-            Socket rawSocket = transportFactory.createSocket();
-            resources.physical = rawSocket;
-            if (rawSocket == null || rawSocket.isClosed() ||
-                    rawSocket.isConnected() || rawSocket instanceof SSLSocket)
+            Socket transportSocket = transportFactory.createSocket();
+            resources.physical = transportSocket;
+            if (transportSocket == null || transportSocket.isClosed() ||
+                    transportSocket.isConnected() || transportSocket instanceof SSLSocket)
                 throw new IOException(prefix + ".socketFactory.transport must return " +
                         "an open, unconnected, non-SSL socket");
             Socket socket = createSocket(localaddr, localport, host, port, cto,
