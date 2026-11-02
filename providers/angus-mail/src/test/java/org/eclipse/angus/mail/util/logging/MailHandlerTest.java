@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2009, 2026 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2026 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -3083,7 +3083,60 @@ public class MailHandlerTest extends AbstractLogging {
         assertEquals(expected, type);
     }
 
+    @Test
+    public void testContentTypeOfRecordContent() throws Exception {
+        //A formatter with an empty head places the first record message at
+        //the start of the body.  The record content must not change the
+        //content type of the body.
+        Formatter f = new Formatter() {
+
+            @Override
+            public String format(LogRecord r) {
+                return r.getMessage() + '\n';
+            }
+        };
+
+        String expected = "text/plain; charset=us-ascii";
+        String type = getInlineContentType(f, "test");
+        assertEquals(expected, type);
+
+        type = getInlineContentType(f, "<html><body>test</body></html>");
+        assertEquals(expected, type);
+
+        type = getInlineContentType(f, "<!-- test");
+        assertEquals(expected, type);
+
+        type = getInlineContentType(f, "<?xml version=\"1.0\"?>");
+        assertEquals(expected, type);
+
+        //The wrapped formatter has no head so the record starts the tail.
+        type = getInlineContentType(new CollectorFormatter("{0}{1}{2}",
+                new CompactFormatter(), new SeverityComparator()),
+                "<html><body>test</body></html>");
+        assertEquals(expected, type);
+
+        MailHandler instance = new MailHandler(createInitProperties(""));
+        InternalErrorManager em = new InternalErrorManager();
+        instance.setErrorManager(em);
+        synchronized (instance) {
+            assertNull(instance.contentTypeOf(new CollectorFormatter("{0}{1}{2}",
+                    new CompactFormatter(), new SeverityComparator())));
+            assertEquals("application/xml", instance.contentTypeOf(
+                    new CollectorFormatter("{0}{1}{2}",
+                    new XMLFormatter(), new SeverityComparator())));
+        }
+        instance.close();
+
+        for (Exception exception : em.exceptions) {
+            fail(exception.toString());
+        }
+    }
+
     private String getInlineContentType(Formatter f) throws Exception {
+        return getInlineContentType(f, "test");
+    }
+
+    private String getInlineContentType(Formatter f, String message) throws Exception {
         final String[] value = new String[1];
         MailHandler instance = new MailHandler(createInitProperties(""));
         instance.setEncoding("us-ascii");
@@ -3107,7 +3160,7 @@ public class MailHandlerTest extends AbstractLogging {
         props.put("mail.to", "localhost@localdomain");
         instance.setMailProperties(props);
         instance.setFormatter(f);
-        instance.publish(new LogRecord(Level.SEVERE, "test"));
+        instance.publish(new LogRecord(Level.SEVERE, message));
         instance.close();
 
         return value[0];

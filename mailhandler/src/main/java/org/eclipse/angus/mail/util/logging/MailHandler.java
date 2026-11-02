@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, 2024 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2009, 2024 Jason Mehrens. All rights reserved.
+ * Copyright (c) 2009, 2026 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2026 Jason Mehrens. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -2030,7 +2030,8 @@ public class MailHandler extends Handler {
      * Determines the mimeType of a formatter by the class name.  This method
      * avoids calling getHead and getTail of content formatters during verify
      * because they might trigger side effects or excessive work.  The name
-     * formatters and subject are usually safe to call.
+     * formatters and subject are usually safe to call.  A CollectorFormatter
+     * is described by the formatter it wraps.
      * Package-private for unit testing.
      *
      * @param f the formatter or null.
@@ -2066,6 +2067,18 @@ public class MailHandler extends Handler {
                         }
                     }
                 }
+            }
+
+            //The head, format, and tail are delegated to the wrapped
+            //formatter so the wrapped formatter describes the content.
+            if (f instanceof CollectorFormatter) {
+                final Formatter wrapped;
+                try {
+                    wrapped = ((CollectorFormatter) f).getFormatter();
+                } catch (final SecurityException notAllowed) {
+                    return null; //Unknown, meaning text/plain.
+                }
+                return contentTypeOf(wrapped);
             }
         }
         return null;
@@ -3444,6 +3457,7 @@ public class MailHandler extends Handler {
          */
         StringBuilder[] buffers = new StringBuilder[parts.length];
         StringBuilder buf = null;
+        String bodyHead = null;
         final MimePart body;
         if (parts.length == 0) {
             msg.setDescription(descriptionFrom(
@@ -3473,8 +3487,9 @@ public class MailHandler extends Handler {
                     || (match < -1 && bodyFilter.isLoggable(r))) {
                 lmf = bodyFilter;
                 if (buf == null) {
+                    bodyHead = head(bodyFormat);
                     buf = new StringBuilder();
-                    buf.append(head(bodyFormat));
+                    buf.append(bodyHead);
                 }
                 formatted = true;
                 buf.append(format(bodyFormat, r));
@@ -3549,7 +3564,9 @@ public class MailHandler extends Handler {
 
         appendSubject(msg, tail(subjectFormatter, ""));
 
-        String contentType = contentTypeOf(buf);
+        //Only the head of the formatter describes the body.  Formatted
+        //records are not trusted to determine the content type.
+        String contentType = contentTypeOf(bodyHead);
         String altType = contentTypeOf(bodyFormat);
         setContent(body, buf, altType == null ? contentType : altType);
         if (body != msg) {

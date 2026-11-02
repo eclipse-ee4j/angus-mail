@@ -5,6 +5,16 @@
 		    ------------------------------
 -- Unreleased --
 
+- MailHandler body content type
+
+    The MIME type of the message body is guessed from the head of the
+    body formatter only.  Formatted log records no longer take part in
+    the guess, so a body that starts with a record message containing
+    HTML or XML markup is sent as text/plain.  A formatter without a
+    head that produces HTML or XML can still declare its type with a
+    MIME entry for its class name or with a class name that contains
+    "html" or "xml".
+
 - SMTP capability state
 
     Cached EHLO capabilities are discarded before a new EHLO or HELO,
