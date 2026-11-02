@@ -23,6 +23,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
@@ -40,12 +41,21 @@ public final class TempFileTest {
 
     @Test
     public void testCacheFileIsOwnerOnly() throws Exception {
+        assertCacheFileIsOwnerOnly(folder.newFolder(), false);
+    }
+
+    @Test
+    public void testFallbackCacheFileIsOwnerOnly() throws Exception {
+        assertCacheFileIsOwnerOnly(folder.newFolder(), true);
+    }
+
+    private void assertCacheFileIsOwnerOnly(File dir, boolean fallback)
+            throws Exception {
         assumeTrue("requires a POSIX file system",
                 FileSystems.getDefault().supportedFileAttributeViews()
                         .contains("posix"));
 
-        File dir = folder.newFolder();
-        TempFile tf = new TempFile(dir);
+        TempFile tf = new TempFile(fallback ? new NoPathFile(dir) : dir);
         try {
             File[] created = dir.listFiles((d, n) ->
                     n.startsWith("mbox.") && n.endsWith(".mbox"));
@@ -58,6 +68,23 @@ public final class TempFileTest {
                     perms);
         } finally {
             tf.close();
+        }
+    }
+
+    /**
+     * A directory whose toPath always fails, forcing TempFile onto the
+     * File.createTempFile fallback.
+     */
+    private static final class NoPathFile extends File {
+        private static final long serialVersionUID = 1L;
+
+        NoPathFile(File dir) {
+            super(dir.getPath());
+        }
+
+        @Override
+        public Path toPath() {
+            throw new InvalidPathException(getPath(), "test");
         }
     }
 }
