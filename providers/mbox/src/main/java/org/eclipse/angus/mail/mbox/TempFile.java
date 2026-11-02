@@ -23,6 +23,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermissions;
 
 /**
  * A temporary file used to cache messages.
@@ -37,10 +41,46 @@ class TempFile {
      * The file will be deleted when the JVM exits.
      */
     public TempFile(File dir) throws IOException {
-        file = File.createTempFile("mbox.", ".mbox", dir);
-        // XXX - need JDK 6 to set permissions on the file to owner-only
+        file = createTempFile("mbox.", ".mbox", dir);
         file.deleteOnExit();
         sf = new WritableSharedFile(file);
+    }
+
+    /**
+     * Create the cache file with owner-only permissions so that the
+     * cached message content isn't readable by other local users.  On
+     * file systems without POSIX permissions the file is created with
+     * File.createTempFile and the owner-only access bits are set on it.
+     */
+    private static File createTempFile(String prefix, String suffix, File dir)
+            throws IOException {
+        try {
+            FileAttribute<?> attr = PosixFilePermissions.asFileAttribute(
+                    PosixFilePermissions.fromString("rw-------"));
+            if (dir != null)
+                return Files.createTempFile(
+                        dir.toPath(), prefix, suffix, attr).toFile();
+            return Files.createTempFile(prefix, suffix, attr).toFile();
+        } catch (UnsupportedOperationException | InvalidPathException ex) {
+            File f;
+            try {
+                f = File.createTempFile(prefix, suffix, dir);
+            } catch (IOException | RuntimeException e) {
+                e.addSuppressed(ex);
+                throw e;
+            }
+            // Best effort to restrict access to the owner.  With
+            // ownerOnly=true, setReadable/setWritable only change the
+            // owner bit and leave any group/other bits from the umask in
+            // place, so first clear the bit for everybody (ownerOnly=false)
+            // and then grant it back to the owner alone.
+            f.setReadable(false, false);
+            f.setReadable(true, true);
+            f.setWritable(false, false);
+            f.setWritable(true, true);
+            f.setExecutable(false, false);
+            return f;
+        }
     }
 
     /**
