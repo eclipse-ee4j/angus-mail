@@ -17,25 +17,75 @@
 package org.eclipse.angus.mail.smtp;
 
 import jakarta.mail.MessagingException;
+import org.eclipse.angus.mail.util.DuplexSocket;
 import org.junit.Test;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.security.KeyStore;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /** Checks the engine hook and the deliberate legacy-factory fallback. */
 public class SMTPPipeliningEngineTest {
+    @Test(timeout = 30000)
+    public void testTlsWorkerDoesNotInheritCallerThreadSettings() throws Exception {
+        Thread caller = Thread.currentThread();
+        ClassLoader previousLoader = caller.getContextClassLoader();
+        int previousPriority = caller.getPriority();
+        ClassLoader applicationLoader = new ClassLoader(previousLoader) { };
+        for (boolean implicit : new boolean[] {false, true}) {
+            for (int priority : new int[] {Thread.MIN_PRIORITY, Thread.MAX_PRIORITY}) {
+                try (SMTPPipeliningTest.Exchange exchange =
+                        new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                    String prefix = configure(exchange, implicit);
+                    AtomicReference<Thread> worker = new AtomicReference<>();
+                    SSLContext context = observingTlsContext(worker);
+                    exchange.properties.put(prefix + ".ssl.engineFactory",
+                            (BiFunction<String, Integer, SSLEngine>) context::createSSLEngine);
+                    caller.setContextClassLoader(applicationLoader);
+                    caller.setPriority(priority);
+                    exchange.send();
+                    assertNotNull(worker.get());
+                    assertNotSame(caller, worker.get());
+                    assertSame(DuplexSocket.class.getClassLoader(),
+                            worker.get().getContextClassLoader());
+                    assertEquals(Math.min(Thread.NORM_PRIORITY,
+                            worker.get().getThreadGroup().getMaxPriority()),
+                            worker.get().getPriority());
+                    assertTrue(worker.get().isDaemon());
+                    assertSame(applicationLoader, caller.getContextClassLoader());
+                    assertEquals(Math.min(priority,
+                            caller.getThreadGroup().getMaxPriority()),
+                            caller.getPriority());
+                    exchange.assertContent();
+                } finally {
+                    caller.setContextClassLoader(previousLoader);
+                    caller.setPriority(previousPriority);
+                }
+            }
+        }
+    }
+
     @Test(timeout = 30000)
     public void testConfiguredTlsProtocolsCiphersAndIdentity() throws Exception {
         for (boolean implicit : new boolean[]{false, true}) {
@@ -167,6 +217,38 @@ public class SMTPPipeliningEngineTest {
                 }
             }
         }
+    }
+
+    private SSLContext observingTlsContext(AtomicReference<Thread> worker) throws Exception {
+        KeyStore store = KeyStore.getInstance("JKS");
+        try (InputStream input = SMTPPipeliningTest.class.getResourceAsStream("pipelining.jks")) {
+            store.load(input, "changeit".toCharArray());
+        }
+        TrustManagerFactory factory = TrustManagerFactory.getInstance("SunX509");
+        factory.init(store);
+        X509TrustManager delegate = (X509TrustManager) factory.getTrustManagers()[0];
+        X509TrustManager observer = new X509TrustManager() {
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType)
+                    throws CertificateException {
+                delegate.checkClientTrusted(chain, authType);
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType)
+                    throws CertificateException {
+                worker.set(Thread.currentThread());
+                delegate.checkServerTrusted(chain, authType);
+            }
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return delegate.getAcceptedIssuers();
+            }
+        };
+        SSLContext context = SSLContext.getInstance("TLS");
+        context.init(null, new TrustManager[] {observer}, null);
+        return context;
     }
 
     private String configure(SMTPPipeliningTest.Exchange exchange, boolean implicit) {

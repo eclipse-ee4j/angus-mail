@@ -160,6 +160,8 @@ public final class DuplexSocket extends Socket {
             tasks = Executors.newSingleThreadExecutor(work -> {
                 Thread thread = new Thread(work, "Angus TLS task");
                 thread.setDaemon(true);
+                thread.setPriority(Thread.NORM_PRIORITY);
+                thread.setContextClassLoader(DuplexSocket.class.getClassLoader());
                 return thread;
             });
             engine.beginHandshake();
