@@ -26,6 +26,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
@@ -39,6 +40,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -55,6 +57,53 @@ public class SMTPReplyReaderTest {
     private static final int BYTES = 4 * 1024 * 1024;
     // Still much smaller than the payload, without tiny TCP windows on Linux.
     private static final int SOCKET_BUFFER_SIZE = 64 * 1024;
+
+    @Test(timeout = 10000)
+    public void testReaderDoesNotInheritCallerThreadSettings() throws Exception {
+        Thread caller = Thread.currentThread();
+        ClassLoader previousLoader = caller.getContextClassLoader();
+        int previousPriority = caller.getPriority();
+        ClassLoader applicationLoader = new ClassLoader(previousLoader) { };
+        try {
+            for (int priority : new int[] {Thread.MIN_PRIORITY, Thread.MAX_PRIORITY}) {
+                caller.setContextClassLoader(applicationLoader);
+                caller.setPriority(priority);
+                AtomicReference<Thread> worker = new AtomicReference<>();
+                InputStream input = new ByteArrayInputStream(
+                        "250 accepted\r\n".getBytes(StandardCharsets.US_ASCII)) {
+                    @Override
+                    public synchronized int read() {
+                        worker.set(Thread.currentThread());
+                        return super.read();
+                    }
+                };
+                try (Socket socket = new Socket()) {
+                    SMTPReplyReader reader = new SMTPReplyReader(socket,
+                            new LineInputStream(input));
+                    try {
+                        reader.reserve(1);
+                        assertEquals(250, reader.take().code);
+                        assertNotNull(worker.get());
+                        assertSame(SMTPReplyReader.class.getClassLoader(),
+                                worker.get().getContextClassLoader());
+                        assertEquals(Math.min(Thread.NORM_PRIORITY,
+                                worker.get().getThreadGroup().getMaxPriority()),
+                                worker.get().getPriority());
+                        assertTrue(worker.get().isDaemon());
+                        assertSame(applicationLoader, caller.getContextClassLoader());
+                        assertEquals(Math.min(priority,
+                                caller.getThreadGroup().getMaxPriority()),
+                                caller.getPriority());
+                    } finally {
+                        reader.finish(true);
+                    }
+                }
+            }
+        } finally {
+            caller.setContextClassLoader(previousLoader);
+            caller.setPriority(previousPriority);
+        }
+    }
 
     @Test(timeout = 60000)
     public void testPlainBackpressure() throws Exception {

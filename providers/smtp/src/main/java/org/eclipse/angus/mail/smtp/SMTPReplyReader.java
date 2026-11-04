@@ -51,6 +51,8 @@ final class SMTPReplyReader implements Runnable {
         this.input = input;
         thread = new Thread(this, "Angus SMTP envelope reader");
         thread.setDaemon(true);
+        thread.setPriority(Thread.NORM_PRIORITY);
+        thread.setContextClassLoader(SMTPReplyReader.class.getClassLoader());
         thread.start();
     }
 
