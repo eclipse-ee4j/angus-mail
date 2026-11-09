@@ -9,7 +9,7 @@ for the Eclipse EE4J Angus Mail project:
 
           UNRELEASED CHANGES
           ------------------
-     Preserve the peer-verification exception type when a custom HostnameVerifier rejects a server
+235: Preserve the peer-verification exception type when a custom HostnameVerifier rejects a server
 190: POP3Message.loadHeaders ignores mail.mime.allowutf8
 155: SMTP Sasl authentication failed : password is too long
 165: Bug: X-GM-LABELS value corrupted during parsing - "\\Sent" becomes "\Sentt"
