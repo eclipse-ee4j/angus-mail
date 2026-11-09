@@ -3115,10 +3115,40 @@ public class MailHandlerTest extends AbstractLogging {
                 "<html><body>test</body></html>");
         assertEquals(expected, type);
 
+        //The head of the wrapped formatter is written in the tail.
+        Formatter head = new Formatter() {
+
+            @Override
+            public String getHead(Handler h) {
+                return "<html><body>";
+            }
+
+            @Override
+            public String format(LogRecord r) {
+                return r.getMessage() + '\n';
+            }
+
+            @Override
+            public String getTail(Handler h) {
+                return "</body></html>";
+            }
+        };
+        type = getInlineContentType(new CollectorFormatter("{0}{1}{2}",
+                head, new SeverityComparator()), "test");
+        assertEquals("text/html; charset=us-ascii", type);
+
         MailHandler instance = new MailHandler(createInitProperties(""));
         InternalErrorManager em = new InternalErrorManager();
         instance.setErrorManager(em);
         synchronized (instance) {
+            assertEquals("application/xml", instance.contentTypeOf(
+                    new CollectorFormatter("{0}{1}{2}",
+                    new CollectorFormatter("{0}{1}{2}",
+                    new XMLFormatter(), new SeverityComparator()),
+                    new SeverityComparator())));
+            CollectorFormatter cycle = new CollectorFormatter();
+            cycle.setFormatter(cycle);
+            assertNull(instance.contentTypeOf(cycle));
             assertNull(instance.contentTypeOf(new CollectorFormatter("{0}{1}{2}",
                     new CompactFormatter(), new SeverityComparator())));
             assertEquals("application/xml", instance.contentTypeOf(
@@ -3778,8 +3808,10 @@ public class MailHandlerTest extends AbstractLogging {
                 instance.publish(r);
             }
             assertEquals(instance.getCapacity(), formatter.format);
-            assertEquals(1, formatter.head);
-            assertEquals(1, formatter.tail);
+            //An empty head causes the tail to be probed for the content
+            //type and the head is called again to balance the calls.
+            assertEquals(2, formatter.head);
+            assertEquals(2, formatter.tail);
             assertEquals(1, em.exceptions.size());
             assertTrue(em.exceptions.get(0) instanceof MessagingException);
             instance.close();

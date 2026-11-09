@@ -63,6 +63,7 @@ import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -2038,9 +2039,10 @@ public class MailHandler extends Handler {
      * @return return the mime type or null, meaning text/plain.
      * @since JavaMail 1.5.6
      */
-    final String contentTypeOf(final Formatter f) {
+    final String contentTypeOf(Formatter f) {
         assert Thread.holdsLock(this);
-        if (f != null) {
+        Map<Formatter, Formatter> seen = null;
+        while (f != null) {
             String type = getContentType(f.getClass().getName());
             if (type != null) {
                 return type;
@@ -2071,14 +2073,23 @@ public class MailHandler extends Handler {
 
             //The head, format, and tail are delegated to the wrapped
             //formatter so the wrapped formatter describes the content.
-            if (f instanceof CollectorFormatter) {
-                final Formatter wrapped;
-                try {
-                    wrapped = ((CollectorFormatter) f).getFormatter();
-                } catch (final SecurityException notAllowed) {
-                    return null; //Unknown, meaning text/plain.
-                }
-                return contentTypeOf(wrapped);
+            //CollectorFormatters can be nested so walk the whole chain.
+            if (!(f instanceof CollectorFormatter)) {
+                break;
+            }
+
+            if (seen == null) {
+                seen = new IdentityHashMap<>();
+            }
+
+            if (seen.put(f, f) != null) {
+                break; //Cycle, meaning text/plain.
+            }
+
+            try {
+                f = ((CollectorFormatter) f).getFormatter();
+            } catch (final SecurityException notAllowed) {
+                break; //Unknown, meaning text/plain.
             }
         }
         return null;
@@ -3457,7 +3468,6 @@ public class MailHandler extends Handler {
          */
         StringBuilder[] buffers = new StringBuilder[parts.length];
         StringBuilder buf = null;
-        String bodyHead = null;
         final MimePart body;
         if (parts.length == 0) {
             msg.setDescription(descriptionFrom(
@@ -3473,6 +3483,9 @@ public class MailHandler extends Handler {
         final Formatter bodyFormat = getFormatter();
         final Filter bodyFilter = getFilter();
 
+        //Only the head and tail of the formatter describe the body.
+        //Formatted records are not trusted to determine the content type.
+        String contentType = null;
         Locale lastLocale = null;
         for (int ix = 0; ix < size; ++ix) {
             boolean formatted = false;
@@ -3487,9 +3500,19 @@ public class MailHandler extends Handler {
                     || (match < -1 && bodyFilter.isLoggable(r))) {
                 lmf = bodyFilter;
                 if (buf == null) {
-                    bodyHead = head(bodyFormat);
+                    final String bodyHead = head(bodyFormat);
                     buf = new StringBuilder();
                     buf.append(bodyHead);
+                    if (isEmpty(bodyHead)) {
+                        //A CollectorFormatter writes its head in the tail.
+                        //No record has been formatted yet so the tail can
+                        //be probed without record content.  Call head
+                        //again to balance the head and tail calls.
+                        contentType = contentTypeOf(tail(bodyFormat, ""));
+                        head(bodyFormat);
+                    } else {
+                        contentType = contentTypeOf(bodyHead);
+                    }
                 }
                 formatted = true;
                 buf.append(format(bodyFormat, r));
@@ -3564,9 +3587,6 @@ public class MailHandler extends Handler {
 
         appendSubject(msg, tail(subjectFormatter, ""));
 
-        //Only the head of the formatter describes the body.  Formatted
-        //records are not trusted to determine the content type.
-        String contentType = contentTypeOf(bodyHead);
         String altType = contentTypeOf(bodyFormat);
         setContent(body, buf, altType == null ? contentType : altType);
         if (body != msg) {
