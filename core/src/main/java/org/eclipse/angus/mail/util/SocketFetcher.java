@@ -19,7 +19,6 @@ package org.eclipse.angus.mail.util;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
@@ -895,7 +894,7 @@ public class SocketFetcher {
 
         // Check against the server name(s) as expressed in server certificate
         if (!hnv.verify(server, sslSocket.getSession())) {
-            throw new SSLException("Server identity does not match "
+            throw new SSLPeerUnverifiedException("Server identity does not match "
                     + "authentication scheme: " + hnv + " DENY");
         }
     }
