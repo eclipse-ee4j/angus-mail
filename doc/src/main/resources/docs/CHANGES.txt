@@ -9,6 +9,7 @@ for the Eclipse EE4J Angus Mail project:
 
           UNRELEASED CHANGES
           ------------------
+235: Preserve the peer-verification exception type when a custom HostnameVerifier rejects a server
 190: POP3Message.loadHeaders ignores mail.mime.allowutf8
 155: SMTP Sasl authentication failed : password is too long
 165: Bug: X-GM-LABELS value corrupted during parsing - "\\Sent" becomes "\Sentt"
@@ -19,6 +20,7 @@ for the Eclipse EE4J Angus Mail project:
 99: POP3Message.writeTo(OutputStream os); writes each byte individually to the OutputStream
 206: BASE64DecoderStream does not skip 0xFF bytes
 213: Opt-in SMTP envelope PIPELINING
+234: MailHandler guesses the body content type from log record content
 224: POP3 and mbox message cache files are created world-readable
 
           CHANGES IN THE 2.0.5 RELEASE

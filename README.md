@@ -1,7 +1,7 @@
 # Eclipse Angus - Mail
 
 [![Build Status](https://github.com/eclipse-ee4j/angus-mail/actions/workflows/maven.yml/badge.svg?branch=master)](https://github.com/eclipse-ee4j/angus-mail/actions/workflows/maven.yml?branch=master)
-[![Jakarta Staging (Snapshots)](https://img.shields.io/nexus/s/https/jakarta.oss.sonatype.org/org.eclipse.angus/angus-mail.svg)](https://jakarta.oss.sonatype.org/content/repositories/staging/org/eclipse/angus/angus-mail/)
+[Development snapshots](https://eclipse-ee4j.github.io/angus-mail/#Development_Releases)
 
 This project provides the implementation of [Jakarta Mail Specification 2.1+](https://jakarta.ee/specifications/mail/)
 providing a platform-independent and
