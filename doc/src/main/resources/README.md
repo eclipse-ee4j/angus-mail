@@ -214,48 +214,62 @@ Angus Mail bugs are tracked in the
 
 From time to time snapshot releases of the next version of Angus Mail
 under development are published to the
-[Jakarta Sonatype OSS repository](https://jakarta.oss.sonatype.org).
+[Central Portal snapshot repository](https://central.sonatype.org/publish/publish-portal-snapshots/).
 These snapshot releases have received only minimal testing, but may
 provide previews of bug fixes or new features under development.
 
-For example, you can download the jakarta.mail.jar file from the Angus Mail
-2.0.0-SNAPSHOT release
-[here](https://jakarta.oss.sonatype.org/content/repositories/snapshots/org/eclipse/angus/jakarta.mail/2.0.0-SNAPSHOT/).
-Be sure to scroll to the bottom and choose the jar file with the most
-recent time stamp.
+For example, the current development version is
+`org.eclipse.angus:angus-mail:2.1.0-SNAPSHOT`.
+The [snapshot metadata](https://central.sonatype.com/repository/maven-snapshots/org/eclipse/angus/angus-mail/2.1.0-SNAPSHOT/maven-metadata.xml)
+identifies the latest timestamped artifacts.
 
 You'll need to add the following configuration to your Maven ~/.m2/settings.xml
 to be able to use these with Maven:
 
 ```
     <profiles>
-        <!-- to allow loading Jakarta snapshot artifacts -->
+        <!-- to allow loading Angus Mail snapshot artifacts -->
         <profile>
-            <id>jakarta-snapshots</id>
-            <pluginRepositories>
-                <pluginRepository>
-                    <id>jakarta-snapshots</id>
-                    <name>Jakarta Snapshots</name>
+            <id>central-snapshots</id>
+            <repositories>
+                <repository>
+                    <id>central-snapshots</id>
+                    <name>Central Portal Snapshots</name>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
                     <snapshots>
                         <enabled>true</enabled>
                         <updatePolicy>always</updatePolicy>
                         <checksumPolicy>fail</checksumPolicy>
                     </snapshots>
-                    <url>https://jakarta.oss.sonatype.org/content/repositories/snapshots/</url>
+                    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
                     <layout>default</layout>
-                </pluginRepository>
-            </pluginRepositories>
+                </repository>
+            </repositories>
         </profile>
     </profiles>
 ```
 
-And then when you build use `mvn -Pjakarta-snapshots ...`.
+Then use the snapshot version in your project's `pom.xml`, alongside the
+Jakarta Mail API dependency:
 
-If you want the plugin repository to be enabled all the time so you don't need the -P, add:
+```xml
+    <dependency>
+        <groupId>org.eclipse.angus</groupId>
+        <artifactId>angus-mail</artifactId>
+        <version>2.1.0-SNAPSHOT</version>
+        <scope>runtime</scope>
+    </dependency>
+```
+
+And then when you build use `mvn -U -Pcentral-snapshots ...`.
+
+If you want the repository to be enabled all the time so you don't need the -P, add:
 
 ```
     <activeProfiles>
-        <activeProfile>jakarta-snapshots</activeProfile>
+        <activeProfile>central-snapshots</activeProfile>
     </activeProfiles>
 ```
 

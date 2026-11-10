@@ -5,6 +5,25 @@
 		    ------------------------------
 -- Unreleased --
 
+- MailHandler body content type
+
+    The MIME type of the message body is guessed from the head of the
+    body formatter only.  Formatted log records no longer take part in
+    the guess, so a body that starts with a record message containing
+    HTML or XML markup is sent as text/plain.  A formatter without a
+    head that produces HTML or XML can still declare its type with a
+    MIME entry for its class name or with a class name that contains
+    "html" or "xml".
+
+- Custom hostname verifier rejection
+
+    When a custom HostnameVerifier returns false, the server identity
+    failure is now an SSLPeerUnverifiedException instead of a plain
+    SSLException.  SSLPeerUnverifiedException extends SSLException.
+    The existing IOException wrapper, diagnostic message and socket
+    cleanup are unchanged.  Exceptions thrown by the verifier retain
+    their existing types and handling.
+
 - SMTP capability state
 
     Cached EHLO capabilities are discarded before a new EHLO or HELO,
@@ -41,6 +60,18 @@
     Each channel connection owns a selector and buffers.  TLS additionally
     uses an owned worker for delegated TLS tasks, stopped on close.
     No connection is retried or downgraded after an envelope failure.
+
+- Owner-only permissions for POP3 and mbox message cache files
+
+    The POP3 and mbox providers cache message content in temporary files.
+    These were created with File.createTempFile, so on POSIX systems the
+    file permissions followed the process umask (typically rw-r--r--) and
+    cached mail could be read by other local users.  The cache files are
+    now created with owner-only (rw-------) permissions.  If the file
+    system does not support POSIX permissions, or the cache directory
+    can't be converted to a Path, the file is created with
+    File.createTempFile and the java.io.File setReadable, setWritable and
+    setExecutable methods are used to restrict access to the owner.
 
 -- Angus Mail 2.0.5 --
 
