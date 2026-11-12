@@ -45,6 +45,16 @@
     File.createTempFile and the java.io.File setReadable, setWritable and
     setExecutable methods are used to restrict access to the owner.
 
+- NTLMv2 response no longer depends on the server's type 2 flags
+
+    When mail.<protocol>.auth.ntlm.v2 is true (the default), the NTLM
+    type 3 message now always carries the NTLMv2 and LMv2 responses.
+    Previously a type 2 message without the extended session security
+    flag made the client fall back to the LM and NTLMv1 responses, which
+    a malicious server or an attacker on the connection could use to
+    recover the password hash.  Servers that only accept NTLMv1 now need
+    mail.<protocol>.auth.ntlm.v2 set to false.
+
 -- Angus Mail 2.0.5 --
 
 - Resource File Duplication due to Jakartification
