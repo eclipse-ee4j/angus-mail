@@ -331,6 +331,7 @@ public class Protocol {
             throws IOException, ProtocolException {
         // assert Thread.holdsLock(this);
         // can't assert because it's called from constructor
+        validateCommand(command);
         String tag = tagPrefix + Integer.toString(tagCounter++); // unique tag
 
         output.writeBytes(tag + " " + command);
@@ -343,6 +344,20 @@ public class Protocol {
         output.write(CRLF);
         output.flush();
         return tag;
+    }
+
+    /**
+     * Reject a CR or LF in a command, including a char whose low byte,
+     * the only byte written out, is a CR or LF.
+     */
+    static void validateCommand(String cmd) throws ProtocolException {
+        for (int i = 0; i < cmd.length(); i++) {
+            int b = cmd.charAt(i) & 0xff;
+            if (b == '\r' || b == '\n')
+                throw new ProtocolException(
+                        "Command contains illegal character: " +
+                                String.format("0x%02x", b));
+        }
     }
 
     /**
