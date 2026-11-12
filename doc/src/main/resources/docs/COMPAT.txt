@@ -5,6 +5,25 @@
 		    ------------------------------
 -- Unreleased --
 
+- MailHandler body content type
+
+    The MIME type of the message body is guessed from the head of the
+    body formatter only.  Formatted log records no longer take part in
+    the guess, so a body that starts with a record message containing
+    HTML or XML markup is sent as text/plain.  A formatter without a
+    head that produces HTML or XML can still declare its type with a
+    MIME entry for its class name or with a class name that contains
+    "html" or "xml".
+
+- Custom hostname verifier rejection
+
+    When a custom HostnameVerifier returns false, the server identity
+    failure is now an SSLPeerUnverifiedException instead of a plain
+    SSLException.  SSLPeerUnverifiedException extends SSLException.
+    The existing IOException wrapper, diagnostic message and socket
+    cleanup are unchanged.  Exceptions thrown by the verifier retain
+    their existing types and handling.
+
 - SMTP capability state
 
     Cached EHLO capabilities are discarded before a new EHLO or HELO,
