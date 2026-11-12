@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2021, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -549,6 +550,38 @@
  * If set, specifies the name of a class that implements the
  * <code>javax.net.SocketFactory</code> interface.  This class
  * will be used to create SMTP sockets.
+ * </TD>
+ * </TR>
+ *
+ * <TR>
+ * <TD><A ID="mail.smtp.socketFactory.transport">mail.smtp.socketFactory.transport</A></TD>
+ * <TD>SocketFactory</TD>
+ * <TD>
+ * Optional <code>javax.net.SocketFactory</code> instance used to create the
+ * unconnected, open, non-SSL transport socket independently of TLS factory
+ * selection. Set the instance with <code>put</code>, not <code>setProperty</code>.
+ * It takes precedence over <code>mail.smtp.socketFactory.transport.class</code>.
+ * The selected regular or SSL factory still controls TLS wrapping and its
+ * existing factory-port setting. A non-SSL regular factory is not also called
+ * to create the transport when this property is set.
+ * Angus applies socket options, timeouts, local binding, connection handling
+ * and HTTP proxy handling to the returned socket. The transport factory replaces
+ * built-in SOCKS and SocketChannel socket creation and is responsible for
+ * providing any such transport behavior. Angus closes its socket if setup fails.
+ * Transport factory resolution failures and failures after transport creation
+ * is attempted do not fall back to another transport or retry the factory.
+ * </TD>
+ * </TR>
+ *
+ * <TR>
+ * <TD><A ID="mail.smtp.socketFactory.transport.class">mail.smtp.socketFactory.transport.class</A></TD>
+ * <TD>String</TD>
+ * <TD>
+ * Optional class name for the independent transport socket factory, used only
+ * when <code>mail.smtp.socketFactory.transport</code> is absent. Its public static
+ * <code>getDefault()</code> method must return a <code>javax.net.SocketFactory</code>.
+ * The factory is resolved once per connection attempt using the normal socket
+ * factory class-loader rules. No separate port setting is defined for this factory.
  * </TD>
  * </TR>
  *
