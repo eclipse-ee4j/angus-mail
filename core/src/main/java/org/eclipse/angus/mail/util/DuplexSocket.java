@@ -33,7 +33,9 @@ import java.net.SocketOption;
 import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -367,11 +369,14 @@ public final class DuplexSocket extends Socket {
 
     /** Keeps the Socket stream contract while retaining the channel's cause. */
     private static IOException socketFailure(IOException failure) {
-        if (failure instanceof ClosedChannelException) {
-            SocketException closed = new SocketException("Socket closed");
-            closed.initCause(failure);
-            return closed;
-        }
+        if (failure instanceof ClosedChannelException)
+            return closedSocketException(failure);
+        return failure;
+    }
+
+    private static SocketException closedSocketException(Throwable cause) {
+        SocketException failure = new SocketException("Socket closed");
+        failure.initCause(cause);
         return failure;
     }
 
@@ -623,9 +628,13 @@ public final class DuplexSocket extends Socket {
         int interests = !eof && networkInput.hasRemaining() ? SelectionKey.OP_READ : 0;
         if (networkOutput.position() > 0)
             interests |= SelectionKey.OP_WRITE;
-        key.interestOps(interests);
-        selector.select(SELECT_TIMEOUT_MILLIS);
-        selector.selectedKeys().clear();
+        try {
+            key.interestOps(interests);
+            selector.select(SELECT_TIMEOUT_MILLIS);
+            selector.selectedKeys().clear();
+        } catch (CancelledKeyException | ClosedSelectorException ex) {
+            throw closedSocketException(ex);
+        }
     }
 
     /** Aborts physical I/O, including when invoked by a cancelling thread. */

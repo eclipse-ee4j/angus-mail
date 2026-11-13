@@ -35,7 +35,9 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -57,6 +59,19 @@ import static org.junit.Assert.fail;
 
 /** Checks stream contracts and caller-thread input callbacks. */
 public class DuplexSocketCompatibilityTest {
+    @Test(timeout = 10000)
+    public void testDisposedReadinessKeyKeepsSocketExceptionContract() throws Exception {
+        try (Connection connection = new Connection()) {
+            java.lang.reflect.Field field = DuplexSocket.class.getDeclaredField("key");
+            field.setAccessible(true);
+            ((SelectionKey) field.get(connection.socket)).cancel();
+            SocketException failure = assertThrows(SocketException.class,
+                    () -> connection.socket.getInputStream().read());
+            assertTrue(failure.getCause() instanceof CancelledKeyException);
+            assertTrue(connection.socket.isClosed());
+        }
+    }
+
     @Test(timeout = 10000)
     public void testLocalCloseRejectsBufferedInputAndExistingStreams() throws Exception {
         try (Connection connection = new Connection()) {
