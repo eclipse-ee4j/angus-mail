@@ -29,6 +29,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.SocketOption;
 import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -37,7 +38,9 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -212,7 +215,11 @@ public final class DuplexSocket extends Socket {
         }
     }
 
-    /** Returns the untouched blocking socket for a legacy TLS factory. */
+    /**
+     * Returns the untouched blocking socket for a legacy TLS factory.
+     * Android socket-based TLS providers look up its native descriptor, so
+     * they must receive the physical socket rather than this facade.
+     */
     Socket release() throws IOException {
         if (engine != null || available != 0 || networkInput.position() != 0 ||
                 networkOutput.position() != 0 || owner != null)
@@ -751,5 +758,25 @@ public final class DuplexSocket extends Socket {
     @Override
     public int getReceiveBufferSize() throws SocketException {
         return socket.getReceiveBufferSize();
+    }
+
+    /*
+     * These Java SE 9 Socket methods are absent on older Android versions.
+     * Match WriteTimeoutSocket: the providers do not use generic options,
+     * and inherited methods would access this facade's unused SocketImpl.
+     */
+    //@Override
+    public <T> Socket setOption(SocketOption<T> option, T value) throws IOException {
+        throw new UnsupportedOperationException("DuplexSocket.setOption");
+    }
+
+    //@Override
+    public <T> T getOption(SocketOption<T> option) throws IOException {
+        throw new UnsupportedOperationException("DuplexSocket.getOption");
+    }
+
+    //@Override
+    public Set<SocketOption<?>> supportedOptions() {
+        return Collections.emptySet();
     }
 }

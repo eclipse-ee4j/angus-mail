@@ -31,6 +31,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
@@ -52,6 +53,49 @@ import static org.junit.Assert.fail;
 
 /** Checks stream contracts and caller-thread input callbacks. */
 public class DuplexSocketCompatibilityTest {
+    @Test(timeout = 10000)
+    public void testGenericSocketOptionWritesAreRejected() throws Exception {
+        try (Connection connection = new Connection()) {
+            boolean before = connection.socket.getTcpNoDelay();
+            try {
+                connection.socket.setOption(StandardSocketOptions.TCP_NODELAY, !before);
+                fail("Generic socket option write accepted");
+            } catch (UnsupportedOperationException expected) {
+            }
+            assertEquals(before, connection.socket.getTcpNoDelay());
+            assertFalse(connection.socket.isClosed());
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testGenericSocketOptionReadsAreRejected() throws Exception {
+        try (Connection connection = new Connection()) {
+            try {
+                connection.socket.getOption(StandardSocketOptions.TCP_NODELAY);
+                fail("Generic socket option read accepted");
+            } catch (UnsupportedOperationException expected) {
+            }
+            assertFalse(connection.socket.isClosed());
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testGenericSocketOptionsAreNotAdvertised() throws Exception {
+        try (Connection connection = new Connection()) {
+            assertTrue(connection.socket.supportedOptions().isEmpty());
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testReleaseReturnsBlockingPhysicalSocket() throws Exception {
+        try (Connection connection = new Connection()) {
+            Socket physical = connection.socket.getChannel().socket();
+            assertFalse(physical.getChannel().isBlocking());
+            assertSame(physical, connection.socket.release());
+            assertTrue(physical.getChannel().isBlocking());
+        }
+    }
+
     @Test(timeout = 10000)
     public void testReadBounds() throws Exception {
         try (Connection connection = new Connection()) {

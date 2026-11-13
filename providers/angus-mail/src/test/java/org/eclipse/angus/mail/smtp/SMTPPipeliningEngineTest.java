@@ -627,6 +627,10 @@ public class SMTPPipeliningEngineTest {
         public Socket createSocket(Socket socket, String host, int port, boolean close)
                 throws IOException {
             calls.incrementAndGet();
+            // Android TLS factories look up the descriptor on this socket.
+            assertFalse(socket instanceof DuplexSocket);
+            if (socket.getChannel() != null)
+                assertTrue(socket.getChannel().isBlocking());
             return delegate.createSocket(socket, host, port, close);
         }
 
