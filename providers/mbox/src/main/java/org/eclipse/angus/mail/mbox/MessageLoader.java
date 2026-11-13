@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2026 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -21,6 +21,9 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -34,6 +37,7 @@ final class MessageLoader {
     private int pos, len;    // position in and length of buffer
     private long off;        // current offset in temp file
     private long prevend;    // the end of the previous message in temp file
+    private long fileoff;    // offset in folder file minus offset in temp file
     private MboxFolder.MessageMetadata md;
     private byte[] buf = null;
     // the length of the longest header we'll need to look at
@@ -61,6 +65,7 @@ final class MessageLoader {
             if (fis.skip(offset) != offset)
                 throw new EOFException("Failed to skip to offset " + offset);
             this.off = prevend = temp.length();
+            fileoff = fis.getChannel().position() - off;
             pos = len = 0;
             line = new char[LINELEN];
             buf = new byte[64 * 1024];
@@ -69,6 +74,10 @@ final class MessageLoader {
             // keep loading messages as long as we have headers
             while ((n = skipHeader(loaded == 0)) >= 0) {
                 long start;
+                // the Content-Length header comes from the message, so
+                // only trust it if it ends at the next message or EOF
+                if (n > 0 && !isMessageEnd(off + fileoff + n))
+                    n = 0;
                 if (n == 0) {
                     // didn't find a Content-Length, skip the body
                     start = skipBody();
@@ -153,7 +162,7 @@ final class MessageLoader {
                             isPrefix(s, "Content-Length:")) {
                         s = s.substring(15).trim();
                         try {
-                            clen = Integer.parseInt(s);
+                            clen = Math.max(Integer.parseInt(s), 0);
                         } catch (NumberFormatException ex) {
                             // ignore it
                         }
@@ -197,6 +206,32 @@ final class MessageLoader {
         else
             return clen;
     }
+
+    /**
+     * Is the folder file offset "pos" the end of a message, i.e., is it
+     * followed by optional blank lines and then a UNIX From line or EOF?
+     */
+    private boolean isMessageEnd(long pos) throws IOException {
+        FileChannel fc = fis.getChannel();
+        long size = fc.size();
+        if (pos > size)
+            return false;
+        ByteBuffer bb = ByteBuffer.allocate(5);
+        // skip any blank lines after the body
+        for (; pos < size; pos++) {
+            bb.clear();
+            if (fc.read(bb, pos) <= 0 || bb.get(0) != '\n')
+                break;
+        }
+        if (pos >= size)
+            return true;
+        bb.clear();
+        while (bb.hasRemaining() && fc.read(bb, pos + bb.position()) > 0)
+            ;
+        return !bb.hasRemaining() && Arrays.equals(bb.array(), FROM);
+    }
+
+    private static final byte[] FROM = {'F', 'r', 'o', 'm', ' '};
 
     /**
      * Does "s" start with "pre", ignoring case?
