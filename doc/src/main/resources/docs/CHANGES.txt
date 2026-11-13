@@ -25,6 +25,7 @@ for the Eclipse EE4J Angus Mail project:
 237: reject CR and LF in IMAP and POP3 command lines
 234: MailHandler guesses the body content type from log record content
 224: POP3 and mbox message cache files are created world-readable
+XXX: mbox MessageLoader trusts the Content-Length header of a delivered message
 
           CHANGES IN THE 2.0.5 RELEASE
           ----------------------------
