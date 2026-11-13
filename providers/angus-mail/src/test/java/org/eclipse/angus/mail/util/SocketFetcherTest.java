@@ -54,6 +54,8 @@ import static org.junit.Assume.assumeTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -87,6 +89,34 @@ public final class SocketFetcherTest {
         assertFalse(matchServer("a.b.example.com", "*.example.com"));
         assertFalse(matchServer("example.com", "*.example.com"));
         assertTrue(matchServer("example.com", "example.com"));
+    }
+
+    @Test
+    public void testMailVerifierNormalizesDnsNames() throws Exception {
+        assertTrue(matchServer("b\u00fccher.example", "xn--bcher-kva.example"));
+        assertTrue(matchServer("mail.b\u00fccher.example", "*.xn--bcher-kva.example"));
+        assertTrue(matchServer("mail.example.", "mail.example"));
+        assertFalse(matchServer("a.b.example", "*.example"));
+        assertFalse(matchServer("mail.example", "mail*.example"));
+    }
+
+    @Test
+    public void testMailVerifierParsesOnlyNumericAddresses() throws Exception {
+        Class<?> verifier = Class.forName(
+                "org.eclipse.angus.mail.util.SocketFetcher$MailHostnameVerifier");
+        java.lang.reflect.Method parse = verifier.getDeclaredMethod("literalAddress", String.class);
+        parse.setAccessible(true);
+        assertNull(parse.invoke(null, "mail.example.invalid"));
+        assertArrayEquals(new byte[] {127, 0, 0, 1}, (byte[]) parse.invoke(null, "127.0.0.1"));
+        assertArrayEquals((byte[]) parse.invoke(null, "::1"),
+                (byte[]) parse.invoke(null, "[0:0:0:0:0:0:0:1]"));
+        assertArrayEquals((byte[]) parse.invoke(null, "fe80::1"),
+                (byte[]) parse.invoke(null, "fe80::1%unused-interface"));
+        for (String invalid : new String[] {"999.0.0.1", "1.2.3", "mail.example%scope:zone"}) {
+            java.lang.reflect.InvocationTargetException failure = assertThrows(
+                    java.lang.reflect.InvocationTargetException.class, () -> parse.invoke(null, invalid));
+            assertTrue(failure.getCause() instanceof IOException);
+        }
     }
 
     /**
