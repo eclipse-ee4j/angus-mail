@@ -30,9 +30,14 @@ import org.junit.rules.Timeout;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Objects;
@@ -117,6 +122,74 @@ public final class SocketFetcherTest {
                     java.lang.reflect.InvocationTargetException.class, () -> parse.invoke(null, invalid));
             assertTrue(failure.getCause() instanceof IOException);
         }
+    }
+
+    @Test
+    public void testMailVerifierClassifiesMalformedCertificateAddresses() throws Exception {
+        Class<?> verifier = Class.forName(
+                "org.eclipse.angus.mail.util.SocketFetcher$MailHostnameVerifier");
+        java.lang.reflect.Method parse = verifier.getDeclaredMethod(
+                "certificateAddress", String.class);
+        parse.setAccessible(true);
+        assertArrayEquals(new byte[] {127, 0, 0, 1},
+                (byte[]) parse.invoke(null, "127.0.0.1"));
+        for (String invalid : new String[] {"999.0.0.1", "1.2.3", "broken::address", "mail.example.invalid"}) {
+            InvocationTargetException failure = assertThrows(
+                    InvocationTargetException.class, () -> parse.invoke(null, invalid));
+            assertTrue(failure.getCause() instanceof CertificateParsingException);
+            assertTrue(failure.getCause().getCause() instanceof IOException);
+        }
+    }
+
+    @Test
+    public void testMailVerifierKeepsDnsAndIpMatchingSeparate() throws Exception {
+        HostnameVerifier verifier = mailVerifier();
+        SSLSession session = certificateSession();
+        assertTrue(verifier.verify("localhost", session));
+        assertTrue(verifier.verify("mail.example.invalid", session));
+        assertTrue(verifier.verify("127.0.0.1", session));
+        assertTrue(verifier.verify("::1", session));
+        for (String host : new String[] {"different.invalid", "127.0.0.2", "::2"}) {
+            UndeclaredThrowableException failure = assertThrows(
+                    UndeclaredThrowableException.class, () -> verifier.verify(host, session));
+            assertTrue(failure.getCause() instanceof CertificateException);
+            assertFalse(failure.getCause() instanceof CertificateParsingException);
+        }
+    }
+
+    @Test
+    public void testMailVerifierKeepsInvalidHostAsInputFailure() throws Exception {
+        HostnameVerifier verifier = mailVerifier();
+        SSLSession session = certificateSession();
+        java.io.UncheckedIOException failure = assertThrows(
+                java.io.UncheckedIOException.class,
+                () -> verifier.verify("999.0.0.1", session));
+        assertEquals("Invalid IP literal: 999.0.0.1", failure.getCause().getMessage());
+    }
+
+    private static HostnameVerifier mailVerifier() throws Exception {
+        Class<?> type = Class.forName(
+                "org.eclipse.angus.mail.util.SocketFetcher$MailHostnameVerifier");
+        java.lang.reflect.Method factory = type.getDeclaredMethod("of");
+        factory.setAccessible(true);
+        return (HostnameVerifier) factory.invoke(null);
+    }
+
+    private static SSLSession certificateSession() throws Exception {
+        KeyStore keys = KeyStore.getInstance("JKS");
+        try (InputStream input = SocketFetcherTest.class.getResourceAsStream(
+                "conscrypt-hostname.jks")) {
+            assertNotNull(input);
+            keys.load(input, "changeit".toCharArray());
+        }
+        java.security.cert.Certificate certificate = keys.getCertificate(
+                keys.aliases().nextElement());
+        return (SSLSession) Proxy.newProxyInstance(SSLSession.class.getClassLoader(),
+                new Class<?>[] {SSLSession.class}, (proxy, method, args) -> {
+                    if (method.getName().equals("getPeerCertificates"))
+                        return new java.security.cert.Certificate[] {certificate};
+                    throw new UnsupportedOperationException(method.getName());
+                });
     }
 
     /**
