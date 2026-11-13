@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Benny Bottema.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -20,6 +21,7 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -136,6 +138,17 @@ public class MailSSLSocketFactory extends SSLSocketFactory {
 
         // Get SocketFactory and save it in our instance var
         adapteeFactory = sslcontext.getSocketFactory();
+    }
+
+    /**
+     * Creates an engine with this factory's key and trust managers. The caller
+     * still configures protocols and server identity checking before use.
+     */
+    synchronized SSLEngine createSSLEngine(String host, int port)
+            throws IOException {
+        if (!isServerTrusted(host, null))
+            throw new IOException("Server is not trusted: " + host);
+        return sslcontext.createSSLEngine(host, port);
     }
 
     /**
