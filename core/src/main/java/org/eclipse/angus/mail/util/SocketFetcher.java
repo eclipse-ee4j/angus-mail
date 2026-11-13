@@ -35,6 +35,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.ConnectException;
+import java.net.IDN;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -275,6 +276,8 @@ public class SocketFetcher {
                             useEngine, null);
                 }
             }
+        } catch (EngineSetupException ex) {
+            throw ex.failure;
         } catch (SocketTimeoutException sex) {
             throw sex;
         } catch (Exception ex) {
@@ -293,14 +296,18 @@ public class SocketFetcher {
         }
 
         if (socket == null) {
-            if (transportFactory != null)
-                socket = createSocketWithTransportFactory(localaddr, localport,
-                        host, port, cto, to, props, prefix, null, useSSL,
-                        useEngine, transportFactory);
-            else
-                socket = createSocket(localaddr, localport,
-                        host, port, cto, to, props, prefix, null, useSSL,
-                        useEngine, null);
+            try {
+                if (transportFactory != null)
+                    socket = createSocketWithTransportFactory(localaddr, localport,
+                            host, port, cto, to, props, prefix, null, useSSL,
+                            useEngine, transportFactory);
+                else
+                    socket = createSocket(localaddr, localport,
+                            host, port, cto, to, props, prefix, null, useSSL,
+                            useEngine, null);
+            } catch (EngineSetupException ex) {
+                throw ex.failure;
+            }
 
         } else {
             if (to >= 0 && transportFactory == null) {
@@ -467,17 +474,27 @@ public class SocketFetcher {
             else
                 ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();
             if (useEngine && socket.getChannel() != null) {
+                boolean explicitEngine = props.get(prefix + ".ssl.engineFactory") != null;
+                DuplexSocket duplex = null;
                 try {
                     SSLEngine engine = createSSLEngine(ssf, host, port, props, prefix);
                     if (engine != null) {
-                        DuplexSocket duplex = new DuplexSocket(socket, writeTimeout);
+                        duplex = new DuplexSocket(socket, writeTimeout);
                         if (transportResources != null)
                             transportResources.layered = duplex;
                         configureSSLEngine(duplex, engine, host, props, prefix);
                         return duplex;
                     }
-                } catch (IOException ex) {
-                    throw cleanupAndThrow(socket, ex);
+                } catch (IOException | RuntimeException | LinkageError ex) {
+                    IOException failure = ex instanceof IOException ? (IOException) ex :
+                            new IOException("Could not set up SSL engine for: " + host, ex);
+                    if (duplex == null)
+                        cleanupAndThrow(socket, failure);
+                    else
+                        duplex.closeOnFailure(failure);
+                    if (explicitEngine && !(failure instanceof SocketTimeoutException))
+                        throw new EngineSetupException(failure);
+                    throw failure;
                 }
             }
             socket = ssf.createSocket(socket, host, port, true);
@@ -568,6 +585,9 @@ public class SocketFetcher {
             if (to >= 0)
                 socket.setSoTimeout(to);
             return socket;
+        } catch (EngineSetupException ex) {
+            resources.closeAfterFailure(ex.failure);
+            throw ex;
         } catch (IOException | RuntimeException | Error failure) {
             resources.closeAfterFailure(failure);
             throw failure;
@@ -766,10 +786,16 @@ public class SocketFetcher {
 
             if (socket instanceof DuplexSocket) {
                 DuplexSocket duplex = (DuplexSocket) socket;
-                SSLEngine engine = createSSLEngine(ssf, host, port, props, prefix);
-                if (engine != null) {
-                    configureSSLEngine(duplex, engine, host, props, prefix);
-                    return duplex;
+                try {
+                    SSLEngine engine = createSSLEngine(ssf, host, port, props, prefix);
+                    if (engine != null) {
+                        configureSSLEngine(duplex, engine, host, props, prefix);
+                        return duplex;
+                    }
+                } catch (IOException | RuntimeException | LinkageError ex) {
+                    IOException failure = ex instanceof IOException ? (IOException) ex :
+                            new IOException("Could not set up SSL engine for: " + host, ex);
+                    throw duplex.closeOnFailure(failure);
                 }
                 socket = duplex.release();
             }
@@ -797,24 +823,20 @@ public class SocketFetcher {
     }
 
     /** Resolves an engine without guessing a custom socket factory's trust. */
-    @SuppressWarnings("unchecked")
     private static SSLEngine createSSLEngine(SSLSocketFactory factory,
             String host, int port, Properties props, String prefix)
             throws IOException {
         Object hook = props.get(prefix + ".ssl.engineFactory");
         if (hook != null) {
-            if (!(hook instanceof BiFunction))
-                throw new IOException("Invalid SSL engine factory: " + prefix);
             try {
-                SSLEngine engine = ((BiFunction<String, Integer, SSLEngine>) hook)
-                        .apply(host, port);
+                SSLEngine engine = EngineFactoryHook.create(hook, host, port, prefix);
                 if (engine == null)
                     throw new IOException("SSL engine factory returned null");
                 if (!host.equalsIgnoreCase(engine.getPeerHost()) ||
                         port != engine.getPeerPort())
                     throw new SSLException("SSL engine factory returned a different peer");
                 return engine;
-            } catch (RuntimeException ex) {
+            } catch (RuntimeException | LinkageError ex) {
                 throw new IOException("Could not create SSL engine", ex);
             }
         }
@@ -832,6 +854,28 @@ public class SocketFetcher {
             return SSLContext.getDefault().createSSLEngine(host, port);
         } catch (GeneralSecurityException ex) {
             throw new IOException("Could not create default SSL engine", ex);
+        }
+    }
+
+    /** Keeps the optional hook's Java function type out of ordinary setup. */
+    private static final class EngineFactoryHook {
+        @SuppressWarnings("unchecked")
+        static SSLEngine create(Object hook, String host, int port, String prefix)
+                throws IOException {
+            if (!(hook instanceof BiFunction))
+                throw new IOException("Invalid SSL engine factory: " + prefix);
+            return ((BiFunction<String, Integer, SSLEngine>) hook).apply(host, port);
+        }
+    }
+
+    /** Prevents legacy socket-factory fallback after an explicit engine fails. */
+    private static final class EngineSetupException extends IOException {
+        private static final long serialVersionUID = 1L;
+        final IOException failure;
+
+        EngineSetupException(IOException failure) {
+            super(failure.getMessage(), failure);
+            this.failure = failure;
         }
     }
 
@@ -855,24 +899,30 @@ public class SocketFetcher {
             if (ciphers != null)
                 engine.setEnabledCipherSuites(stringArray(ciphers));
             SSLParameters parameters = engine.getSSLParameters();
-            parameters.setEndpointIdentificationAlgorithm(
-                    PropUtil.getBooleanProperty(props,
-                            prefix + ".ssl.checkserveridentity", true) ? "LDAPS" : null);
+            String identityAlgorithm =
+                    endpointIdentificationAlgorithm(props, prefix, engine.getClass());
+            parameters.setEndpointIdentificationAlgorithm(identityAlgorithm);
             engine.setSSLParameters(parameters);
+            boolean needsVerifier = identityAlgorithm != null && !identityAlgorithm.equals(
+                    engine.getSSLParameters().getEndpointIdentificationAlgorithm());
+            HostnameVerifier verifier = null;
+            if (needsVerifier) {
+                verifier = getHostnameVerifier(props, prefix);
+                if (verifier == null)
+                    throw new SSLException("SSL engine does not retain server identity checking; " +
+                            "configure " + prefix + ".ssl.hostnameverifier");
+            }
             socket.startTLS(engine);
-            HostnameVerifier verifier = getHostnameVerifier(props, prefix);
+            if (identityAlgorithm != null)
+                MailHostnameVerifier.of().verify(host, engine.getSession());
+            if (!needsVerifier)
+                verifier = getHostnameVerifier(props, prefix);
             if (verifier != null && !verifier.verify(host, engine.getSession()))
                 throw new SSLException("Server identity does not match " +
                         "authentication scheme: " + verifier + " DENY");
         } catch (IOException | ReflectiveOperationException | RuntimeException | LinkageError ex) {
             IOException failure = ex instanceof IOException ? (IOException) ex :
                     new IOException("Could not configure SSL engine for: " + host, ex);
-            socket.abort();
-            try {
-                socket.close();
-            } catch (IOException cleanup) {
-                failure.addSuppressed(cleanup);
-            }
             throw failure;
         }
     }
@@ -927,11 +977,10 @@ public class SocketFetcher {
             /*
              * Check server identity and trust.
              * See: JDK-8062515 and JDK-7192189
-             * LDAPS requires the same regex handling as we need
+             * Keep the existing LDAPS matching rules where supported.
              */
-            String eia = PropUtil.getBooleanProperty(props,
-                    prefix + ".ssl.checkserveridentity", true)
-                    ? "LDAPS" : (String) null;
+            String eia = endpointIdentificationAlgorithm(props, prefix,
+                    sslsocket.getClass());
             SSLParameters params = sslsocket.getSSLParameters();
             params.setEndpointIdentificationAlgorithm(eia);
             sslsocket.setSSLParameters(params);
@@ -979,6 +1028,21 @@ public class SocketFetcher {
                         new IOException("Server is not trusted: " + host));
             }
         }
+    }
+
+    /** Conscrypt recognizes HTTPS endpoint identification, but not LDAPS. */
+    private static String endpointIdentificationAlgorithm(Properties props,
+            String prefix, Class<?> tlsType) {
+        if (!PropUtil.getBooleanProperty(props,
+                prefix + ".ssl.checkserveridentity", true))
+            return null;
+        for (Class<?> type = tlsType; type != null; type = type.getSuperclass()) {
+            String name = type.getName();
+            if (name.startsWith("org.conscrypt.") ||
+                    name.startsWith("com.android.org.conscrypt."))
+                return "HTTPS";
+        }
+        return "LDAPS";
     }
 
     private static IOException cleanupAndThrow(Socket socket, IOException ife) {
@@ -1310,19 +1374,28 @@ public class SocketFetcher {
         @Override
         public boolean verify(String server, SSLSession ssls) {
             Objects.requireNonNull(server);
-            X509Certificate cert = null;
+            X509Certificate cert;
             try {
                 cert = getX509Certificate(ssls.getPeerCertificates());
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer("matchCert server "
                             + server + ", cert " + cert);
                 }
-                /*
-                 * Check each of the subjectAltNames.
-                 * XXX - only checks DNS names, should also handle
-                 * case where server name is a literal IP address
-                 */
+                byte[] address = literalAddress(server);
                 Collection<List<?>> names = cert.getSubjectAlternativeNames();
+                if (address != null) {
+                    if (names != null) {
+                        for (List<?> nameEnt : names) {
+                            if ((Integer) nameEnt.get(0) == 7 &&
+                                    nameEnt.get(1) instanceof String &&
+                                    Arrays.equals(address, literalAddress((String) nameEnt.get(1))))
+                                return true;
+                        }
+                    }
+                    throw new UndeclaredThrowableException(new CertificateException(
+                            "No subject alternative IP address matching " + server + " found"),
+                            toString() + " DENY");
+                }
                 if (names != null) {
                     boolean foundName = false;
                     for (List<?> nameEnt : names) {
@@ -1344,20 +1417,14 @@ public class SocketFetcher {
                                     + server + " found"), toString() + " DENY");
                     }
                 }
-            } catch (CertificateParsingException ignore) {
-                logger.log(Level.FINEST, server, ignore);
+            } catch (CertificateParsingException failure) {
+                throw new UndeclaredThrowableException(failure, toString() + " DENY");
             } catch (IOException spue) {
                 throw new UncheckedIOException(toString() + " DENY", spue);
             }
 
-            if (cert == null) {
-                throw new UncheckedIOException(toString() + " DENY",
-                        new SSLPeerUnverifiedException("null"));
-            }
-
-            // XXX - following is a *very* crude parse of the name and ignores
-            //	 all sorts of important issues such as quoting
-            Pattern p = Pattern.compile("CN=([^,]*)");
+            // DNS common names cannot contain escaped RDN delimiters.
+            Pattern p = Pattern.compile("(?:^|[,+])CN=([^,+]*)");
             Matcher m = p.matcher(cert.getSubjectX500Principal().getName());
             if (m.find() && matchServer(server, m.group(1).trim()))
                 return true;
@@ -1378,7 +1445,51 @@ public class SocketFetcher {
          * @param    server        name of the server expected
          * @param    name        name from the server's certificate
          */
+        /** Parses numeric IP literals only; certificate checking never resolves DNS. */
+        private static byte[] literalAddress(String value) throws IOException {
+            if (value.indexOf(':') >= 0) {
+                if (value.startsWith("[") && value.endsWith("]"))
+                    value = value.substring(1, value.length() - 1);
+                int scope = value.indexOf('%');
+                if (scope >= 0)
+                    value = value.substring(0, scope);
+                if (value.indexOf(':') < 0)
+                    throw new IOException("Invalid IP literal: " + value);
+                return InetAddress.getByName(value).getAddress();
+            }
+            for (int i = 0; i < value.length(); i++) {
+                char c = value.charAt(i);
+                if ((c < '0' || c > '9') && c != '.')
+                    return null;
+            }
+            String[] octets = value.split("\\.", -1);
+            if (octets.length != 4)
+                throw new IOException("Invalid IP literal: " + value);
+            byte[] address = new byte[4];
+            for (int i = 0; i < address.length; i++) {
+                if (octets[i].isEmpty() || octets[i].length() > 3)
+                    throw new IOException("Invalid IP literal: " + value);
+                int octet = Integer.parseInt(octets[i]);
+                if (octet > 255)
+                    throw new IOException("Invalid IP literal: " + value);
+                address[i] = (byte) octet;
+            }
+            return address;
+        }
+
+        private static String asciiName(String name) {
+            if (name.endsWith("."))
+                name = name.substring(0, name.length() - 1);
+            return IDN.toASCII(name, IDN.USE_STD3_ASCII_RULES);
+        }
+
         private static boolean matchServer(String server, String name) {
+            try {
+                server = asciiName(server);
+                name = name.startsWith("*.") ? "*." + asciiName(name.substring(2)) : asciiName(name);
+            } catch (IllegalArgumentException invalid) {
+                return false;
+            }
             if (logger.isLoggable(Level.FINER))
                 logger.finer("match server " + server + " with " + name);
 

@@ -287,7 +287,22 @@
  * A failing hook aborts connection setup; it does not fall back to other trust.
  * The default is unset. Default JSSE and the stock
  * {@link org.eclipse.angus.mail.util.MailSSLSocketFactory} work without a hook.
- * Other TLS socket factories remain sequential when it is absent.
+ * Other TLS socket factories remain sequential when it is absent, including
+ * Android's default factory selected by the global
+ * <code>ssl.SocketFactory.provider</code> security property. The default SSL
+ * context need not have the same key and trust settings as that factory.
+ * On Android below API 24, applications using this hook need core-library
+ * desugaring for <code>java.util.function.BiFunction</code>. Ordinary sending
+ * does not require the hook.
+ * Some older engines, including Android 7's implementation, discard endpoint
+ * identification settings. When server identity checking is enabled, these
+ * engines require an explicit <code>mail.smtp.ssl.hostnameverifier</code>.
+ * Otherwise setup fails before the handshake. The verifier runs after the
+ * handshake and before any further SMTP commands; rejection closes the connection.
+ * When server identity checking is enabled, Angus also checks the established
+ * engine session with its own hostname verifier. This check is independent of
+ * the TLS provider and supports numeric IP subject alternative names and
+ * single-label DNS wildcards. Explicit hostname verifiers still run afterward.
  * Used only with pipelining enabled and a channel-backed socket. For SMTPS use
  * <code>mail.smtps.ssl.engineFactory</code>. This does not replace a custom raw
  * socket factory or proxy. TLS key/trust-manager work may run on the connection's

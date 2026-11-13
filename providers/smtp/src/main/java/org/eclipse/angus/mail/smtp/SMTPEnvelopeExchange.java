@@ -136,13 +136,13 @@ final class SMTPEnvelopeExchange {
     private void fail(IOException ex) {
         if (failure == null)
             failure = ex;
-        socket.abort();
+        socket.abort(ex);
     }
 
-    void finish(boolean complete) {
+    void finish(boolean complete, Throwable cause) {
         socket.setInputHandler(null);
         if (!complete)
-            socket.abort();
+            socket.abort(cause);
     }
 
     static final class Reply {

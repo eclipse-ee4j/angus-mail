@@ -19,6 +19,7 @@ package org.eclipse.angus.mail.util;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
+import java.io.Closeable;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,6 +30,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -36,13 +38,11 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
 
 /**
  * A synchronous socket facade over a nonblocking channel. One calling thread
@@ -89,21 +89,52 @@ public final class DuplexSocket extends Socket {
         void available() throws IOException;
     }
 
+    /** A caller-thread check for the protocol consumer's next result. */
+    @FunctionalInterface
+    public interface InputCondition {
+        /** @return whether the consumer has its next result */
+        boolean isComplete();
+    }
+
     DuplexSocket(Socket socket, int writeTimeout) throws IOException {
         this.socket = socket;
         this.channel = socket.getChannel();
         this.writeTimeout = writeTimeout;
-        this.readTimeout = socket.getSoTimeout();
-        Selector opened = Selector.open();
+        Selector opened = null;
         try {
+            this.readTimeout = socket.getSoTimeout();
+            opened = Selector.open();
             channel.configureBlocking(false);
             key = channel.register(opened, 0);
             selector = opened;
-        } catch (IOException | RuntimeException ex) {
-            opened.close();
-            socket.close();
+        } catch (IOException | RuntimeException | Error ex) {
+            Throwable failure = opened == null ? ex : closeAfterFailure(opened, ex);
+            failure = closeAfterFailure(socket, failure);
+            failure = closeAfterFailure(channel, failure);
+            if (failure instanceof Error)
+                throw (Error) failure;
             throw ex;
         }
+    }
+
+    private static Throwable closeAfterFailure(Closeable resource, Throwable failure) {
+        try {
+            resource.close();
+        } catch (Throwable cleanup) {
+            return addFailure(failure, cleanup);
+        }
+        return failure;
+    }
+
+    private static Throwable addFailure(Throwable failure, Throwable cleanup) {
+        if (failure == null || failure == cleanup)
+            return cleanup;
+        if (cleanup instanceof Error && !(cleanup instanceof LinkageError)) {
+            cleanup.addSuppressed(failure);
+            return cleanup;
+        }
+        failure.addSuppressed(cleanup);
+        return failure;
     }
 
     /** @return whether TLS has been established on this channel */
@@ -126,20 +157,20 @@ public final class DuplexSocket extends Socket {
      * Processes incoming data until a protocol consumer has its next result.
      * The configured read timeout bounds this wait. Failure aborts the socket.
      *
-     * @param complete whether the consumer already has its result
+     * @param condition whether the consumer already has its result
      * @exception IOException for timeout, interruption, EOF or protocol failure
      */
-    public void awaitInput(BooleanSupplier complete) throws IOException {
+    public void awaitInput(InputCondition condition) throws IOException {
         enter();
         try {
             long deadline = deadline(socket.getSoTimeout());
-            while (!complete.getAsBoolean()) {
+            while (!condition.isComplete()) {
                 if (eof || tlsClosed)
                     throw new EOFException("[EOF]");
                 pump(deadline);
             }
         } catch (IOException | RuntimeException ex) {
-            abort();
+            abort(ex);
             throw ex;
         } finally {
             owner = null;
@@ -174,7 +205,7 @@ public final class DuplexSocket extends Socket {
                     throw new EOFException("Peer closed during TLS handshake");
             }
         } catch (IOException | RuntimeException ex) {
-            abort();
+            abort(ex);
             throw ex;
         } finally {
             owner = null;
@@ -203,7 +234,7 @@ public final class DuplexSocket extends Socket {
 
             @Override
             public int read(byte[] bytes, int offset, int length) throws IOException {
-                Objects.checkFromIndexSize(offset, length, bytes.length);
+                checkBounds(offset, length, bytes.length);
                 if (length == 0)
                     return 0;
                 // A protocol handler drains only available bytes, so it does
@@ -246,7 +277,7 @@ public final class DuplexSocket extends Socket {
 
             @Override
             public void write(byte[] bytes, int offset, int length) throws IOException {
-                Objects.checkFromIndexSize(offset, length, bytes.length);
+                checkBounds(offset, length, bytes.length);
                 enter();
                 try {
                     long deadline = deadline(writeTimeout);
@@ -257,7 +288,7 @@ public final class DuplexSocket extends Socket {
                         pump(deadline);
                     }
                 } catch (IOException | RuntimeException ex) {
-                    abort();
+                    abort(ex);
                     throw ex;
                 } finally {
                     applicationOutput = EMPTY;
@@ -280,12 +311,22 @@ public final class DuplexSocket extends Socket {
         owner = Thread.currentThread();
     }
 
+    private static void checkBounds(int offset, int length, int size) {
+        if (offset < 0 || length < 0 || offset > size - length)
+            throw new IndexOutOfBoundsException("offset " + offset +
+                    ", length " + length + ", size " + size);
+    }
+
     private static long deadline(int timeout) {
         return timeout <= 0 ? Long.MAX_VALUE :
                 System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
     }
 
     private void pump(long deadline) throws IOException {
+        pump(deadline, false);
+    }
+
+    private void pump(long deadline, boolean closing) throws IOException {
         if (Thread.currentThread().isInterrupted())
             throw new InterruptedIOException("Duplex I/O interrupted");
         if (System.nanoTime() >= Math.min(deadline, inputDeadline))
@@ -293,13 +334,18 @@ public final class DuplexSocket extends Socket {
         if (closed)
             throw new SocketException("Socket closed");
         boolean progress = writeNetwork();
+        // Once our close alert is sent, no further peer input is required.
+        if (closing && delegated == null && engine.isOutboundDone() &&
+                networkOutput.position() == 0)
+            return;
         progress |= readNetwork();
         if (engine == null) {
             progress |= processPlaintext();
         } else {
             progress |= processTLS();
             if (eof && delegated == null && !engine.isInboundDone() &&
-                    engine.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NEED_WRAP) {
+                    engine.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NEED_WRAP &&
+                    !(closing && engine.isOutboundDone())) {
                 engine.closeInbound();
                 if (networkInput.position() != 0)
                     throw new EOFException("Truncated TLS record");
@@ -314,16 +360,17 @@ public final class DuplexSocket extends Socket {
      * Delivers plaintext input and stages pending output without TLS wrapping.
      */
     private boolean processPlaintext() throws IOException {
-        networkInput.flip();
+        // Older Android versions lack ByteBuffer's covariant return methods.
+        ((Buffer) networkInput).flip();
         boolean progress = networkInput.hasRemaining();
         deliver(networkInput);
         networkInput.compact();
         if (networkOutput.position() == 0 && applicationOutput.hasRemaining()) {
             int count = Math.min(networkOutput.remaining(), applicationOutput.remaining());
             int limit = applicationOutput.limit();
-            applicationOutput.limit(applicationOutput.position() + count);
+            ((Buffer) applicationOutput).limit(applicationOutput.position() + count);
             networkOutput.put(applicationOutput);
-            applicationOutput.limit(limit);
+            ((Buffer) applicationOutput).limit(limit);
             progress = true;
         }
         return progress;
@@ -391,7 +438,10 @@ public final class DuplexSocket extends Socket {
             work.add(task);
         if (work.isEmpty())
             throw new SSLException("TLS engine requested an absent task");
-        delegated = tasks.submit(() -> work.forEach(Runnable::run));
+        delegated = tasks.submit(() -> {
+            for (Runnable delegatedTask : work)
+                delegatedTask.run();
+        });
     }
 
     /**
@@ -411,21 +461,27 @@ public final class DuplexSocket extends Socket {
     private boolean unwrapInput(SSLEngineResult.HandshakeStatus previous)
             throws IOException {
         if (engine.isInboundDone() || (networkInput.position() == 0 &&
-                previous != SSLEngineResult.HandshakeStatus.NEED_UNWRAP_AGAIN))
+                !needsUnwrapWithoutInput(previous)))
             return false;
-        networkInput.flip();
+        ((Buffer) networkInput).flip();
         SSLEngineResult result = engine.unwrap(networkInput, applicationInput);
         networkInput.compact();
         checkResult(result);
-        applicationInput.flip();
+        ((Buffer) applicationInput).flip();
         deliver(applicationInput);
-        applicationInput.clear();
+        ((Buffer) applicationInput).clear();
         tlsClosed |= result.getStatus() == SSLEngineResult.Status.CLOSED;
         if (result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW &&
                 !networkInput.hasRemaining())
             throw new SSLException("TLS record exceeds packet buffer");
         return result.bytesConsumed() != 0 || result.bytesProduced() != 0 ||
                 result.getHandshakeStatus() != previous;
+    }
+
+    private static boolean needsUnwrapWithoutInput(
+            SSLEngineResult.HandshakeStatus status) {
+        // Some TLS runtimes do not declare this optional handshake status.
+        return "NEED_UNWRAP_AGAIN".equals(status.name());
     }
 
     private void checkResult(SSLEngineResult result) throws SSLException {
@@ -461,7 +517,7 @@ public final class DuplexSocket extends Socket {
     private boolean writeNetwork() throws IOException {
         if (networkOutput.position() == 0)
             return false;
-        networkOutput.flip();
+        ((Buffer) networkOutput).flip();
         try {
             return channel.write(networkOutput) != 0;
         } finally {
@@ -483,19 +539,78 @@ public final class DuplexSocket extends Socket {
 
     /** Aborts physical I/O, including when invoked by a cancelling thread. */
     public void abort() {
-        closed = true;
-        try {
-            socket.close();
-        } catch (IOException ignored) {
-            // Preserve the I/O or protocol failure that prompted the abort.
-        } finally {
-            try {
-                selector.close();
-            } catch (IOException ignored) {
-            }
-            if (tasks != null)
-                tasks.shutdownNow();
+        Throwable failure = closeResources(null);
+        if (failure instanceof RuntimeException)
+            throw (RuntimeException) failure;
+        if (failure instanceof Error)
+            throw (Error) failure;
+        // Cancellation is best-effort. Ordinary close reports I/O failures.
+    }
+
+    /**
+     * Aborts physical I/O, retaining cleanup errors on the original failure.
+     * The caller remains responsible for reporting that failure.
+     *
+     * @param failure the original I/O or protocol failure
+     */
+    public void abort(Throwable failure) {
+        if (failure == null) {
+            abort();
+            return;
         }
+        Throwable result = closeResources(failure);
+        if (result instanceof Error && result != failure)
+            throw (Error) result;
+    }
+
+    private synchronized Throwable closeResources(Throwable failure) {
+        if (closed)
+            return failure;
+        closed = true;
+        failure = closeAfterFailure(socket, failure);
+        // A custom socket can fail before closing its physical channel.
+        failure = closeAfterFailure(channel, failure);
+        failure = closeAfterFailure(selector, failure);
+        if (tasks != null) {
+            try {
+                tasks.shutdownNow();
+            } catch (RuntimeException | Error cleanup) {
+                failure = addFailure(failure, cleanup);
+            }
+        }
+        return failure;
+    }
+
+    private Throwable awaitTasks(Throwable failure) {
+        if (tasks == null)
+            return failure;
+        boolean interrupted = false;
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TASK_SHUTDOWN_TIMEOUT_SECONDS);
+        try {
+            while (!tasks.isTerminated()) {
+                long remaining = deadline - System.nanoTime();
+                if (remaining <= 0)
+                    return addFailure(failure, new IOException("TLS task did not stop"));
+                try {
+                    if (tasks.awaitTermination(remaining, TimeUnit.NANOSECONDS))
+                        break;
+                } catch (InterruptedException ex) {
+                    interrupted = true;
+                }
+            }
+        } finally {
+            if (interrupted)
+                Thread.currentThread().interrupt();
+        }
+        return failure;
+    }
+
+    /** Closes failed setup without starting a TLS shutdown exchange. */
+    IOException closeOnFailure(IOException failure) {
+        Throwable result = awaitTasks(closeResources(failure));
+        if (result instanceof Error)
+            throw (Error) result;
+        return failure;
     }
 
     @Override
@@ -510,27 +625,34 @@ public final class DuplexSocket extends Socket {
                 engine.closeOutbound();
                 long deadline = deadline(writeTimeout > 0 ?
                         Math.min(writeTimeout, CLOSE_TIMEOUT_MILLIS) : CLOSE_TIMEOUT_MILLIS);
-                while (!engine.isOutboundDone() || networkOutput.position() > 0)
-                    pump(deadline);
+                flushClose(deadline);
             }
-        } catch (IOException | RuntimeException ex) {
+        } catch (IOException | RuntimeException | Error ex) {
             failure = ex;
-            throw ex;
         } finally {
-            abort();
+            failure = closeResources(failure);
             owner = null;
-            if (tasks != null) {
-                try {
-                    if (!tasks.awaitTermination(TASK_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                        IOException cleanup = new IOException("TLS task did not stop");
-                        if (failure == null)
-                            throw cleanup;
-                        failure.addSuppressed(cleanup);
-                    }
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                }
+            failure = awaitTasks(failure);
+        }
+        if (failure instanceof IOException)
+            throw (IOException) failure;
+        if (failure instanceof RuntimeException)
+            throw (RuntimeException) failure;
+        if (failure instanceof Error)
+            throw (Error) failure;
+    }
+
+    private void flushClose(long deadline) throws IOException {
+        while (delegated != null || !engine.isOutboundDone() || networkOutput.position() > 0) {
+            if (delegated == null) {
+                SSLEngineResult.HandshakeStatus state = engine.getHandshakeStatus();
+                // Some engines queue close output without requesting NEED_WRAP.
+                if (state == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING &&
+                        !engine.isOutboundDone() && networkOutput.remaining() >=
+                        engine.getSession().getPacketBufferSize())
+                    wrapOutput(EMPTY, state);
             }
+            pump(deadline, true);
         }
     }
 

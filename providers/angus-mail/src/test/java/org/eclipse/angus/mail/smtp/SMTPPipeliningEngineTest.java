@@ -21,8 +21,13 @@ import org.eclipse.angus.mail.util.DuplexSocket;
 import org.junit.Test;
 
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -30,15 +35,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -206,17 +214,277 @@ public class SMTPPipeliningEngineTest {
                     new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
                 String prefix = configure(exchange, implicit);
                 CountingFactory factory = new CountingFactory(exchange.handler.context.getSocketFactory());
+                AtomicInteger engines = new AtomicInteger();
+                exchange.properties.setProperty(prefix + ".socketFactory.fallback", "true");
                 exchange.properties.put(prefix + ".ssl.socketFactory", factory);
                 exchange.properties.put(prefix + ".ssl.engineFactory",
-                        (BiFunction<String, Integer, SSLEngine>) (host, port) -> null);
+                        (BiFunction<String, Integer, SSLEngine>) (host, port) -> {
+                            engines.incrementAndGet();
+                            return null;
+                        });
                 try {
                     exchange.send();
                     fail("Broken hook silently ignored");
                 } catch (MessagingException expected) {
+                    assertEquals(1, engines.get());
                     assertEquals(0, factory.calls.get());
+                    assertSetupFailed(exchange);
                 }
             }
         }
+    }
+
+    @Test(timeout = 30000)
+    public void testFailedEngineHookIsNotRetried() throws Exception {
+        for (boolean implicit : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange =
+                    new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                String prefix = configure(exchange, implicit);
+                AtomicInteger engines = new AtomicInteger();
+                IllegalStateException failure = new IllegalStateException("engine creation failed");
+                exchange.properties.setProperty(prefix + ".socketFactory.fallback", "true");
+                exchange.properties.put(prefix + ".ssl.engineFactory",
+                        (BiFunction<String, Integer, SSLEngine>) (host, port) -> {
+                            if (engines.incrementAndGet() == 1)
+                                throw failure;
+                            return exchange.handler.context.createSSLEngine(host, port);
+                        });
+                try {
+                    exchange.send();
+                    fail("Failed engine hook was retried");
+                } catch (MessagingException expected) {
+                    assertCause(expected, failure);
+                    assertEquals(1, engines.get());
+                    assertSetupFailed(exchange);
+                }
+            }
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testEngineHookLinkageFailureClosesConnection() throws Exception {
+        for (boolean implicit : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange =
+                    new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                String prefix = configure(exchange, implicit);
+                AtomicInteger engines = new AtomicInteger();
+                NoClassDefFoundError failure = new NoClassDefFoundError("unavailable engine hook");
+                exchange.properties.setProperty(prefix + ".socketFactory.fallback", "true");
+                exchange.properties.put(prefix + ".ssl.engineFactory",
+                        (BiFunction<String, Integer, SSLEngine>) (host, port) -> {
+                            engines.incrementAndGet();
+                            throw failure;
+                        });
+                try {
+                    exchange.send();
+                    fail("Engine hook linkage failure was ignored");
+                } catch (MessagingException expected) {
+                    assertCause(expected, failure);
+                    assertEquals(1, engines.get());
+                    assertSetupFailed(exchange);
+                }
+            }
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testWrongPeerEngineIsNotRetried() throws Exception {
+        for (boolean implicit : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange =
+                    new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                String prefix = configure(exchange, implicit);
+                AtomicInteger engines = new AtomicInteger();
+                exchange.properties.setProperty(prefix + ".socketFactory.fallback", "true");
+                exchange.properties.put(prefix + ".ssl.engineFactory",
+                        (BiFunction<String, Integer, SSLEngine>) (host, port) -> {
+                            engines.incrementAndGet();
+                            return exchange.handler.context.createSSLEngine("wrong.example.invalid", port);
+                        });
+                try {
+                    exchange.send();
+                    fail("Engine for a different peer was accepted");
+                } catch (MessagingException expected) {
+                    assertEquals(1, engines.get());
+                    assertSetupFailed(exchange);
+                }
+            }
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testEngineConfigurationFailureIsNotRetried() throws Exception {
+        for (boolean implicit : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange =
+                    new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                String prefix = configure(exchange, implicit);
+                AtomicInteger engines = new AtomicInteger();
+                exchange.properties.setProperty(prefix + ".socketFactory.fallback", "true");
+                exchange.properties.setProperty(prefix + ".ssl.protocols", "invalid-protocol");
+                exchange.properties.put(prefix + ".ssl.engineFactory",
+                        (BiFunction<String, Integer, SSLEngine>) (host, port) -> {
+                            engines.incrementAndGet();
+                            return exchange.handler.context.createSSLEngine(host, port);
+                        });
+                try {
+                    exchange.send();
+                    fail("Invalid engine configuration was accepted");
+                } catch (MessagingException expected) {
+                    Throwable cause = assertCause(expected, IllegalArgumentException.class);
+                    assertTrue(cause.getMessage(), cause.getMessage().contains("invalid-protocol"));
+                    assertEquals(1, engines.get());
+                    assertSetupFailed(exchange);
+                }
+            }
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testInvalidEngineHookTypeDoesNotRetryConnection() throws Exception {
+        for (boolean implicit : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange =
+                    new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                String prefix = configure(exchange, implicit);
+                exchange.properties.setProperty(prefix + ".socketFactory.fallback", "true");
+                exchange.properties.put(prefix + ".ssl.engineFactory", "not an engine factory");
+                try {
+                    exchange.send();
+                    fail("Invalid engine factory type was accepted");
+                } catch (MessagingException expected) {
+                    assertCause(expected, IOException.class);
+                    assertSetupFailed(exchange);
+                }
+            }
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testIgnoredIdentityCheckRequiresExplicitVerifier() throws Exception {
+        for (boolean implicit : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange =
+                    new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                String prefix = configure(exchange, implicit);
+                AtomicInteger engines = configureIdentityIgnoringEngine(exchange, prefix);
+                try {
+                    exchange.send();
+                    fail("Engine silently ignored server identity checking");
+                } catch (MessagingException expected) {
+                    assertCause(expected, SSLException.class);
+                    assertEquals(1, engines.get());
+                    assertSetupFailed(exchange);
+                }
+            }
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testExplicitVerifierAllowsIdentityIgnoringEngineAndReuse() throws Exception {
+        for (boolean implicit : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange =
+                    new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                String prefix = configure(exchange, implicit);
+                AtomicInteger engines = configureIdentityIgnoringEngine(exchange, prefix);
+                AtomicInteger verifications = new AtomicInteger();
+                exchange.properties.put(prefix + ".ssl.hostnameverifier",
+                        (HostnameVerifier) (host, session) -> {
+                            verifications.incrementAndGet();
+                            assertEquals("localhost", host);
+                            assertTrue(session.isValid());
+                            return true;
+                        });
+                exchange.send();
+                exchange.send();
+                assertEquals(1, engines.get());
+                assertEquals(1, verifications.get());
+                assertEquals(1, exchange.server.clientCount());
+                assertEquals(Arrays.asList(3, 3), exchange.handler.groups);
+                exchange.assertContent();
+            }
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testExplicitVerifierRejectsIdentityIgnoringEngine() throws Exception {
+        for (boolean implicit : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange =
+                    new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                String prefix = configure(exchange, implicit);
+                AtomicInteger engines = configureIdentityIgnoringEngine(exchange, prefix);
+                AtomicInteger verifications = new AtomicInteger();
+                exchange.properties.put(prefix + ".ssl.hostnameverifier",
+                        (HostnameVerifier) (host, session) -> {
+                            verifications.incrementAndGet();
+                            return false;
+                        });
+                try {
+                    exchange.send();
+                    fail("Explicit verifier rejection was ignored");
+                } catch (MessagingException expected) {
+                    assertCause(expected, SSLException.class);
+                    assertEquals(1, engines.get());
+                    assertEquals(1, verifications.get());
+                    assertSetupFailed(exchange);
+                }
+            }
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testFactoryLookupFailureKeepsLegacyFallback() throws Exception {
+        try (SMTPPipeliningTest.Exchange exchange =
+                new SMTPPipeliningTest.Exchange(2, true, 3)) {
+            String prefix = configure(exchange, true);
+            AtomicInteger engines = new AtomicInteger();
+            exchange.properties.remove(prefix + ".ssl.socketFactory");
+            exchange.properties.setProperty(prefix + ".ssl.socketFactory.class",
+                    "org.eclipse.angus.mail.smtp.MissingSocketFactory");
+            exchange.properties.setProperty(prefix + ".socketFactory.fallback", "true");
+            exchange.properties.put(prefix + ".ssl.engineFactory",
+                    (BiFunction<String, Integer, SSLEngine>) (host, port) -> {
+                        engines.incrementAndGet();
+                        return exchange.handler.context.createSSLEngine(host, port);
+                    });
+            exchange.send();
+            assertEquals(1, engines.get());
+            assertEquals(1, exchange.server.clientCount());
+            exchange.assertContent();
+        }
+    }
+
+    private void assertSetupFailed(SMTPPipeliningTest.Exchange exchange) throws Exception {
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(3);
+        while (exchange.server.clientCount() < 1 && System.nanoTime() < deadline)
+            Thread.sleep(10);
+        assertEquals(1, exchange.server.clientCount());
+        assertFalse(exchange.transport.isConnected());
+        assertFalse(exchange.handler.commands.stream().anyMatch(command ->
+                command.startsWith("MAIL ") || command.equals("DATA") || command.startsWith("BDAT ")));
+    }
+
+    private AtomicInteger configureIdentityIgnoringEngine(
+            SMTPPipeliningTest.Exchange exchange, String prefix) {
+        AtomicInteger engines = new AtomicInteger();
+        exchange.properties.setProperty(prefix + ".socketFactory.fallback", "true");
+        exchange.properties.put(prefix + ".ssl.engineFactory",
+                (BiFunction<String, Integer, SSLEngine>) (host, port) -> {
+                    engines.incrementAndGet();
+                    return new IdentityIgnoringEngine(exchange.handler.context.createSSLEngine(host, port));
+                });
+        return engines;
+    }
+
+    private void assertCause(Throwable failure, Throwable expected) {
+        Throwable current = failure;
+        while (current != null && current != expected)
+            current = current.getCause();
+        assertTrue("Original engine failure was lost: " + failure, current == expected);
+    }
+
+    private Throwable assertCause(Throwable failure, Class<? extends Throwable> expected) {
+        Throwable current = failure;
+        while (current != null && !expected.isInstance(current))
+            current = current.getCause();
+        assertTrue("Original engine failure was lost: " + failure, current != null);
+        return current;
     }
 
     private SSLContext observingTlsContext(AtomicReference<Thread> worker) throws Exception {
@@ -259,6 +527,92 @@ public class SMTPPipeliningEngineTest {
             exchange.properties.setProperty(prefix + ".starttls.required", "true");
         }
         return prefix;
+    }
+
+    private static final class IdentityIgnoringEngine extends SSLEngine {
+        private final SSLEngine delegate;
+
+        IdentityIgnoringEngine(SSLEngine delegate) {
+            super(delegate.getPeerHost(), delegate.getPeerPort());
+            this.delegate = delegate;
+        }
+
+        @Override
+        public SSLParameters getSSLParameters() {
+            SSLParameters parameters = delegate.getSSLParameters();
+            parameters.setEndpointIdentificationAlgorithm(null);
+            return parameters;
+        }
+
+        @Override
+        public void setSSLParameters(SSLParameters parameters) {
+            String identity = parameters.getEndpointIdentificationAlgorithm();
+            parameters.setEndpointIdentificationAlgorithm(null);
+            try {
+                delegate.setSSLParameters(parameters);
+            } finally {
+                parameters.setEndpointIdentificationAlgorithm(identity);
+            }
+        }
+
+        @Override
+        public SSLEngineResult wrap(ByteBuffer[] input, int offset, int length, ByteBuffer output)
+                throws SSLException {
+            return delegate.wrap(input, offset, length, output);
+        }
+
+        @Override
+        public SSLEngineResult unwrap(ByteBuffer input, ByteBuffer[] output, int offset, int length)
+                throws SSLException {
+            return delegate.unwrap(input, output, offset, length);
+        }
+
+        @Override
+        public Runnable getDelegatedTask() { return delegate.getDelegatedTask(); }
+        @Override
+        public void closeInbound() throws SSLException { delegate.closeInbound(); }
+        @Override
+        public boolean isInboundDone() { return delegate.isInboundDone(); }
+        @Override
+        public void closeOutbound() { delegate.closeOutbound(); }
+        @Override
+        public boolean isOutboundDone() { return delegate.isOutboundDone(); }
+        @Override
+        public String[] getSupportedCipherSuites() { return delegate.getSupportedCipherSuites(); }
+        @Override
+        public String[] getEnabledCipherSuites() { return delegate.getEnabledCipherSuites(); }
+        @Override
+        public void setEnabledCipherSuites(String[] suites) { delegate.setEnabledCipherSuites(suites); }
+        @Override
+        public String[] getSupportedProtocols() { return delegate.getSupportedProtocols(); }
+        @Override
+        public String[] getEnabledProtocols() { return delegate.getEnabledProtocols(); }
+        @Override
+        public void setEnabledProtocols(String[] protocols) { delegate.setEnabledProtocols(protocols); }
+        @Override
+        public SSLSession getSession() { return delegate.getSession(); }
+        @Override
+        public SSLSession getHandshakeSession() { return delegate.getHandshakeSession(); }
+        @Override
+        public void beginHandshake() throws SSLException { delegate.beginHandshake(); }
+        @Override
+        public SSLEngineResult.HandshakeStatus getHandshakeStatus() { return delegate.getHandshakeStatus(); }
+        @Override
+        public void setUseClientMode(boolean client) { delegate.setUseClientMode(client); }
+        @Override
+        public boolean getUseClientMode() { return delegate.getUseClientMode(); }
+        @Override
+        public void setNeedClientAuth(boolean needed) { delegate.setNeedClientAuth(needed); }
+        @Override
+        public boolean getNeedClientAuth() { return delegate.getNeedClientAuth(); }
+        @Override
+        public void setWantClientAuth(boolean wanted) { delegate.setWantClientAuth(wanted); }
+        @Override
+        public boolean getWantClientAuth() { return delegate.getWantClientAuth(); }
+        @Override
+        public void setEnableSessionCreation(boolean enabled) { delegate.setEnableSessionCreation(enabled); }
+        @Override
+        public boolean getEnableSessionCreation() { return delegate.getEnableSessionCreation(); }
     }
 
     private static final class CountingFactory extends SSLSocketFactory {

@@ -75,7 +75,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class SMTPSSLEngineProbe {
     private static final String AUTH = Base64.getEncoder().encodeToString(
             "\0fixture\0fixture-password".getBytes(StandardCharsets.US_ASCII));
-    private static final int SOCKET_BUFFER = Integer.getInteger("probe.socketBuffer", 512);
+    // Linux's minimum-sized receive windows can exhaust the test write deadline.
+    private static final int SOCKET_BUFFER = Integer.getInteger("probe.socketBuffer", 2048);
     private static final int RECIPIENTS = Integer.getInteger("probe.recipients", 100);
     private static final int MESSAGES = Integer.getInteger("probe.messages", 2);
     private static final int MAIL_REPLY = Integer.getInteger("probe.mailReply", 32768);

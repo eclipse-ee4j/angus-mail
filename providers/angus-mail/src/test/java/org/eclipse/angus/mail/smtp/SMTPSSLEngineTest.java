@@ -126,6 +126,7 @@ public class SMTPSSLEngineTest {
         command.add(classpath);
         command.add("-Djava.security.properties=" + security.toExternalForm());
         command.add("-Djavax.net.debug=ssl:handshake");
+        command.add("-Dprobe.socketBuffer=" + Integer.getInteger("probe.socketBuffer", 2048));
         command.add("-Dprobe.mailReply=" + mailReply);
         command.add("-Dprobe.rcptReply=" + rcptReply);
         command.add("-Dprobe.ioChunk=" + ioChunk);

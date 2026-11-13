@@ -24,6 +24,25 @@
     cleanup are unchanged.  Exceptions thrown by the verifier retain
     their existing types and handling.
 
+- Conscrypt server identity checking
+
+    Server identity checking uses the HTTPS endpoint identification algorithm
+    for known Conscrypt socket classes, including Android's implementation.
+    Conscrypt does not perform hostname checks for the LDAPS algorithm.
+    Other TLS implementations continue to use LDAPS. Disabling
+    mail.<protocol>.ssl.checkserveridentity and explicit hostname verifiers
+    retain their existing behavior.
+
+    Opaque socket wrappers and relocated Conscrypt classes are not recognized;
+    those configurations can use the existing explicit hostname verifier.
+
+    Opt-in NIO connections additionally use Angus's hostname verifier after
+    the handshake when server identity checking is enabled. This prevents
+    mixed engine/trust-manager providers from skipping the check. Numeric IP
+    addresses require matching IP subject alternative names; DNS wildcards
+    match a single leftmost label. Legacy SSLSocket trust-manager behavior
+    is unchanged.
+
 - SMTP capability state
 
     Cached EHLO capabilities are discarded before a new EHLO or HELO,
@@ -57,6 +76,14 @@
     Angus still applies its protocol, cipher and hostname-verification policy.
     A failed hook does not fall back to different trust settings.
     Default JSSE and the stock MailSSLSocketFactory need no hook.
+    A global ssl.SocketFactory.provider setting, including Android's built-in
+    factory, retains sequential sending without a matching engine hook.
+    Applications using the BiFunction hook below Android API 24 need
+    core-library desugaring; ordinary sending does not require the hook.
+    Engines that discard endpoint identification settings, including Android 7's
+    engine, need an explicit mail.smtp.ssl.hostnameverifier when server identity
+    checking is enabled. Without one, setup fails before the TLS handshake.
+    The verifier checks the established session before SMTP continues.
     Each channel connection owns a selector and buffers.  TLS additionally
     uses an owned worker for delegated TLS tasks, stopped on close.
     No connection is retried or downgraded after an envelope failure.

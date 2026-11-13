@@ -2007,7 +2007,7 @@ public class SMTPTransport extends Transport {
      * Finishes envelope I/O before delivery results or RSET are processed.
      */
     private void finishEnvelopeExchange(EnvelopeState state, boolean complete) {
-        envelopeExchange.finish(complete);
+        envelopeExchange.finish(complete, state.failure);
         envelopeExchange = null;
         envelopeCommandCapture = null;
         if (!complete || Thread.currentThread().isInterrupted()) {
