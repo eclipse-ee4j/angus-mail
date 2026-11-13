@@ -26,6 +26,7 @@ import javax.net.ssl.SSLSession;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -56,6 +57,65 @@ import static org.junit.Assert.fail;
 
 /** Checks stream contracts and caller-thread input callbacks. */
 public class DuplexSocketCompatibilityTest {
+    @Test(timeout = 10000)
+    public void testLocalCloseRejectsBufferedInputAndExistingStreams() throws Exception {
+        try (Connection connection = new Connection()) {
+            InputStream input = connection.socket.getInputStream();
+            OutputStream output = connection.socket.getOutputStream();
+            AtomicInteger ready = new AtomicInteger();
+            connection.socket.setInputHandler(() -> ready.set(input.available()));
+            connection.peer.getOutputStream().write(new byte[] {1, 2});
+            connection.socket.awaitInput(() -> ready.get() == 2);
+            connection.socket.setInputHandler(null);
+            assertEquals(2, input.available());
+            connection.socket.close();
+            assertThrows(SocketException.class, input::read);
+            assertThrows(SocketException.class, input::available);
+            assertThrows(SocketException.class, () -> output.write(3));
+            assertThrows(SocketException.class, connection.socket::getInputStream);
+            assertThrows(SocketException.class, connection.socket::getOutputStream);
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testPeerInputEofLeavesOutputUsable() throws Exception {
+        try (Connection connection = new Connection()) {
+            connection.peer.shutdownOutput();
+            assertEquals(-1, connection.socket.getInputStream().read());
+            connection.socket.getOutputStream().write(42);
+            assertEquals(42, connection.peer.getInputStream().read());
+            assertFalse(connection.socket.isClosed());
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testPhysicalSocketAbortKeepsSocketExceptionContract() throws Exception {
+        for (boolean write : new boolean[] {false, true}) {
+            try (Connection connection = new Connection()) {
+                connection.socket.getChannel().socket().close();
+                SocketException failure = assertThrows(SocketException.class, () -> {
+                    if (write)
+                        connection.socket.getOutputStream().write(42);
+                    else
+                        connection.socket.getInputStream().read();
+                });
+                if (write)
+                    assertTrue(failure.getCause() instanceof ClosedChannelException);
+                assertTrue(connection.socket.isClosed());
+            }
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testCloseAfterPhysicalAbortDisposesTlsWithoutAnotherExchange() throws Exception {
+        try (Connection connection = new Connection()) {
+            connection.socket.startTLS(new ClosingEngine(true));
+            connection.socket.getChannel().socket().close();
+            connection.socket.close();
+            assertTrue(connection.socket.isClosed());
+        }
+    }
+
     @Test(timeout = 10000)
     public void testReplyTimeoutFollowsIncomingProgress() throws Exception {
         try (Connection connection = new Connection()) {

@@ -33,6 +33,7 @@ import java.net.SocketOption;
 import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -196,7 +197,11 @@ public final class DuplexSocket extends Socket {
                     throw new EOFException("[EOF]");
                 pump(deadline);
             }
-        } catch (IOException | RuntimeException | Error ex) {
+        } catch (IOException ex) {
+            IOException failure = socketFailure(ex);
+            abort(failure);
+            throw failure;
+        } catch (RuntimeException | Error ex) {
             abort(ex);
             throw ex;
         } finally {
@@ -234,7 +239,11 @@ public final class DuplexSocket extends Socket {
             if (engine.isInboundDone() || engine.isOutboundDone())
                 throw new EOFException("Peer closed during TLS handshake");
             tlsEstablished = true;
-        } catch (IOException | RuntimeException | Error ex) {
+        } catch (IOException ex) {
+            IOException failure = socketFailure(ex);
+            abort(failure);
+            throw failure;
+        } catch (RuntimeException | Error ex) {
             abort(ex);
             throw ex;
         } finally {
@@ -258,7 +267,8 @@ public final class DuplexSocket extends Socket {
     }
 
     @Override
-    public InputStream getInputStream() {
+    public InputStream getInputStream() throws SocketException {
+        checkOpen();
         return new InputStream() {
             @Override
             public int read() throws IOException {
@@ -271,6 +281,7 @@ public final class DuplexSocket extends Socket {
                 checkBounds(offset, length, bytes.length);
                 if (length == 0)
                     return 0;
+                checkOpen();
                 // A protocol handler drains only available bytes, so it does
                 // not recursively enter the pump or change I/O ownership.
                 if (available == 0) {
@@ -290,7 +301,8 @@ public final class DuplexSocket extends Socket {
             }
 
             @Override
-            public int available() {
+            public int available() throws SocketException {
+                checkOpen();
                 return available;
             }
 
@@ -302,7 +314,8 @@ public final class DuplexSocket extends Socket {
     }
 
     @Override
-    public OutputStream getOutputStream() {
+    public OutputStream getOutputStream() throws SocketException {
+        checkOpen();
         return new OutputStream() {
             @Override
             public void write(int value) throws IOException {
@@ -317,11 +330,14 @@ public final class DuplexSocket extends Socket {
                     long deadline = deadline(writeTimeout);
                     applicationOutput = ByteBuffer.wrap(bytes, offset, length);
                     while (applicationOutput.hasRemaining() || networkOutput.position() != 0) {
-                        if (eof || tlsClosed)
-                            throw new EOFException("Peer closed during write");
+                        // Input EOF does not close the peer's receiving side.
                         pump(deadline);
                     }
-                } catch (IOException | RuntimeException | Error ex) {
+                } catch (IOException ex) {
+                    IOException failure = socketFailure(ex);
+                    abort(failure);
+                    throw failure;
+                } catch (RuntimeException | Error ex) {
                     abort(ex);
                     throw ex;
                 } finally {
@@ -338,11 +354,25 @@ public final class DuplexSocket extends Socket {
     }
 
     private synchronized void enter() throws IOException {
-        if (closed)
-            throw new SocketException("Socket closed");
+        checkOpen();
         if (owner != null)
             throw new IOException("Concurrent or recursive duplex I/O");
         owner = Thread.currentThread();
+    }
+
+    private void checkOpen() throws SocketException {
+        if (closed)
+            throw new SocketException("Socket closed");
+    }
+
+    /** Keeps the Socket stream contract while retaining the channel's cause. */
+    private static IOException socketFailure(IOException failure) {
+        if (failure instanceof ClosedChannelException) {
+            SocketException closed = new SocketException("Socket closed");
+            closed.initCause(failure);
+            return closed;
+        }
+        return failure;
     }
 
     private static void checkBounds(int offset, int length, int size) {
@@ -680,7 +710,8 @@ public final class DuplexSocket extends Socket {
         try {
             // Never call the engine concurrently with a write or delegated
             // task. Cancellation closes the raw channel instead of waiting.
-            if (!closed && owner == null && engine != null && delegated == null &&
+            if (!closed && channel.isOpen() && owner == null && engine != null &&
+                    delegated == null &&
                     !Thread.currentThread().isInterrupted()) {
                 enter();
                 engine.closeOutbound();
@@ -688,7 +719,9 @@ public final class DuplexSocket extends Socket {
                         Math.min(writeTimeout, CLOSE_TIMEOUT_MILLIS) : CLOSE_TIMEOUT_MILLIS);
                 flushClose(deadline);
             }
-        } catch (IOException | RuntimeException | Error ex) {
+        } catch (IOException ex) {
+            failure = socketFailure(ex);
+        } catch (RuntimeException | Error ex) {
             failure = ex;
         } finally {
             failure = closeResources(failure);
