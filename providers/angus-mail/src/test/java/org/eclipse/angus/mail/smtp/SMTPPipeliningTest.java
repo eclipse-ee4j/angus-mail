@@ -48,6 +48,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -62,6 +63,37 @@ import static org.junit.Assert.fail;
  * No latency threshold is needed to prove that commands were pipelined.
  */
 public class SMTPPipeliningTest {
+    @Test(timeout = 20000)
+    public void testPreparationHookOnlyRunsForPipelinedEnvelope() throws Exception {
+        for (int mode = 0; mode < 4; mode++) {
+            final int configuration = mode;
+            int[] groups = mode == 3 ? new int[]{3} : new int[]{1, 1, 1};
+            try (Exchange exchange = new Exchange(2, groups)) {
+                if (mode == 0)
+                    exchange.properties.remove("mail.smtp.pipelining");
+                else if (mode == 1)
+                    exchange.handler.extensions.remove("PIPELINING");
+                AtomicInteger calls = new AtomicInteger();
+                SMTPTransport transport = new SMTPTransport(exchange.session(),
+                        new URLName("smtp://localhost")) {
+                    @Override
+                    protected boolean isPipeliningCompatible() {
+                        return configuration != 2;
+                    }
+
+                    @Override
+                    protected void sendEnvelope() throws MessagingException {
+                        calls.incrementAndGet();
+                        super.sendEnvelope();
+                    }
+                };
+                exchange.connect(transport);
+                exchange.send();
+                assertEquals(mode == 3 ? 1 : 0, calls.get());
+            }
+        }
+    }
+
     @Test(timeout = 20000)
     public void testGroupsAndDataBoundary() throws Exception {
         try (Exchange exchange = new Exchange(70, 32, 32, 7)) {

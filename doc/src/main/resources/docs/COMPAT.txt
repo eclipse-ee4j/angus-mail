@@ -62,7 +62,8 @@
     Existing SMTPTransport subclasses remain sequential unless they override
     isPipeliningCompatible.  An opted-in subclass receives command and reply
     callbacks on the sending thread, but several command callbacks can precede
-    their replies.  Use sendEnvelope for preparation common to both paths.
+    their replies.  The sendEnvelope preparation hook runs only for the
+    selected pipelined envelope; sequential preparation remains in mailFrom.
     See those protected methods' Javadoc before opting in.
 
     The opt-in path uses channel I/O and SSLEngine, with no SMTP reader
