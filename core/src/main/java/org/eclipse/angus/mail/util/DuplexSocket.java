@@ -58,6 +58,8 @@ public final class DuplexSocket extends Socket {
     private static final ByteBuffer EMPTY = ByteBuffer.allocate(0);
     private static final int APPLICATION_HIGH_WATER = 8192;
     private static final int MIN_BUFFER_SIZE = 64 * 1024;
+    private static final int MAX_TLS_BUFFER_SIZE = 1024 * 1024;
+    private static final int MAX_PENDING_INPUT = 4 * 1024 * 1024;
     private static final int MAX_TLS_STEPS = 64;
     private static final int SELECT_TIMEOUT_MILLIS = 20;
     private static final int CLOSE_TIMEOUT_MILLIS = 1000;
@@ -68,6 +70,7 @@ public final class DuplexSocket extends Socket {
     private final Selector selector;
     private final SelectionKey key;
     private final int writeTimeout;
+    private final int peerPort;
     private int readTimeout;
     private long inputDeadline = Long.MAX_VALUE;
     private final ArrayDeque<ByteBuffer> received = new ArrayDeque<>();
@@ -76,6 +79,7 @@ public final class DuplexSocket extends Socket {
     private ByteBuffer applicationInput = ByteBuffer.allocate(MIN_BUFFER_SIZE);
     private ByteBuffer applicationOutput = EMPTY;
     private SSLEngine engine;
+    private boolean tlsEstablished;
     private ExecutorService tasks;
     private Future<?> delegated;
     private InputHandler handler;
@@ -100,11 +104,20 @@ public final class DuplexSocket extends Socket {
     }
 
     DuplexSocket(Socket socket, int writeTimeout) throws IOException {
+        this(socket, writeTimeout, -1);
+    }
+
+    DuplexSocket(Socket socket, int writeTimeout, int peerPort) throws IOException {
         this.socket = socket;
-        this.channel = socket.getChannel();
         this.writeTimeout = writeTimeout;
+        this.peerPort = peerPort;
         Selector opened = null;
+        SocketChannel physical = null;
         try {
+            physical = socket.getChannel();
+            channel = physical;
+            if (channel == null)
+                throw new SocketException("Duplex socket requires a channel");
             this.readTimeout = socket.getSoTimeout();
             opened = Selector.open();
             channel.configureBlocking(false);
@@ -113,7 +126,8 @@ public final class DuplexSocket extends Socket {
         } catch (IOException | RuntimeException | Error ex) {
             Throwable failure = opened == null ? ex : closeAfterFailure(opened, ex);
             failure = closeAfterFailure(socket, failure);
-            failure = closeAfterFailure(channel, failure);
+            if (physical != null)
+                failure = closeAfterFailure(physical, failure);
             if (failure instanceof Error)
                 throw (Error) failure;
             throw ex;
@@ -142,7 +156,12 @@ public final class DuplexSocket extends Socket {
 
     /** @return whether TLS has been established on this channel */
     public boolean isSSL() {
-        return engine != null;
+        return tlsEstablished;
+    }
+
+    /** The logical TLS destination, rather than the physical proxy endpoint. */
+    int getPeerPort() {
+        return peerPort > 0 ? peerPort : socket.getPort();
     }
 
     /**
@@ -158,7 +177,8 @@ public final class DuplexSocket extends Socket {
 
     /**
      * Processes incoming data until a protocol consumer has its next result.
-     * The configured read timeout bounds this wait. Failure aborts the socket.
+     * Incoming data refreshes an installed protocol handler's read timeout.
+     * Failure aborts the socket.
      *
      * @param condition whether the consumer already has its result
      * @exception IOException for timeout, interruption, EOF or protocol failure
@@ -167,12 +187,16 @@ public final class DuplexSocket extends Socket {
         enter();
         try {
             long deadline = deadline(socket.getSoTimeout());
+            if (handler != null) {
+                inputDeadline = deadline;
+                deadline = Long.MAX_VALUE;
+            }
             while (!condition.isComplete()) {
                 if (eof || tlsClosed)
                     throw new EOFException("[EOF]");
                 pump(deadline);
             }
-        } catch (IOException | RuntimeException ex) {
+        } catch (IOException | RuntimeException | Error ex) {
             abort(ex);
             throw ex;
         } finally {
@@ -186,10 +210,10 @@ public final class DuplexSocket extends Socket {
         enter();
         try {
             this.engine = engine;
-            int packet = engine.getSession().getPacketBufferSize();
-            networkInput = ByteBuffer.allocate(Math.max(MIN_BUFFER_SIZE, packet * 2));
-            networkOutput = ByteBuffer.allocate(Math.max(MIN_BUFFER_SIZE, packet * 2));
-            applicationInput = ByteBuffer.allocate(Math.max(MIN_BUFFER_SIZE,
+            int packet = bufferSize(engine.getSession().getPacketBufferSize());
+            networkInput = ByteBuffer.allocate(packet);
+            networkOutput = ByteBuffer.allocate(packet);
+            applicationInput = ByteBuffer.allocate(bufferSize(
                     engine.getSession().getApplicationBufferSize()));
             tasks = Executors.newSingleThreadExecutor(work -> {
                 Thread thread = new Thread(work, "Angus TLS task");
@@ -207,7 +231,10 @@ public final class DuplexSocket extends Socket {
                 if (eof || tlsClosed)
                     throw new EOFException("Peer closed during TLS handshake");
             }
-        } catch (IOException | RuntimeException ex) {
+            if (engine.isInboundDone() || engine.isOutboundDone())
+                throw new EOFException("Peer closed during TLS handshake");
+            tlsEstablished = true;
+        } catch (IOException | RuntimeException | Error ex) {
             abort(ex);
             throw ex;
         } finally {
@@ -294,7 +321,7 @@ public final class DuplexSocket extends Socket {
                             throw new EOFException("Peer closed during write");
                         pump(deadline);
                     }
-                } catch (IOException | RuntimeException ex) {
+                } catch (IOException | RuntimeException | Error ex) {
                     abort(ex);
                     throw ex;
                 } finally {
@@ -310,7 +337,7 @@ public final class DuplexSocket extends Socket {
         };
     }
 
-    private void enter() throws IOException {
+    private synchronized void enter() throws IOException {
         if (closed)
             throw new SocketException("Socket closed");
         if (owner != null)
@@ -402,7 +429,10 @@ public final class DuplexSocket extends Socket {
             }
             boolean step;
             if (state == SSLEngineResult.HandshakeStatus.NEED_WRAP) {
-                if (networkOutput.remaining() < engine.getSession().getPacketBufferSize())
+                int packet = bufferSize(engine.getSession().getPacketBufferSize());
+                if (networkOutput.capacity() < packet)
+                    networkOutput = growBuffer(networkOutput, packet);
+                if (networkOutput.remaining() < packet)
                     break;
                 step = wrapOutput(EMPTY, state);
             } else {
@@ -455,9 +485,14 @@ public final class DuplexSocket extends Socket {
      * Wraps handshake or application output, reporting engine progress.
      */
     private boolean wrapOutput(ByteBuffer input,
-            SSLEngineResult.HandshakeStatus previous) throws SSLException {
+            SSLEngineResult.HandshakeStatus previous) throws IOException {
         SSLEngineResult result = engine.wrap(input, networkOutput);
-        checkResult(result);
+        if (result.getStatus() == SSLEngineResult.Status.BUFFER_OVERFLOW) {
+            networkOutput = growBuffer(networkOutput, engine.getSession().getPacketBufferSize());
+            return true;
+        }
+        if (result.getStatus() == SSLEngineResult.Status.CLOSED && input.hasRemaining())
+            throw new EOFException("TLS output closed during write");
         return result.bytesConsumed() != 0 || result.bytesProduced() != 0 ||
                 result.getHandshakeStatus() != previous;
     }
@@ -473,15 +508,20 @@ public final class DuplexSocket extends Socket {
         ((Buffer) networkInput).flip();
         SSLEngineResult result = engine.unwrap(networkInput, applicationInput);
         networkInput.compact();
-        checkResult(result);
+        boolean resized = result.getStatus() == SSLEngineResult.Status.BUFFER_OVERFLOW;
+        if (resized)
+            applicationInput = growBuffer(applicationInput,
+                    engine.getSession().getApplicationBufferSize());
         ((Buffer) applicationInput).flip();
         deliver(applicationInput);
         ((Buffer) applicationInput).clear();
         tlsClosed |= result.getStatus() == SSLEngineResult.Status.CLOSED;
         if (result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW &&
-                !networkInput.hasRemaining())
-            throw new SSLException("TLS record exceeds packet buffer");
-        return result.bytesConsumed() != 0 || result.bytesProduced() != 0 ||
+                !networkInput.hasRemaining()) {
+            networkInput = growBuffer(networkInput, engine.getSession().getPacketBufferSize());
+            resized = true;
+        }
+        return resized || result.bytesConsumed() != 0 || result.bytesProduced() != 0 ||
                 result.getHandshakeStatus() != previous;
     }
 
@@ -491,14 +531,28 @@ public final class DuplexSocket extends Socket {
         return "NEED_UNWRAP_AGAIN".equals(status.name());
     }
 
-    private void checkResult(SSLEngineResult result) throws SSLException {
-        if (result.getStatus() == SSLEngineResult.Status.BUFFER_OVERFLOW)
-            throw new SSLException("TLS engine buffer overflow");
+    private static int bufferSize(int required) throws SSLException {
+        if (required < 1 || required > MAX_TLS_BUFFER_SIZE)
+            throw new SSLException("TLS buffer requirement exceeds buffer limit: " + required);
+        return Math.max(MIN_BUFFER_SIZE, required);
+    }
+
+    private static ByteBuffer growBuffer(ByteBuffer buffer, int required) throws SSLException {
+        int capacity = (int) Math.min(MAX_TLS_BUFFER_SIZE,
+                Math.max((long) buffer.capacity() * 2, bufferSize(required)));
+        if (capacity <= buffer.capacity())
+            throw new SSLException("TLS buffer limit exceeded");
+        ByteBuffer replacement = ByteBuffer.allocate(capacity);
+        ((Buffer) buffer).flip();
+        replacement.put(buffer);
+        return replacement;
     }
 
     private void deliver(ByteBuffer input) throws IOException {
         if (!input.hasRemaining())
             return;
+        if (input.remaining() > MAX_PENDING_INPUT - available)
+            throw new IOException("Duplex input limit exceeded");
         byte[] bytes = new byte[input.remaining()];
         input.get(bytes);
         received.add(ByteBuffer.wrap(bytes));
@@ -655,9 +709,13 @@ public final class DuplexSocket extends Socket {
                 SSLEngineResult.HandshakeStatus state = engine.getHandshakeStatus();
                 // Some engines queue close output without requesting NEED_WRAP.
                 if (state == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING &&
-                        !engine.isOutboundDone() && networkOutput.remaining() >=
-                        engine.getSession().getPacketBufferSize())
-                    wrapOutput(EMPTY, state);
+                        !engine.isOutboundDone()) {
+                    int packet = bufferSize(engine.getSession().getPacketBufferSize());
+                    if (networkOutput.capacity() < packet)
+                        networkOutput = growBuffer(networkOutput, packet);
+                    if (networkOutput.remaining() >= packet)
+                        wrapOutput(EMPTY, state);
+                }
             }
             pump(deadline, true);
         }
@@ -713,6 +771,86 @@ public final class DuplexSocket extends Socket {
     @Override
     public void setSoLinger(boolean on, int linger) throws SocketException {
         socket.setSoLinger(on, linger);
+    }
+
+    @Override
+    public int getSoLinger() throws SocketException {
+        return socket.getSoLinger();
+    }
+
+    @Override
+    public void setKeepAlive(boolean on) throws SocketException {
+        socket.setKeepAlive(on);
+    }
+
+    @Override
+    public boolean getKeepAlive() throws SocketException {
+        return socket.getKeepAlive();
+    }
+
+    @Override
+    public void setReuseAddress(boolean on) throws SocketException {
+        socket.setReuseAddress(on);
+    }
+
+    @Override
+    public boolean getReuseAddress() throws SocketException {
+        return socket.getReuseAddress();
+    }
+
+    @Override
+    public void setTrafficClass(int value) throws SocketException {
+        socket.setTrafficClass(value);
+    }
+
+    @Override
+    public int getTrafficClass() throws SocketException {
+        return socket.getTrafficClass();
+    }
+
+    @Override
+    public void setOOBInline(boolean on) throws SocketException {
+        socket.setOOBInline(on);
+    }
+
+    @Override
+    public boolean getOOBInline() throws SocketException {
+        return socket.getOOBInline();
+    }
+
+    @Override
+    public boolean isInputShutdown() {
+        return socket.isInputShutdown();
+    }
+
+    @Override
+    public boolean isOutputShutdown() {
+        return socket.isOutputShutdown();
+    }
+
+    @Override
+    public void shutdownInput() throws IOException {
+        throw new UnsupportedOperationException("DuplexSocket.shutdownInput");
+    }
+
+    @Override
+    public void shutdownOutput() throws IOException {
+        throw new UnsupportedOperationException("DuplexSocket.shutdownOutput");
+    }
+
+    @Override
+    public void sendUrgentData(int value) throws IOException {
+        throw new UnsupportedOperationException("DuplexSocket.sendUrgentData");
+    }
+
+    @Override
+    public void setPerformancePreferences(int connectionTime, int latency, int bandwidth) {
+        socket.setPerformancePreferences(connectionTime, latency, bandwidth);
+    }
+
+    @Override
+    public String toString() {
+        return socket.toString();
     }
 
     @Override

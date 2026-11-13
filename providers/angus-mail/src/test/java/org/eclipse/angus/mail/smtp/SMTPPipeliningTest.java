@@ -34,6 +34,11 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.ExtendedSSLSession;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIServerName;
+import javax.net.SocketFactory;
+import java.nio.channels.SocketChannel;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -63,6 +68,36 @@ import static org.junit.Assert.fail;
  * No latency threshold is needed to prove that commands were pipelined.
  */
 public class SMTPPipeliningTest {
+    @Test(timeout = 20000)
+    public void testTransportWithoutChannelRetainsSequentialEnvelope() throws Exception {
+        try (Exchange exchange = new Exchange(2, 1, 1, 1)) {
+            exchange.properties.put("mail.smtp.socketFactory.transport", SocketFactory.getDefault());
+            exchange.send();
+            assertEquals(Arrays.asList(1, 1, 1), exchange.handler.groups);
+            exchange.assertContent();
+            exchange.assertNoReader();
+        }
+    }
+
+    @Test(timeout = 20000)
+    public void testCallerSuppliedChannelRetainsSequentialEnvelope() throws Exception {
+        try (Socket supplied = SocketChannel.open().socket();
+                Exchange exchange = new Exchange(2, 1, 1, 1)) {
+            supplied.connect(new java.net.InetSocketAddress("localhost", exchange.server.getPort()), 3000);
+            supplied.setSoTimeout(3000);
+            exchange.transport = new SMTPTransport(exchange.session(), new URLName("smtp://localhost"));
+            exchange.transport.connect(supplied);
+            exchange.message = new MimeMessage(exchange.session());
+            exchange.message.setFrom(new InternetAddress("sender@example.com"));
+            exchange.message.setText("caller-supplied connection\r\n");
+            exchange.message.saveChanges();
+            exchange.send();
+            assertEquals(Arrays.asList(1, 1, 1), exchange.handler.groups);
+            exchange.assertContent();
+            exchange.assertNoReader();
+        }
+    }
+
     @Test(timeout = 20000)
     public void testPreparationHookOnlyRunsForPipelinedEnvelope() throws Exception {
         for (int mode = 0; mode < 4; mode++) {
@@ -668,9 +703,13 @@ public class SMTPPipeliningTest {
         }
 
         void connect(SMTPTransport custom) throws Exception {
+            connect(custom, server.getPort());
+        }
+
+        void connect(SMTPTransport custom, int port) throws Exception {
             Session session = session();
             transport = custom == null ? (SMTPTransport) session.getTransport(ssl ? "smtps" : "smtp") : custom;
-            transport.connect("localhost", server.getPort(), null, null);
+            transport.connect("localhost", port, null, null);
             message = new MimeMessage(session);
             message.setFrom(new InternetAddress("sender@example.com"));
             message.setText("first\r\n.leading dot\r\n.\r\nlast\r\n");
@@ -725,6 +764,11 @@ public class SMTPPipeliningTest {
         final AtomicReference<String> resetReply = new AtomicReference<>("250 reset");
         final AtomicBoolean rejectEhlo = new AtomicBoolean();
         final CountDownLatch envelopeReceived = new CountDownLatch(1);
+        final CountDownLatch connectionClosed = new CountDownLatch(1);
+        final AtomicBoolean requireClientCertificate = new AtomicBoolean();
+        final AtomicBoolean clientCertificateSeen = new AtomicBoolean();
+        final AtomicReference<String> requestedServerName = new AtomicReference<>();
+        final AtomicReference<String> tlsProtocol = new AtomicReference<>();
         boolean startTls;
         boolean closeAfterData;
         boolean abruptClose;
@@ -754,22 +798,58 @@ public class SMTPPipeliningTest {
         }
 
         @Override
-        protected String readLine() throws IOException {
-            String line = super.readLine();
-            if ("STARTTLS".equals(line)) {
-                println("220 start TLS");
-                beforeTls = clientSocket;
-                SSLSocket socket = (SSLSocket) context.getSocketFactory().createSocket(
-                        clientSocket, "localhost", clientSocket.getPort(), true);
-                socket.setUseClientMode(false);
-                socket.startHandshake();
-                setClientSocket(socket);
-                secure = true;
-                line = super.readLine();
+        public void sendGreetings() throws IOException {
+            if (clientSocket instanceof SSLSocket)
+                configureTlsSocket((SSLSocket) clientSocket);
+            super.sendGreetings();
+        }
+
+        private void configureTlsSocket(SSLSocket socket) {
+            if (requireClientCertificate.get())
+                socket.setNeedClientAuth(true);
+        }
+
+        private void observeTlsSocket() throws IOException {
+            if (!(clientSocket instanceof SSLSocket))
+                return;
+            SSLSocket socket = (SSLSocket) clientSocket;
+            tlsProtocol.set(socket.getSession().getProtocol());
+            if (requireClientCertificate.get())
+                clientCertificateSeen.set(socket.getSession().getPeerCertificates().length > 0);
+            if (socket.getSession() instanceof ExtendedSSLSession) {
+                for (SNIServerName name : ((ExtendedSSLSession) socket.getSession()).getRequestedServerNames()) {
+                    if (name instanceof SNIHostName)
+                        requestedServerName.set(((SNIHostName) name).getAsciiName());
+                }
             }
-            if (line != null)
-                commands.add(line);
-            return line;
+        }
+
+        @Override
+        protected String readLine() throws IOException {
+            try {
+                String line = super.readLine();
+                if ("STARTTLS".equals(line)) {
+                    println("220 start TLS");
+                    beforeTls = clientSocket;
+                    SSLSocket socket = (SSLSocket) context.getSocketFactory().createSocket(
+                            clientSocket, "localhost", clientSocket.getPort(), true);
+                    socket.setUseClientMode(false);
+                    configureTlsSocket(socket);
+                    socket.startHandshake();
+                    setClientSocket(socket);
+                    secure = true;
+                    line = super.readLine();
+                }
+                observeTlsSocket();
+                if (line == null)
+                    connectionClosed.countDown();
+                else
+                    commands.add(line);
+                return line;
+            } catch (IOException failure) {
+                connectionClosed.countDown();
+                throw failure;
+            }
         }
 
         @Override

@@ -33,6 +33,8 @@ import java.util.ArrayDeque;
 final class SMTPEnvelopeExchange {
     static final int MAX_COMMANDS = 32;
     static final int MAX_COMMAND_BYTES = 32 * 1024;
+    private static final int MAX_REPLY_BYTES = 1024 * 1024;
+    private static final int MAX_QUEUED_REPLY_BYTES = 4 * 1024 * 1024;
 
     private final DuplexSocket socket;
     private final InputStream input;
@@ -44,6 +46,8 @@ final class SMTPEnvelopeExchange {
     private Reply terminalReply;
     private int pending;
     private int code;
+    private int replyBytes;
+    private int queuedBytes;
 
     SMTPEnvelopeExchange(DuplexSocket socket, InputStream input) {
         this.socket = socket;
@@ -70,7 +74,9 @@ final class SMTPEnvelopeExchange {
                     throw failure;
             }
         }
-        return replies.remove();
+        Reply reply = replies.remove();
+        queuedBytes -= reply.bytes;
+        return reply;
     }
 
     IOException getFailure() {
@@ -93,6 +99,10 @@ final class SMTPEnvelopeExchange {
                 if (count < 0)
                     throw new IOException("[EOF]");
                 for (int i = 0; i < count; i++) {
+                    replyBytes++;
+                    if (replyBytes > MAX_REPLY_BYTES ||
+                            queuedBytes > MAX_QUEUED_REPLY_BYTES - replyBytes)
+                        throw new IOException("SMTP envelope reply limit exceeded");
                     line.write(buffer[i]);
                     if (buffer[i] == '\n')
                         completeLine();
@@ -121,15 +131,17 @@ final class SMTPEnvelopeExchange {
             throw new IOException("Inconsistent SMTP reply: " + text);
         code = next;
         if (value.length() == 3 || value.charAt(3) == ' ') {
-            Reply reply = new Reply(code, text.toString());
+            Reply reply = new Reply(code, text.toString(), replyBytes);
             pending--;
             code = 0;
             text.setLength(0);
+            replyBytes = 0;
             if (reply.code == 421) {
                 terminalReply = reply;
                 throw new IOException(reply.text);
             }
             replies.add(reply);
+            queuedBytes += reply.bytes;
         }
     }
 
@@ -148,10 +160,12 @@ final class SMTPEnvelopeExchange {
     static final class Reply {
         final int code;
         final String text;
+        final int bytes;
 
-        Reply(int code, String text) {
+        Reply(int code, String text, int bytes) {
             this.code = code;
             this.text = text;
+            this.bytes = bytes;
         }
     }
 }

@@ -25,8 +25,12 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
+import javax.net.SocketFactory;
+import java.nio.channels.SocketChannel;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -55,6 +59,141 @@ import static org.junit.Assert.fail;
 
 /** Checks the engine hook and the deliberate legacy-factory fallback. */
 public class SMTPPipeliningEngineTest {
+    @Test(timeout = 30000)
+    public void testFactoryPortOverrideIsTheEngineDestination() throws Exception {
+        for (boolean implicit : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange =
+                    new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                String prefix = configure(exchange, implicit);
+                if (implicit) {
+                    exchange.properties.setProperty(prefix + ".ssl.socketFactory.port",
+                            Integer.toString(exchange.server.getPort()));
+                } else {
+                    exchange.properties.put(prefix + ".socketFactory", new ChannelFactory());
+                    exchange.properties.setProperty(prefix + ".socketFactory.port",
+                            Integer.toString(exchange.server.getPort()));
+                }
+                exchange.properties.put(prefix + ".ssl.engineFactory",
+                        (BiFunction<String, Integer, SSLEngine>) (host, port) -> {
+                            assertEquals(exchange.server.getPort(), port.intValue());
+                            return exchange.handler.context.createSSLEngine(host, port);
+                        });
+                exchange.connect(null, 1);
+                exchange.send();
+                exchange.send();
+                assertTrue(exchange.transport.isSSL());
+                exchange.assertContent();
+            }
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testNioDoesNotShutDownCallerWriteTimeoutExecutor() throws Exception {
+        java.util.concurrent.ScheduledExecutorService scheduler =
+                java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+        try {
+            for (boolean implicit : new boolean[]{false, true}) {
+                try (SMTPPipeliningTest.Exchange exchange =
+                        new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                    String prefix = configure(exchange, implicit);
+                    exchange.properties.put(prefix + ".executor.writetimeout", scheduler);
+                    exchange.send();
+                    exchange.assertContent();
+                }
+                assertFalse(scheduler.isShutdown());
+                assertEquals(42, scheduler.submit(() -> 42).get(3,
+                        java.util.concurrent.TimeUnit.SECONDS).intValue());
+            }
+        } finally {
+            scheduler.shutdownNow();
+            assertTrue(scheduler.awaitTermination(3, java.util.concurrent.TimeUnit.SECONDS));
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testMissingCallerClientKeyDoesNotFallBackToFactoryKeys() throws Exception {
+        KeyStore store = KeyStore.getInstance("JKS");
+        try (java.io.InputStream input = getClass().getResourceAsStream("pipelining.jks")) {
+            store.load(input, "changeit".toCharArray());
+        }
+        TrustManagerFactory trust = TrustManagerFactory.getInstance("SunX509");
+        trust.init(store);
+        SSLContext client = SSLContext.getInstance("TLS");
+        client.init(new javax.net.ssl.KeyManager[0], trust.getTrustManagers(), null);
+        for (boolean implicit : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange =
+                    new SMTPPipeliningTest.Exchange(1, implicit, 2)) {
+                String prefix = configure(exchange, implicit);
+                exchange.handler.requireClientCertificate.set(true);
+                exchange.properties.put(prefix + ".ssl.engineFactory",
+                        (BiFunction<String, Integer, SSLEngine>) client::createSSLEngine);
+                try {
+                    exchange.send();
+                    fail("Missing client key was replaced by factory keys");
+                } catch (MessagingException expected) {
+                    assertSetupFailed(exchange);
+                }
+            }
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testCallerEngineKeepsClientKeysAndSni() throws Exception {
+        for (boolean implicit : new boolean[]{false, true}) {
+            for (String protocol : new String[]{"TLSv1.2", "TLSv1.3"}) {
+                try (SMTPPipeliningTest.Exchange exchange =
+                        new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
+                    String prefix = configure(exchange, implicit);
+                    exchange.handler.requireClientCertificate.set(true);
+                    exchange.properties.setProperty(prefix + ".ssl.protocols", protocol);
+                    exchange.properties.put(prefix + ".ssl.engineFactory",
+                            (BiFunction<String, Integer, SSLEngine>) (host, port) -> {
+                                SSLEngine engine = exchange.handler.context.createSSLEngine(host, port);
+                                SSLParameters parameters = engine.getSSLParameters();
+                                parameters.setServerNames(java.util.Collections.singletonList(
+                                        new SNIHostName("smtp.example.invalid")));
+                                engine.setSSLParameters(parameters);
+                                return engine;
+                            });
+                    exchange.send();
+                    exchange.send();
+                    assertTrue(exchange.handler.clientCertificateSeen.get());
+                    assertEquals("smtp.example.invalid", exchange.handler.requestedServerName.get());
+                    assertEquals(protocol, exchange.handler.tlsProtocol.get());
+                    assertEquals(1, exchange.server.clientCount());
+                    exchange.assertContent();
+                }
+            }
+        }
+    }
+
+    @Test(timeout = 30000)
+    public void testFatalEngineHookFailureClosesTheConnection() throws Exception {
+        for (boolean implicit : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange =
+                    new SMTPPipeliningTest.Exchange(1, implicit, 2)) {
+                String prefix = configure(exchange, implicit);
+                AssertionError failure = new AssertionError("Engine hook failed");
+                AtomicInteger calls = new AtomicInteger();
+                exchange.properties.put(prefix + ".ssl.engineFactory",
+                        (BiFunction<String, Integer, SSLEngine>) (host, port) -> {
+                            calls.incrementAndGet();
+                            throw failure;
+                        });
+                try {
+                    exchange.send();
+                    fail("Fatal engine hook failure ignored");
+                } catch (AssertionError expected) {
+                    assertSame(failure, expected);
+                }
+                assertEquals(1, calls.get());
+                assertTrue(exchange.handler.connectionClosed.await(3, java.util.concurrent.TimeUnit.SECONDS));
+                assertFalse(exchange.handler.commands.stream()
+                        .anyMatch(command -> command.startsWith("MAIL ")));
+            }
+        }
+    }
+
     @Test(timeout = 30000)
     public void testTlsWorkerDoesNotInheritCallerThreadSettings() throws Exception {
         Thread caller = Thread.currentThread();
@@ -638,6 +777,19 @@ public class SMTPPipeliningEngineTest {
         public String[] getDefaultCipherSuites() { return delegate.getDefaultCipherSuites(); }
         @Override
         public String[] getSupportedCipherSuites() { return delegate.getSupportedCipherSuites(); }
+        @Override
+        public Socket createSocket(String h, int p) { throw new UnsupportedOperationException(); }
+        @Override
+        public Socket createSocket(String h, int p, InetAddress l, int lp) { throw new UnsupportedOperationException(); }
+        @Override
+        public Socket createSocket(InetAddress h, int p) { throw new UnsupportedOperationException(); }
+        @Override
+        public Socket createSocket(InetAddress h, int p, InetAddress l, int lp) { throw new UnsupportedOperationException(); }
+    }
+
+    private static final class ChannelFactory extends SocketFactory {
+        @Override
+        public Socket createSocket() throws IOException { return SocketChannel.open().socket(); }
         @Override
         public Socket createSocket(String h, int p) { throw new UnsupportedOperationException(); }
         @Override

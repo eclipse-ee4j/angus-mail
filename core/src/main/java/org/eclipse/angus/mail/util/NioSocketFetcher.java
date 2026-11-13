@@ -345,13 +345,14 @@ public final class NioSocketFetcher {
                 ssf = (SSLSocketFactory) sf;
             else
                 ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            if (useEngine && socket.getChannel() != null) {
+            SocketChannel physicalChannel = socket.getChannel();
+            if (useEngine && physicalChannel != null) {
                 boolean explicitEngine = props.get(prefix + ".ssl.engineFactory") != null;
                 DuplexSocket duplex = null;
                 try {
                     SSLEngine engine = createSSLEngine(ssf, host, port, props, prefix);
                     if (engine != null) {
-                        duplex = new DuplexSocket(socket, writeTimeout);
+                        duplex = new DuplexSocket(socket, writeTimeout, port);
                         if (transportResources != null)
                             transportResources.layered = duplex;
                         configureSSLEngine(duplex, engine, host, props, prefix);
@@ -361,11 +362,17 @@ public final class NioSocketFetcher {
                     IOException failure = ex instanceof IOException ? (IOException) ex :
                             new IOException("Could not set up SSL engine for: " + host, ex);
                     if (duplex == null)
-                        SocketFetcher.cleanupAndThrow(socket, failure);
+                        closeFailedSocket(socket, physicalChannel, failure);
                     else
                         duplex.closeOnFailure(failure);
                     if (explicitEngine && !(failure instanceof SocketTimeoutException))
                         throw new EngineSetupException(failure);
+                    throw failure;
+                } catch (Error failure) {
+                    if (duplex == null)
+                        closeFailedSocket(socket, physicalChannel, failure);
+                    else
+                        duplex.abort(failure);
                     throw failure;
                 }
             }
@@ -383,7 +390,7 @@ public final class NioSocketFetcher {
 
         if (useEngine && !(socket instanceof SSLSocket) &&
                 socket.getChannel() != null) {
-            socket = new DuplexSocket(socket, writeTimeout);
+            socket = new DuplexSocket(socket, writeTimeout, port);
             if (transportResources != null)
                 transportResources.layered = socket;
         }
@@ -539,7 +546,8 @@ public final class NioSocketFetcher {
             if (socket instanceof DuplexSocket) {
                 DuplexSocket duplex = (DuplexSocket) socket;
                 try {
-                    SSLEngine engine = createSSLEngine(ssf, host, port, props, prefix);
+                    SSLEngine engine = createSSLEngine(ssf, host,
+                            duplex.getPeerPort(), props, prefix);
                     if (engine != null) {
                         configureSSLEngine(duplex, engine, host, props, prefix);
                         return duplex;
@@ -572,6 +580,21 @@ public final class NioSocketFetcher {
             throw ioex;
         }
         return socket;
+    }
+
+    private static void closeFailedSocket(Socket socket, SocketChannel channel,
+            Throwable failure) {
+        try (SocketChannel physical = channel) {
+            socket.close();
+        } catch (IOException | RuntimeException | Error cleanup) {
+            if (cleanup instanceof Error && !(cleanup instanceof LinkageError)) {
+                if (cleanup != failure)
+                    cleanup.addSuppressed(failure);
+                throw (Error) cleanup;
+            }
+            if (cleanup != failure)
+                failure.addSuppressed(cleanup);
+        }
     }
 
     /** Resolves an engine without guessing a custom socket factory's trust. */
