@@ -113,7 +113,8 @@ public final class SMTPSSLEngineProbe {
         EngineClient engine = null;
         int completed;
         int data;
-        try (Peer peer = new Peer(implicit, scenario, expectedHash)) {
+        try (Peer peer = new Peer(implicit, scenario, expectedHash,
+                mode.equals("transport") && IO_CHUNK < 65536)) {
             Future<?> monitor = peer.monitor.submit(() -> {
                 while (monitoring.get()) {
                     Thread.sleep(200);
@@ -226,7 +227,8 @@ public final class SMTPSSLEngineProbe {
         SMTPTransport transport = peer.implicit ? new SMTPSSLTransport(Session.getInstance(p), null) :
                 new SMTPTransport(Session.getInstance(p), null);
         try {
-            transport.connect("localhost", peer.listener.getLocalPort(), "fixture", "fixture-password");
+            transport.connect("localhost", peer.relay == null ? peer.listener.getLocalPort() :
+                    peer.relay.listener.getLocalPort(), "fixture", "fixture-password");
             check(transport.isSSL() && transport.supportsExtension("PIPELINING"), "Negotiation missing");
             if (integrated) {
                 check(engines.get() == 1, "Integrated transport did not create one TLS engine");
@@ -683,15 +685,17 @@ public final class SMTPSSLEngineProbe {
         final AtomicInteger data = new AtomicInteger();
         final AtomicInteger completed = new AtomicInteger();
         final Future<?> serving;
+        final FragmentingRelay relay;
         volatile Socket raw;
         volatile Throwable problem;
 
-        Peer(boolean implicit, String scenario, String expectedHash) throws Exception {
+        Peer(boolean implicit, String scenario, String expectedHash, boolean fragment) throws Exception {
             this.implicit = implicit;
             this.scenario = scenario;
             this.expectedHash = expectedHash;
             listener.setReceiveBufferSize(SOCKET_BUFFER);
             listener.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 1);
+            relay = fragment ? new FragmentingRelay(listener.getLocalPort()) : null;
             serving = worker.submit(() -> {
                 try {
                     raw = listener.accept();
@@ -802,6 +806,8 @@ public final class SMTPSSLEngineProbe {
                 raw.close();
             for (Socket socket : factory.sockets)
                 socket.close();
+            if (relay != null)
+                relay.close();
             serving.get(3, TimeUnit.SECONDS);
         }
 
@@ -817,6 +823,78 @@ public final class SMTPSSLEngineProbe {
                 check(monitor.awaitTermination(3, TimeUnit.SECONDS), "Monitor thread survived");
                 check(timeouts.awaitTermination(3, TimeUnit.SECONDS), "Timeout executor survived");
             }
+        }
+    }
+
+    /** Splits actual Transport traffic in both directions, without replacing its channel. */
+    private static final class FragmentingRelay implements AutoCloseable {
+        final ServerSocket listener = new ServerSocket(0, 1, InetAddress.getLoopbackAddress());
+        final ExecutorService workers = Executors.newFixedThreadPool(2);
+        final Future<?> incoming;
+        volatile Future<?> outgoing;
+        volatile Socket client;
+        volatile Socket server;
+        volatile boolean stopping;
+        volatile boolean closed;
+
+        FragmentingRelay(int port) throws IOException {
+            listener.setSoTimeout(10000);
+            incoming = workers.submit(() -> {
+                try (Socket accepted = listener.accept(); Socket connected = new Socket()) {
+                    client = accepted;
+                    server = connected;
+                    configure(accepted);
+                    configure(connected);
+                    connected.connect(new InetSocketAddress(InetAddress.getLoopbackAddress(), port), 5000);
+                    outgoing = workers.submit(() -> {
+                        forward(connected, accepted);
+                        return null;
+                    });
+                    try {
+                        forward(accepted, connected);
+                    } finally {
+                        // The resource scope also closes the reverse direction.
+                        stopping = true;
+                    }
+                }
+                return null;
+            });
+        }
+
+        void forward(Socket source, Socket destination) throws IOException {
+            try {
+                byte[] buffer = new byte[IO_CHUNK];
+                InputStream input = source.getInputStream();
+                OutputStream output = destination.getOutputStream();
+                int count;
+                while ((count = input.read(buffer)) >= 0)
+                    output.write(buffer, 0, count);
+                destination.shutdownOutput();
+            } catch (IOException failure) {
+                if (!stopping)
+                    throw failure;
+            }
+        }
+
+        @Override
+        public void close() throws Exception {
+            if (closed)
+                return;
+            stopping = true;
+            closed = true;
+            try {
+                listener.close();
+                if (client != null)
+                    client.close();
+                if (server != null)
+                    server.close();
+            } finally {
+                workers.shutdownNow();
+                check(workers.awaitTermination(3, TimeUnit.SECONDS), "Fragment relay survived cleanup");
+            }
+            incoming.get(3, TimeUnit.SECONDS);
+            if (outgoing != null)
+                outgoing.get(3, TimeUnit.SECONDS);
         }
     }
 
