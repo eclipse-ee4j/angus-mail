@@ -108,8 +108,7 @@
                     <instructions>
                         <Require-Capability><![CDATA[
                             osgi.extender;filter:="(&(osgi.extender=osgi.serviceloader.registrar)
-                              (version>=1.0.0)(!(version>=2.0.0)))";resolution:=optional,
-                            osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+                              (version>=1.0.0)(!(version>=2.0.0)))";resolution:=optional
                             ]]>
                         </Require-Capability>
                         <Provide-Capability><![CDATA[
