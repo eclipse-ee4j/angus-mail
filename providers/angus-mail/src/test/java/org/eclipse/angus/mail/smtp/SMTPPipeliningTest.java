@@ -339,6 +339,41 @@ public class SMTPPipeliningTest {
         }
     }
 
+    @Test(timeout = 20000)
+    public void testUnknownRecipientSuccessWithReportSuccess() throws Exception {
+        for (boolean enabled : new boolean[]{false, true}) {
+            int[] groups = enabled ? new int[]{3} : new int[]{1, 1, 1};
+            try (Exchange exchange = new Exchange(2, groups)) {
+                if (!enabled)
+                    exchange.properties.remove("mail.smtp.pipelining");
+                exchange.properties.setProperty("mail.smtp.reportsuccess", "true");
+                exchange.handler.responsePlan.set(
+                        new String[]{"250 sender", "250 accepted", "254 accepted"});
+                try {
+                    exchange.send();
+                    fail("Missing success report");
+                } catch (SMTPSendFailedException expected) {
+                    assertEquals(250, expected.getReturnCode());
+                    assertArrayEquals(exchange.addresses, expected.getValidSentAddresses());
+                    assertEquals(0, expected.getValidUnsentAddresses().length);
+                    assertEquals(0, expected.getInvalidAddresses().length);
+                    Exception result = expected.getNextException();
+                    for (int code : new int[]{250, 254}) {
+                        assertTrue(result instanceof SMTPAddressSucceededException);
+                        SMTPAddressSucceededException success =
+                                (SMTPAddressSucceededException) result;
+                        assertEquals(code, success.getReturnCode());
+                        result = success.getNextException();
+                    }
+                    assertNull(result);
+                }
+                exchange.assertContent();
+                assertEquals(enabled ? Arrays.asList(3) : Arrays.asList(1, 1, 1),
+                        exchange.handler.groups);
+            }
+        }
+    }
+
     @Test(timeout = 30000)
     public void testTerminalFailuresCloseWithoutResetOrReplay() throws Exception {
         for (String response : new String[]{"421 shutting down", "not SMTP", "250-first\r\n550 inconsistent", "EOF", "TIMEOUT"}) {
