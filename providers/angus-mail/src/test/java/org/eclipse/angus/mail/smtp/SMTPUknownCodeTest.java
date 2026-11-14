@@ -17,6 +17,7 @@
 package org.eclipse.angus.mail.smtp;
 
 import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.internet.MimeMessage;
@@ -26,6 +27,9 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Properties;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class SMTPUknownCodeTest {
@@ -81,4 +85,67 @@ public class SMTPUknownCodeTest {
             }
         }
     }
+    
+    /**
+     * Test handling of unknown 2xx status code from the server with option mail.smtp.reportsuccess=true
+     */
+    @Test
+    public void testUnknown2xyWithReportSuccess() {
+        TestServer server = null;
+        try {
+            server = new TestServer(new SMTPLoginHandler() {
+                @Override
+                public void rcpt(String line) throws IOException {
+                    if (line.contains("alex")) {
+                        println("254 XY");
+                    } else {
+                        super.rcpt(line);
+                    }
+                }
+            });
+            server.start();
+
+            Properties properties = new Properties();
+            properties.setProperty("mail.smtp.host", "localhost");
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
+            properties.setProperty("mail.smtp.auth.mechanisms", "LOGIN");
+            properties.setProperty("mail.smtp.reportsuccess", "true");
+//            properties.setProperty("mail.debug.auth", "true");
+            Session session = Session.getInstance(properties);
+//            session.setDebug(true);
+
+            Transport t = session.getTransport("smtp");
+            try {
+                MimeMessage msg = new MimeMessage(session);
+                msg.setRecipients(Message.RecipientType.TO, "joe@example.com");
+                msg.addRecipients(Message.RecipientType.TO, "alex@example.com");
+                msg.setSubject("test");
+                msg.setText("test");
+                t.connect();
+                t.sendMessage(msg, msg.getAllRecipients());
+                fail("Success report SMTPSendFailedException expected");
+            } catch (SMTPSendFailedException ex) {
+            	// expecting that message sent successfully...
+                assertEquals(250, ex.getReturnCode());
+                // ...to exactly 2 recipients
+            	assertEquals(2, ex.getValidSentAddresses().length);
+            	assertEquals(0, ex.getInvalidAddresses().length);
+            	assertTrue(ex.getNextException() instanceof SMTPAddressSucceededException);
+            	assertTrue(((MessagingException)ex.getNextException()).getNextException() instanceof SMTPAddressSucceededException);
+            	assertNull(((MessagingException)((MessagingException)ex.getNextException()).getNextException()).getNextException());
+            } catch (Exception ex) {
+                fail(ex.toString());
+            } finally {
+                t.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            if (server != null) {
+                server.quit();
+                server.interrupt();
+            }
+        }
+    }    
 }

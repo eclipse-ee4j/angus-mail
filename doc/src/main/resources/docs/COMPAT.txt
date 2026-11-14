@@ -36,12 +36,15 @@
     Opaque socket wrappers and relocated Conscrypt classes are not recognized;
     those configurations can use the existing explicit hostname verifier.
 
+    The explicit MailHostnameVerifier also supports numeric IP subject
+    alternative names, internationalized DNS names and absolute DNS names.
+    Legacy SSLSocket trust-manager behavior is unchanged.
+
     Opt-in NIO connections additionally use Angus's hostname verifier after
     the handshake when server identity checking is enabled. This prevents
     mixed engine/trust-manager providers from skipping the check. Numeric IP
     addresses require matching IP subject alternative names; DNS wildcards
-    match a single leftmost label. Legacy SSLSocket trust-manager behavior
-    is unchanged.
+    match a single leftmost label.
 
 - SMTP capability state
 
