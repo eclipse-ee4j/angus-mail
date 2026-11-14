@@ -31,6 +31,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.ConnectException;
+import java.net.IDN;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -786,11 +787,10 @@ public class SocketFetcher {
             /*
              * Check server identity and trust.
              * See: JDK-8062515 and JDK-7192189
-             * LDAPS requires the same regex handling as we need
+             * Keep the existing LDAPS matching rules where supported.
              */
-            String eia = PropUtil.getBooleanProperty(props,
-                    prefix + ".ssl.checkserveridentity", true)
-                    ? "LDAPS" : (String) null;
+            String eia = endpointIdentificationAlgorithm(props, prefix,
+                    sslsocket.getClass());
             SSLParameters params = sslsocket.getSSLParameters();
             params.setEndpointIdentificationAlgorithm(eia);
             sslsocket.setSSLParameters(params);
@@ -838,6 +838,21 @@ public class SocketFetcher {
                         new IOException("Server is not trusted: " + host));
             }
         }
+    }
+
+    /** Conscrypt recognizes HTTPS endpoint identification, but not LDAPS. */
+    private static String endpointIdentificationAlgorithm(Properties props,
+            String prefix, Class<?> tlsType) {
+        if (!PropUtil.getBooleanProperty(props,
+                prefix + ".ssl.checkserveridentity", true))
+            return null;
+        for (Class<?> type = tlsType; type != null; type = type.getSuperclass()) {
+            String name = type.getName();
+            if (name.startsWith("org.conscrypt.") ||
+                    name.startsWith("com.android.org.conscrypt."))
+                return "HTTPS";
+        }
+        return "LDAPS";
     }
 
     private static IOException cleanupAndThrow(Socket socket, IOException ife) {
@@ -1169,54 +1184,50 @@ public class SocketFetcher {
         @Override
         public boolean verify(String server, SSLSession ssls) {
             Objects.requireNonNull(server);
-            X509Certificate cert = null;
+            X509Certificate cert;
             try {
                 cert = getX509Certificate(ssls.getPeerCertificates());
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer("matchCert server "
                             + server + ", cert " + cert);
                 }
-                /*
-                 * Check each of the subjectAltNames.
-                 * XXX - only checks DNS names, should also handle
-                 * case where server name is a literal IP address
-                 */
+                byte[] address = literalAddress(server);
                 Collection<List<?>> names = cert.getSubjectAlternativeNames();
+                int nameType = address == null ? 2 : 7; // dNSName or iPAddress
+                boolean foundName = false;
                 if (names != null) {
-                    boolean foundName = false;
                     for (List<?> nameEnt : names) {
-                        final int type = (Integer) nameEnt.get(0);
-                        if (type == 2) {    // 2 == dNSName
-                            foundName = true;
-                            String name = (String) nameEnt.get(1);
+                        if ((Integer) nameEnt.get(0) != nameType)
+                            continue;
+                        foundName = true;
+                        Object value = nameEnt.get(1);
+                        if (address != null) {
+                            if (value instanceof String && Arrays.equals(address,
+                                    certificateAddress((String) value)))
+                                return true;
+                        } else {
+                            String name = (String) value;
                             if (logger.isLoggable(Level.FINER))
                                 logger.finer("found name: " + name);
                             if (matchServer(server, name))
                                 return true;
                         }
                     }
-
-                    if (foundName) {    // found a name, but no match
-                        throw new UndeclaredThrowableException(
-                            new CertificateException(
-                                "No subject alternative DNS name matching "
-                                    + server + " found"), toString() + " DENY");
-                    }
                 }
-            } catch (CertificateParsingException ignore) {
-                logger.log(Level.FINEST, server, ignore);
+                if (address != null || foundName) {
+                    String type = address == null ? "DNS name" : "IP address";
+                    throw new UndeclaredThrowableException(new CertificateException(
+                            "No subject alternative " + type + " matching "
+                                    + server + " found"), toString() + " DENY");
+                }
+            } catch (CertificateParsingException failure) {
+                throw new UndeclaredThrowableException(failure, toString() + " DENY");
             } catch (IOException spue) {
                 throw new UncheckedIOException(toString() + " DENY", spue);
             }
 
-            if (cert == null) {
-                throw new UncheckedIOException(toString() + " DENY",
-                        new SSLPeerUnverifiedException("null"));
-            }
-
-            // XXX - following is a *very* crude parse of the name and ignores
-            //	 all sorts of important issues such as quoting
-            Pattern p = Pattern.compile("CN=([^,]*)");
+            // DNS common names cannot contain escaped RDN delimiters.
+            Pattern p = Pattern.compile("(?:^|[,+])CN=([^,+]*)");
             Matcher m = p.matcher(cert.getSubjectX500Principal().getName());
             if (m.find() && matchServer(server, m.group(1).trim()))
                 return true;
@@ -1230,6 +1241,58 @@ public class SocketFetcher {
             return getClass().getSimpleName();
         }
 
+        /** Parses numeric IP literals only; certificate checking never resolves DNS. */
+        private static byte[] literalAddress(String value) throws IOException {
+            if (value.indexOf(':') >= 0) {
+                if (value.startsWith("[") && value.endsWith("]"))
+                    value = value.substring(1, value.length() - 1);
+                int scope = value.indexOf('%');
+                if (scope >= 0)
+                    value = value.substring(0, scope);
+                if (value.indexOf(':') < 0)
+                    throw new IOException("Invalid IP literal: " + value);
+                return InetAddress.getByName(value).getAddress();
+            }
+            for (int i = 0; i < value.length(); i++) {
+                char c = value.charAt(i);
+                if ((c < '0' || c > '9') && c != '.')
+                    return null;
+            }
+            String[] octets = value.split("\\.", -1);
+            if (octets.length != 4)
+                throw new IOException("Invalid IP literal: " + value);
+            byte[] address = new byte[4];
+            for (int i = 0; i < address.length; i++) {
+                if (octets[i].isEmpty() || octets[i].length() > 3)
+                    throw new IOException("Invalid IP literal: " + value);
+                int octet = Integer.parseInt(octets[i]);
+                if (octet > 255)
+                    throw new IOException("Invalid IP literal: " + value);
+                address[i] = (byte) octet;
+            }
+            return address;
+        }
+
+        /** Distinguishes malformed certificate addresses from invalid caller input. */
+        private static byte[] certificateAddress(String value)
+                throws CertificateParsingException {
+            try {
+                byte[] address = literalAddress(value);
+                if (address == null)
+                    throw new IOException("Invalid IP literal: " + value);
+                return address;
+            } catch (IOException failure) {
+                throw new CertificateParsingException(
+                        "Invalid subject alternative IP address: " + value, failure);
+            }
+        }
+
+        private static String asciiName(String name) {
+            if (name.endsWith("."))
+                name = name.substring(0, name.length() - 1);
+            return IDN.toASCII(name, IDN.USE_STD3_ASCII_RULES);
+        }
+
         /**
          * Does the server we're expecting to connect to match the
          * given name from the server's certificate?
@@ -1238,6 +1301,12 @@ public class SocketFetcher {
          * @param    name        name from the server's certificate
          */
         private static boolean matchServer(String server, String name) {
+            try {
+                server = asciiName(server);
+                name = name.startsWith("*.") ? "*." + asciiName(name.substring(2)) : asciiName(name);
+            } catch (IllegalArgumentException invalid) {
+                return false;
+            }
             if (logger.isLoggable(Level.FINER))
                 logger.finer("match server " + server + " with " + name);
 
