@@ -493,7 +493,9 @@ public final class DuplexSocket extends Socket {
             delegated.get();
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new InterruptedIOException("TLS task interrupted");
+            InterruptedIOException failure = new InterruptedIOException("TLS task interrupted");
+            failure.initCause(ex);
+            throw failure;
         } catch (ExecutionException ex) {
             throw new SSLException("TLS task failed", ex.getCause());
         }

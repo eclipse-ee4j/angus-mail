@@ -26,6 +26,7 @@ import javax.net.ssl.SSLSession;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -44,6 +45,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -458,6 +460,33 @@ public class DuplexSocketCompatibilityTest {
             assertEquals(1, raw.closeCalls);
         } finally {
             raw.channel.close();
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testInterruptedDelegatedTaskRetainsCauseAndInterrupt() throws Exception {
+        try (Connection connection = new Connection()) {
+            connection.socket.startTLS(new ClosingEngine(true));
+            InterruptedException interruption = new InterruptedException("Delegated task interrupted");
+            FutureTask<Void> completed = new FutureTask<Void>(() -> null) {
+                @Override
+                public Void get() throws InterruptedException {
+                    throw interruption;
+                }
+            };
+            completed.run();
+            java.lang.reflect.Field field = DuplexSocket.class.getDeclaredField("delegated");
+            field.setAccessible(true);
+            field.set(connection.socket, completed);
+            try {
+                InterruptedIOException failure = assertThrows(InterruptedIOException.class,
+                        () -> connection.socket.getOutputStream().write(42));
+                assertSame(interruption, failure.getCause());
+                assertTrue(Thread.currentThread().isInterrupted());
+                assertTrue(connection.socket.isClosed());
+            } finally {
+                Thread.interrupted();
+            }
         }
     }
 

@@ -70,332 +70,378 @@ public final class NioSocketFetcher {
      */
     public static Socket getSocket(String host, int port, Properties props,
                                    String prefix, boolean useSSL) throws IOException {
-
         if (logger.isLoggable(Level.FINER))
             logger.finer("getSocket" + ", host " + host + ", port " + port +
                     ", prefix " + prefix + ", useSSL " + useSSL);
         if (prefix == null)
             prefix = "socket";
         if (props == null)
-            props = new Properties();    // empty
-        int cto = PropUtil.getIntProperty(props,
-                prefix + ".connectiontimeout", -1);
-        Socket socket = null;
-        String localaddrstr = props.getProperty(prefix + ".localaddress", null);
-        InetAddress localaddr = null;
-        if (localaddrstr != null)
-            localaddr = InetAddress.getByName(localaddrstr);
-        int localport = PropUtil.getIntProperty(props,
-                prefix + ".localport", 0);
+            props = new Properties();
 
-        boolean fb = PropUtil.getBooleanProperty(props,
+        int connectionTimeout = PropUtil.getIntProperty(props,
+                prefix + ".connectiontimeout", -1);
+        int readTimeout = PropUtil.getIntProperty(props, prefix + ".timeout", -1);
+        InetAddress localAddress = resolveLocalAddress(props, prefix);
+        int localPort = PropUtil.getIntProperty(props, prefix + ".localport", 0);
+        boolean fallbackAllowed = PropUtil.getBooleanProperty(props,
                 prefix + ".socketFactory.fallback", true);
         SocketFactory transportFactory = SocketFetcher.getTransportSocketFactory(props, prefix);
+        SocketFactorySelection selection = new SocketFactorySelection();
+        Socket socket = null;
         boolean transportAttempted = false;
-
-        int sfPort = -1;
-        String sfErr = "unknown socket factory";
-        int to = PropUtil.getIntProperty(props, prefix + ".timeout", -1);
         try {
-            /*
-             * If using SSL, first look for SSL-specific class name or
-             * factory instance.
-             */
-            SocketFactory sf = null;
-            String sfPortName = null;
-            if (useSSL) {
-                Object sfo = props.get(prefix + ".ssl.socketFactory");
-                if (sfo instanceof SocketFactory) {
-                    sf = (SocketFactory) sfo;
-                    sfErr = "SSL socket factory instance " + sf;
-                }
-                if (sf == null) {
-                    String sfClass =
-                            props.getProperty(prefix + ".ssl.socketFactory.class");
-                    sf = SocketFetcher.getSocketFactory(sfClass);
-                    sfErr = "SSL socket factory class " + sfClass;
-                }
-                sfPortName = ".ssl.socketFactory.port";
-            }
-
-            if (sf == null) {
-                Object sfo = props.get(prefix + ".socketFactory");
-                if (sfo instanceof SocketFactory) {
-                    sf = (SocketFactory) sfo;
-                    sfErr = "socket factory instance " + sf;
-                }
-                if (sf == null) {
-                    String sfClass =
-                            props.getProperty(prefix + ".socketFactory.class");
-                    sf = SocketFetcher.getSocketFactory(sfClass);
-                    sfErr = "socket factory class " + sfClass;
-                }
-                sfPortName = ".socketFactory.port";
-            }
-
-            // if we now have a socket factory, use it
-            if (sf != null || transportFactory != null) {
-                if (sf != null)
-                    sfPort = PropUtil.getIntProperty(props,
-                            prefix + sfPortName, -1);
-
-                // if port passed in via property isn't valid, use param
-                if (sfPort == -1)
-                    sfPort = port;
-                if (transportFactory != null) {
-                    transportAttempted = true;
-                    socket = createSocketWithTransportFactory(localaddr, localport,
-                            host, sfPort, cto, to, props, prefix, sf, useSSL,
-                            true, transportFactory);
-                } else {
-                    socket = createSocket(localaddr, localport,
-                            host, sfPort, cto, to, props, prefix, sf, useSSL,
-                            true, null);
-                }
+            selection.selectForConnection(props, prefix, useSSL);
+            if (selection.factory != null || transportFactory != null) {
+                selection.selectPort(props, prefix, port);
+                transportAttempted = transportFactory != null;
+                socket = openSocket(localAddress, localPort, host, selection.port,
+                        connectionTimeout, readTimeout, props, prefix,
+                        selection.factory, useSSL, transportFactory);
             }
         } catch (EngineSetupException ex) {
             throw ex.failure;
-        } catch (SocketTimeoutException sex) {
-            throw sex;
+        } catch (SocketTimeoutException ex) {
+            throw ex;
         } catch (Exception ex) {
-            if (!fb || transportAttempted) {
-                if (ex instanceof InvocationTargetException) {
-                    Throwable t =
-                            ((InvocationTargetException) ex).getTargetException();
-                    if (t instanceof Exception)
-                        ex = (Exception) t;
-                }
-                if (ex instanceof IOException)
-                    throw (IOException) ex;
-                throw new SocketConnectException("Using " + sfErr, ex,
-                        host, sfPort, cto);
-            }
+            if (!fallbackAllowed || transportAttempted)
+                throw socketFactoryFailure(ex, "Using " + selection.description,
+                        host, selection.port, connectionTimeout);
         }
 
         if (socket == null) {
             try {
-                if (transportFactory != null)
-                    socket = createSocketWithTransportFactory(localaddr, localport,
-                            host, port, cto, to, props, prefix, null, useSSL,
-                            true, transportFactory);
-                else
-                    socket = createSocket(localaddr, localport,
-                            host, port, cto, to, props, prefix, null, useSSL,
-                            true, null);
+                socket = openSocket(localAddress, localPort, host, port,
+                        connectionTimeout, readTimeout, props, prefix,
+                        null, useSSL, transportFactory);
             } catch (EngineSetupException ex) {
                 throw ex.failure;
             }
-
-        } else {
-            if (to >= 0 && transportFactory == null) {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest("set socket read timeout " + to);
-                socket.setSoTimeout(to);
-            }
+        } else if (readTimeout >= 0 && transportFactory == null) {
+            // A configured factory can change the timeout while layering TLS.
+            setReadTimeout(socket, readTimeout);
         }
-
         return socket;
     }
 
-    /**
-     * Create a socket with the given local address and connected to
-     * the given host and port.  Use the specified connection timeout
-     * and read timeout.
-     * If a socket factory is specified, use it.  Otherwise, use the
-     * SSLSocketFactory if useSSL is true.
-     */
-    private static Socket createSocket(InetAddress localaddr, int localport,
-                                       String host, int port, int cto, int to,
-                                       Properties props, String prefix,
-                                       SocketFactory sf, boolean useSSL,
-                                       boolean useEngine,
-                                       TransportSocketResources transportResources)
+    private static InetAddress resolveLocalAddress(Properties props, String prefix)
             throws IOException {
-        Socket socket = transportResources == null ? null : transportResources.physical;
+        String address = props.getProperty(prefix + ".localaddress", null);
+        return address == null ? null : InetAddress.getByName(address);
+    }
 
+    private static void setReadTimeout(Socket socket, int timeout)
+            throws IOException {
+        if (logger.isLoggable(Level.FINEST))
+            logger.finest("set socket read timeout " + timeout);
+        socket.setSoTimeout(timeout);
+    }
+
+    private static IOException socketFactoryFailure(Exception failure,
+            String description, String host, int port, int timeout) {
+        if (failure instanceof InvocationTargetException) {
+            Throwable cause = ((InvocationTargetException) failure).getTargetException();
+            if (cause instanceof Exception)
+                failure = (Exception) cause;
+        }
+        if (failure instanceof IOException)
+            return (IOException) failure;
+        return new SocketConnectException(description, failure, host, port, timeout);
+    }
+
+    /** Retains lookup context even when reflective factory construction fails. */
+    private static final class SocketFactorySelection {
+        private SocketFactory factory;
+        private String description = "unknown socket factory";
+        private String portProperty;
+        private int port = -1;
+
+        void selectForConnection(Properties props, String prefix, boolean useSSL)
+                throws ReflectiveOperationException {
+            if (useSSL) {
+                selectConfiguredFactory(props, prefix + ".ssl.socketFactory",
+                        "SSL socket factory");
+                portProperty = ".ssl.socketFactory.port";
+            }
+            if (factory == null) {
+                selectConfiguredFactory(props, prefix + ".socketFactory",
+                        "socket factory");
+                portProperty = ".socketFactory.port";
+            }
+        }
+
+        void selectPort(Properties props, String prefix, int requestedPort) {
+            if (factory != null)
+                port = PropUtil.getIntProperty(props, prefix + portProperty, -1);
+            if (port == -1)
+                port = requestedPort;
+        }
+
+        SSLSocketFactory selectForStartTLS(Properties props, String prefix)
+                throws ReflectiveOperationException, IOException {
+            selectConfiguredFactory(props, prefix + ".ssl.socketFactory",
+                    "SSL socket factory");
+            if (!(factory instanceof SSLSocketFactory))
+                selectConfiguredFactory(props, prefix + ".socketFactory",
+                        "socket factory");
+            if (!(factory instanceof SSLSocketFactory)) {
+                String trusted = props.getProperty(prefix + ".ssl.trust");
+                if (trusted != null) {
+                    factory = createTrustedSocketFactory(trusted);
+                    description = "mail SSL socket factory";
+                } else {
+                    factory = SSLSocketFactory.getDefault();
+                    description = "default SSL socket factory";
+                }
+            }
+            return (SSLSocketFactory) factory;
+        }
+
+        private void selectConfiguredFactory(Properties props, String key,
+                String label) throws ReflectiveOperationException {
+            Object candidate = props.get(key);
+            if (candidate instanceof SocketFactory) {
+                factory = (SocketFactory) candidate;
+                description = label + " instance " + factory;
+            }
+            if (factory == null) {
+                String factoryClass = props.getProperty(key + ".class");
+                factory = SocketFetcher.getSocketFactory(factoryClass);
+                description = label + " class " + factoryClass;
+            }
+        }
+    }
+
+    private static Socket openSocket(InetAddress localAddress, int localPort,
+            String host, int port, int connectionTimeout, int readTimeout,
+            Properties props, String prefix, SocketFactory factory, boolean useSSL,
+            SocketFactory transportFactory) throws IOException {
+        if (transportFactory != null)
+            return createSocketWithTransportFactory(localAddress, localPort,
+                    host, port, connectionTimeout, readTimeout, props, prefix,
+                    factory, useSSL, transportFactory);
+        return createSocket(localAddress, localPort, host, port, connectionTimeout,
+                readTimeout, props, prefix, factory, useSSL, null);
+    }
+
+    private static Socket createSocket(InetAddress localAddress, int localPort,
+            String host, int port, int connectionTimeout, int readTimeout,
+            Properties props, String prefix, SocketFactory factory, boolean useSSL,
+            TransportSocketResources resources) throws IOException {
         if (logger.isLoggable(Level.FINEST))
             logger.finest("create socket: prefix " + prefix +
-                    ", localaddr " + localaddr + ", localport " + localport +
+                    ", localaddr " + localAddress + ", localport " + localPort +
                     ", host " + host + ", port " + port +
-                    ", connection timeout " + cto + ", timeout " + to +
-                    ", socket factory " + sf + ", useSSL " + useSSL);
+                    ", connection timeout " + connectionTimeout + ", timeout " + readTimeout +
+                    ", socket factory " + factory + ", useSSL " + useSSL);
 
-        String proxyHost = props.getProperty(prefix + ".proxy.host", null);
-        String proxyUser = props.getProperty(prefix + ".proxy.user", null);
-        String proxyPassword = props.getProperty(prefix + ".proxy.password", null);
-        int proxyPort = 80;
-        String socksHost = null;
-        int socksPort = 1080;
-        String err = null;
+        SocketRoute route = new SocketRoute(props, prefix, resources == null);
+        Socket socket = createTransportSocket(factory, route, resources);
+        int writeTimeout = PropUtil.getIntProperty(props, prefix + ".writetimeout", -1);
+        socket = configureTimeouts(socket, readTimeout, writeTimeout, props, prefix, resources);
+        if (localAddress != null)
+            socket.bind(new InetSocketAddress(localAddress, localPort));
+        route.connect(socket, host, port, connectionTimeout);
+        return configureConnectedSocket(socket, host, port, writeTimeout,
+                props, prefix, factory, useSSL, resources);
+    }
 
-        if (proxyHost != null) {
-            int i = proxyHost.indexOf(':');
-            if (i >= 0) {
-                try {
-                    proxyPort = Integer.parseInt(proxyHost.substring(i + 1));
-                } catch (NumberFormatException ex) {
-                    // ignore it
-                }
-                proxyHost = proxyHost.substring(0, i);
+    private static Socket createTransportSocket(SocketFactory factory,
+            SocketRoute route, TransportSocketResources resources) throws IOException {
+        Socket socket = resources == null ? null : resources.physical;
+        if (socket == null && factory != null && !(factory instanceof SSLSocketFactory))
+            socket = factory.createSocket();
+        return socket == null ? route.createSocket() : socket;
+    }
+
+    private static Socket configureTimeouts(Socket socket, int readTimeout,
+            int writeTimeout, Properties props, String prefix,
+            TransportSocketResources resources) throws IOException {
+        if (readTimeout >= 0)
+            setReadTimeout(socket, readTimeout);
+        if (writeTimeout != -1) {
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest("set socket write timeout " + writeTimeout);
+            ScheduledExecutorService executor = PropUtil.getScheduledExecutorServiceProperty(props,
+                    prefix + ".executor.writetimeout");
+            socket = executor == null ? new WriteTimeoutSocket(socket, writeTimeout) :
+                    new WriteTimeoutSocket(socket, writeTimeout, executor);
+            if (resources != null)
+                resources.writeTimeout = socket;
+        }
+        return socket;
+    }
+
+    /** Keeps route selection and proxy diagnostics out of connection orchestration. */
+    private static final class SocketRoute {
+        private String proxyHost;
+        private String proxyUser;
+        private String proxyPassword;
+        private int proxyPort = 80;
+        private String socksHost;
+        private int socksPort = 1080;
+        private String description;
+
+        SocketRoute(Properties props, String prefix, boolean allowSocks) {
+            proxyHost = props.getProperty(prefix + ".proxy.host", null);
+            proxyUser = props.getProperty(prefix + ".proxy.user", null);
+            proxyPassword = props.getProperty(prefix + ".proxy.password", null);
+            if (proxyHost != null)
+                configureHttpProxy(props, prefix);
+            else if (allowSocks) {
+                socksHost = props.getProperty(prefix + ".socks.host", null);
+                if (socksHost != null)
+                    configureSocksProxy(props, prefix);
             }
-            proxyPort = PropUtil.getIntProperty(props,
-                    prefix + ".proxy.port", proxyPort);
-            err = "Using web proxy host, port: " + proxyHost + ", " + proxyPort;
+        }
+
+        private void configureHttpProxy(Properties props, String prefix) {
+            int separator = proxyHost.indexOf(':');
+            if (separator >= 0) {
+                try {
+                    proxyPort = Integer.parseInt(proxyHost.substring(separator + 1));
+                } catch (NumberFormatException ex) {
+                    // Keep the default for a malformed inline port.
+                }
+                proxyHost = proxyHost.substring(0, separator);
+            }
+            proxyPort = PropUtil.getIntProperty(props, prefix + ".proxy.port", proxyPort);
+            description = "Using web proxy host, port: " + proxyHost + ", " + proxyPort;
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer("web proxy host " + proxyHost + ", port " + proxyPort);
                 if (proxyUser != null)
                     logger.finer("web proxy user " + proxyUser + ", password " +
                             (proxyPassword == null ? "<null>" : "<non-null>"));
             }
-        } else if (transportResources == null && (socksHost =
-                props.getProperty(prefix + ".socks.host", null)) != null) {
-            int i = socksHost.indexOf(':');
-            if (i >= 0) {
+        }
+
+        private void configureSocksProxy(Properties props, String prefix) {
+            int separator = socksHost.indexOf(':');
+            if (separator >= 0) {
                 try {
-                    socksPort = Integer.parseInt(socksHost.substring(i + 1));
+                    socksPort = Integer.parseInt(socksHost.substring(separator + 1));
                 } catch (NumberFormatException ex) {
-                    // ignore it
+                    // Keep the default for a malformed inline port.
                 }
-                socksHost = socksHost.substring(0, i);
+                socksHost = socksHost.substring(0, separator);
             }
-            socksPort = PropUtil.getIntProperty(props,
-                    prefix + ".socks.port", socksPort);
-            err = "Using SOCKS host, port: " + socksHost + ", " + socksPort;
+            socksPort = PropUtil.getIntProperty(props, prefix + ".socks.port", socksPort);
+            description = "Using SOCKS host, port: " + socksHost + ", " + socksPort;
             if (logger.isLoggable(Level.FINER))
                 logger.finer("socks host " + socksHost + ", port " + socksPort);
         }
 
-        if (socket == null && sf != null && !(sf instanceof SSLSocketFactory))
-            socket = sf.createSocket();
-        if (socket == null) {
-            if (socksHost != null) {
-                socket = new Socket(
-                        new java.net.Proxy(java.net.Proxy.Type.SOCKS,
-                                new InetSocketAddress(socksHost, socksPort)));
-            } else if (useEngine || PropUtil.getBooleanProperty(props,
-                    prefix + ".usesocketchannels", false)) {
-                logger.finer("using SocketChannels");
-                socket = SocketChannel.open().socket();
-            } else
-                socket = new Socket();
-        }
-        if (to >= 0) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest("set socket read timeout " + to);
-            socket.setSoTimeout(to);
-        }
-        int writeTimeout = PropUtil.getIntProperty(props,
-                prefix + ".writetimeout", -1);
-        if (writeTimeout != -1) {    // wrap original
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest("set socket write timeout " + writeTimeout);
-            ScheduledExecutorService executorService = PropUtil.getScheduledExecutorServiceProperty(props,
-                    prefix + ".executor.writetimeout");
-            socket = executorService == null ?
-                    new WriteTimeoutSocket(socket, writeTimeout) :
-                    new WriteTimeoutSocket(socket, writeTimeout, executorService);
-            if (transportResources != null)
-                transportResources.writeTimeout = socket;
-        }
-        if (localaddr != null)
-            socket.bind(new InetSocketAddress(localaddr, localport));
-        try {
-            logger.finest("connecting...");
-            if (proxyHost != null)
-                SocketFetcher.proxyConnect(socket, proxyHost, proxyPort,
-                        proxyUser, proxyPassword, host, port, cto);
-            else if (cto >= 0)
-                socket.connect(new InetSocketAddress(host, port), cto);
-            else
-                socket.connect(new InetSocketAddress(host, port));
-            logger.finest("success!");
-        } catch (IOException ex) {
-            logger.log(Level.FINEST, "connection failed", ex);
-            throw new SocketConnectException(err, ex, host, port, cto);
+        Socket createSocket() throws IOException {
+            if (socksHost != null)
+                return new Socket(new java.net.Proxy(java.net.Proxy.Type.SOCKS,
+                        new InetSocketAddress(socksHost, socksPort)));
+            logger.finer("using SocketChannels");
+            return SocketChannel.open().socket();
         }
 
-        /*
-         * If we want an SSL connection and we didn't get an SSLSocket,
-         * wrap our plain Socket with an SSLSocket.
-         */
-        if ((useSSL || sf instanceof SSLSocketFactory) &&
-                !(socket instanceof SSLSocket)) {
-            String trusted;
-            SSLSocketFactory ssf;
-            // ssl.trust only applies if no SSL socket factory instance was
-            // specified; a socket factory class name, such as
-            // javax.net.ssl.SSLSocketFactory, usually gives the default factory
-            if (SocketFetcher.isSSLSocketFactoryInstance(sf, props, prefix))
-                ssf = (SSLSocketFactory) sf;
-            else if ((trusted = props.getProperty(prefix + ".ssl.trust")) != null) {
-                try {
-                    MailSSLSocketFactory msf = new MailSSLSocketFactory();
-                    if (trusted.equals("*"))
-                        msf.setTrustAllHosts(true);
-                    else
-                        msf.setTrustedHosts(trusted.split("\\s+"));
-                    ssf = msf;
-                } catch (GeneralSecurityException gex) {
-                    IOException ioex = new IOException(
-                            "Can't create MailSSLSocketFactory");
-                    ioex.initCause(gex);
-                    throw ioex;
-                }
-            } else if (sf instanceof SSLSocketFactory)
-                ssf = (SSLSocketFactory) sf;
-            else
-                ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            SocketChannel physicalChannel = socket.getChannel();
-            if (useEngine && physicalChannel != null) {
-                boolean explicitEngine = props.get(prefix + ".ssl.engineFactory") != null;
-                DuplexSocket duplex = null;
-                try {
-                    SSLEngine engine = createSSLEngine(ssf, host, port, props, prefix);
-                    if (engine != null) {
-                        duplex = new DuplexSocket(socket, writeTimeout, port);
-                        if (transportResources != null)
-                            transportResources.layered = duplex;
-                        configureSSLEngine(duplex, engine, host, props, prefix);
-                        return duplex;
-                    }
-                } catch (IOException | RuntimeException | LinkageError ex) {
-                    IOException failure = ex instanceof IOException ? (IOException) ex :
-                            new IOException("Could not set up SSL engine for: " + host, ex);
-                    if (duplex == null)
-                        closeFailedSocket(socket, physicalChannel, failure);
-                    else
-                        duplex.closeOnFailure(failure);
-                    if (explicitEngine && !(failure instanceof SocketTimeoutException))
-                        throw new EngineSetupException(failure);
-                    throw failure;
-                } catch (Error failure) {
-                    if (duplex == null)
-                        closeFailedSocket(socket, physicalChannel, failure);
-                    else
-                        duplex.abort(failure);
-                    throw failure;
-                }
+        void connect(Socket socket, String host, int port, int timeout) throws IOException {
+            try {
+                logger.finest("connecting...");
+                if (proxyHost != null)
+                    SocketFetcher.proxyConnect(socket, proxyHost, proxyPort,
+                            proxyUser, proxyPassword, host, port, timeout);
+                else if (timeout >= 0)
+                    socket.connect(new InetSocketAddress(host, port), timeout);
+                else
+                    socket.connect(new InetSocketAddress(host, port));
+                logger.finest("success!");
+            } catch (IOException ex) {
+                logger.log(Level.FINEST, "connection failed", ex);
+                throw new SocketConnectException(description, ex, host, port, timeout);
             }
-            socket = ssf.createSocket(socket, host, port, true);
-            if (transportResources != null)
-                transportResources.layered = socket;
-            sf = ssf;
         }
+    }
 
-        /*
-         * No matter how we created the socket, if it turns out to be an
-         * SSLSocket, configure it.
-         */
-        SocketFetcher.configureSSLSocket(socket, host, props, prefix, sf);
-
-        if (useEngine && !(socket instanceof SSLSocket) &&
-                socket.getChannel() != null) {
+    private static Socket configureConnectedSocket(Socket socket, String host,
+            int port, int writeTimeout, Properties props, String prefix,
+            SocketFactory factory, boolean useSSL, TransportSocketResources resources)
+            throws IOException {
+        if ((useSSL || factory instanceof SSLSocketFactory) &&
+                !(socket instanceof SSLSocket)) {
+            SSLSocketFactory sslFactory = selectTlsSocketFactory(factory, props, prefix);
+            Socket duplex = tryStartTlsEngine(socket, sslFactory, host, port,
+                    writeTimeout, props, prefix, resources);
+            if (duplex != null)
+                return duplex;
+            socket = sslFactory.createSocket(socket, host, port, true);
+            if (resources != null)
+                resources.layered = socket;
+            factory = sslFactory;
+        }
+        SocketFetcher.configureSSLSocket(socket, host, props, prefix, factory);
+        if (!(socket instanceof SSLSocket) && socket.getChannel() != null) {
             socket = new DuplexSocket(socket, writeTimeout, port);
-            if (transportResources != null)
-                transportResources.layered = socket;
+            if (resources != null)
+                resources.layered = socket;
         }
-
         return socket;
+    }
+
+    private static SSLSocketFactory selectTlsSocketFactory(SocketFactory factory,
+            Properties props, String prefix) throws IOException {
+        if (SocketFetcher.isSSLSocketFactoryInstance(factory, props, prefix))
+            return (SSLSocketFactory) factory;
+        String trusted = props.getProperty(prefix + ".ssl.trust");
+        if (trusted != null)
+            return createTrustedSocketFactory(trusted);
+        return factory instanceof SSLSocketFactory ? (SSLSocketFactory) factory :
+                (SSLSocketFactory) SSLSocketFactory.getDefault();
+    }
+
+    private static SSLSocketFactory createTrustedSocketFactory(String trusted)
+            throws IOException {
+        try {
+            MailSSLSocketFactory factory = new MailSSLSocketFactory();
+            if (trusted.equals("*"))
+                factory.setTrustAllHosts(true);
+            else
+                factory.setTrustedHosts(trusted.split("\\s+"));
+            return factory;
+        } catch (GeneralSecurityException ex) {
+            IOException failure = new IOException("Can't create MailSSLSocketFactory");
+            failure.initCause(ex);
+            throw failure;
+        }
+    }
+
+    private static Socket tryStartTlsEngine(Socket socket, SSLSocketFactory factory,
+            String host, int port, int writeTimeout, Properties props, String prefix,
+            TransportSocketResources resources) throws IOException {
+        SocketChannel channel = socket.getChannel();
+        if (channel == null)
+            return null;
+        boolean explicitEngine = props.get(prefix + ".ssl.engineFactory") != null;
+        DuplexSocket duplex = null;
+        try {
+            SSLEngine engine = createSSLEngine(factory, host, port, props, prefix);
+            if (engine == null)
+                return null;
+            duplex = new DuplexSocket(socket, writeTimeout, port);
+            if (resources != null)
+                resources.layered = duplex;
+            configureSSLEngine(duplex, engine, host, props, prefix);
+            return duplex;
+        } catch (IOException | RuntimeException | LinkageError ex) {
+            IOException failure = ex instanceof IOException ? (IOException) ex :
+                    new IOException("Could not set up SSL engine for: " + host, ex);
+            if (duplex == null)
+                closeFailedSocket(socket, channel, failure);
+            else
+                duplex.closeOnFailure(failure);
+            if (explicitEngine && !(failure instanceof SocketTimeoutException))
+                throw new EngineSetupException(failure);
+            throw failure;
+        } catch (Error failure) {
+            if (duplex == null)
+                closeFailedSocket(socket, channel, failure);
+            else
+                duplex.abort(failure);
+            throw failure;
+        }
     }
 
     /**
@@ -406,7 +452,7 @@ public final class NioSocketFetcher {
     private static Socket createSocketWithTransportFactory(InetAddress localaddr,
             int localport, String host, int port, int cto, int to,
             Properties props, String prefix, SocketFactory sf, boolean useSSL,
-            boolean useEngine, SocketFactory transportFactory) throws IOException {
+            SocketFactory transportFactory) throws IOException {
         TransportSocketResources resources = new TransportSocketResources();
         try {
             Socket transportSocket = transportFactory.createSocket();
@@ -416,7 +462,7 @@ public final class NioSocketFetcher {
                 throw new IOException(prefix + ".socketFactory.transport must return " +
                         "an open, unconnected, non-SSL socket");
             Socket socket = createSocket(localaddr, localport, host, port, cto,
-                    to, props, prefix, sf, useSSL, useEngine, resources);
+                    to, props, prefix, sf, useSSL, resources);
             if (socket == null)
                 throw new IOException("Socket factory returned no socket");
             // A TLS factory can change the timeout while wrapping the transport.
@@ -479,106 +525,46 @@ public final class NioSocketFetcher {
         int port = socket.getPort();
         if (logger.isLoggable(Level.FINER))
             logger.finer("startTLS host " + host + ", port " + port);
-
-        String sfErr = "unknown socket factory";
+        SocketFactorySelection selection = new SocketFactorySelection();
         try {
-            SSLSocketFactory ssf = null;
-            SocketFactory sf = null;
-
-            // first, look for an SSL socket factory
-            Object sfo = props.get(prefix + ".ssl.socketFactory");
-            if (sfo instanceof SocketFactory) {
-                sf = (SocketFactory) sfo;
-                sfErr = "SSL socket factory instance " + sf;
-            }
-            if (sf == null) {
-                String sfClass =
-                        props.getProperty(prefix + ".ssl.socketFactory.class");
-                sf = SocketFetcher.getSocketFactory(sfClass);
-                sfErr = "SSL socket factory class " + sfClass;
-            }
-            if (sf != null && sf instanceof SSLSocketFactory)
-                ssf = (SSLSocketFactory) sf;
-
-            // next, look for a regular socket factory that happens to be
-            // an SSL socket factory
-            if (ssf == null) {
-                sfo = props.get(prefix + ".socketFactory");
-                if (sfo instanceof SocketFactory) {
-                    sf = (SocketFactory) sfo;
-                    sfErr = "socket factory instance " + sf;
-                }
-                if (sf == null) {
-                    String sfClass =
-                            props.getProperty(prefix + ".socketFactory.class");
-                    sf = SocketFetcher.getSocketFactory(sfClass);
-                    sfErr = "socket factory class " + sfClass;
-                }
-                if (sf != null && sf instanceof SSLSocketFactory)
-                    ssf = (SSLSocketFactory) sf;
-            }
-
-            // finally, use the default SSL socket factory
-            if (ssf == null) {
-                String trusted;
-                if ((trusted = props.getProperty(prefix + ".ssl.trust")) !=
-                        null) {
-                    try {
-                        MailSSLSocketFactory msf = new MailSSLSocketFactory();
-                        if (trusted.equals("*"))
-                            msf.setTrustAllHosts(true);
-                        else
-                            msf.setTrustedHosts(trusted.split("\\s+"));
-                        ssf = msf;
-                        sfErr = "mail SSL socket factory";
-                    } catch (GeneralSecurityException gex) {
-                        IOException ioex = new IOException(
-                                "Can't create MailSSLSocketFactory");
-                        ioex.initCause(gex);
-                        throw ioex;
-                    }
-                } else {
-                    ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();
-                    sfErr = "default SSL socket factory";
-                }
-            }
-
-            if (socket instanceof DuplexSocket) {
-                DuplexSocket duplex = (DuplexSocket) socket;
-                try {
-                    SSLEngine engine = createSSLEngine(ssf, host,
-                            duplex.getPeerPort(), props, prefix);
-                    if (engine != null) {
-                        configureSSLEngine(duplex, engine, host, props, prefix);
-                        return duplex;
-                    }
-                } catch (IOException | RuntimeException | LinkageError ex) {
-                    IOException failure = ex instanceof IOException ? (IOException) ex :
-                            new IOException("Could not set up SSL engine for: " + host, ex);
-                    throw duplex.closeOnFailure(failure);
-                }
-                socket = duplex.release();
-            }
-            socket = ssf.createSocket(socket, host, port, true);
-            SocketFetcher.configureSSLSocket(socket, host, props, prefix, ssf);
+            SSLSocketFactory factory = selection.selectForStartTLS(props, prefix);
+            return upgradeToTls(socket, factory, host, port, props, prefix);
         } catch (Exception ex) {
             if (ex instanceof InvocationTargetException) {
-                Throwable t =
-                        ((InvocationTargetException) ex).getTargetException();
-                if (t instanceof Exception)
-                    ex = (Exception) t;
+                Throwable cause = ((InvocationTargetException) ex).getTargetException();
+                if (cause instanceof Exception)
+                    ex = (Exception) cause;
             }
             if (ex instanceof IOException)
                 throw (IOException) ex;
-            // wrap anything else before sending it on
-            IOException ioex = new IOException(
-                    "Exception in startTLS using " + sfErr +
-                            ": host, port: " +
-                            host + ", " + port +
-                            "; Exception: " + ex);
-            ioex.initCause(ex);
-            throw ioex;
+            IOException failure = new IOException(
+                    "Exception in startTLS using " + selection.description +
+                            ": host, port: " + host + ", " + port + "; Exception: " + ex);
+            failure.initCause(ex);
+            throw failure;
         }
+    }
+
+    private static Socket upgradeToTls(Socket socket, SSLSocketFactory factory,
+            String host, int port, Properties props, String prefix) throws IOException {
+        if (socket instanceof DuplexSocket) {
+            DuplexSocket duplex = (DuplexSocket) socket;
+            try {
+                SSLEngine engine = createSSLEngine(factory, host,
+                        duplex.getPeerPort(), props, prefix);
+                if (engine != null) {
+                    configureSSLEngine(duplex, engine, host, props, prefix);
+                    return duplex;
+                }
+            } catch (IOException | RuntimeException | LinkageError ex) {
+                IOException failure = ex instanceof IOException ? (IOException) ex :
+                        new IOException("Could not set up SSL engine for: " + host, ex);
+                throw duplex.closeOnFailure(failure);
+            }
+            socket = duplex.release();
+        }
+        socket = factory.createSocket(socket, host, port, true);
+        SocketFetcher.configureSSLSocket(socket, host, props, prefix, factory);
         return socket;
     }
 

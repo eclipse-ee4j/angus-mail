@@ -2166,7 +2166,7 @@ public class SMTPTransport extends Transport {
                         addSenderFailure(ex, state.from, command.command);
                         state.fail(ex);
                     } else {
-                        state.recipients = new RecipientState(true);
+                        state.recipients = new RecipientState();
                     }
                 } else {
                     try {
@@ -2334,14 +2334,12 @@ public class SMTPTransport extends Transport {
             private final List<InternetAddress> valid = new ArrayList<>();
             private final List<InternetAddress> validUnsent = new ArrayList<>();
             private final List<InternetAddress> invalid = new ArrayList<>();
-            private final boolean pipelined;
             private boolean sendPartial;
             private boolean sendFailed;
             private MessagingException mex;
             private int replies;
 
-            RecipientState(boolean pipelined) {
-                this.pipelined = pipelined;
+            RecipientState() {
                 validSentAddr = validUnsentAddr = invalidAddr = null;
                 if (message instanceof SMTPMessage)
                     sendPartial = ((SMTPMessage) message).getSendPartial();
@@ -2442,15 +2440,9 @@ public class SMTPTransport extends Transport {
                             if (logger.isLoggable(Level.FINE))
                                 logger.fine("got response code " + retCode +
                                         ", with response: " + lastServerResponse);
-                            String _lsr = lastServerResponse; // else rset will nuke it
-                            int _lrc = lastReturnCode;
-                            if (!pipelined && serverSocket != null)
-                                issueCommand("RSET", -1);
-                            lastServerResponse = _lsr;    // restore, for get
-                            lastReturnCode = _lrc;
                             sfex = new SMTPAddressFailedException(ia, cmd, retCode,
-                                    _lsr);
-                            if (pipelined && mex != null)
+                                    lastServerResponse);
+                            if (mex != null)
                                 sfex.setNextException(mex);
                             throw sfex;
                         }
@@ -2504,11 +2496,11 @@ public class SMTPTransport extends Transport {
 
                     // copy all valid addresses to validUnsent, since something failed
                     validUnsentAddr = new Address[valid.size() + validUnsent.size()];
-                    int i = 0;
-                    for (int j = 0; j < valid.size(); j++)
-                        validUnsentAddr[i++] = (Address) valid.get(j);
-                    for (int j = 0; j < validUnsent.size(); j++)
-                        validUnsentAddr[i++] = (Address) validUnsent.get(j);
+                    int next = 0;
+                    for (InternetAddress address : valid)
+                        validUnsentAddr[next++] = address;
+                    for (InternetAddress address : validUnsent)
+                        validUnsentAddr[next++] = address;
                 } else if (reportSuccess || (sendPartial &&
                         (invalid.size() > 0 || validUnsent.size() > 0))) {
                     // we'll go on to send the message, but after sending we'll
@@ -2536,20 +2528,20 @@ public class SMTPTransport extends Transport {
                 if (logger.isLoggable(Level.FINE)) {
                     if (validSentAddr != null && validSentAddr.length > 0) {
                         logger.fine("Verified Addresses");
-                        for (int l = 0; l < validSentAddr.length; l++) {
-                            logger.fine("  " + validSentAddr[l]);
+                        for (Address address : validSentAddr) {
+                            logger.fine("  " + address);
                         }
                     }
                     if (validUnsentAddr != null && validUnsentAddr.length > 0) {
                         logger.fine("Valid Unsent Addresses");
-                        for (int j = 0; j < validUnsentAddr.length; j++) {
-                            logger.fine("  " + validUnsentAddr[j]);
+                        for (Address address : validUnsentAddr) {
+                            logger.fine("  " + address);
                         }
                     }
                     if (invalidAddr != null && invalidAddr.length > 0) {
                         logger.fine("Invalid Addresses");
-                        for (int k = 0; k < invalidAddr.length; k++) {
-                            logger.fine("  " + invalidAddr[k]);
+                        for (Address address : invalidAddr) {
+                            logger.fine("  " + address);
                         }
                     }
                 }
@@ -2561,25 +2553,6 @@ public class SMTPTransport extends Transport {
                     notifyTransportListeners(TransportEvent.MESSAGE_NOT_DELIVERED,
                             validSentAddr, validUnsentAddr,
                             invalidAddr, SMTPTransport.this.message);
-
-                    // reset the connection so more sends are allowed
-                    String lsr = lastServerResponse;    // save, for get
-                    int lrc = lastReturnCode;
-                    try {
-                        if (!pipelined && serverSocket != null)
-                            issueCommand("RSET", -1);
-                    } catch (MessagingException ex) {
-                        // if can't reset, best to close the connection
-                        try {
-                            close();
-                        } catch (MessagingException ex2) {
-                            // thrown by close()--ignore, will close() later anyway
-                            logger.log(Level.FINE, "close failed", ex2);
-                        }
-                    } finally {
-                        lastServerResponse = lsr;    // restore
-                        lastReturnCode = lrc;
-                    }
 
                     throw new SendFailedException("Invalid Addresses", mex,
                             validSentAddr,
