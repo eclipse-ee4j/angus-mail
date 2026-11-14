@@ -5,6 +5,41 @@
 		    ------------------------------
 -- Unreleased --
 
+- MailHandler body content type
+
+    The MIME type of the message body is guessed from the head of the
+    body formatter only.  Formatted log records no longer take part in
+    the guess, so a body that starts with a record message containing
+    HTML or XML markup is sent as text/plain.  A formatter without a
+    head that produces HTML or XML can still declare its type with a
+    MIME entry for its class name or with a class name that contains
+    "html" or "xml".
+
+- Custom hostname verifier rejection
+
+    When a custom HostnameVerifier returns false, the server identity
+    failure is now an SSLPeerUnverifiedException instead of a plain
+    SSLException.  SSLPeerUnverifiedException extends SSLException.
+    The existing IOException wrapper, diagnostic message and socket
+    cleanup are unchanged.  Exceptions thrown by the verifier retain
+    their existing types and handling.
+
+- Conscrypt server identity checking
+
+    Server identity checking uses the HTTPS endpoint identification algorithm
+    for known Conscrypt socket classes, including Android's implementation.
+    Conscrypt does not perform hostname checks for the LDAPS algorithm.
+    Other TLS implementations continue to use LDAPS. Disabling
+    mail.<protocol>.ssl.checkserveridentity and explicit hostname verifiers
+    retain their existing behavior.
+
+    Opaque socket wrappers and relocated Conscrypt classes are not recognized;
+    those configurations can use the existing explicit hostname verifier.
+
+    The explicit MailHostnameVerifier also supports numeric IP subject
+    alternative names, internationalized DNS names and absolute DNS names.
+    Legacy SSLSocket trust-manager behavior is unchanged.
+
 - SMTP capability state
 
     Cached EHLO capabilities are discarded before a new EHLO or HELO,
@@ -25,6 +60,16 @@
     can't be converted to a Path, the file is created with
     File.createTempFile and the java.io.File setReadable, setWritable and
     setExecutable methods are used to restrict access to the owner.
+
+- NTLMv2 response no longer depends on the server's type 2 flags
+
+    When mail.<protocol>.auth.ntlm.v2 is true (the default), the NTLM
+    type 3 message now always carries the NTLMv2 and LMv2 responses.
+    Previously a type 2 message without the extended session security
+    flag made the client fall back to the LM and NTLMv1 responses, which
+    a malicious server or an attacker on the connection could use to
+    recover the password hash.  Servers that only accept NTLMv1 now need
+    mail.<protocol>.auth.ntlm.v2 set to false.
 
 -- Angus Mail 2.0.5 --
 

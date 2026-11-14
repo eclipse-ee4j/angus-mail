@@ -255,6 +255,7 @@ public class Argument {
 
             Object o = items.get(i);
             if (o instanceof Atom) {
+                Protocol.validateCommand(((Atom) o).string);
                 os.writeBytes(((Atom) o).string);
             } else if (o instanceof Number) {
                 os.writeBytes(((Number) o).toString());

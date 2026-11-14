@@ -30,6 +30,9 @@ mailhandler/src/main/resources/META-INF/hk2-locator/default
 docker/JTReportParser/
 providers/angus-mail/src/test/resources/org/eclipse/angus/mail/util/paramdatanostrict
 providers/angus-mail/src/test/resources/org/eclipse/angus/mail/util/paramdata
+hostname-verifier.jks
+providers/angus-mail/src/test/resources/org/eclipse/angus/mail/util/conscrypt-hostname.jks
+providers/angus-mail/src/test/resources/org/eclipse/angus/mail/util/conscrypt-wrong-hostname.jks
 .txt
 .TXT
 www/

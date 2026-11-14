@@ -2015,6 +2015,8 @@ public class SMTPTransport extends Transport {
                             mex = sfex;
                         else
                             mex.setNextException(sfex);
+                        
+                        break;
                     } else {
                         // completely unexpected response, just give up
                         if (logger.isLoggable(Level.FINE))

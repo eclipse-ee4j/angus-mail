@@ -95,7 +95,7 @@ public class QPDecoderStream extends FilterInputStream {
             } else if (a == '\r') {
                 // Expecting LF. This forms a soft linebreak to be ignored.
                 int b = in.read();
-                if (b != '\n')
+                if (b != '\n' && b != -1)
                     /* Not really confirming QP encoding, but
                      * lets allow this as well.
                      */
@@ -106,7 +106,15 @@ public class QPDecoderStream extends FilterInputStream {
                 return -1;
             } else {
                 ba[0] = (byte) a;
-                ba[1] = (byte) in.read();
+                int b = in.read();
+                if (b == -1) {
+                    // '=' followed by a single character at EOF; not a valid
+                    // encoded atom.  Push back the real character and return
+                    // '=' literally, without inventing a second byte.
+                    ((PushbackInputStream) in).unread(a);
+                    return c;
+                }
+                ba[1] = (byte) b;
                 try {
                     return ASCIIUtility.parseInt(ba, 0, 2, 16);
                 } catch (NumberFormatException nex) {

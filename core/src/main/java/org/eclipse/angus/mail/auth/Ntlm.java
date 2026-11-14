@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2026 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -60,6 +60,7 @@ public class Ntlm {
     private final String password;
 
     private Mac hmac;
+    private boolean v2;    // NTLMv2 requested in the type 1 message
 
     private final MailLogger logger;
 
@@ -169,6 +170,7 @@ public class Ntlm {
                         flags;
         if (dlen != 0)
             type1flags |= NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED;
+        this.v2 = v2;
         if (v2)
             type1flags |= NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY;
         writeInt(type1, 12, type1flags);
@@ -370,8 +372,9 @@ public class Ntlm {
             byte[] lmresponse;
             byte[] ntresponse;
 
-            // did the server agree to NTLMv2?
-            if ((flags & NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY) != 0) {
+            // did we ask for NTLMv2 or did the server agree to it?
+            // don't let the server downgrade us to the LM/NTLMv1 responses
+            if (v2 || (flags & NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY) != 0) {
                 // yes, create an NTLMv2 response
                 logger.fine("Using NTLMv2");
                 type3flags |= NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY;
