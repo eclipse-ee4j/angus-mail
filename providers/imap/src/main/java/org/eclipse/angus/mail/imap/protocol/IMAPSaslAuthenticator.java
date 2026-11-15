@@ -214,9 +214,10 @@ public class IMAPSaslAuthenticator implements SaslAuthenticator {
                             os.flush();    // flush the stream
                             bos.reset();    // reset buffer
                         } else {
+                            // the response may contain the password
                             if (logger.isLoggable(Level.FINE))
                                 logger.fine("SASL response: " +
-                                        ASCIIUtility.toString(ba, 0, ba.length) + " :");
+                                        ba.length + " bytes");
                             ba = Base64.getEncoder().encode(ba);
                             if (isXGWTRUSTEDAPP)
                                 bos.write(ASCIIUtility.getBytes("XGWTRUSTEDAPP "));
