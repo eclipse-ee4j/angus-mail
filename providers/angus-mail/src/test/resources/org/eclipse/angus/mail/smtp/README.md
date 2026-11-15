@@ -9,7 +9,7 @@ not the implementation used by the `transport` arm.
 ## Shared transport contract
 
 ```text
-mvn -B -pl providers/angus-mail -am -Poss-release,staging,build-only -Dgpg.skip=true -Denforcer.skip -Dtest=SMTPPipeliningTest,SMTPPipeliningEngineTest,SMTPPipeliningTlsTest -Dsurefire.failIfNoSpecifiedTests=false package
+mvn -B -pl providers/angus-mail -am -Poss-release,staging,build-only,conscrypt-tests -Dgpg.skip=true -Denforcer.skip -Dtest=SMTPPipelining*Test,SMTPEnvelopeExchangeBufferTest,DuplexSocket*Test,SocketFetcher*Test,WriteTimeoutSocketTest -Dsurefire.failIfNoSpecifiedTests=false clean package
 ```
 
 `SMTPPipeliningTest` is shared with the reader-thread alternative. It gates
@@ -20,6 +20,8 @@ as well. The implicit-TLS cases always run. Engine-specific tests check the
 custom context hook and preservation of existing factories through sequential
 fallback. The optional `-Dangus.pipelining.benchmark=true` runs a reused-connection
 latency comparison for 1, 10 and 100 recipients, without timing assertions.
+The command also checks buffer limits, socket closure, factory routing and
+caller-owned executors. The Conscrypt profile adds only a test dependency.
 
 ## Run
 
@@ -63,9 +65,11 @@ reader-thread cases and makes the sequential control use the same compiled
 provider with pipelining disabled. The helper refuses a provider without the
 prototype hooks rather than treating an ignored pipelining property as a
 successful pipelined send. No dependency artifact is installed or overwritten
-by this option. The `transport` cases use this branch's actual SMTPTransport;
-the `engine` cases use the independent test client, including a 37-byte I/O
-fragmentation check. Set `-Dangus.sslengine.modes=transport` to run only the
+by this option. The `transport` cases use this branch's actual SMTPTransport.
+Their fragmented cases use a loopback relay that splits traffic in both
+directions into 37-byte writes. The `engine` cases use the independent test
+client with its own 37-byte I/O limit. Set `-Dangus.sslengine.modes=transport`
+to run only the
 integrated transport cases. This is a test filter, not a feature setting.
 
 The integrated wrong-host case rejects an engine hook returning a different

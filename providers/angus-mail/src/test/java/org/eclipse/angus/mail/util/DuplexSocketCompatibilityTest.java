@@ -25,6 +25,9 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -33,26 +36,209 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /** Checks stream contracts and caller-thread input callbacks. */
 public class DuplexSocketCompatibilityTest {
+    @Test(timeout = 10000)
+    public void testDisposedReadinessKeyKeepsSocketExceptionContract() throws Exception {
+        try (Connection connection = new Connection()) {
+            java.lang.reflect.Field field = DuplexSocket.class.getDeclaredField("key");
+            field.setAccessible(true);
+            ((SelectionKey) field.get(connection.socket)).cancel();
+            SocketException failure = assertThrows(SocketException.class,
+                    () -> connection.socket.getInputStream().read());
+            assertTrue(failure.getCause() instanceof CancelledKeyException);
+            assertTrue(connection.socket.isClosed());
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testLocalCloseRejectsBufferedInputAndExistingStreams() throws Exception {
+        try (Connection connection = new Connection()) {
+            InputStream input = connection.socket.getInputStream();
+            OutputStream output = connection.socket.getOutputStream();
+            AtomicInteger ready = new AtomicInteger();
+            connection.socket.setInputHandler(() -> ready.set(input.available()));
+            connection.peer.getOutputStream().write(new byte[] {1, 2});
+            connection.socket.awaitInput(() -> ready.get() == 2);
+            connection.socket.setInputHandler(null);
+            assertEquals(2, input.available());
+            connection.socket.close();
+            assertThrows(SocketException.class, input::read);
+            assertThrows(SocketException.class, input::available);
+            assertThrows(SocketException.class, () -> output.write(3));
+            assertThrows(SocketException.class, connection.socket::getInputStream);
+            assertThrows(SocketException.class, connection.socket::getOutputStream);
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testPeerInputEofLeavesOutputUsable() throws Exception {
+        try (Connection connection = new Connection()) {
+            connection.peer.shutdownOutput();
+            assertEquals(-1, connection.socket.getInputStream().read());
+            connection.socket.getOutputStream().write(42);
+            assertEquals(42, connection.peer.getInputStream().read());
+            assertFalse(connection.socket.isClosed());
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testPhysicalSocketAbortKeepsSocketExceptionContract() throws Exception {
+        for (boolean write : new boolean[] {false, true}) {
+            try (Connection connection = new Connection()) {
+                connection.socket.getChannel().socket().close();
+                SocketException failure = assertThrows(SocketException.class, () -> {
+                    if (write)
+                        connection.socket.getOutputStream().write(42);
+                    else
+                        connection.socket.getInputStream().read();
+                });
+                if (write)
+                    assertTrue(failure.getCause() instanceof ClosedChannelException);
+                assertTrue(connection.socket.isClosed());
+            }
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testCloseAfterPhysicalAbortDisposesTlsWithoutAnotherExchange() throws Exception {
+        try (Connection connection = new Connection()) {
+            connection.socket.startTLS(new ClosingEngine(true));
+            connection.socket.getChannel().socket().close();
+            connection.socket.close();
+            assertTrue(connection.socket.isClosed());
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testReplyTimeoutFollowsIncomingProgress() throws Exception {
+        try (Connection connection = new Connection()) {
+            connection.socket.setSoTimeout(300);
+            connection.peer.setTcpNoDelay(true);
+            AtomicInteger received = new AtomicInteger();
+            InputStream input = connection.socket.getInputStream();
+            connection.socket.setInputHandler(() -> {
+                while (input.available() > 0) {
+                    input.read();
+                    received.incrementAndGet();
+                }
+            });
+            ExecutorService writer = Executors.newSingleThreadExecutor();
+            try {
+                Future<?> sending = writer.submit(() -> {
+                    for (int i = 0; i < 8; i++) {
+                        connection.peer.getOutputStream().write(i);
+                        Thread.sleep(100);
+                    }
+                    return null;
+                });
+                connection.socket.awaitInput(() -> received.get() == 8);
+                sending.get(2, TimeUnit.SECONDS);
+                assertEquals(8, received.get());
+                assertFalse(connection.socket.isClosed());
+            } finally {
+                writer.shutdownNow();
+                assertTrue(writer.awaitTermination(2, TimeUnit.SECONDS));
+            }
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testReplyTimeoutStillClosesASilentPeer() throws Exception {
+        try (Connection connection = new Connection()) {
+            connection.socket.setSoTimeout(100);
+            connection.socket.setInputHandler(() -> { });
+            assertThrows(SocketTimeoutException.class, () -> connection.socket.awaitInput(() -> false));
+            assertTrue(connection.socket.isClosed());
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testConcurrentIoIsRejectedWithoutAbortingTheOwner() throws Exception {
+        try (Connection connection = new Connection()) {
+            ExecutorService reader = Executors.newSingleThreadExecutor();
+            CountDownLatch entered = new CountDownLatch(1);
+            AtomicBoolean available = new AtomicBoolean();
+            connection.socket.setInputHandler(() -> available.set(true));
+            try {
+                Future<?> read = reader.submit(() -> {
+                    connection.socket.awaitInput(() -> {
+                        entered.countDown();
+                        return available.get();
+                    });
+                    return null;
+                });
+                assertTrue(entered.await(3, TimeUnit.SECONDS));
+                assertThrows(IOException.class, () -> connection.socket.getOutputStream().write(7));
+                assertFalse(connection.socket.isClosed());
+                connection.peer.getOutputStream().write(42);
+                read.get(3, TimeUnit.SECONDS);
+                connection.socket.setInputHandler(null);
+                assertEquals(42, connection.socket.getInputStream().read());
+            } finally {
+                reader.shutdownNow();
+            }
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testClassicOptionsUseThePhysicalSocket() throws Exception {
+        try (Connection connection = new Connection()) {
+            Socket physical = connection.socket.getChannel().socket();
+            connection.socket.setKeepAlive(true);
+            assertTrue(physical.getKeepAlive());
+            assertTrue(connection.socket.getKeepAlive());
+            connection.socket.setReuseAddress(true);
+            assertTrue(physical.getReuseAddress());
+            assertTrue(connection.socket.getReuseAddress());
+            connection.socket.setOOBInline(true);
+            assertTrue(physical.getOOBInline());
+            assertTrue(connection.socket.getOOBInline());
+            connection.socket.setTrafficClass(16);
+            assertEquals(physical.getTrafficClass(), connection.socket.getTrafficClass());
+            connection.socket.setSoLinger(true, 0);
+            assertEquals(0, physical.getSoLinger());
+            assertEquals(0, connection.socket.getSoLinger());
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testUnsupportedHalfCloseDoesNotBypassTheDriver() throws Exception {
+        try (Connection connection = new Connection()) {
+            assertThrows(UnsupportedOperationException.class, connection.socket::shutdownInput);
+            assertThrows(UnsupportedOperationException.class, connection.socket::shutdownOutput);
+            assertThrows(UnsupportedOperationException.class, () -> connection.socket.sendUrgentData(42));
+            Socket physical = connection.socket.getChannel().socket();
+            assertFalse(physical.isInputShutdown());
+            assertFalse(physical.isOutputShutdown());
+            connection.socket.getOutputStream().write(42);
+            assertEquals(42, connection.peer.getInputStream().read());
+        }
+    }
+
     @Test(timeout = 10000)
     public void testGenericSocketOptionWritesAreRejected() throws Exception {
         try (Connection connection = new Connection()) {
@@ -274,6 +460,33 @@ public class DuplexSocketCompatibilityTest {
             assertEquals(1, raw.closeCalls);
         } finally {
             raw.channel.close();
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testInterruptedDelegatedTaskRetainsCauseAndInterrupt() throws Exception {
+        try (Connection connection = new Connection()) {
+            connection.socket.startTLS(new ClosingEngine(true));
+            InterruptedException interruption = new InterruptedException("Delegated task interrupted");
+            FutureTask<Void> completed = new FutureTask<Void>(() -> null) {
+                @Override
+                public Void get() throws InterruptedException {
+                    throw interruption;
+                }
+            };
+            completed.run();
+            java.lang.reflect.Field field = DuplexSocket.class.getDeclaredField("delegated");
+            field.setAccessible(true);
+            field.set(connection.socket, completed);
+            try {
+                InterruptedIOException failure = assertThrows(InterruptedIOException.class,
+                        () -> connection.socket.getOutputStream().write(42));
+                assertSame(interruption, failure.getCause());
+                assertTrue(Thread.currentThread().isInterrupted());
+                assertTrue(connection.socket.isClosed());
+            } finally {
+                Thread.interrupted();
+            }
         }
     }
 

@@ -73,7 +73,8 @@ public class SMTPSSLEngineTest {
                 cases.add(new Object[]{mode, implicit, "pressure", 32768, 512, 65536});
                 cases.add(new Object[]{mode, implicit, "pressure", 512, 65536, 65536});
             }
-            cases.add(new Object[]{"engine", implicit, "pressure", 65536, 512, 37});
+            for (String mode : new String[]{"engine", "transport"})
+                cases.add(new Object[]{mode, implicit, "pressure", 65536, 512, 37});
             for (String mode : new String[]{"engine", "transport"}) {
                 for (String scenario : new String[]{"disconnect", "silent", "post-content",
                         "wrong-host", "untrusted"})

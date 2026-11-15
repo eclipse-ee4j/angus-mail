@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 1997, 2024 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2026 Benny Bottema.
  * Copyright (c) 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
@@ -20,9 +19,6 @@ package org.eclipse.angus.mail.util;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
@@ -45,7 +41,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.cert.CertificateException;
 import java.security.GeneralSecurityException;
-import java.security.Security;
 import java.security.PrivilegedAction;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
@@ -57,7 +52,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.function.BiFunction;
 import java.util.StringTokenizer;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
@@ -172,28 +166,6 @@ public class SocketFetcher {
                                    String prefix, boolean useSSL)
             throws IOException {
 
-        return getSocket(host, port, props, prefix, useSSL, false);
-    }
-
-    /**
-     * Opens a connection, optionally using duplex channel I/O. A custom socket
-     * without a channel, or a TLS factory without an engine equivalent, keeps
-     * its original socket implementation. This option does not replace a
-     * caller's socket factory, trust configuration, or proxy.
-     *
-     * @param host the destination host
-     * @param port the destination port
-     * @param props socket properties
-     * @param prefix property prefix
-     * @param useSSL whether to use implicit TLS
-     * @param useEngine whether to prefer duplex channel I/O
-     * @return the connected socket
-     * @exception IOException for connection or TLS failures
-     */
-    public static Socket getSocket(String host, int port, Properties props,
-                                   String prefix, boolean useSSL,
-                                   boolean useEngine) throws IOException {
-
         if (logger.isLoggable(Level.FINER))
             logger.finer("getSocket" + ", host " + host + ", port " + port +
                     ", prefix " + prefix + ", useSSL " + useSSL);
@@ -269,15 +241,13 @@ public class SocketFetcher {
                     transportAttempted = true;
                     socket = createSocketWithTransportFactory(localaddr, localport,
                             host, sfPort, cto, to, props, prefix, sf, useSSL,
-                            useEngine, transportFactory);
+                            transportFactory);
                 } else {
                     socket = createSocket(localaddr, localport,
                             host, sfPort, cto, to, props, prefix, sf, useSSL,
-                            useEngine, null);
+                            null);
                 }
             }
-        } catch (EngineSetupException ex) {
-            throw ex.failure;
         } catch (SocketTimeoutException sex) {
             throw sex;
         } catch (Exception ex) {
@@ -296,18 +266,13 @@ public class SocketFetcher {
         }
 
         if (socket == null) {
-            try {
-                if (transportFactory != null)
-                    socket = createSocketWithTransportFactory(localaddr, localport,
-                            host, port, cto, to, props, prefix, null, useSSL,
-                            useEngine, transportFactory);
-                else
-                    socket = createSocket(localaddr, localport,
-                            host, port, cto, to, props, prefix, null, useSSL,
-                            useEngine, null);
-            } catch (EngineSetupException ex) {
-                throw ex.failure;
-            }
+            if (transportFactory != null)
+                socket = createSocketWithTransportFactory(localaddr, localport,
+                        host, port, cto, to, props, prefix, null, useSSL,
+                        transportFactory);
+            else
+                socket = createSocket(localaddr, localport,
+                        host, port, cto, to, props, prefix, null, useSSL, null);
 
         } else {
             if (to >= 0 && transportFactory == null) {
@@ -318,6 +283,26 @@ public class SocketFetcher {
         }
 
         return socket;
+    }
+
+    /**
+     * Opens a connection, explicitly selecting the duplex backend when requested.
+     *
+     * @param host destination host
+     * @param port destination port
+     * @param props connection properties
+     * @param prefix property prefix
+     * @param useSSL whether to establish implicit TLS
+     * @param useEngine whether to select duplex I/O
+     * @return the connected socket
+     * @exception IOException for connection or TLS failure
+     */
+    public static Socket getSocket(String host, int port, Properties props,
+                                   String prefix, boolean useSSL,
+                                   boolean useEngine) throws IOException {
+        if (useEngine)
+            return NioSocketFetcher.getSocket(host, port, props, prefix, useSSL);
+        return getSocket(host, port, props, prefix, useSSL);
     }
 
     public static Socket getSocket(String host, int port, Properties props,
@@ -336,7 +321,6 @@ public class SocketFetcher {
                                        String host, int port, int cto, int to,
                                        Properties props, String prefix,
                                        SocketFactory sf, boolean useSSL,
-                                       boolean useEngine,
                                        TransportSocketResources transportResources)
             throws IOException {
         Socket socket = transportResources == null ? null : transportResources.physical;
@@ -400,7 +384,7 @@ public class SocketFetcher {
                 socket = new Socket(
                         new java.net.Proxy(java.net.Proxy.Type.SOCKS,
                                 new InetSocketAddress(socksHost, socksPort)));
-            } else if (useEngine || PropUtil.getBooleanProperty(props,
+            } else if (PropUtil.getBooleanProperty(props,
                     prefix + ".usesocketchannels", false)) {
                 logger.finer("using SocketChannels");
                 socket = SocketChannel.open().socket();
@@ -473,30 +457,6 @@ public class SocketFetcher {
                 ssf = (SSLSocketFactory) sf;
             else
                 ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            if (useEngine && socket.getChannel() != null) {
-                boolean explicitEngine = props.get(prefix + ".ssl.engineFactory") != null;
-                DuplexSocket duplex = null;
-                try {
-                    SSLEngine engine = createSSLEngine(ssf, host, port, props, prefix);
-                    if (engine != null) {
-                        duplex = new DuplexSocket(socket, writeTimeout);
-                        if (transportResources != null)
-                            transportResources.layered = duplex;
-                        configureSSLEngine(duplex, engine, host, props, prefix);
-                        return duplex;
-                    }
-                } catch (IOException | RuntimeException | LinkageError ex) {
-                    IOException failure = ex instanceof IOException ? (IOException) ex :
-                            new IOException("Could not set up SSL engine for: " + host, ex);
-                    if (duplex == null)
-                        cleanupAndThrow(socket, failure);
-                    else
-                        duplex.closeOnFailure(failure);
-                    if (explicitEngine && !(failure instanceof SocketTimeoutException))
-                        throw new EngineSetupException(failure);
-                    throw failure;
-                }
-            }
             socket = ssf.createSocket(socket, host, port, true);
             if (transportResources != null)
                 transportResources.layered = socket;
@@ -509,13 +469,6 @@ public class SocketFetcher {
          */
         configureSSLSocket(socket, host, props, prefix, sf);
 
-        if (useEngine && !(socket instanceof SSLSocket) &&
-                socket.getChannel() != null) {
-            socket = new DuplexSocket(socket, writeTimeout);
-            if (transportResources != null)
-                transportResources.layered = socket;
-        }
-
         return socket;
     }
 
@@ -523,7 +476,7 @@ public class SocketFetcher {
      * Resolve the independent transport factory without allowing an invalid
      * declaration to select a different transport through legacy fallback.
      */
-    private static SocketFactory getTransportSocketFactory(Properties props,
+    static SocketFactory getTransportSocketFactory(Properties props,
                                                             String prefix)
             throws IOException {
         String key = prefix + ".socketFactory.transport";
@@ -568,7 +521,7 @@ public class SocketFetcher {
     private static Socket createSocketWithTransportFactory(InetAddress localaddr,
             int localport, String host, int port, int cto, int to,
             Properties props, String prefix, SocketFactory sf, boolean useSSL,
-            boolean useEngine, SocketFactory transportFactory) throws IOException {
+            SocketFactory transportFactory) throws IOException {
         TransportSocketResources resources = new TransportSocketResources();
         try {
             Socket transportSocket = transportFactory.createSocket();
@@ -578,16 +531,13 @@ public class SocketFetcher {
                 throw new IOException(prefix + ".socketFactory.transport must return " +
                         "an open, unconnected, non-SSL socket");
             Socket socket = createSocket(localaddr, localport, host, port, cto,
-                    to, props, prefix, sf, useSSL, useEngine, resources);
+                    to, props, prefix, sf, useSSL, resources);
             if (socket == null)
                 throw new IOException("Socket factory returned no socket");
             // A TLS factory can change the timeout while wrapping the transport.
             if (to >= 0)
                 socket.setSoTimeout(to);
             return socket;
-        } catch (EngineSetupException ex) {
-            resources.closeAfterFailure(ex.failure);
-            throw ex;
         } catch (IOException | RuntimeException | Error failure) {
             resources.closeAfterFailure(failure);
             throw failure;
@@ -629,7 +579,7 @@ public class SocketFetcher {
      * Is the socket factory an SSL socket factory instance that was set
      * in the properties, rather than one created from a class name?
      */
-    private static boolean isSSLSocketFactoryInstance(SocketFactory sf,
+    static boolean isSSLSocketFactoryInstance(SocketFactory sf,
                                                       Properties props, String prefix) {
         return sf instanceof SSLSocketFactory &&
                 (sf == props.get(prefix + ".ssl.socketFactory") ||
@@ -639,7 +589,7 @@ public class SocketFetcher {
     /**
      * Return a socket factory of the specified class.
      */
-    private static SocketFactory getSocketFactory(String sfClass)
+    static SocketFactory getSocketFactory(String sfClass)
             throws ClassNotFoundException,
             NoSuchMethodException,
             IllegalAccessException,
@@ -717,6 +667,8 @@ public class SocketFetcher {
      */
     public static Socket startTLS(Socket socket, String host, Properties props,
                                   String prefix) throws IOException {
+        if (socket instanceof DuplexSocket)
+            return NioSocketFetcher.startTLS(socket, host, props, prefix);
         int port = socket.getPort();
         if (logger.isLoggable(Level.FINER))
             logger.finer("startTLS host " + host + ", port " + port);
@@ -784,21 +736,6 @@ public class SocketFetcher {
                 }
             }
 
-            if (socket instanceof DuplexSocket) {
-                DuplexSocket duplex = (DuplexSocket) socket;
-                try {
-                    SSLEngine engine = createSSLEngine(ssf, host, port, props, prefix);
-                    if (engine != null) {
-                        configureSSLEngine(duplex, engine, host, props, prefix);
-                        return duplex;
-                    }
-                } catch (IOException | RuntimeException | LinkageError ex) {
-                    IOException failure = ex instanceof IOException ? (IOException) ex :
-                            new IOException("Could not set up SSL engine for: " + host, ex);
-                    throw duplex.closeOnFailure(failure);
-                }
-                socket = duplex.release();
-            }
             socket = ssf.createSocket(socket, host, port, true);
             configureSSLSocket(socket, host, props, prefix, ssf);
         } catch (Exception ex) {
@@ -822,111 +759,6 @@ public class SocketFetcher {
         return socket;
     }
 
-    /** Resolves an engine without guessing a custom socket factory's trust. */
-    private static SSLEngine createSSLEngine(SSLSocketFactory factory,
-            String host, int port, Properties props, String prefix)
-            throws IOException {
-        Object hook = props.get(prefix + ".ssl.engineFactory");
-        if (hook != null) {
-            try {
-                SSLEngine engine = EngineFactoryHook.create(hook, host, port, prefix);
-                if (engine == null)
-                    throw new IOException("SSL engine factory returned null");
-                if (!host.equalsIgnoreCase(engine.getPeerHost()) ||
-                        port != engine.getPeerPort())
-                    throw new SSLException("SSL engine factory returned a different peer");
-                return engine;
-            } catch (RuntimeException | LinkageError ex) {
-                throw new IOException("Could not create SSL engine", ex);
-            }
-        }
-        if (factory.getClass() == MailSSLSocketFactory.class)
-            return ((MailSSLSocketFactory) factory).createSSLEngine(host, port);
-        // There is no portable way to recover the context behind an arbitrary
-        // socket factory. Never substitute default trust or client credentials.
-        if (props.get(prefix + ".ssl.socketFactory") != null ||
-                props.getProperty(prefix + ".ssl.socketFactory.class") != null ||
-                props.get(prefix + ".socketFactory") instanceof SSLSocketFactory ||
-                props.getProperty(prefix + ".socketFactory.class") != null ||
-                Security.getProperty("ssl.SocketFactory.provider") != null)
-            return null;
-        try {
-            return SSLContext.getDefault().createSSLEngine(host, port);
-        } catch (GeneralSecurityException ex) {
-            throw new IOException("Could not create default SSL engine", ex);
-        }
-    }
-
-    /** Keeps the optional hook's Java function type out of ordinary setup. */
-    private static final class EngineFactoryHook {
-        @SuppressWarnings("unchecked")
-        static SSLEngine create(Object hook, String host, int port, String prefix)
-                throws IOException {
-            if (!(hook instanceof BiFunction))
-                throw new IOException("Invalid SSL engine factory: " + prefix);
-            return ((BiFunction<String, Integer, SSLEngine>) hook).apply(host, port);
-        }
-    }
-
-    /** Prevents legacy socket-factory fallback after an explicit engine fails. */
-    private static final class EngineSetupException extends IOException {
-        private static final long serialVersionUID = 1L;
-        final IOException failure;
-
-        EngineSetupException(IOException failure) {
-            super(failure.getMessage(), failure);
-            this.failure = failure;
-        }
-    }
-
-    /** Applies the same TLS policy as configureSSLSocket to a channel engine. */
-    private static void configureSSLEngine(DuplexSocket socket, SSLEngine engine,
-            String host, Properties props, String prefix) throws IOException {
-        try {
-            engine.setUseClientMode(true);
-            String protocols = props.getProperty(prefix + ".ssl.protocols");
-            if (protocols != null)
-                engine.setEnabledProtocols(stringArray(protocols));
-            else {
-                List<String> enabled = new ArrayList<>();
-                for (String protocol : engine.getEnabledProtocols()) {
-                    if (protocol != null && !protocol.startsWith("SSL"))
-                        enabled.add(protocol);
-                }
-                engine.setEnabledProtocols(enabled.toArray(new String[0]));
-            }
-            String ciphers = props.getProperty(prefix + ".ssl.ciphersuites");
-            if (ciphers != null)
-                engine.setEnabledCipherSuites(stringArray(ciphers));
-            SSLParameters parameters = engine.getSSLParameters();
-            String identityAlgorithm =
-                    endpointIdentificationAlgorithm(props, prefix, engine.getClass());
-            parameters.setEndpointIdentificationAlgorithm(identityAlgorithm);
-            engine.setSSLParameters(parameters);
-            boolean needsVerifier = identityAlgorithm != null && !identityAlgorithm.equals(
-                    engine.getSSLParameters().getEndpointIdentificationAlgorithm());
-            HostnameVerifier verifier = null;
-            if (needsVerifier) {
-                verifier = getHostnameVerifier(props, prefix);
-                if (verifier == null)
-                    throw new SSLException("SSL engine does not retain server identity checking; " +
-                            "configure " + prefix + ".ssl.hostnameverifier");
-            }
-            socket.startTLS(engine);
-            if (identityAlgorithm != null)
-                MailHostnameVerifier.of().verify(host, engine.getSession());
-            if (!needsVerifier)
-                verifier = getHostnameVerifier(props, prefix);
-            if (verifier != null && !verifier.verify(host, engine.getSession()))
-                throw new SSLException("Server identity does not match " +
-                        "authentication scheme: " + verifier + " DENY");
-        } catch (IOException | ReflectiveOperationException | RuntimeException | LinkageError ex) {
-            IOException failure = ex instanceof IOException ? (IOException) ex :
-                    new IOException("Could not configure SSL engine for: " + host, ex);
-            throw failure;
-        }
-    }
-
     /**
      * Configure the SSL options for the socket (if it's an SSL socket),
      * based on the mail.<protocol>.ssl.protocols and
@@ -934,7 +766,7 @@ public class SocketFetcher {
      * Check the identity of the server as specified by the
      * mail.<protocol>.ssl.checkserveridentity property.
      */
-    private static void configureSSLSocket(Socket socket, String host,
+    static void configureSSLSocket(Socket socket, String host,
                                            Properties props, String prefix, SocketFactory sf)
             throws IOException {
         if (!(socket instanceof SSLSocket))
@@ -1031,7 +863,7 @@ public class SocketFetcher {
     }
 
     /** Conscrypt recognizes HTTPS endpoint identification, but not LDAPS. */
-    private static String endpointIdentificationAlgorithm(Properties props,
+    static String endpointIdentificationAlgorithm(Properties props,
             String prefix, Class<?> tlsType) {
         if (!PropUtil.getBooleanProperty(props,
                 prefix + ".ssl.checkserveridentity", true))
@@ -1045,7 +877,7 @@ public class SocketFetcher {
         return "LDAPS";
     }
 
-    private static IOException cleanupAndThrow(Socket socket, IOException ife) {
+    static IOException cleanupAndThrow(Socket socket, IOException ife) {
         try {
             socket.close();
         } catch (Throwable thr) {
@@ -1133,7 +965,7 @@ public class SocketFetcher {
     * @throws ClassCastException if hostnameverifier is not a {@link HostnameVerifier}
     * @throws ReflectiveOperationException if unable to construct a {@link HostnameVerifier}
     */
-   private static HostnameVerifier getHostnameVerifier(Properties props, String prefix)
+   static HostnameVerifier getHostnameVerifier(Properties props, String prefix)
            throws ReflectiveOperationException {
 
         //Custom object is used before factory.
@@ -1235,7 +1067,7 @@ public class SocketFetcher {
      * <blank line>
      * </pre>
      */
-    private static void proxyConnect(Socket socket,
+    static void proxyConnect(Socket socket,
                                      String proxyHost, int proxyPort,
                                      String proxyUser, String proxyPassword,
                                      String host, int port, int cto)
@@ -1312,7 +1144,7 @@ public class SocketFetcher {
      * Parse a string into whitespace separated tokens
      * and return the tokens in an array.
      */
-    private static String[] stringArray(String s) {
+    static String[] stringArray(String s) {
         StringTokenizer st = new StringTokenizer(s);
         List<String> tokens = new ArrayList<>();
         while (st.hasMoreTokens())
@@ -1648,4 +1480,9 @@ public class SocketFetcher {
             return getClass().getSimpleName() + " -> " + failover;
         }
     }
+
+    static HostnameVerifier getMailHostnameVerifier() {
+        return MailHostnameVerifier.of();
+    }
+
 }

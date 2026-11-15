@@ -260,6 +260,11 @@
  * themselves are not pipelined. Groups are limited to 32 commands or
  * 32 KiB of encoded commands; a larger individual command is sent alone.
  * These limits bound queued commands, not socket buffers or reply sizes.
+ * Separately, TLS working buffers grow to at most 1 MiB each, and unconsumed
+ * plaintext is limited to 4 MiB. Each envelope reply is limited to 1 MiB of
+ * received bytes and queued replies to 4 MiB. Exceeding these limits closes
+ * the connection and fails the send without replay. Message content streams
+ * through the buffers and is not subject to these size limits.
  * A nonblocking channel processes input and output on the sending thread.
  * Each such connection owns a selector and buffers; a TLS connection also
  * owns a worker for delegated TLS tasks, stopped when the connection closes.
