@@ -32,6 +32,7 @@ import org.junit.Assume;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.ExtendedSSLSession;
@@ -487,6 +488,10 @@ public class SMTPPipeliningTest {
                     exchange.send();
                     fail("Hostname verifier rejection ignored");
                 } catch (MessagingException expected) {
+                    Throwable cause = expected;
+                    while (cause.getCause() != null)
+                        cause = cause.getCause();
+                    assertTrue(cause.toString(), cause instanceof SSLPeerUnverifiedException);
                     assertFalse(exchange.handler.commands.stream().anyMatch(s -> s.startsWith("MAIL ")));
                 }
             }

@@ -24,6 +24,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
@@ -675,16 +676,22 @@ public final class NioSocketFetcher {
             }
             socket.startTLS(engine);
             if (identityAlgorithm != null)
-                SocketFetcher.getMailHostnameVerifier().verify(host, engine.getSession());
+                checkServerIdentity(SocketFetcher.getMailHostnameVerifier(), host, engine);
             if (!needsVerifier)
                 verifier = SocketFetcher.getHostnameVerifier(props, prefix);
-            if (verifier != null && !verifier.verify(host, engine.getSession()))
-                throw new SSLException("Server identity does not match " +
-                        "authentication scheme: " + verifier + " DENY");
+            if (verifier != null)
+                checkServerIdentity(verifier, host, engine);
         } catch (IOException | ReflectiveOperationException | RuntimeException | LinkageError ex) {
             IOException failure = ex instanceof IOException ? (IOException) ex :
                     new IOException("Could not configure SSL engine for: " + host, ex);
             throw failure;
         }
+    }
+
+    private static void checkServerIdentity(HostnameVerifier verifier,
+            String host, SSLEngine engine) throws SSLPeerUnverifiedException {
+        if (!verifier.verify(host, engine.getSession()))
+            throw new SSLPeerUnverifiedException("Server identity does not match " +
+                    "authentication scheme: " + verifier + " DENY");
     }
 }
