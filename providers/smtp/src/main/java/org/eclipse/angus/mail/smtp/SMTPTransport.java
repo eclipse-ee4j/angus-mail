@@ -2625,30 +2625,6 @@ public class SMTPTransport extends Transport {
                 getClass() == SMTPSSLTransport.class;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     /**
      * Sends each address to the SMTP host using the <code>RCPT TO:</code>
      * command and copies the address either into
