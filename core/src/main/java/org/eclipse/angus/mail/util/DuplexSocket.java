@@ -48,6 +48,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -512,10 +513,33 @@ public final class DuplexSocket extends Socket {
             work.add(task);
         if (work.isEmpty())
             throw new SSLException("TLS engine requested an absent task");
-        delegated = tasks.submit(() -> {
+        FutureTask<Void> completion = new FutureTask<>(() -> {
             for (Runnable delegatedTask : work)
                 delegatedTask.run();
-        });
+        }, null);
+        delegated = completion;
+        tasks.execute(() -> runDelegatedTasks(completion));
+    }
+
+    /**
+     * Reports failures on the worker even if aborted I/O never consumes its
+     * Future. The sender still retrieves the original cause through get().
+     */
+    private static void runDelegatedTasks(FutureTask<Void> completion) {
+        completion.run();
+        try {
+            completion.get();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("TLS task interrupted", ex);
+        } catch (ExecutionException ex) {
+            Throwable failure = ex.getCause();
+            if (failure instanceof Error)
+                throw (Error) failure;
+            if (failure instanceof RuntimeException)
+                throw (RuntimeException) failure;
+            throw new IllegalStateException("TLS task failed", failure);
+        }
     }
 
     /**

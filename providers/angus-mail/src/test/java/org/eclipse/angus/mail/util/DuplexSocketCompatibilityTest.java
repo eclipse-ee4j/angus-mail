@@ -42,6 +42,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -50,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -463,6 +465,64 @@ public class DuplexSocketCompatibilityTest {
         }
     }
 
+    @Test(timeout = 20000)
+    public void testDelegatedTaskFailureReachesCallerAndUncaughtHandler() throws Exception {
+        for (Throwable original : new Throwable[] {
+                new IllegalStateException("TLS task failed"),
+                new CompletionException(new IOException("TLS task cause")),
+                new AssertionError("TLS task error")}) {
+            try (Connection connection = new Connection()) {
+                TaskEngine engine = new TaskEngine();
+                connection.socket.startTLS(engine);
+                TaskFailureCapture capture = new TaskFailureCapture();
+                engine.task = () -> {
+                    capture.install();
+                    if (original instanceof Error)
+                        throw (Error) original;
+                    throw (RuntimeException) original;
+                };
+                SSLException failure = assertThrows(SSLException.class,
+                        () -> connection.socket.getOutputStream().write(42));
+                assertSame(original, failure.getCause());
+                capture.assertReported(original);
+                assertTrue(connection.socket.isClosed());
+            }
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testAbortedDelegatedTaskFailureReachesUncaughtHandler() throws Exception {
+        try (Connection connection = new Connection()) {
+            TaskEngine engine = new TaskEngine();
+            connection.socket.startTLS(engine);
+            TaskFailureCapture capture = new TaskFailureCapture();
+            CountDownLatch entered = new CountDownLatch(1);
+            IllegalStateException original = new IllegalStateException("Task failed after abort");
+            engine.task = () -> {
+                capture.install();
+                entered.countDown();
+                try {
+                    new CountDownLatch(1).await(3, TimeUnit.SECONDS);
+                } catch (InterruptedException expected) {
+                    Thread.currentThread().interrupt();
+                }
+                throw original;
+            };
+            // Stop before the sender consumes the task's Future.
+            java.lang.reflect.Method submit = DuplexSocket.class.getDeclaredMethod(
+                    "submitDelegatedTasks");
+            submit.setAccessible(true);
+            submit.invoke(connection.socket);
+            assertTrue(entered.await(3, TimeUnit.SECONDS));
+            IOException primary = new IOException("Connection aborted");
+            connection.socket.abort(primary);
+            capture.assertReported(original);
+            assertEquals(0, primary.getSuppressed().length);
+            assertTrue(connection.socket.isClosed());
+            assertFalse(connection.socket.getChannel().isOpen());
+        }
+    }
+
     @Test(timeout = 10000)
     public void testInterruptedDelegatedTaskRetainsCauseAndInterrupt() throws Exception {
         try (Connection connection = new Connection()) {
@@ -740,7 +800,7 @@ public class DuplexSocketCompatibilityTest {
     }
 
     /** Models engines that queue close output without changing handshake status. */
-    private static final class ClosingEngine extends SSLEngine {
+    private static class ClosingEngine extends SSLEngine {
         static final byte[] ALERT = new byte[] {21, 3, 3};
         final SSLEngine delegate;
         final boolean makesProgress;
@@ -827,6 +887,48 @@ public class DuplexSocketCompatibilityTest {
         public void setEnableSessionCreation(boolean enabled) { delegate.setEnableSessionCreation(enabled); }
         @Override
         public boolean getEnableSessionCreation() { return delegate.getEnableSessionCreation(); }
+    }
+
+    private static final class TaskEngine extends ClosingEngine {
+        Runnable task;
+
+        TaskEngine() throws Exception {
+            super(true);
+        }
+
+        @Override
+        public Runnable getDelegatedTask() {
+            Runnable pending = task;
+            task = null;
+            return pending;
+        }
+
+        @Override
+        public SSLEngineResult.HandshakeStatus getHandshakeStatus() {
+            return task == null ? super.getHandshakeStatus()
+                    : SSLEngineResult.HandshakeStatus.NEED_TASK;
+        }
+    }
+
+    private static final class TaskFailureCapture {
+        final CountDownLatch reported = new CountDownLatch(1);
+        final AtomicReference<Throwable> failure = new AtomicReference<>();
+        Thread worker;
+
+        void install() {
+            worker = Thread.currentThread();
+            worker.setUncaughtExceptionHandler((thread, cause) -> {
+                failure.set(cause);
+                reported.countDown();
+            });
+        }
+
+        void assertReported(Throwable expected) throws InterruptedException {
+            assertTrue("Worker failure was hidden", reported.await(3, TimeUnit.SECONDS));
+            assertSame(expected, failure.get());
+            worker.join(3000);
+            assertFalse("Failed TLS worker is still running", worker.isAlive());
+        }
     }
 
     private static final class Connection implements AutoCloseable {
