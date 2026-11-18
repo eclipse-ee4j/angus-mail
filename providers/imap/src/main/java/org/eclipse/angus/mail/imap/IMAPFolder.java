@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2026 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -60,6 +60,7 @@ import org.eclipse.angus.mail.imap.protocol.UIDSet;
 import org.eclipse.angus.mail.util.CRLFOutputStream;
 import org.eclipse.angus.mail.util.MailLogger;
 
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
@@ -4102,8 +4103,14 @@ class MessageLiteral implements Literal {
             if (buf != null)
                 os.write(buf, 0, msgSize);
             else {
-                os = new CRLFOutputStream(os);
-                msg.writeTo(os);
+                // the server reads exactly msgSize bytes as the literal,
+                // anything else would be taken as protocol data
+                LiteralOutputStream los = new LiteralOutputStream(os, msgSize);
+                msg.writeTo(new CRLFOutputStream(los));
+                if (los.remaining() != 0)
+                    throw new IOException(
+                            "Message changed while appending, " +
+                            los.remaining() + " bytes short of literal size");
             }
         } catch (MessagingException mex) {
             // exceptions here are bad, "should" never happen
@@ -4181,5 +4188,41 @@ class LengthCounter extends OutputStream {
 
     public byte[] getBytes() {
         return buf;
+    }
+}
+
+/**
+ * Pass through at most the number of bytes declared as the size of
+ * a literal.  A message that changes between computing its size and
+ * writing it must not write past the end of the literal.
+ */
+class LiteralOutputStream extends FilterOutputStream {
+    private int left;
+
+    public LiteralOutputStream(OutputStream os, int size) {
+        super(os);
+        left = size;
+    }
+
+    @Override
+    public void write(int b) throws IOException {
+        if (left <= 0)
+            throw new IOException(
+                    "Message changed while appending, larger than literal size");
+        out.write(b);
+        left--;
+    }
+
+    @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+        if (len > left)
+            throw new IOException(
+                    "Message changed while appending, larger than literal size");
+        out.write(b, off, len);
+        left -= len;
+    }
+
+    public int remaining() {
+        return left;
     }
 }
