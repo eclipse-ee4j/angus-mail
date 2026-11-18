@@ -21,7 +21,9 @@ import org.eclipse.angus.mail.util.NioSocketFetcher;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -31,11 +33,29 @@ import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /** Supplies parser input directly; the socket only activates its normal callback. */
 public class SMTPEnvelopeExchangeBufferTest {
+    @Test(timeout = 20000)
+    public void testReadyInputEOFIsTyped() throws Exception {
+        InputStream ended = new InputStream() {
+            @Override
+            public int available() { return 1; }
+
+            @Override
+            public int read() { return -1; }
+        };
+        try (Connection connection = new Connection(ended, 1)) {
+            EOFException failure = assertThrows(EOFException.class, connection.exchange::take);
+            assertEquals("[EOF]", failure.getMessage());
+            assertSame(failure, connection.exchange.getFailure());
+            assertFalse(connection.socket.getChannel().isOpen());
+        }
+    }
+
     @Test(timeout = 20000)
     public void testLargeValidMultilineReply() throws Exception {
         try (Connection connection = new Connection(reply(128 * 1024), 1)) {
@@ -77,6 +97,10 @@ public class SMTPEnvelopeExchangeBufferTest {
         final SMTPEnvelopeExchange exchange;
 
         Connection(String replies, int count) throws IOException {
+            this(new ByteArrayInputStream(replies.getBytes(StandardCharsets.US_ASCII)), count);
+        }
+
+        Connection(InputStream input, int count) throws IOException {
             InetAddress loopback = InetAddress.getLoopbackAddress();
             try (ServerSocket server = new ServerSocket(0, 1, loopback)) {
                 server.setSoTimeout(3000);
@@ -86,8 +110,7 @@ public class SMTPEnvelopeExchangeBufferTest {
                 socket = (DuplexSocket) NioSocketFetcher.getSocket(
                         loopback.getHostAddress(), server.getLocalPort(), properties, "mail.smtp", false);
                 peer = server.accept();
-                exchange = new SMTPEnvelopeExchange(socket,
-                        new ByteArrayInputStream(replies.getBytes(StandardCharsets.US_ASCII)));
+                exchange = new SMTPEnvelopeExchange(socket, input);
                 exchange.reserve(count);
                 peer.getOutputStream().write(0);
             }

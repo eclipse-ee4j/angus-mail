@@ -21,6 +21,7 @@ import org.eclipse.angus.mail.util.LineInputStream;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayDeque;
@@ -97,7 +98,7 @@ final class SMTPEnvelopeExchange {
             while ((ready = input.available()) > 0) {
                 int count = input.read(buffer, 0, Math.min(ready, buffer.length));
                 if (count < 0)
-                    throw new IOException("[EOF]");
+                    throw new EOFException("[EOF]");
                 for (int i = 0; i < count; i++) {
                     replyBytes++;
                     if (replyBytes > MAX_REPLY_BYTES ||
