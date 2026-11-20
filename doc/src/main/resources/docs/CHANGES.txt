@@ -28,7 +28,8 @@ for the Eclipse EE4J Angus Mail project:
 224: POP3 and mbox message cache files are created world-readable
 232: Derive osgi.ee from the compiled bytecode level
 241: Hostname verification gaps with Conscrypt and MailHostnameVerifier
-XXX: IMAP APPEND can write past the literal when the message changes between passes
+249: IMAP APPEND can write past the literal when the message changes between passes
+248: reject envelope addresses that add ESMTP parameters to MAIL and RCPT
 
           CHANGES IN THE 2.0.5 RELEASE
           ----------------------------
