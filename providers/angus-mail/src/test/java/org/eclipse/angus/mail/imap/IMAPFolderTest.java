@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2026 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -17,18 +17,23 @@
 package org.eclipse.angus.mail.imap;
 
 import jakarta.mail.Folder;
+import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.UIDFolder;
+import jakarta.mail.internet.MimeMessage;
 import org.eclipse.angus.mail.test.TestServer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -462,6 +467,75 @@ public final class IMAPFolderTest {
                         super.search(line);
                     }
                 });
+    }
+
+    /**
+     * Test that a message that grows between computing the APPEND
+     * literal size and writing it can't write past the end of the
+     * literal into the command stream.
+     */
+    @Test
+    public void testAppendMessageLargerThanLiteral() {
+        final AtomicBoolean failed = new AtomicBoolean();
+        final AtomicBoolean deleted = new AtomicBoolean();
+        testWithHandler(
+                new IMAPTest() {
+                    @Override
+                    public void test(Store store, IMAPHandler handler)
+                            throws MessagingException, IOException {
+                        Folder test = store.getFolder("test");
+                        Message m = new GrowingMessage(
+                                Session.getInstance(new Properties()));
+                        try {
+                            test.appendMessages(new Message[]{m});
+                        } catch (MessagingException expected) {
+                            failed.set(true);
+                        }
+                    }
+                },
+                new IMAPHandler() {
+                    @Override
+                    public void list(String line) throws IOException {
+                        untagged("LIST (\\HasNoChildren) \"/\" test");
+                        ok();
+                    }
+
+                    @Override
+                    public void delete(String line) throws IOException {
+                        deleted.set(true);
+                        ok();
+                    }
+                });
+        assertFalse("command after the literal was run", deleted.get());
+        assertTrue("append did not fail", failed.get());
+    }
+
+    /**
+     * A message with a known size, as for a message from another store,
+     * that writes more data the second time it's written.
+     */
+    private static final class GrowingMessage extends MimeMessage {
+        private int writes;
+
+        GrowingMessage(Session session) throws MessagingException {
+            super(session);
+            setText("test");
+            saveChanges();
+        }
+
+        @Override
+        public int getSize() {
+            return 4;
+        }
+
+        @Override
+        public void writeTo(OutputStream os)
+                throws IOException, MessagingException {
+            super.writeTo(os);
+            if (++writes > 1)
+                os.write("\r\nA99 DELETE INBOX".getBytes(
+                        StandardCharsets.US_ASCII));
+        }
     }
 
     private void testWithHandler(IMAPTest test, IMAPHandler handler) {
