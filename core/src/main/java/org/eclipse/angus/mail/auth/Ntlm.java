@@ -427,8 +427,10 @@ public class Ntlm {
             byte[] msg = new byte[l];
             System.arraycopy(type3, 0, msg, 0, l);
 
+            // the LM and NT responses allow an offline password guessing
+            // attack, so don't log them
             if (logger.isLoggable(Level.FINE))
-                logger.fine("type 3 message: " + toHex(msg));
+                logger.fine("type 3 message length: " + msg.length);
 
             String result = new String(Base64.getEncoder().encode(msg),
                     StandardCharsets.ISO_8859_1);

@@ -138,10 +138,12 @@ public class DigestMD5 {
         result.append(",digest-uri=\"").append(uri).append("\"");
         if (utf8)
             result.append(",charset=\"utf-8\"");
-        result.append(",response=").append(toHex(md5.digest()));
-
+        // log before adding the response digest, which allows an
+        // offline password guessing attack
         if (logger.isLoggable(Level.FINE))
             logger.fine("Response => " + result.toString());
+        result.append(",response=").append(toHex(md5.digest()));
+
         b64os.write(ASCIIUtility.getBytes(result.toString()));
         b64os.flush();
         return bos.toByteArray();

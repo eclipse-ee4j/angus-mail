@@ -76,6 +76,44 @@ public final class IMAPAuthDebugTest {
     }
 
     /**
+     * Test that the SASL response isn't logged by the authenticator
+     * when the protocol trace is suppressed.
+     */
+    @Test
+    public void testNoSaslResponse() throws Exception {
+        TestServer server = null;
+        try {
+            server = new TestServer(new IMAPSaslHandler());
+            server.start();
+
+            final Properties properties = new Properties();
+            properties.setProperty("mail.imap.host", "localhost");
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
+            properties.setProperty("mail.imap.sasl.enable", "true");
+            properties.setProperty("mail.imap.sasl.mechanisms", "DIGEST-MD5");
+            final Session session = Session.getInstance(properties);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(bos, true, "US-ASCII");
+            session.setDebugOut(ps);
+            session.setDebug(true);
+
+            final Store store = session.getStore("imap");
+            try {
+                store.connect("test", "test");
+            } finally {
+                store.close();
+            }
+            ps.close();
+            assertFalse("response in debug output",
+                    bos.toString("US-ASCII").contains("response="));
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
+    }
+
+    /**
      * Create a test server, connect to it, and collect the debug output.
      * Scan the debug output looking for "expect", return true if found.
      */

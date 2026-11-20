@@ -206,9 +206,10 @@ public class SMTPSaslAuthenticator implements SaslAuthenticator {
                         logger.fine("SASL: no response");
                         resp = pr.simpleCommand("");
                     } else {
+                        // the response may contain the password
                         if (logger.isLoggable(Level.FINE))
                             logger.fine("SASL response: " +
-                                    ASCIIUtility.toString(ba, 0, ba.length) + " :");
+                                    ba.length + " bytes");
                         ba = Base64.getEncoder().encode(ba);
                         resp = pr.simpleCommand(ba);
                     }
