@@ -1050,6 +1050,16 @@ public class SocketFetcher {
                                      String proxyUser, String proxyPassword,
                                      String host, int port, int cto)
             throws IOException {
+        // The target host is written verbatim into the plaintext CONNECT
+        // request line and Host header sent to the proxy.  A CR or LF in it
+        // would split that into extra requests on the proxy connection
+        // (HTTP request smuggling), so reject it before anything is sent.
+        for (int i = 0; i < host.length(); i++) {
+            char c = host.charAt(i);
+            if (c == '\r' || c == '\n')
+                throw new IOException("Illegal character in proxy CONNECT " +
+                        "host: " + String.format("0x%02x", (int) c));
+        }
         if (logger.isLoggable(Level.FINE))
             logger.fine("connecting through proxy " +
                     proxyHost + ":" + proxyPort + " to " +
