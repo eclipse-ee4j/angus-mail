@@ -469,6 +469,8 @@
  * If set to true, failure to create a socket using the specified
  * socket factory class will cause the socket to be created using
  * the <code>java.net.Socket</code> class.
+ * A failure of an <code>SSLSocketFactory</code> is never retried
+ * using a plain socket.
  * Defaults to true.
  * </TD>
  * </TR>

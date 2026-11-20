@@ -5,6 +5,17 @@
 		    ------------------------------
 -- Unreleased --
 
+- No plain socket fallback for SSL socket factories
+
+    When mail.<protocol>.socketFactory or socketFactory.class names an
+    SSLSocketFactory and the connection is not otherwise using SSL, a
+    failure of that factory, including a failed TLS handshake or server
+    identity check, is no longer retried with a plain socket even when
+    mail.<protocol>.socketFactory.fallback is true.  Previously the
+    client silently reconnected without SSL and sent its login in the
+    clear.  A socket factory class that can't be loaded still falls back
+    as before.
+
 - MailHandler body content type
 
     The MIME type of the message body is guessed from the head of the
