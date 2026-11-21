@@ -24,6 +24,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Locale;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -64,15 +65,42 @@ public class NtlmTest {
 
     /**
      * The type 3 message carries the LM and NT responses, which allow
-     * an offline password guessing attack, so it must not be logged.
+     * an offline password guessing attack, so it must not be logged
+     * unless the mail.debug.auth properties ask for it.
      */
     @Test
     public void testType3NotLogged() throws Exception {
+        assertFalse("NT response in debug output",
+                ntResponseLogged(new Properties()));
+    }
+
+    @Test
+    public void testType3LoggedWithDebugAuth() throws Exception {
+        Properties props = new Properties();
+        props.setProperty("mail.debug.auth", "true");
+        assertTrue("NT response not in debug output",
+                ntResponseLogged(props));
+    }
+
+    @Test
+    public void testType3LoggedWithDebugPassword() throws Exception {
+        Properties props = new Properties();
+        props.setProperty("mail.debug.auth.password", "true");
+        assertTrue("NT response not in debug output",
+                ntResponseLogged(props));
+    }
+
+    /**
+     * Generate a type 3 message with debug output enabled and report
+     * whether the start of the NT response appears in that output.
+     */
+    private static boolean ntResponseLogged(Properties props)
+            throws Exception {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(bos, true, "US-ASCII");
         Ntlm ntlm = new Ntlm("DOMAIN", "client.example.com", "user",
                 "password", new MailLogger(NtlmTest.class, "DEBUG NTLM",
-                        true, out));
+                        true, out), props);
         ntlm.generateType1Msg(0, true);
         byte[] type3 = type3(ntlm, NTLMSSP_NEGOTIATE_UNICODE
                 | NTLMSSP_NEGOTIATE_NTLM);
@@ -83,8 +111,7 @@ public class NtlmTest {
             nt.append(String.format("%02x ", type3[i] & 0xff));
         out.close();
         String log = bos.toString("US-ASCII").toLowerCase(Locale.ROOT);
-        assertFalse("NT response in debug output",
-                log.contains(nt.toString()));
+        return log.contains(nt.toString());
     }
 
     private static Ntlm newNtlm() {

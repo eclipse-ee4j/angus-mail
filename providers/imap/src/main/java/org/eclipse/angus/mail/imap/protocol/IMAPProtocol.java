@@ -794,7 +794,7 @@ public class IMAPProtocol extends Protocol {
                 "mail." + name + ".auth.ntlm.v2", true);
         String domain = props.getProperty(
                 "mail." + name + ".auth.ntlm.domain", "");
-        Ntlm ntlm = new Ntlm(domain, getLocalHost(), u, p, logger);
+        Ntlm ntlm = new Ntlm(domain, getLocalHost(), u, p, logger, props);
 
         try {
 

@@ -81,12 +81,42 @@ public final class IMAPAuthDebugTest {
      */
     @Test
     public void testNoSaslResponse() throws Exception {
+        final Properties properties = new Properties();
+        assertFalse("response in debug output",
+                saslOutput(properties).contains("response="));
+    }
+
+    /**
+     * Test that the SASL response *is* logged when the protocol trace
+     * isn't suppressed, or when the password is allowed in the
+     * non-protocol debug output.
+     */
+    @Test
+    public void testSaslResponseWithDebugAuth() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.debug.auth", "true");
+        assertTrue("response not in debug output",
+                saslOutput(properties).contains("response="));
+    }
+
+    @Test
+    public void testSaslResponseWithDebugPassword() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.debug.auth.password", "true");
+        assertTrue("response not in debug output",
+                saslOutput(properties).contains("response="));
+    }
+
+    /**
+     * Connect to a DIGEST-MD5 server using SASL and return all of the
+     * debug output.
+     */
+    private static String saslOutput(Properties properties) throws Exception {
         TestServer server = null;
         try {
             server = new TestServer(new IMAPSaslHandler());
             server.start();
 
-            final Properties properties = new Properties();
             properties.setProperty("mail.imap.host", "localhost");
             properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
             properties.setProperty("mail.imap.sasl.enable", "true");
@@ -104,8 +134,7 @@ public final class IMAPAuthDebugTest {
                 store.close();
             }
             ps.close();
-            assertFalse("response in debug output",
-                    bos.toString("US-ASCII").contains("response="));
+            return bos.toString("US-ASCII");
         } finally {
             if (server != null) {
                 server.quit();

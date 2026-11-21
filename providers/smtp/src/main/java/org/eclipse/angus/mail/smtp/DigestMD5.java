@@ -20,6 +20,7 @@ import org.eclipse.angus.mail.util.ASCIIUtility;
 import org.eclipse.angus.mail.util.BASE64DecoderStream;
 import org.eclipse.angus.mail.util.BASE64EncoderStream;
 import org.eclipse.angus.mail.util.MailLogger;
+import org.eclipse.angus.mail.util.PropUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,6 +34,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 
@@ -49,9 +51,35 @@ public class DigestMD5 {
     private MessageDigest md5;
     private String uri;
     private String clientResponse;
+    private boolean debugusername;    // include user name in debug output?
+    private boolean debugresponse;    // include response digest in debug output?
 
     public DigestMD5(MailLogger logger) {
+        this(logger, new Properties());
+    }
+
+    /**
+     * Create a DIGEST-MD5 authenticator that honors the mail.debug.auth
+     * properties when writing the client response to the debug output.
+     *
+     * @param    logger    the MailLogger
+     * @param    props    the session properties
+     */
+    DigestMD5(MailLogger logger, Properties props) {
         this.logger = logger.getLogger(this.getClass(), "DEBUG DIGEST-MD5");
+        this.debugusername = PropUtil.getBooleanProperty(props,
+                "mail.debug.auth.username", true);
+        /*
+         * The response digest allows an offline password guessing attack,
+         * so it's only included in the debug output if mail.debug.auth
+         * leaves the protocol trace enabled during authentication, or if
+         * mail.debug.auth.password allows the password in non-protocol
+         * debug output.
+         */
+        this.debugresponse =
+                PropUtil.getBooleanProperty(props, "mail.debug.auth", false) ||
+                        PropUtil.getBooleanProperty(props,
+                                "mail.debug.auth.password", false);
         logger.config("DIGEST-MD5 Loaded");
     }
 
@@ -128,21 +156,24 @@ public class DigestMD5 {
         md5.update(ASCIIUtility.getBytes("AUTHENTICATE:" + uri));
         md5.update(ASCIIUtility.getBytes(clientResponse + toHex(md5.digest())));
 
+        String response = toHex(md5.digest());
+
         // build response text (order not critical)
+        String common = ",realm=\"" + realm + "\"" +
+                ",qop=" + qop +
+                ",nc=" + nc +
+                ",nonce=\"" + nonce + "\"" +
+                ",cnonce=\"" + cnonce + "\"" +
+                ",digest-uri=\"" + uri + "\"" +
+                (utf8 ? ",charset=\"utf-8\"" : "");
         result.append("username=\"").append(user).append("\"");
-        result.append(",realm=\"").append(realm).append("\"");
-        result.append(",qop=").append(qop);
-        result.append(",nc=").append(nc);
-        result.append(",nonce=\"").append(nonce).append("\"");
-        result.append(",cnonce=\"").append(cnonce).append("\"");
-        result.append(",digest-uri=\"").append(uri).append("\"");
-        if (utf8)
-            result.append(",charset=\"utf-8\"");
-        // log before adding the response digest, which allows an
-        // offline password guessing attack
+        result.append(common);
+        result.append(",response=").append(response);
+
         if (logger.isLoggable(Level.FINE))
-            logger.fine("Response => " + result.toString());
-        result.append(",response=").append(toHex(md5.digest()));
+            logger.fine("Response => username=\"" + traceUser(user) + "\"" +
+                    common +
+                    (debugresponse ? ",response=" + response : ""));
 
         b64os.write(ASCIIUtility.getBytes(result.toString()));
         b64os.flush();
@@ -218,6 +249,10 @@ public class DigestMD5 {
             }
         }
         return map;
+    }
+
+    private String traceUser(String user) {
+        return debugusername ? user : "<user name suppressed>";
     }
 
     private static char[] digits = {

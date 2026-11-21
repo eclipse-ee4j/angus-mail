@@ -1073,7 +1073,7 @@ public class SMTPTransport extends Transport {
 
         private synchronized DigestMD5 getMD5() {
             if (md5support == null)
-                md5support = new DigestMD5(logger);
+                md5support = new DigestMD5(logger, session.getProperties());
             return md5support;
         }
 
@@ -1112,7 +1112,7 @@ public class SMTPTransport extends Transport {
         String getInitialResponse(String host, String authzid, String user,
                                   String passwd) throws MessagingException, IOException {
             ntlm = new Ntlm(getNTLMDomain(), getLocalHost(),
-                    user, passwd, logger);
+                    user, passwd, logger, session.getProperties());
 
             int flags = PropUtil.getIntProperty(
                     session.getProperties(),

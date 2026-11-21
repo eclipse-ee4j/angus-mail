@@ -21,6 +21,7 @@ import jakarta.mail.MessagingException;
 import org.eclipse.angus.mail.auth.OAuth2SaslClientFactory;
 import org.eclipse.angus.mail.util.ASCIIUtility;
 import org.eclipse.angus.mail.util.MailLogger;
+import org.eclipse.angus.mail.util.PropUtil;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -49,6 +50,8 @@ public class SMTPSaslAuthenticator implements SaslAuthenticator {
     private Properties props;
     private MailLogger logger;
     private String host;
+    // include the SASL response in non-protocol debug output?
+    private boolean debugresponse;
 
     /*
      * This is a hack to initialize the OAUTH SASL provider just before,
@@ -70,6 +73,16 @@ public class SMTPSaslAuthenticator implements SaslAuthenticator {
         this.props = props;
         this.logger = logger;
         this.host = host;
+        /*
+         * The SASL response can contain the password, so it's only included
+         * in the debug output if mail.debug.auth leaves the protocol trace
+         * enabled during authentication, or if mail.debug.auth.password
+         * allows the password in non-protocol debug output.
+         */
+        this.debugresponse =
+                PropUtil.getBooleanProperty(props, "mail.debug.auth", false) ||
+                        PropUtil.getBooleanProperty(props,
+                                "mail.debug.auth.password", false);
     }
 
     @Override
@@ -206,10 +219,9 @@ public class SMTPSaslAuthenticator implements SaslAuthenticator {
                         logger.fine("SASL: no response");
                         resp = pr.simpleCommand("");
                     } else {
-                        // the response may contain the password
                         if (logger.isLoggable(Level.FINE))
                             logger.fine("SASL response: " +
-                                    ba.length + " bytes");
+                                    traceResponse(ba));
                         ba = Base64.getEncoder().encode(ba);
                         resp = pr.simpleCommand(ba);
                     }
@@ -236,6 +248,16 @@ public class SMTPSaslAuthenticator implements SaslAuthenticator {
         }
 
         return true;
+    }
+
+    /**
+     * Describe the SASL response for the debug output, hiding it unless
+     * the mail.debug.auth properties allow the password to be logged.
+     */
+    private String traceResponse(byte[] ba) {
+        return debugresponse ?
+                ASCIIUtility.toString(ba, 0, ba.length) + " :" :
+                ba.length + " bytes";
     }
 
     private static final String responseText(SMTPTransport pr) {
