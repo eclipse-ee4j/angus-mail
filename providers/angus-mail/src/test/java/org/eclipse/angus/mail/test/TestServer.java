@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, 2023 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Benny Bottema.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -78,6 +79,22 @@ public final class TestServer extends Thread {
      */
     public TestServer(final ProtocolHandler handler, final boolean isSSL)
             throws IOException {
+        this(handler, isSSL, null);
+    }
+
+    /**
+     * Test server using a supplied TLS context.
+     *
+     * @param handler the protocol handler
+     * @param context the test server's TLS context
+     */
+    public TestServer(final ProtocolHandler handler, final SSLContext context)
+            throws IOException {
+        this(handler, true, context);
+    }
+
+    private TestServer(final ProtocolHandler handler, final boolean isSSL,
+                       final SSLContext context) throws IOException {
         this.handler = handler;
 
         /*
@@ -97,7 +114,7 @@ public final class TestServer extends Thread {
 		continue;
 	    */
             try {
-                serverSocket = createServerSocket(port, isSSL);
+                serverSocket = createServerSocket(port, isSSL, context);
                 return;
             } catch (IOException ex) {
                 // ignore
@@ -109,11 +126,12 @@ public final class TestServer extends Thread {
         throw new RuntimeException("Can't find unused port");
     }
 
-    private static ServerSocket createServerSocket(int port, boolean isSSL)
+    private static ServerSocket createServerSocket(int port, boolean isSSL,
+                                                   SSLContext context)
             throws IOException, GeneralSecurityException {
         ServerSocket ss;
         if (isSSL) {
-            SSLContext sslContext = createSSLContext();
+            SSLContext sslContext = context == null ? createSSLContext() : context;
             SSLServerSocketFactory sf = sslContext.getServerSocketFactory();
             ss = sf.createServerSocket(port);
         } else

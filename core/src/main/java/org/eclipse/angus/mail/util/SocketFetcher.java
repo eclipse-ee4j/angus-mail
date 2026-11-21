@@ -285,6 +285,26 @@ public class SocketFetcher {
         return socket;
     }
 
+    /**
+     * Opens a connection, explicitly selecting the duplex backend when requested.
+     *
+     * @param host destination host
+     * @param port destination port
+     * @param props connection properties
+     * @param prefix property prefix
+     * @param useSSL whether to establish implicit TLS
+     * @param useEngine whether to select duplex I/O
+     * @return the connected socket
+     * @exception IOException for connection or TLS failure
+     */
+    public static Socket getSocket(String host, int port, Properties props,
+                                   String prefix, boolean useSSL,
+                                   boolean useEngine) throws IOException {
+        if (useEngine)
+            return NioSocketFetcher.getSocket(host, port, props, prefix, useSSL);
+        return getSocket(host, port, props, prefix, useSSL);
+    }
+
     public static Socket getSocket(String host, int port, Properties props,
                                    String prefix) throws IOException {
         return getSocket(host, port, props, prefix, false);
@@ -456,7 +476,7 @@ public class SocketFetcher {
      * Resolve the independent transport factory without allowing an invalid
      * declaration to select a different transport through legacy fallback.
      */
-    private static SocketFactory getTransportSocketFactory(Properties props,
+    static SocketFactory getTransportSocketFactory(Properties props,
                                                             String prefix)
             throws IOException {
         String key = prefix + ".socketFactory.transport";
@@ -559,7 +579,7 @@ public class SocketFetcher {
      * Is the socket factory an SSL socket factory instance that was set
      * in the properties, rather than one created from a class name?
      */
-    private static boolean isSSLSocketFactoryInstance(SocketFactory sf,
+    static boolean isSSLSocketFactoryInstance(SocketFactory sf,
                                                       Properties props, String prefix) {
         return sf instanceof SSLSocketFactory &&
                 (sf == props.get(prefix + ".ssl.socketFactory") ||
@@ -569,7 +589,7 @@ public class SocketFetcher {
     /**
      * Return a socket factory of the specified class.
      */
-    private static SocketFactory getSocketFactory(String sfClass)
+    static SocketFactory getSocketFactory(String sfClass)
             throws ClassNotFoundException,
             NoSuchMethodException,
             IllegalAccessException,
@@ -647,6 +667,8 @@ public class SocketFetcher {
      */
     public static Socket startTLS(Socket socket, String host, Properties props,
                                   String prefix) throws IOException {
+        if (socket instanceof DuplexSocket)
+            return NioSocketFetcher.startTLS(socket, host, props, prefix);
         int port = socket.getPort();
         if (logger.isLoggable(Level.FINER))
             logger.finer("startTLS host " + host + ", port " + port);
@@ -744,7 +766,7 @@ public class SocketFetcher {
      * Check the identity of the server as specified by the
      * mail.<protocol>.ssl.checkserveridentity property.
      */
-    private static void configureSSLSocket(Socket socket, String host,
+    static void configureSSLSocket(Socket socket, String host,
                                            Properties props, String prefix, SocketFactory sf)
             throws IOException {
         if (!(socket instanceof SSLSocket))
@@ -841,7 +863,7 @@ public class SocketFetcher {
     }
 
     /** Conscrypt recognizes HTTPS endpoint identification, but not LDAPS. */
-    private static String endpointIdentificationAlgorithm(Properties props,
+    static String endpointIdentificationAlgorithm(Properties props,
             String prefix, Class<?> tlsType) {
         if (!PropUtil.getBooleanProperty(props,
                 prefix + ".ssl.checkserveridentity", true))
@@ -855,7 +877,7 @@ public class SocketFetcher {
         return "LDAPS";
     }
 
-    private static IOException cleanupAndThrow(Socket socket, IOException ife) {
+    static IOException cleanupAndThrow(Socket socket, IOException ife) {
         try {
             socket.close();
         } catch (Throwable thr) {
@@ -943,7 +965,7 @@ public class SocketFetcher {
     * @throws ClassCastException if hostnameverifier is not a {@link HostnameVerifier}
     * @throws ReflectiveOperationException if unable to construct a {@link HostnameVerifier}
     */
-   private static HostnameVerifier getHostnameVerifier(Properties props, String prefix)
+   static HostnameVerifier getHostnameVerifier(Properties props, String prefix)
            throws ReflectiveOperationException {
 
         //Custom object is used before factory.
@@ -1045,7 +1067,7 @@ public class SocketFetcher {
      * <blank line>
      * </pre>
      */
-    private static void proxyConnect(Socket socket,
+    static void proxyConnect(Socket socket,
                                      String proxyHost, int proxyPort,
                                      String proxyUser, String proxyPassword,
                                      String host, int port, int cto)
@@ -1132,7 +1154,7 @@ public class SocketFetcher {
      * Parse a string into whitespace separated tokens
      * and return the tokens in an array.
      */
-    private static String[] stringArray(String s) {
+    static String[] stringArray(String s) {
         StringTokenizer st = new StringTokenizer(s);
         List<String> tokens = new ArrayList<>();
         while (st.hasMoreTokens())
@@ -1468,4 +1490,9 @@ public class SocketFetcher {
             return getClass().getSimpleName() + " -> " + failover;
         }
     }
+
+    static HostnameVerifier getMailHostnameVerifier() {
+        return MailHostnameVerifier.of();
+    }
+
 }

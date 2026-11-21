@@ -209,7 +209,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
-                            <argLine>--add-opens=java.base/java.net=ALL-UNNAMED</argLine>
+                            <argLine>--add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/sun.security.ssl=ALL-UNNAMED</argLine>
                             <systemPropertyVariables>
                                 <angus.test.conscrypt.required>true</angus.test.conscrypt.required>
                             </systemPropertyVariables>
