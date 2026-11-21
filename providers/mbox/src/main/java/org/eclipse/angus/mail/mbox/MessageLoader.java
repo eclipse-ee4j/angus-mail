@@ -33,6 +33,7 @@ import java.util.List;
 final class MessageLoader {
     private final TempFile temp;
     private FileInputStream fis = null;
+    private FileChannel fc = null;
     private OutputStream fos = null;
     private int pos, len;    // position in and length of buffer
     private long off;        // current offset in temp file
@@ -62,10 +63,11 @@ final class MessageLoader {
         int loaded = 0;
         try {
             fis = new FileInputStream(fd);
+            fc = fis.getChannel();
             if (fis.skip(offset) != offset)
                 throw new EOFException("Failed to skip to offset " + offset);
             this.off = prevend = temp.length();
-            fileoff = fis.getChannel().position() - off;
+            fileoff = fc.position() - off;
             pos = len = 0;
             line = new char[LINELEN];
             buf = new byte[64 * 1024];
@@ -110,7 +112,7 @@ final class MessageLoader {
             }
         } finally {
             try {
-                fis.close();
+                fc.close();    // also closes fis
             } catch (IOException ex) {
                 // ignore
             }
@@ -212,9 +214,8 @@ final class MessageLoader {
      * followed by optional blank lines and then a UNIX From line or EOF?
      */
     private boolean isMessageEnd(long pos) throws IOException {
-        FileChannel fc = fis.getChannel();
         long size = fc.size();
-        if (pos > size)
+        if (pos < 0 || pos > size)
             return false;
         ByteBuffer bb = ByteBuffer.allocate(5);
         // skip any blank lines after the body
