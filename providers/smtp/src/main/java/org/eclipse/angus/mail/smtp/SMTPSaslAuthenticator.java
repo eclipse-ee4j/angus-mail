@@ -179,8 +179,15 @@ public class SMTPSaslAuthenticator implements SaslAuthenticator {
             if (resp == 334 && deferredIr != null)
                 resp = pr.simpleCommand(deferredIr);
 
-            if (resp == 235)
-                return true;    // success already!
+            if (resp == 235) {
+                // success already, if the mechanism agrees
+                if (!sc.isComplete()) {
+                    logger.fine("SASL authentication not complete " +
+                            "despite server success");
+                    return false;
+                }
+                return true;
+            }
 
             if (resp != 334)
                 return false;
@@ -223,6 +230,16 @@ public class SMTPSaslAuthenticator implements SaslAuthenticator {
         if (resp != 235)
             return false;
 
+        if (!sc.isComplete()) {
+            /*
+             * The server claims success before the mechanism finished,
+             * e.g. without the DIGEST-MD5 rspauth or the final GSSAPI
+             * token that authenticates the server to the client.
+             */
+            logger.fine("SASL authentication not complete " +
+                    "despite server success");
+            return false;
+        }
         if (sc.isComplete() /*&& res.status == SUCCESS*/) {
             String qop = (String) sc.getNegotiatedProperty(Sasl.QOP);
             if (qop != null && (qop.equalsIgnoreCase("auth-int") ||

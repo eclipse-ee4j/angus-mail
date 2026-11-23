@@ -1066,6 +1066,7 @@ public class SMTPTransport extends Transport {
      */
     private class DigestMD5Authenticator extends Authenticator {
         private DigestMD5 md5support;    // only create if needed
+        private boolean serverAuthenticated;    // rspauth verified?
 
         DigestMD5Authenticator() {
             super("DIGEST-MD5");
@@ -1075,6 +1076,25 @@ public class SMTPTransport extends Transport {
             if (md5support == null)
                 md5support = new DigestMD5(logger);
             return md5support;
+        }
+
+        /**
+         * The server authenticates itself to the client with the rspauth
+         * value in its final challenge (RFC 2831), so a success response
+         * that skips that challenge is not a successful authentication.
+         */
+        @Override
+        boolean authenticate(String host, String authzid,
+                             String user, String passwd) throws MessagingException {
+            serverAuthenticated = false;
+            super.authenticate(host, authzid, user, passwd);
+            if (!serverAuthenticated) {
+                logger.fine("AUTH DIGEST-MD5 server NOT authenticated");
+                closeConnection();
+                throw new AuthenticationFailedException(
+                        "DIGEST-MD5 server response-auth missing");
+            }
+            return true;
         }
 
         @Override
@@ -1091,6 +1111,7 @@ public class SMTPTransport extends Transport {
                     // server NOT authenticated by client !!!
                     resp = -1;
                 } else {
+                    serverAuthenticated = true;
                     // send null response
                     resp = simpleCommand(new byte[0]);
                 }

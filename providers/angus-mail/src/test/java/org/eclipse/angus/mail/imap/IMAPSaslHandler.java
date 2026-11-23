@@ -39,7 +39,15 @@ import java.util.logging.Level;
  */
 public class IMAPSaslHandler extends IMAPHandler {
 
+    /** Send the final challenge, e.g. the DIGEST-MD5 rspauth, before OK? */
+    private final boolean finalChallenge;
+
     public IMAPSaslHandler() {
+        this(true);
+    }
+
+    public IMAPSaslHandler(boolean finalChallenge) {
+        this.finalChallenge = finalChallenge;
         capabilities += " LOGINDISABLED AUTH=DIGEST-MD5";
     }
 
@@ -120,7 +128,8 @@ public class IMAPSaslHandler extends IMAPHandler {
         while (!ss.isComplete()) {
             try {
                 byte[] chal = ss.evaluateResponse(response);
-                if (ss.isComplete()) {
+                if (ss.isComplete() &&
+                        (!finalChallenge || chal == null || chal.length == 0)) {
                     break;
                 } else {
                     // send challenge
