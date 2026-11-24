@@ -24,6 +24,22 @@
     cleanup are unchanged.  Exceptions thrown by the verifier retain
     their existing types and handling.
 
+- Conscrypt server identity checking
+
+    Server identity checking uses the HTTPS endpoint identification algorithm
+    for known Conscrypt socket classes, including Android's implementation.
+    Conscrypt does not perform hostname checks for the LDAPS algorithm.
+    Other TLS implementations continue to use LDAPS. Disabling
+    mail.<protocol>.ssl.checkserveridentity and explicit hostname verifiers
+    retain their existing behavior.
+
+    Opaque socket wrappers and relocated Conscrypt classes are not recognized;
+    those configurations can use the existing explicit hostname verifier.
+
+    The explicit MailHostnameVerifier also supports numeric IP subject
+    alternative names, internationalized DNS names and absolute DNS names.
+    Legacy SSLSocket trust-manager behavior is unchanged.
+
 - SMTP capability state
 
     Cached EHLO capabilities are discarded before a new EHLO or HELO,

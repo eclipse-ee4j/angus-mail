@@ -276,6 +276,7 @@ public class SocketFetcherHostnameVerifierTest {
         properties.setProperty(prefix() + ".ssl.checkserveridentity", "true");
         properties.setProperty(prefix() + ".connectiontimeout", "5000");
         properties.setProperty(prefix() + ".timeout", "5000");
+        properties.setProperty(prefix() + ".localhost", "localhost");
         if (!protocol.endsWith("s")) {
             properties.setProperty(prefix() + ".starttls.enable", "true");
             properties.setProperty(prefix() + ".starttls.required", "true");

@@ -1793,7 +1793,11 @@ public class SMTPTransport extends Transport {
                         "can't determine local email address");
         }
 
-        String cmd = "MAIL FROM:" + normalizeAddress(from);
+        String nfrom = normalizeAddress(from);
+        if (!isEnvelopeAddress(nfrom))
+            throw new AddressException(
+                    "Illegal character in SMTP envelope sender", from);
+        String cmd = "MAIL FROM:" + nfrom;
 
         if (allowutf8 && supportsExtension("SMTPUTF8"))
             cmd += " SMTPUTF8";
@@ -1929,7 +1933,22 @@ public class SMTPTransport extends Transport {
 
             sfex = null;
             InternetAddress ia = (InternetAddress) addresses[i];
-            String cmd = "RCPT TO:" + normalizeAddress(ia.getAddress());
+            String addr = normalizeAddress(ia.getAddress());
+            if (!isEnvelopeAddress(addr)) {
+                // don't send it, the rest would become ESMTP parameters
+                if (!sendPartial)
+                    sendFailed = true;
+                invalid.add(ia);
+                sfex = new AddressException(
+                        "Illegal character in SMTP envelope recipient",
+                        ia.getAddress());
+                if (mex == null)
+                    mex = sfex;
+                else
+                    mex.setNextException(sfex);
+                continue;
+            }
+            String cmd = "RCPT TO:" + addr;
             if (dsn)
                 cmd += " NOTIFY=" + notify;
             // send the addresses to the SMTP server
@@ -2015,6 +2034,8 @@ public class SMTPTransport extends Transport {
                             mex = sfex;
                         else
                             mex.setNextException(sfex);
+                        
+                        break;
                     } else {
                         // completely unexpected response, just give up
                         if (logger.isLoggable(Level.FINE))
@@ -2611,6 +2632,33 @@ public class SMTPTransport extends Transport {
             return "<" + addr + ">";
         else
             return addr;
+    }
+
+    /**
+     * Is the normalized address a single "&lt;" path "&gt;"?
+     * Angle brackets or white space outside a quoted string would end
+     * the path early and send the rest of the address to the server
+     * as ESMTP parameters (e.g., NOTIFY=, ORCPT= or AUTH=).
+     */
+    private static boolean isEnvelopeAddress(String addr) {
+        int len = addr.length();
+        if (len < 2 || addr.charAt(0) != '<' || addr.charAt(len - 1) != '>')
+            return false;
+        boolean quoted = false;
+        for (int i = 1; i < len - 1; i++) {
+            char c = addr.charAt(i);
+            if (quoted) {
+                if (c == '\\')
+                    i++;    // skip quoted-pair
+                else if (c == '"')
+                    quoted = false;
+            } else if (c == '"') {
+                quoted = true;
+            } else if (c == '<' || c == '>' || c <= ' ' || c == 0x7f) {
+                return false;
+            }
+        }
+        return !quoted;
     }
 
     /**
