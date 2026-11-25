@@ -22,7 +22,20 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLPeerUnverifiedException;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.InetAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.URI;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
@@ -32,6 +45,50 @@ import static org.junit.Assert.assertTrue;
 
 /** Checks the result contract shared by built-in and custom engine verifiers. */
 public class NioSocketFetcherTest {
+    @Test(timeout = 20000)
+    public void testJvmSocksRouteIsPreserved() throws Exception {
+        InetAddress loopback = InetAddress.getLoopbackAddress();
+        ProxySelector original = ProxySelector.getDefault();
+        try (ServerSocket proxy = new ServerSocket(0, 1, loopback);
+             ServerSocket destination = new ServerSocket(0, 1, loopback)) {
+            proxy.setSoTimeout(3000);
+            Proxy socks = new Proxy(Proxy.Type.SOCKS, proxy.getLocalSocketAddress());
+            ProxySelector.setDefault(new ProxySelector() {
+                @Override
+                public List<Proxy> select(URI uri) {
+                    return Collections.singletonList("socket".equals(uri.getScheme())
+                            && uri.getPort() == destination.getLocalPort() ? socks : Proxy.NO_PROXY);
+                }
+
+                @Override
+                public void connectFailed(URI uri, SocketAddress address, IOException failure) { }
+            });
+            for (boolean useNio : new boolean[]{false, true}) {
+                FutureTask<Integer> greeting = new FutureTask<>(() -> {
+                    try (Socket client = proxy.accept()) {
+                        client.setSoTimeout(3000);
+                        int version = client.getInputStream().read();
+                        client.getOutputStream().write(new byte[]{5, (byte) 255});
+                        return version;
+                    }
+                });
+                new Thread(greeting, "SOCKS test proxy").start();
+                String host = loopback.getHostAddress();
+                int port = destination.getLocalPort();
+                Properties props = new Properties();
+                props.setProperty("mail.smtp.connectiontimeout", "3000");
+                assertThrows(IOException.class, () -> {
+                    try (Socket ignored = useNio
+                            ? NioSocketFetcher.getSocket(host, port, props, "mail.smtp", false)
+                            : SocketFetcher.getSocket(host, port, props, "mail.smtp", false)) { }
+                });
+                assertEquals(5, greeting.get(5, TimeUnit.SECONDS).intValue());
+            }
+        } finally {
+            ProxySelector.setDefault(original);
+        }
+    }
+
     @Test
     public void testRejectedVerifierIsPeerUnverified() throws Exception {
         InvocationTargetException failure = assertThrows(InvocationTargetException.class,

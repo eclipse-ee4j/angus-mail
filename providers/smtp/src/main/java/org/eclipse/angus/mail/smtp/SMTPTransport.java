@@ -591,6 +591,10 @@ public class SMTPTransport extends Transport {
      * @since JavaMail 1.4.6
      */
     public synchronized boolean isSSL() {
+        return isConnectionSecure();
+    }
+
+    private boolean isConnectionSecure() {
         return serverSocket instanceof SSLSocket ||
                 (serverSocket instanceof DuplexSocket &&
                         ((DuplexSocket) serverSocket).isSSL());
@@ -748,7 +752,8 @@ public class SMTPTransport extends Transport {
                 helo(getLocalHost());
 
             if (useStartTLS || requireStartTLS) {
-                if (isSSL()) {
+                // Subclasses can override isSSL(), so check the socket directly.
+                if (isConnectionSecure()) {
                     logger.fine("STARTTLS requested but already using SSL");
                 } else if (supportsExtension("STARTTLS")) {
                     startTLS();
@@ -2143,6 +2148,9 @@ public class SMTPTransport extends Transport {
                     try {
                         acceptEnvelopeReply(command, state);
                     } catch (MessagingException readEx) {
+                        // A shutdown reply already carries the I/O failure as its cause.
+                        if (state.failure != null)
+                            throw readEx;
                         ex.addSuppressed(readEx);
                         break;
                     }
@@ -2573,11 +2581,8 @@ public class SMTPTransport extends Transport {
                 Thread.currentThread().interrupt();
                 throw new MessagingException("SMTP envelope interrupted", ex);
             } catch (IOException ex) {
-                SMTPEnvelopeExchange.Reply reply = exchange.getTerminalReply();
-                lastServerResponse = reply == null ? ex.getMessage() : reply.text;
-                lastReturnCode = reply == null ? -1 : reply.code;
-                if (lastReturnCode == 421)
-                    return lastReturnCode;
+                lastServerResponse = ex.getMessage();
+                lastReturnCode = -1;
                 throw new MessagingException("SMTP envelope read failed", ex);
             }
         }

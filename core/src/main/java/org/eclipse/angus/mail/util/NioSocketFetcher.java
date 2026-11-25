@@ -31,8 +31,12 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.channels.SocketChannel;
 import java.security.GeneralSecurityException;
 import java.security.Security;
@@ -236,7 +240,7 @@ public final class NioSocketFetcher {
                     ", socket factory " + factory + ", useSSL " + useSSL);
 
         SocketRoute route = new SocketRoute(props, prefix, resources == null);
-        Socket socket = createTransportSocket(factory, route, resources);
+        Socket socket = createTransportSocket(factory, route, resources, host, port);
         int writeTimeout = PropUtil.getIntProperty(props, prefix + ".writetimeout", -1);
         socket = configureTimeouts(socket, readTimeout, writeTimeout, props, prefix, resources);
         if (localAddress != null)
@@ -247,11 +251,11 @@ public final class NioSocketFetcher {
     }
 
     private static Socket createTransportSocket(SocketFactory factory,
-            SocketRoute route, TransportSocketResources resources) throws IOException {
+            SocketRoute route, TransportSocketResources resources, String host, int port) throws IOException {
         Socket socket = resources == null ? null : resources.physical;
         if (socket == null && factory != null && !(factory instanceof SSLSocketFactory))
             socket = factory.createSocket();
-        return socket == null ? route.createSocket() : socket;
+        return socket == null ? route.createSocket(host, port) : socket;
     }
 
     private static Socket configureTimeouts(Socket socket, int readTimeout,
@@ -281,8 +285,10 @@ public final class NioSocketFetcher {
         private String socksHost;
         private int socksPort = 1080;
         private String description;
+        private final boolean useSocketChannels;
 
         SocketRoute(Properties props, String prefix, boolean allowSocks) {
+            useSocketChannels = PropUtil.getBooleanProperty(props, prefix + ".usesocketchannels", false);
             proxyHost = props.getProperty(prefix + ".proxy.host", null);
             proxyUser = props.getProperty(prefix + ".proxy.user", null);
             proxyPassword = props.getProperty(prefix + ".proxy.password", null);
@@ -331,12 +337,36 @@ public final class NioSocketFetcher {
                 logger.finer("socks host " + socksHost + ", port " + socksPort);
         }
 
-        Socket createSocket() throws IOException {
+        Socket createSocket(String host, int port) throws IOException {
             if (socksHost != null)
-                return new Socket(new java.net.Proxy(java.net.Proxy.Type.SOCKS,
+                return new Socket(new Proxy(Proxy.Type.SOCKS,
                         new InetSocketAddress(socksHost, socksPort)));
+            // A channel would bypass the JVM's SOCKS route.
+            if (!useSocketChannels && needsProxySocket(proxyHost == null ? host : proxyHost,
+                    proxyHost == null ? port : proxyPort))
+                return new Socket();
             logger.finer("using SocketChannels");
             return SocketChannel.open().socket();
+        }
+
+        private static boolean needsProxySocket(String host, int port) {
+            ProxySelector selector = ProxySelector.getDefault();
+            if (selector == null)
+                return false;
+            try {
+                URI endpoint = new URI("socket", null, host, port, null, null, null);
+                List<Proxy> proxies = selector.select(endpoint);
+                if (proxies != null) {
+                    for (Proxy proxy : proxies) {
+                        if (proxy != null && proxy.type() == Proxy.Type.SOCKS)
+                            return true;
+                    }
+                }
+                return false;
+            } catch (URISyntaxException | IllegalArgumentException ex) {
+                // Let the ordinary socket apply the platform's routing rules.
+                return true;
+            }
         }
 
         void connect(Socket socket, String host, int port, int timeout) throws IOException {

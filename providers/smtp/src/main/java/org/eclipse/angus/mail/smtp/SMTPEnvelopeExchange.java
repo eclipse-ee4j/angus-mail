@@ -44,7 +44,6 @@ final class SMTPEnvelopeExchange {
     private final StringBuilder text = new StringBuilder(100);
     private final byte[] buffer = new byte[8192];
     private IOException failure;
-    private Reply terminalReply;
     private int pending;
     private int code;
     private int replyBytes;
@@ -82,10 +81,6 @@ final class SMTPEnvelopeExchange {
 
     IOException getFailure() {
         return failure;
-    }
-
-    Reply getTerminalReply() {
-        return terminalReply;
     }
 
     boolean hasReply() {
@@ -137,12 +132,11 @@ final class SMTPEnvelopeExchange {
             code = 0;
             text.setLength(0);
             replyBytes = 0;
-            if (reply.code == 421) {
-                terminalReply = reply;
-                throw new IOException(reply.text);
-            }
+            // Queue 421 before aborting so a failed write can still report it.
             replies.add(reply);
             queuedBytes += reply.bytes;
+            if (reply.code == 421)
+                throw new IOException(reply.text);
         }
     }
 

@@ -57,6 +57,23 @@ public class SMTPEnvelopeExchangeBufferTest {
     }
 
     @Test(timeout = 20000)
+    public void testShutdownDuringWriteRetainsRepliesInOrder() throws Exception {
+        try (Connection connection = new Connection("250 sender ok\r\n421 closing\r\n", 2)) {
+            assertThrows(IOException.class, () -> {
+                while (true)
+                    connection.socket.getOutputStream().write(0);
+            });
+            assertFalse(connection.socket.getChannel().isOpen());
+            assertEquals(250, connection.exchange.take().code);
+            assertTrue(connection.exchange.hasReply());
+            assertEquals(421, connection.exchange.take().code);
+            assertFalse(connection.exchange.hasReply());
+            assertSame(connection.exchange.getFailure(),
+                    assertThrows(IOException.class, connection.exchange::take));
+        }
+    }
+
+    @Test(timeout = 20000)
     public void testLargeValidMultilineReply() throws Exception {
         try (Connection connection = new Connection(reply(128 * 1024), 1)) {
             assertEquals(250, connection.exchange.take().code);

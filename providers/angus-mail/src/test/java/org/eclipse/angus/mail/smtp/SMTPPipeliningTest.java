@@ -59,6 +59,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -69,6 +70,25 @@ import static org.junit.Assert.fail;
  * No latency threshold is needed to prove that commands were pipelined.
  */
 public class SMTPPipeliningTest {
+    @Test(timeout = 20000)
+    public void testRequiredStartTlsUsesConnectionState() throws Exception {
+        try (Exchange exchange = new Exchange(1, 1, 1)) {
+            exchange.properties.setProperty("mail.smtp.pipelining", "false");
+            exchange.properties.setProperty("mail.smtp.starttls.required", "true");
+            exchange.handler.startTls = true;
+            SMTPTransport transport = new SMTPTransport(exchange.session(), new URLName("smtp://localhost")) {
+                @Override
+                public boolean isSSL() {
+                    return true;
+                }
+            };
+            exchange.connect(transport);
+            exchange.send();
+            assertNotNull(exchange.handler.tlsProtocol.get());
+            exchange.assertContent();
+        }
+    }
+
     @Test(timeout = 20000)
     public void testTransportWithoutChannelRetainsSequentialEnvelope() throws Exception {
         try (Exchange exchange = new Exchange(2, 1, 1, 1)) {
