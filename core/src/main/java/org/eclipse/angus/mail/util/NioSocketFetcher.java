@@ -18,6 +18,8 @@
 
 package org.eclipse.angus.mail.util;
 
+import org.eclipse.angus.mail.util.SocketFetcher.TransportSocketResources;
+
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -75,6 +77,11 @@ public final class NioSocketFetcher {
      */
     public static Socket getSocket(String host, int port, Properties props,
                                    String prefix, boolean useSSL) throws IOException {
+        return getConnection(host, port, props, prefix, useSSL).getSocket();
+    }
+
+    static SocketFetcher.Connection getConnection(String host, int port, Properties props,
+            String prefix, boolean useSSL) throws IOException {
         if (logger.isLoggable(Level.FINER))
             logger.finer("getSocket" + ", host " + host + ", port " + port +
                     ", prefix " + prefix + ", useSSL " + useSSL);
@@ -93,6 +100,7 @@ public final class NioSocketFetcher {
         SocketFactory transportFactory = SocketFetcher.getTransportSocketFactory(props, prefix);
         SocketFactorySelection selection = new SocketFactorySelection();
         Socket socket = null;
+        TransportSocketResources resources = new TransportSocketResources();
         boolean transportAttempted = false;
         try {
             selection.selectForConnection(props, prefix, useSSL);
@@ -101,7 +109,7 @@ public final class NioSocketFetcher {
                 transportAttempted = transportFactory != null;
                 socket = openSocket(localAddress, localPort, host, selection.port,
                         connectionTimeout, readTimeout, props, prefix,
-                        selection.factory, useSSL, transportFactory);
+                        selection.factory, useSSL, transportFactory, resources);
             }
         } catch (EngineSetupException ex) {
             throw ex.failure;
@@ -111,21 +119,21 @@ public final class NioSocketFetcher {
             if (!fallbackAllowed || transportAttempted)
                 throw socketFactoryFailure(ex, "Using " + selection.description,
                         host, selection.port, connectionTimeout);
+            resources = new TransportSocketResources();
         }
 
         if (socket == null) {
             try {
                 socket = openSocket(localAddress, localPort, host, port,
                         connectionTimeout, readTimeout, props, prefix,
-                        null, useSSL, transportFactory);
+                        null, useSSL, transportFactory, resources);
             } catch (EngineSetupException ex) {
                 throw ex.failure;
             }
         } else if (readTimeout >= 0 && transportFactory == null) {
-            // A configured factory can change the timeout while layering TLS.
-            setReadTimeout(socket, readTimeout);
+            resources.restoreReadTimeout(socket, readTimeout);
         }
-        return socket;
+        return new SocketFetcher.Connection(socket, resources.tunnelPort);
     }
 
     private static InetAddress resolveLocalAddress(Properties props, String prefix)
@@ -219,13 +227,30 @@ public final class NioSocketFetcher {
     private static Socket openSocket(InetAddress localAddress, int localPort,
             String host, int port, int connectionTimeout, int readTimeout,
             Properties props, String prefix, SocketFactory factory, boolean useSSL,
-            SocketFactory transportFactory) throws IOException {
-        if (transportFactory != null)
-            return createSocketWithTransportFactory(localAddress, localPort,
-                    host, port, connectionTimeout, readTimeout, props, prefix,
-                    factory, useSSL, transportFactory);
-        return createSocket(localAddress, localPort, host, port, connectionTimeout,
-                readTimeout, props, prefix, factory, useSSL, null);
+            SocketFactory transportFactory, TransportSocketResources resources) throws IOException {
+        try {
+            if (transportFactory != null) {
+                Socket transport = transportFactory.createSocket();
+                resources.physical = transport;
+                if (transport == null || transport.isClosed() ||
+                        transport.isConnected() || transport instanceof SSLSocket)
+                    throw new IOException(prefix + ".socketFactory.transport must return " +
+                            "an open, unconnected, non-SSL socket");
+            }
+            Socket socket = createSocket(localAddress, localPort, host, port, connectionTimeout,
+                    readTimeout, props, prefix, factory, useSSL, resources);
+            if (socket == null)
+                throw new IOException("Socket factory returned no socket");
+            if (transportFactory != null && readTimeout >= 0)
+                setReadTimeout(socket, readTimeout);
+            return socket;
+        } catch (EngineSetupException ex) {
+            resources.closeAfterFailure(ex.failure);
+            throw ex;
+        } catch (IOException | RuntimeException | Error failure) {
+            resources.closeAfterFailure(failure);
+            throw failure;
+        }
     }
 
     private static Socket createSocket(InetAddress localAddress, int localPort,
@@ -239,20 +264,27 @@ public final class NioSocketFetcher {
                     ", connection timeout " + connectionTimeout + ", timeout " + readTimeout +
                     ", socket factory " + factory + ", useSSL " + useSSL);
 
-        SocketRoute route = new SocketRoute(props, prefix, resources == null);
-        Socket socket = createTransportSocket(factory, route, resources, host, port);
+        SocketRoute route = new SocketRoute(props, prefix, resources.physical == null);
+        Socket transport = createTransportSocket(factory, route, resources.physical, host, port);
+        resources.physical = transport;
         int writeTimeout = PropUtil.getIntProperty(props, prefix + ".writetimeout", -1);
-        socket = configureTimeouts(socket, readTimeout, writeTimeout, props, prefix, resources);
+        Socket socket = configureTimeouts(transport, readTimeout, writeTimeout, props, prefix, resources);
         if (localAddress != null)
             socket.bind(new InetSocketAddress(localAddress, localPort));
         route.connect(socket, host, port, connectionTimeout);
-        return configureConnectedSocket(socket, host, port, writeTimeout,
+        if (route.proxyHost != null)
+            resources.tunnelPort = port;
+        // Using a decorator's channel directly would bypass its streams. Check
+        // the factory's transport before accounting for our own timeout wrapper.
+        SocketChannel channel = transport instanceof SSLSocket ? null : transport.getChannel();
+        if (channel != null && channel.socket() != transport)
+            channel = null;
+        return configureConnectedSocket(socket, channel, host, port, writeTimeout,
                 props, prefix, factory, useSSL, resources);
     }
 
     private static Socket createTransportSocket(SocketFactory factory,
-            SocketRoute route, TransportSocketResources resources, String host, int port) throws IOException {
-        Socket socket = resources == null ? null : resources.physical;
+            SocketRoute route, Socket socket, String host, int port) throws IOException {
         if (socket == null && factory != null && !(factory instanceof SSLSocketFactory))
             socket = factory.createSocket();
         return socket == null ? route.createSocket(host, port) : socket;
@@ -270,8 +302,7 @@ public final class NioSocketFetcher {
                     prefix + ".executor.writetimeout");
             socket = executor == null ? new WriteTimeoutSocket(socket, writeTimeout) :
                     new WriteTimeoutSocket(socket, writeTimeout, executor);
-            if (resources != null)
-                resources.writeTimeout = socket;
+            resources.writeTimeout = socket;
         }
         return socket;
     }
@@ -387,28 +418,25 @@ public final class NioSocketFetcher {
         }
     }
 
-    private static Socket configureConnectedSocket(Socket socket, String host,
+    private static Socket configureConnectedSocket(Socket socket, SocketChannel channel, String host,
             int port, int writeTimeout, Properties props, String prefix,
             SocketFactory factory, boolean useSSL, TransportSocketResources resources)
             throws IOException {
         if ((useSSL || factory instanceof SSLSocketFactory) &&
                 !(socket instanceof SSLSocket)) {
             SSLSocketFactory sslFactory = selectTlsSocketFactory(factory, props, prefix);
-            Socket duplex = tryStartTlsEngine(socket, sslFactory, host, port,
+            Socket duplex = tryStartTlsEngine(socket, channel, sslFactory, host, port,
                     writeTimeout, props, prefix, resources);
             if (duplex != null)
                 return duplex;
             socket = sslFactory.createSocket(socket, host, port, true);
-            if (resources != null)
-                resources.layered = socket;
+            resources.layered = socket;
             factory = sslFactory;
+        } else if (channel != null) {
+            socket = new DuplexSocket(socket, writeTimeout, resources.tunnelPort);
+            resources.layered = socket;
         }
         SocketFetcher.configureSSLSocket(socket, host, props, prefix, factory);
-        if (!(socket instanceof SSLSocket) && socket.getChannel() != null) {
-            socket = new DuplexSocket(socket, writeTimeout, port);
-            if (resources != null)
-                resources.layered = socket;
-        }
         return socket;
     }
 
@@ -439,10 +467,9 @@ public final class NioSocketFetcher {
         }
     }
 
-    private static Socket tryStartTlsEngine(Socket socket, SSLSocketFactory factory,
+    private static Socket tryStartTlsEngine(Socket socket, SocketChannel channel, SSLSocketFactory factory,
             String host, int port, int writeTimeout, Properties props, String prefix,
             TransportSocketResources resources) throws IOException {
-        SocketChannel channel = socket.getChannel();
         if (channel == null)
             return null;
         boolean explicitEngine = props.get(prefix + ".ssl.engineFactory") != null;
@@ -452,9 +479,9 @@ public final class NioSocketFetcher {
             if (engine == null)
                 return null;
             duplex = new DuplexSocket(socket, writeTimeout, port);
-            if (resources != null)
-                resources.layered = duplex;
             configureSSLEngine(duplex, engine, host, props, prefix);
+            // Until setup succeeds, the catch blocks below own duplex cleanup.
+            resources.layered = duplex;
             return duplex;
         } catch (IOException | RuntimeException | LinkageError ex) {
             IOException failure = ex instanceof IOException ? (IOException) ex :
@@ -476,71 +503,6 @@ public final class NioSocketFetcher {
     }
 
     /**
-     * Own the supplied transport while the normal connection and TLS pipeline
-     * runs.  An unsuccessful attempt must not leave it open or create a second
-     * transport through fallback.
-     */
-    private static Socket createSocketWithTransportFactory(InetAddress localaddr,
-            int localport, String host, int port, int cto, int to,
-            Properties props, String prefix, SocketFactory sf, boolean useSSL,
-            SocketFactory transportFactory) throws IOException {
-        TransportSocketResources resources = new TransportSocketResources();
-        try {
-            Socket transportSocket = transportFactory.createSocket();
-            resources.physical = transportSocket;
-            if (transportSocket == null || transportSocket.isClosed() ||
-                    transportSocket.isConnected() || transportSocket instanceof SSLSocket)
-                throw new IOException(prefix + ".socketFactory.transport must return " +
-                        "an open, unconnected, non-SSL socket");
-            Socket socket = createSocket(localaddr, localport, host, port, cto,
-                    to, props, prefix, sf, useSSL, resources);
-            if (socket == null)
-                throw new IOException("Socket factory returned no socket");
-            // A TLS factory can change the timeout while wrapping the transport.
-            if (to >= 0)
-                socket.setSoTimeout(to);
-            return socket;
-        } catch (EngineSetupException ex) {
-            resources.closeAfterFailure(ex.failure);
-            throw ex;
-        } catch (IOException | RuntimeException | Error failure) {
-            resources.closeAfterFailure(failure);
-            throw failure;
-        }
-    }
-
-    /** Retain layers whose own resources must retire even after the TCP socket closes. */
-    private static final class TransportSocketResources {
-        private Socket physical;
-        private Socket writeTimeout;
-        private Socket layered;
-
-        private void closeAfterFailure(Throwable failure) {
-            // This closes the plain transport and retires an internally owned
-            // timer, without shutting down a caller-supplied scheduler.
-            close(writeTimeout, false, failure);
-            close(physical, true, failure);
-            // Dispose of transport resources before the outer TLS wrapper.
-            // Native TLS setup may already have closed it on a setup failure.
-            if (layered != physical && layered != writeTimeout)
-                close(layered, false, failure);
-        }
-
-        private static void close(Socket socket, boolean checkClosed,
-                                  Throwable failure) {
-            if (socket == null)
-                return;
-            try {
-                if (!checkClosed || !socket.isClosed())
-                    socket.close();
-            } catch (IOException | RuntimeException | Error cleanup) {
-                if (cleanup != failure)
-                    failure.addSuppressed(cleanup);
-            }
-        }
-    }
-
-    /**
      * Start TLS on an existing socket.
      * Supports the "STARTTLS" command in many protocols.
      *
@@ -553,7 +515,8 @@ public final class NioSocketFetcher {
      */
     public static Socket startTLS(Socket socket, String host, Properties props,
                                   String prefix) throws IOException {
-        int port = socket.getPort();
+        int port = socket instanceof DuplexSocket ?
+                ((DuplexSocket) socket).getPeerPort() : socket.getPort();
         if (logger.isLoggable(Level.FINER))
             logger.finer("startTLS host " + host + ", port " + port);
         SocketFactorySelection selection = new SocketFactorySelection();
@@ -581,8 +544,7 @@ public final class NioSocketFetcher {
         if (socket instanceof DuplexSocket) {
             DuplexSocket duplex = (DuplexSocket) socket;
             try {
-                SSLEngine engine = createSSLEngine(factory, host,
-                        duplex.getPeerPort(), props, prefix);
+                SSLEngine engine = createSSLEngine(factory, host, port, props, prefix);
                 if (engine != null) {
                     configureSSLEngine(duplex, engine, host, props, prefix);
                     return duplex;

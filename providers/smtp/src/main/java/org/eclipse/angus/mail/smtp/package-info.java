@@ -268,10 +268,11 @@
  * A nonblocking channel processes input and output on the sending thread.
  * Each such connection owns a selector and buffers; a TLS connection also
  * owns a worker for delegated TLS tasks, stopped when the connection closes.
- * There is no SMTP reader thread. Sockets without a channel (including SOCKS
- * sockets and caller-supplied sockets) retain sequential sending. Custom TLS
- * socket factories also retain sequential sending unless an engine factory
- * is supplied; their key and trust settings are never replaced by defaults.
+ * There is no SMTP reader thread. Caller-supplied sockets and sockets without
+ * a channel (including SOCKS sockets) retain sequential sending. A factory
+ * that wraps a channel's socket retains sequential sending so its stream
+ * overrides are honored. Custom TLS socket factories remain sequential unless
+ * an engine factory supplies the corresponding key and trust settings.
  * Disabling pipelining retains the existing socket and TLS implementation.
  * </TD>
  * </TR>
@@ -308,7 +309,8 @@
  * engine session with its own hostname verifier. This check is independent of
  * the TLS provider and supports numeric IP subject alternative names and
  * single-label DNS wildcards. Explicit hostname verifiers still run afterward.
- * Used only with pipelining enabled and a channel-backed socket. For SMTPS use
+ * Used only when pipelining is enabled and Angus can use the transport's
+ * channel directly. For SMTPS use
  * <code>mail.smtps.ssl.engineFactory</code>. This does not replace a custom raw
  * socket factory or proxy. TLS key/trust-manager work may run on the connection's
  * TLS worker; transport callbacks remain on the sending thread.

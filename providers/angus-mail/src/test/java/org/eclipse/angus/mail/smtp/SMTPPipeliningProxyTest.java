@@ -16,14 +16,19 @@
 
 package org.eclipse.angus.mail.smtp;
 
+import org.eclipse.angus.mail.test.TestSocketFactory;
 import org.eclipse.angus.mail.util.LineInputStream;
+import org.eclipse.angus.mail.util.MailSSLSocketFactory;
 import org.junit.Test;
 
+import javax.net.SocketFactory;
 import javax.net.ssl.SSLEngine;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.concurrent.ExecutorService;
@@ -76,6 +81,78 @@ public class SMTPPipeliningProxyTest {
                 }
             }
         }
+    }
+
+    @Test(timeout = 15000)
+    public void testStartTlsSocketFactoryUsesTunnelDestination() throws Exception {
+        checkStartTlsSocketFactoryPort(true, false);
+        checkStartTlsSocketFactoryPort(true, true);
+        checkStartTlsSocketFactoryPort(false, true);
+    }
+
+    @Test(timeout = 15000)
+    public void testStartTlsUsesPortSelectedByDirectSocket() throws Exception {
+        for (boolean pipelining : new boolean[]{false, true}) {
+            try (SMTPPipeliningTest.Exchange exchange = new SMTPPipeliningTest.Exchange(2, false, 1, 1, 1)) {
+                exchange.handler.startTls = true;
+                exchange.properties.setProperty("mail.smtp.pipelining", Boolean.toString(pipelining));
+                exchange.properties.setProperty("mail.smtp.starttls.required", "true");
+                exchange.properties.put("mail.smtp.socketFactory", new TestSocketFactory() {
+                    @Override
+                    public Socket createSocket() {
+                        return new Socket() {
+                            @Override
+                            public void connect(SocketAddress endpoint, int timeout) throws IOException {
+                                InetSocketAddress requested = (InetSocketAddress) endpoint;
+                                assertEquals(25, requested.getPort());
+                                super.connect(new InetSocketAddress(requested.getAddress(), exchange.server.getPort()),
+                                        timeout);
+                            }
+                        };
+                    }
+                });
+                AtomicInteger peerPort = recordStartTlsPort(exchange);
+                exchange.connect(null, 25);
+                assertEquals(exchange.server.getPort(), peerPort.get());
+            }
+        }
+    }
+
+    private void checkStartTlsSocketFactoryPort(boolean pipelining, boolean plainTransport) throws Exception {
+        try (SMTPPipeliningTest.Exchange exchange = new SMTPPipeliningTest.Exchange(2, false, 1, 1, 1);
+             ConnectProxy proxy = new ConnectProxy(exchange.server.getPort())) {
+            exchange.handler.startTls = true;
+            exchange.properties.setProperty("mail.smtp.pipelining", Boolean.toString(pipelining));
+            exchange.properties.setProperty("mail.smtp.starttls.required", "true");
+            exchange.properties.setProperty("mail.smtp.proxy.host", "127.0.0.1");
+            exchange.properties.setProperty("mail.smtp.proxy.port", Integer.toString(proxy.port()));
+            exchange.properties.setProperty("mail.smtp.proxy.user", "fixture-user");
+            exchange.properties.setProperty("mail.smtp.proxy.password", "fixture-password");
+            AtomicInteger peerPort = recordStartTlsPort(exchange);
+            if (plainTransport) {
+                exchange.properties.put("mail.smtp.socketFactory.transport", SocketFactory.getDefault());
+                exchange.properties.put("mail.smtp.socketFactory", SocketFactory.getDefault());
+                exchange.properties.setProperty("mail.smtp.socketFactory.port",
+                        Integer.toString(exchange.server.getPort()));
+                exchange.connect(null, 1); // The factory override selects the tunnel destination.
+            }
+            exchange.send();
+            assertEquals(exchange.server.getPort(), peerPort.get());
+            exchange.transport.close();
+        }
+    }
+
+    private static AtomicInteger recordStartTlsPort(SMTPPipeliningTest.Exchange exchange) throws Exception {
+        exchange.properties.remove("mail.smtp.ssl.engineFactory");
+        AtomicInteger peerPort = new AtomicInteger();
+        exchange.properties.put("mail.smtp.ssl.socketFactory", new MailSSLSocketFactory() {
+            @Override
+            public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
+                peerPort.set(port);
+                return exchange.handler.context.getSocketFactory().createSocket(socket, host, port, autoClose);
+            }
+        });
+        return peerPort;
     }
 
     private static final class ConnectProxy implements AutoCloseable {

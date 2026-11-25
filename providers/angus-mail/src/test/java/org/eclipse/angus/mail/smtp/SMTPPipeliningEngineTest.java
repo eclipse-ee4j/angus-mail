@@ -39,11 +39,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -54,6 +56,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -206,7 +209,7 @@ public class SMTPPipeliningEngineTest {
                         new SMTPPipeliningTest.Exchange(2, implicit, 3)) {
                     String prefix = configure(exchange, implicit);
                     AtomicReference<Thread> worker = new AtomicReference<>();
-                    SSLContext context = observingTlsContext(worker);
+                    SSLContext context = observingTlsContext(() -> worker.set(Thread.currentThread()));
                     exchange.properties.put(prefix + ".ssl.engineFactory",
                             (BiFunction<String, Integer, SSLEngine>) context::createSSLEngine);
                     caller.setContextClassLoader(applicationLoader);
@@ -626,7 +629,26 @@ public class SMTPPipeliningEngineTest {
         return current;
     }
 
-    private SSLContext observingTlsContext(AtomicReference<Thread> worker) throws Exception {
+    @Test(timeout = 20000)
+    public void testImplicitTlsTimeoutWaitsForDelegatedTaskOnce() throws Exception {
+        CompletableFuture<Void> release = new CompletableFuture<>();
+        try (SMTPPipeliningTest.Exchange exchange = new SMTPPipeliningTest.Exchange(1, true, 2)) {
+            String prefix = configure(exchange, true);
+            SSLContext context = observingTlsContext(release::join);
+            exchange.properties.put(prefix + ".ssl.engineFactory",
+                    (BiFunction<String, Integer, SSLEngine>) context::createSSLEngine);
+            try {
+                MessagingException failure = assertThrows(MessagingException.class, () -> exchange.connect(null));
+                Throwable timeout = assertCause(failure, SocketTimeoutException.class);
+                assertEquals(1, Arrays.stream(timeout.getSuppressed())
+                        .filter(ex -> "TLS task did not stop".equals(ex.getMessage())).count());
+            } finally {
+                release.complete(null);
+            }
+        }
+    }
+
+    private SSLContext observingTlsContext(Runnable onCertificateCheck) throws Exception {
         KeyStore store = KeyStore.getInstance("JKS");
         try (InputStream input = SMTPPipeliningTest.class.getResourceAsStream("pipelining.jks")) {
             store.load(input, "changeit".toCharArray());
@@ -644,7 +666,7 @@ public class SMTPPipeliningEngineTest {
             @Override
             public void checkServerTrusted(X509Certificate[] chain, String authType)
                     throws CertificateException {
-                worker.set(Thread.currentThread());
+                onCertificateCheck.run();
                 delegate.checkServerTrusted(chain, authType);
             }
 

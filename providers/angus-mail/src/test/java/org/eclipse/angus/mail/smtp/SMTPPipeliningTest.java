@@ -27,6 +27,8 @@ import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.eclipse.angus.mail.test.TestServer;
+import org.eclipse.angus.mail.test.TestSocketFactory;
+import org.eclipse.angus.mail.util.WriteTimeoutSocket;
 import org.junit.Test;
 import org.junit.Assume;
 
@@ -45,11 +47,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -99,6 +103,34 @@ public class SMTPPipeliningTest {
             assertEquals(Arrays.asList(1, 1, 1), exchange.handler.groups);
             exchange.assertContent();
             exchange.assertNoReader();
+        }
+    }
+
+    @Test(timeout = 20000)
+    public void testDecoratedChannelTransportRetainsItsStreams() throws Exception {
+        for (boolean implicitTls : new boolean[]{false, true}) {
+            try (Exchange exchange = new Exchange(2, implicitTls, 1, 1, 1)) {
+                AtomicBoolean streamUsed = new AtomicBoolean();
+                String prefix = implicitTls ? "mail.smtps" : "mail.smtp";
+                exchange.properties.setProperty(prefix + ".pipelining", "true");
+                exchange.properties.setProperty(prefix + ".writetimeout", "3000");
+                exchange.properties.put(prefix + ".socketFactory.transport", new TestSocketFactory() {
+                    @Override
+                    public Socket createSocket() throws IOException {
+                        return new WriteTimeoutSocket(SocketChannel.open().socket(), 3000) {
+                            @Override
+                            public OutputStream getOutputStream() throws IOException {
+                                streamUsed.set(true);
+                                return super.getOutputStream();
+                            }
+                        };
+                    }
+                });
+                exchange.send();
+                assertTrue("Factory socket output stream was bypassed", streamUsed.get());
+                assertEquals(Arrays.asList(1, 1, 1), exchange.handler.groups);
+                exchange.assertContent();
+            }
         }
     }
 
@@ -330,6 +362,29 @@ public class SMTPPipeliningTest {
             exchange.handler.responsePlan.set(null);
             exchange.send();
             exchange.assertContent();
+        }
+    }
+
+    @Test(timeout = 20000)
+    public void testSenderRejectionKeepsOriginalGroupForExceptionAndEvent() throws Exception {
+        Address[] group = {new InternetAddress("Team: alice@example.test, bob@example.test;")};
+        for (String lastReply : new String[]{"503 no sender", "421 shutting down"}) {
+            try (Exchange exchange = new Exchange(2, 3)) {
+                exchange.handler.responsePlan.set(new String[]{"550 sender rejected", "503 no sender", lastReply});
+                exchange.connect(null);
+                CompletableFuture<TransportEvent> event = new CompletableFuture<>();
+                exchange.transport.addTransportListener(new TransportAdapter() {
+                    @Override
+                    public void messageNotDelivered(TransportEvent value) {
+                        event.complete(value);
+                    }
+                });
+                SMTPSendFailedException failure = assertThrows(SMTPSendFailedException.class,
+                        () -> exchange.transport.sendMessage(exchange.message, group));
+                assertEquals(550, failure.getReturnCode());
+                assertArrayEquals(group, failure.getValidUnsentAddresses());
+                assertArrayEquals(group, event.get(3, TimeUnit.SECONDS).getValidUnsentAddresses());
+            }
         }
     }
 

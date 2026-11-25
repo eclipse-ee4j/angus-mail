@@ -28,8 +28,11 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -41,6 +44,50 @@ import static org.junit.Assert.assertTrue;
  * Preserve identity, callback, handshake and cleanup evidence independently.
  */
 public class SocketFetcherIdentityCleanupTest {
+    @Test(timeout = 10000)
+    public void finalTimeoutFailureClosesTransportWhenTlsCloseFails() throws Exception {
+        for (boolean useEngine : new boolean[]{false, true}) {
+            checkFinalTimeoutFailure(useEngine, false);
+            checkFinalTimeoutFailure(useEngine, true);
+        }
+    }
+
+    private static void checkFinalTimeoutFailure(boolean useEngine, boolean writeTimeout) throws Exception {
+        SocketException timeoutFailure = new SocketException("final timeout change failed");
+        IOException closeFailure = new IOException("TLS close failed");
+        StubSocket tls = new StubSocket(closeFailure, null) {
+            @Override
+            public void setSoTimeout(int timeout) throws SocketException {
+                throw timeoutFailure;
+            }
+        };
+        AtomicReference<Socket> transport = new AtomicReference<>();
+        Properties props = new Properties();
+        props.put("mail.smtps.ssl.socketFactory", new StubFactory(tls) {
+            @Override
+            public Socket createSocket(Socket plain, String host, int port, boolean autoClose) {
+                transport.set(plain);
+                return tls;
+            }
+        });
+        props.setProperty("mail.smtps.timeout", "1000");
+        if (writeTimeout)
+            props.setProperty("mail.smtps.writetimeout", "2000");
+        try (ServerSocket listener = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+            IOException failure = assertThrows(IOException.class, () -> SocketFetcher.getSocket(
+                    listener.getInetAddress().getHostAddress(), listener.getLocalPort(), props, "mail.smtps",
+                    true, useEngine));
+            assertSame(timeoutFailure, failure);
+            assertTrue(transport.get().isClosed());
+            assertEquals(1, tls.closeCalls);
+            assertEquals(1, failure.getSuppressed().length);
+            assertSame(closeFailure, failure.getSuppressed()[0]);
+        } finally {
+            if (transport.get() != null)
+                transport.get().close();
+        }
+    }
+
     /**
      * An ordinary close failure remains suppressed on the identity wrapper.
      */

@@ -165,7 +165,45 @@ public class SocketFetcher {
     public static Socket getSocket(String host, int port, Properties props,
                                    String prefix, boolean useSSL)
             throws IOException {
+        return getConnection(host, port, props, prefix, useSSL, false).getSocket();
+    }
 
+    /** The connected socket and the destination port selected for this attempt. */
+    public static final class Connection {
+        private final Socket socket;
+        private final int tunnelPort;
+
+        Connection(Socket socket, int tunnelPort) {
+            this.socket = socket;
+            this.tunnelPort = tunnelPort;
+        }
+
+        /** @return the connected socket */
+        public Socket getSocket() {
+            return socket;
+        }
+
+        /** @return the CONNECT destination for an HTTP tunnel, or the connected socket's peer port */
+        public int getPort() {
+            return tunnelPort >= 0 ? tunnelPort : socket.getPort();
+        }
+    }
+
+    /**
+     * Opens a connection and retains its logical destination for a later TLS upgrade.
+     * @param host destination host
+     * @param port requested destination port
+     * @param props connection properties
+     * @param prefix property prefix
+     * @param useSSL whether to establish implicit TLS
+     * @param useEngine whether to select duplex I/O
+     * @return the established connection
+     * @exception IOException for connection or TLS failure
+     */
+    public static Connection getConnection(String host, int port, Properties props,
+            String prefix, boolean useSSL, boolean useEngine) throws IOException {
+        if (useEngine)
+            return NioSocketFetcher.getConnection(host, port, props, prefix, useSSL);
         if (logger.isLoggable(Level.FINER))
             logger.finer("getSocket" + ", host " + host + ", port " + port +
                     ", prefix " + prefix + ", useSSL " + useSSL);
@@ -186,6 +224,7 @@ public class SocketFetcher {
         boolean fb = PropUtil.getBooleanProperty(props,
                 prefix + ".socketFactory.fallback", true);
         SocketFactory transportFactory = getTransportSocketFactory(props, prefix);
+        TransportSocketResources resources = null;
         boolean transportAttempted = false;
 
         int sfPort = -1;
@@ -230,6 +269,7 @@ public class SocketFetcher {
 
             // if we now have a socket factory, use it
             if (sf != null || transportFactory != null) {
+                resources = new TransportSocketResources();
                 if (sf != null)
                     sfPort = PropUtil.getIntProperty(props,
                             prefix + sfPortName, -1);
@@ -241,11 +281,11 @@ public class SocketFetcher {
                     transportAttempted = true;
                     socket = createSocketWithTransportFactory(localaddr, localport,
                             host, sfPort, cto, to, props, prefix, sf, useSSL,
-                            transportFactory);
+                            transportFactory, resources);
                 } else {
                     socket = createSocket(localaddr, localport,
                             host, sfPort, cto, to, props, prefix, sf, useSSL,
-                            null);
+                            resources);
                 }
             }
         } catch (SocketTimeoutException sex) {
@@ -266,23 +306,19 @@ public class SocketFetcher {
         }
 
         if (socket == null) {
+            resources = new TransportSocketResources();
             if (transportFactory != null)
                 socket = createSocketWithTransportFactory(localaddr, localport,
                         host, port, cto, to, props, prefix, null, useSSL,
-                        transportFactory);
+                        transportFactory, resources);
             else
                 socket = createSocket(localaddr, localport,
-                        host, port, cto, to, props, prefix, null, useSSL, null);
-
-        } else {
-            if (to >= 0 && transportFactory == null) {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest("set socket read timeout " + to);
-                socket.setSoTimeout(to);
-            }
+                        host, port, cto, to, props, prefix, null, useSSL, resources);
+        } else if (to >= 0 && transportFactory == null) {
+            resources.restoreReadTimeout(socket, to);
         }
 
-        return socket;
+        return new Connection(socket, resources.tunnelPort);
     }
 
     /**
@@ -300,9 +336,7 @@ public class SocketFetcher {
     public static Socket getSocket(String host, int port, Properties props,
                                    String prefix, boolean useSSL,
                                    boolean useEngine) throws IOException {
-        if (useEngine)
-            return NioSocketFetcher.getSocket(host, port, props, prefix, useSSL);
-        return getSocket(host, port, props, prefix, useSSL);
+        return getConnection(host, port, props, prefix, useSSL, useEngine).getSocket();
     }
 
     public static Socket getSocket(String host, int port, Properties props,
@@ -323,7 +357,7 @@ public class SocketFetcher {
                                        SocketFactory sf, boolean useSSL,
                                        TransportSocketResources transportResources)
             throws IOException {
-        Socket socket = transportResources == null ? null : transportResources.physical;
+        Socket socket = transportResources.physical;
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest("create socket: prefix " + prefix +
@@ -359,7 +393,7 @@ public class SocketFetcher {
                     logger.finer("web proxy user " + proxyUser + ", password " +
                             (proxyPassword == null ? "<null>" : "<non-null>"));
             }
-        } else if (transportResources == null && (socksHost =
+        } else if (socket == null && (socksHost =
                 props.getProperty(prefix + ".socks.host", null)) != null) {
             int i = socksHost.indexOf(':');
             if (i >= 0) {
@@ -391,6 +425,7 @@ public class SocketFetcher {
             } else
                 socket = new Socket();
         }
+        transportResources.physical = socket;
         if (to >= 0) {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest("set socket read timeout " + to);
@@ -406,17 +441,17 @@ public class SocketFetcher {
             socket = executorService == null ?
                     new WriteTimeoutSocket(socket, writeTimeout) :
                     new WriteTimeoutSocket(socket, writeTimeout, executorService);
-            if (transportResources != null)
-                transportResources.writeTimeout = socket;
+            transportResources.writeTimeout = socket;
         }
         if (localaddr != null)
             socket.bind(new InetSocketAddress(localaddr, localport));
         try {
             logger.finest("connecting...");
-            if (proxyHost != null)
+            if (proxyHost != null) {
                 proxyConnect(socket, proxyHost, proxyPort,
                         proxyUser, proxyPassword, host, port, cto);
-            else if (cto >= 0)
+                transportResources.tunnelPort = port;
+            } else if (cto >= 0)
                 socket.connect(new InetSocketAddress(host, port), cto);
             else
                 socket.connect(new InetSocketAddress(host, port));
@@ -458,8 +493,7 @@ public class SocketFetcher {
             else
                 ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();
             socket = ssf.createSocket(socket, host, port, true);
-            if (transportResources != null)
-                transportResources.layered = socket;
+            transportResources.layered = socket;
             sf = ssf;
         }
 
@@ -521,8 +555,7 @@ public class SocketFetcher {
     private static Socket createSocketWithTransportFactory(InetAddress localaddr,
             int localport, String host, int port, int cto, int to,
             Properties props, String prefix, SocketFactory sf, boolean useSSL,
-            SocketFactory transportFactory) throws IOException {
-        TransportSocketResources resources = new TransportSocketResources();
+            SocketFactory transportFactory, TransportSocketResources resources) throws IOException {
         try {
             Socket transportSocket = transportFactory.createSocket();
             resources.physical = transportSocket;
@@ -544,13 +577,26 @@ public class SocketFetcher {
         }
     }
 
-    /** Retain layers whose own resources must retire even after the TCP socket closes. */
-    private static final class TransportSocketResources {
-        private Socket physical;
-        private Socket writeTimeout;
-        private Socket layered;
+    /** Layers and HTTP tunnel destination belonging to one connection attempt. */
+    static final class TransportSocketResources {
+        Socket physical;
+        Socket writeTimeout;
+        Socket layered;
+        int tunnelPort = -1;
 
-        private void closeAfterFailure(Throwable failure) {
+        // Run outside the factory fallback boundary once the connection is established.
+        void restoreReadTimeout(Socket socket, int timeout) throws IOException {
+            try {
+                if (logger.isLoggable(Level.FINEST))
+                    logger.finest("set socket read timeout " + timeout);
+                socket.setSoTimeout(timeout);
+            } catch (IOException | RuntimeException | Error failure) {
+                closeAfterFailure(failure);
+                throw failure;
+            }
+        }
+
+        void closeAfterFailure(Throwable failure) {
             // This closes the plain transport and retires an internally owned
             // timer, without shutting down a caller-supplied scheduler.
             close(writeTimeout, false, failure);
@@ -667,9 +713,23 @@ public class SocketFetcher {
      */
     public static Socket startTLS(Socket socket, String host, Properties props,
                                   String prefix) throws IOException {
+        return startTLS(socket, host, socket.getPort(), props, prefix);
+    }
+
+    /**
+     * Start TLS using the destination of the connection, including through a proxy.
+     * @param socket connected socket
+     * @param host destination host
+     * @param port destination port for a plain socket (a duplex socket retains its own)
+     * @param props connection properties
+     * @param prefix property prefix
+     * @return the TLS socket
+     * @exception IOException for TLS setup failure
+     */
+    public static Socket startTLS(Socket socket, String host, int port, Properties props,
+                                  String prefix) throws IOException {
         if (socket instanceof DuplexSocket)
             return NioSocketFetcher.startTLS(socket, host, props, prefix);
-        int port = socket.getPort();
         if (logger.isLoggable(Level.FINER))
             logger.finer("startTLS host " + host + ", port " + port);
 

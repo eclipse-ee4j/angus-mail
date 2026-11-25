@@ -72,8 +72,10 @@
     The opt-in path uses channel I/O and SSLEngine, with no SMTP reader
     thread.  Disabling pipelining keeps the existing socket implementation.
     Socket factories without a channel, SOCKS sockets and caller-supplied
-    sockets retain sequential sending.  Custom TLS factories also remain
-    sequential unless mail.smtp.ssl.engineFactory (or the smtps equivalent)
+    sockets retain sequential sending. A factory that wraps a channel's
+    socket retains sequential sending so its stream overrides are honored.
+    Custom TLS factories also remain sequential unless
+    mail.smtp.ssl.engineFactory (or the smtps equivalent)
     supplies an engine with the corresponding key and trust managers.
     This hook is a BiFunction<String, Integer, SSLEngine> instance, supplied
     with Properties.put, and receives the destination host and port.

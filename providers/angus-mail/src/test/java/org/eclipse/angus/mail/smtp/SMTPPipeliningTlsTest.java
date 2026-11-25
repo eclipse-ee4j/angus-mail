@@ -29,6 +29,7 @@ import org.junit.Test;
 import javax.net.SocketFactory;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -39,6 +40,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.Properties;
@@ -50,6 +52,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -126,7 +129,7 @@ public class SMTPPipeliningTlsTest {
         boolean pipelining = Boolean.parseBoolean(System.getProperty(
                 "angus.pipelining.tls.enabled", "true"));
         int sends = pressure ? Integer.getInteger("angus.pipelining.tls.sends", 3) : 3;
-        try (Peer peer = new Peer(mode, stress, pressure)) {
+        try (Peer peer = new Peer(mode, stress, pressure, pipelining)) {
             String protocol = mode == 2 ? "smtps" : "smtp";
             String prefix = "mail." + protocol;
             Properties props = new Properties();
@@ -139,8 +142,13 @@ public class SMTPPipeliningTlsTest {
             props.setProperty(prefix + ".ssl.checkserveridentity", "true");
             props.setProperty(prefix + ".ssl.protocols", "TLSv1.3");
             props.setProperty(prefix + ".quitwait", "false");
-            props.put(prefix + ".socketFactory", peer.clientFactory);
+            props.put(prefix + ".socketFactory.transport", peer.clientFactory);
             props.put(prefix + ".ssl.socketFactory", peer.tlsFactory);
+            AtomicInteger engines = new AtomicInteger();
+            props.put(prefix + ".ssl.engineFactory", (BiFunction<String, Integer, SSLEngine>) (host, port) -> {
+                engines.incrementAndGet();
+                return peer.context.createSSLEngine(host, port);
+            });
             if (mode == 1)
                 props.setProperty(prefix + ".starttls.required", "true");
             if (stress)
@@ -157,7 +165,8 @@ public class SMTPPipeliningTlsTest {
             SMTPTransport transport = (SMTPTransport) session.getTransport(protocol);
             transport.connect("localhost", peer.listener.getLocalPort(), null, null);
             assertTrue(transport.supportsExtension("PIPELINING"));
-            if (mode != 0 && writeTimeout > 0)
+            assertEquals(pipelining && mode != 0 ? 1 : 0, engines.get());
+            if (!pipelining && mode != 0 && writeTimeout > 0)
                 assertTrue(peer.clientFactory.timeoutBelowTls.get());
             if (pressure) {
                 Socket client = peer.clientFactory.raw.get();
@@ -265,7 +274,7 @@ public class SMTPPipeliningTlsTest {
         final int recipientCount;
         final boolean longCommands;
 
-        Peer(int mode, boolean stress, boolean pressure) throws Exception {
+        Peer(int mode, boolean stress, boolean pressure, boolean pipelining) throws Exception {
             this.pressure = pressure;
             mailReplyBytes = pressure ? Integer.getInteger(
                     "angus.pipelining.tls.mailReplyBytes", 65536) : 65536;
@@ -295,7 +304,7 @@ public class SMTPPipeliningTlsTest {
             executor = Executors.newFixedThreadPool(2);
             worker = executor.submit(() -> {
                 try {
-                    serve(mode, stress);
+                    serve(mode, stress, pipelining);
                 } catch (IOException ex) {
                     if (!stress)
                         throw ex;
@@ -304,7 +313,7 @@ public class SMTPPipeliningTlsTest {
             });
         }
 
-        private void serve(int mode, boolean stress) throws Exception {
+        private void serve(int mode, boolean stress, boolean pipelining) throws Exception {
             Socket socket = listener.accept();
             rawServer.set(socket);
             configure(socket);
@@ -339,6 +348,7 @@ public class SMTPPipeliningTlsTest {
                 return;
             }
             String line;
+            boolean mailReplyPending = false;
             while ((line = lines.readLine()) != null) {
                 if (pressure) {
                     assertTrue("SMTP command exceeds 512 octets", line.length() + 2 <= 512);
@@ -355,8 +365,16 @@ public class SMTPPipeliningTlsTest {
                     }
                     // Legal multiline reply large enough to cross the
                     // diagnostic key-update threshold several times.
-                    multiline(output, mailReplyBytes);
+                    // Withhold the MAIL reply until a RCPT arrives on the wire.
+                    if (pipelining)
+                        mailReplyPending = true;
+                    else
+                        multiline(output, mailReplyBytes);
                 } else if (line.startsWith("RCPT ")) {
+                    if (mailReplyPending) {
+                        multiline(output, mailReplyBytes);
+                        mailReplyPending = false;
+                    }
                     if (pressure)
                         assertEquals("RCPT TO:<" + envelopeAddress(
                                 recipients.get() % recipientCount + 1, longCommands) +
@@ -466,7 +484,7 @@ public class SMTPPipeliningTlsTest {
 
         @Override
         public Socket createSocket() throws IOException {
-            Socket socket = new Socket();
+            Socket socket = SocketChannel.open().socket();
             configure(socket);
             raw.set(socket);
             return socket;

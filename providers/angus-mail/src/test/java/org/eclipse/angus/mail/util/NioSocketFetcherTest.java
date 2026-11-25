@@ -30,6 +30,7 @@ import java.net.ProxySelector;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
@@ -86,6 +87,33 @@ public class NioSocketFetcherTest {
             }
         } finally {
             ProxySelector.setDefault(original);
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testProxyResponseTimeoutClosesConnection() throws Exception {
+        InetAddress loopback = InetAddress.getByName("127.0.0.1");
+        try (ServerSocket proxy = new ServerSocket(0, 1, loopback)) {
+            proxy.setSoTimeout(3000);
+            Properties props = new Properties();
+            props.setProperty("mail.smtp.proxy.host", loopback.getHostAddress());
+            props.setProperty("mail.smtp.proxy.port", Integer.toString(proxy.getLocalPort()));
+            props.setProperty("mail.smtp.timeout", "250");
+            props.setProperty("mail.smtp.writetimeout", "3000");
+            SocketConnectException failure = assertThrows(SocketConnectException.class,
+                    () -> NioSocketFetcher.getSocket("localhost", 587, props, "mail.smtp", false));
+            assertTrue(failure.getCause() instanceof SocketTimeoutException);
+            try (Socket client = proxy.accept()) {
+                client.setSoTimeout(2000);
+                LineInputStream input = new LineInputStream(client.getInputStream());
+                assertEquals("CONNECT localhost:587 HTTP/1.1", input.readLine());
+                String header;
+                do {
+                    header = input.readLine();
+                } while (header != null && !header.isEmpty());
+                assertEquals("", header);
+                assertEquals(-1, input.read());
+            }
         }
     }
 

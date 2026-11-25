@@ -491,6 +491,32 @@ public class DuplexSocketCompatibilityTest {
     }
 
     @Test(timeout = 10000)
+    public void testHandshakeTimeoutWhileDelegatedTaskOwnsEngine() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        try (Connection connection = new Connection()) {
+            TaskEngine engine = new TaskEngine() {
+                @Override
+                public SSLEngineResult.HandshakeStatus getHandshakeStatus() {
+                    assertTrue("Queried the engine while its task was outstanding", task != null);
+                    return super.getHandshakeStatus();
+                }
+            };
+            engine.task = () -> {
+                try {
+                    release.await();
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+            };
+            connection.socket.setSoTimeout(200);
+            assertThrows(SocketTimeoutException.class, () -> connection.socket.startTLS(engine));
+            assertTrue(connection.socket.isClosed());
+        } finally {
+            release.countDown();
+        }
+    }
+
+    @Test(timeout = 10000)
     public void testAbortedDelegatedTaskFailureReachesUncaughtHandler() throws Exception {
         try (Connection connection = new Connection()) {
             TaskEngine engine = new TaskEngine();
@@ -889,7 +915,7 @@ public class DuplexSocketCompatibilityTest {
         public boolean getEnableSessionCreation() { return delegate.getEnableSessionCreation(); }
     }
 
-    private static final class TaskEngine extends ClosingEngine {
+    private static class TaskEngine extends ClosingEngine {
         Runnable task;
 
         TaskEngine() throws Exception {

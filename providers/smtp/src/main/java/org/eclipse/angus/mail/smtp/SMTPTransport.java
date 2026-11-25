@@ -46,7 +46,6 @@ import org.eclipse.angus.mail.util.SocketFetcher;
 import org.eclipse.angus.mail.util.TraceInputStream;
 import org.eclipse.angus.mail.util.TraceOutputStream;
 import org.eclipse.angus.mail.util.DuplexSocket;
-import org.eclipse.angus.mail.util.NioSocketFetcher;
 
 import javax.net.ssl.SSLSocket;
 import java.io.BufferedInputStream;
@@ -111,6 +110,7 @@ public class SMTPTransport extends Transport {
     private int defaultPort = 25;    // default SMTP port
     private boolean isSSL = false;    // use SSL?
     private String host;        // host we're connected to
+    private int serverPort;     // destination port for STARTTLS, including through CONNECT
 
     // Following fields valid only during the sendMessage method.
     private MimeMessage message;    // Message to be sent
@@ -2057,7 +2057,7 @@ public class SMTPTransport extends Transport {
             } finally {
                 finishEnvelopeExchange(state, complete);
             }
-            checkEnvelopeResult(state, complete);
+            checkEnvelopeResult(state);
         }
 
         /**
@@ -2096,7 +2096,7 @@ public class SMTPTransport extends Transport {
         /**
          * Publishes recipient results, retaining the first failure across RSET.
          */
-        private void checkEnvelopeResult(EnvelopeState state, boolean complete)
+        private void checkEnvelopeResult(EnvelopeState state)
                 throws MessagingException {
             if (Thread.currentThread().isInterrupted() && state.failure == null) {
                 Exception cause = new IOException("Sending thread interrupted");
@@ -2112,12 +2112,8 @@ public class SMTPTransport extends Transport {
                 }
             }
             if (state.failure != null) {
-                if (state.recipients != null) {
+                if (state.recipients != null)
                     state.recipients.notSent();
-                } else if (!complete) {
-                    validSentAddr = null;
-                    validUnsentAddr = addresses;
-                }
                 resetPipelinedEnvelope(state.failure);
                 lastReturnCode = state.code;
                 lastServerResponse = state.response;
@@ -2179,7 +2175,7 @@ public class SMTPTransport extends Transport {
                     if (code != 250) {
                         SMTPSendFailedException ex = new SMTPSendFailedException(
                                 command.command, code, lastServerResponse, null,
-                                null, addresses, null);
+                                null, validUnsentAddr.clone(), null);
                         addSenderFailure(ex, state.from, command.command);
                         state.fail(ex);
                     } else {
@@ -3020,12 +3016,8 @@ public class SMTPTransport extends Transport {
         extMap = null;
         // it worked, now switch the socket into TLS mode
         try {
-            if (serverSocket instanceof DuplexSocket)
-                serverSocket = NioSocketFetcher.startTLS(serverSocket, host,
-                        session.getProperties(), "mail." + name);
-            else
-                serverSocket = SocketFetcher.startTLS(serverSocket, host,
-                        session.getProperties(), "mail." + name);
+            serverSocket = SocketFetcher.startTLS(serverSocket, host, serverPort,
+                    session.getProperties(), "mail." + name);
             initStreams();
         } catch (IOException ioex) {
             closeConnection();
@@ -3049,17 +3041,11 @@ public class SMTPTransport extends Transport {
         try {
             Properties props = session.getProperties();
 
-            if (pipelining && isPipeliningCompatible())
-                serverSocket = NioSocketFetcher.getSocket(host, port,
-                        props, "mail." + name, isSSL);
-            else
-                serverSocket = SocketFetcher.getSocket(host, port,
-                        props, "mail." + name, isSSL);
-
-            // socket factory may've chosen a different port,
-            // update it for the debug messages that follow
-            port = serverSocket.getPort();
-            // save host name for startTLS
+            SocketFetcher.Connection connection = SocketFetcher.getConnection(host, port,
+                    props, "mail." + name, isSSL, pipelining && isPipeliningCompatible());
+            serverSocket = connection.getSocket();
+            port = connection.getPort();
+            serverPort = port;
             this.host = host;
 
             initStreams();
@@ -3119,6 +3105,7 @@ public class SMTPTransport extends Transport {
         host = "UNKNOWN";
         try {
             port = serverSocket.getPort();
+            serverPort = port;
             host = serverSocket.getInetAddress().getHostName();
             if (logger.isLoggable(Level.FINE))
                 logger.fine("starting protocol to host \"" +

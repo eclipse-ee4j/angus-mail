@@ -165,7 +165,7 @@ public final class DuplexSocket extends Socket {
 
     /** The logical TLS destination, rather than the physical proxy endpoint. */
     int getPeerPort() {
-        return peerPort > 0 ? peerPort : socket.getPort();
+        return peerPort >= 0 ? peerPort : socket.getPort();
     }
 
     /**
@@ -232,9 +232,9 @@ public final class DuplexSocket extends Socket {
             });
             engine.beginHandshake();
             long deadline = deadline(socket.getSoTimeout());
-            while (engine.getHandshakeStatus() !=
-                    SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING ||
-                    networkOutput.position() != 0 || delegated != null) {
+            // A delegated task may hold the engine lock while checking certificates.
+            while (delegated != null || networkOutput.position() != 0 ||
+                    engine.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
                 pump(deadline);
                 if (eof || tlsClosed)
                     throw new EOFException("Peer closed during TLS handshake");
