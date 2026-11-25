@@ -242,6 +242,46 @@ public final class SocketFetcherTest {
     }
 
     /**
+     * A CR or LF in the target host must not reach the proxy, otherwise it
+     * splits the plaintext CONNECT request into additional requests on the
+     * proxy connection (HTTP request smuggling).
+     */
+    @Test
+    public void testProxyConnectRejectsCrlfInTargetHost() throws Exception {
+        TestServer server = null;
+        try {
+            ProxyHandler handler = new ProxyHandler(true);
+            server = new TestServer(handler);
+            server.start();
+
+            Properties properties = new Properties();
+            properties.setProperty("mail.test.proxy.host", "localhost");
+            properties.setProperty("mail.test.proxy.port",
+                    String.valueOf(server.getPort()));
+
+            // a host as an application might forward it from a user-supplied
+            // value, carrying a smuggled request after the CRLF
+            final String target =
+                    "mail.example.com\r\nGET http://evil/ HTTP/1.1";
+            IOException ex = assertThrows(IOException.class,
+                    () -> SocketFetcher.getSocket(target, 993, properties,
+                            "mail.test", false).close());
+
+            boolean reported = false;
+            for (Throwable t = ex; t != null && !reported; t = t.getCause())
+                reported = t.getMessage() != null &&
+                        t.getMessage().contains("proxy CONNECT host");
+            assertTrue("unexpected exception: " + ex, reported);
+            assertFalse("smuggled request reached the proxy",
+                    handler.getConnected());
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
+    }
+
+    /**
      * HTTP response and IMAP response together.
      * This test verifies the IMAP response will not be read when reading the proxy response.
      */
