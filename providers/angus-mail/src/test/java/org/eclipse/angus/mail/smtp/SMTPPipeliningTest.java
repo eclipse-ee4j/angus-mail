@@ -23,6 +23,7 @@ import jakarta.mail.Session;
 import jakarta.mail.URLName;
 import jakarta.mail.event.TransportAdapter;
 import jakarta.mail.event.TransportEvent;
+import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.eclipse.angus.mail.test.TestServer;
@@ -62,6 +63,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -407,6 +409,66 @@ public class SMTPPipeliningTest {
                 assertTrue(exchange.transport.isConnected());
                 exchange.assertNoReader();
             }
+        }
+    }
+
+    @Test(timeout = 20000)
+    public void testMalformedSenderLeavesConnectionReusable() throws Exception {
+        String sender = "\"unfinished@example.com";
+        for (boolean pipelining : new boolean[]{false, true}) {
+            int[] groups = pipelining ? new int[]{2} : new int[]{1, 1};
+            try (Exchange exchange = new Exchange(1, groups)) {
+                exchange.properties.setProperty("mail.smtp.pipelining", String.valueOf(pipelining));
+                exchange.properties.setProperty("mail.smtp.from", sender);
+                exchange.connect(null);
+
+                AddressException failure = assertThrows(AddressException.class, exchange::send);
+                assertEquals(sender, failure.getRef());
+                assertTrue(exchange.handler.groups.isEmpty());
+
+                exchange.properties.remove("mail.smtp.from");
+                exchange.send();
+                exchange.assertContent();
+            }
+        }
+    }
+
+    @Test(timeout = 20000)
+    public void testMalformedRecipientKeepsRecipientResultsInOrder() throws Exception {
+        for (boolean pipelining : new boolean[]{false, true}) {
+            checkMalformedRecipient(pipelining, false);
+            checkMalformedRecipient(pipelining, true);
+        }
+    }
+
+    private void checkMalformedRecipient(boolean pipelining, boolean partial) throws Exception {
+        int[] groups = pipelining ? new int[]{2, 1} : new int[]{1, 1, 1};
+        try (Exchange exchange = new Exchange(2, groups)) {
+            exchange.properties.setProperty("mail.smtp.pipelining", String.valueOf(pipelining));
+            exchange.properties.setProperty("mail.smtp.sendpartial", String.valueOf(partial));
+            exchange.handler.responsePlan.set(new String[]{"250 sender", "550 rejected", "250 accepted"});
+            exchange.connect(null);
+            InternetAddress malformed = new InternetAddress();
+            malformed.setAddress("\"unfinished@example.com");
+            Address rejected = exchange.addresses[0];
+            Address accepted = exchange.addresses[1];
+            Address[] recipients = {rejected, malformed, accepted};
+
+            SendFailedException failure = assertThrows(SendFailedException.class,
+                    () -> exchange.transport.sendMessage(exchange.message, recipients));
+            assertArrayEquals(new Address[]{rejected, malformed}, failure.getInvalidAddresses());
+            assertArrayEquals(partial ? new Address[0] : new Address[]{accepted},
+                    failure.getValidUnsentAddresses());
+            assertArrayEquals(partial ? new Address[]{accepted} : null,
+                    failure.getValidSentAddresses());
+            Exception serverRejection = failure.getNextException();
+            assertTrue(serverRejection instanceof SMTPAddressFailedException);
+            Exception localRejection = ((SMTPAddressFailedException) serverRejection).getNextException();
+            assertTrue(localRejection instanceof AddressException);
+            assertEquals(malformed.getAddress(), ((AddressException) localRejection).getRef());
+            assertEquals(2, exchange.handler.commands.stream().filter(s -> s.startsWith("RCPT ")).count());
+            assertNull(exchange.handler.failure.get());
+            assertEquals(partial, exchange.handler.message.get() != null);
         }
     }
 

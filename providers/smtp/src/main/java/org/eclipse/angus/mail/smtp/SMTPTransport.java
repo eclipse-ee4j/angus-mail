@@ -1928,8 +1928,12 @@ public class SMTPTransport extends Transport {
             return from;
         }
 
-        private String mailCommand(String from) {
-            String cmd = "MAIL FROM:" + normalizeAddress(from);
+        private String mailCommand(String from) throws AddressException {
+            String sender = normalizeAddress(from);
+            if (!isEnvelopeAddress(sender))
+                throw new AddressException(
+                        "Illegal character in SMTP envelope sender", from);
+            String cmd = "MAIL FROM:" + sender;
 
             if (allowutf8 && supportsExtension("SMTPUTF8"))
                 cmd += " SMTPUTF8";
@@ -2016,8 +2020,8 @@ public class SMTPTransport extends Transport {
             return notify;
         }
 
-        private String recipientCommand(InternetAddress address, String notify) {
-            String cmd = "RCPT TO:" + normalizeAddress(address.getAddress());
+        private String recipientCommand(String recipient, String notify) {
+            String cmd = "RCPT TO:" + recipient;
             if (notify != null)
                 cmd += " NOTIFY=" + notify;
             return cmd;
@@ -2025,8 +2029,9 @@ public class SMTPTransport extends Transport {
 
         void send() throws MessagingException {
             String from = envelopeFrom();
+            String senderCommand = mailCommand(from);
             String notify = recipientNotify();
-            EnvelopeState state = new EnvelopeState(from);
+            EnvelopeState state = new EnvelopeState(from, senderCommand);
             boolean complete = false;
             pipelinedEnvelope = this;
             exchange = new SMTPEnvelopeExchange(
@@ -2294,8 +2299,13 @@ public class SMTPTransport extends Transport {
                 if (Thread.currentThread().isInterrupted())
                     throw new MessagingException("SMTP envelope interrupted",
                             new IOException("Sending thread interrupted"));
-                String cmd = address == null ? mailCommand(state.from) :
-                        recipientCommand(address, notify);
+                String cmd = state.senderCommand;
+                if (address != null) {
+                    String recipient = normalizeAddress(address.getAddress());
+                    if (!isEnvelopeAddress(recipient))
+                        return rejectRecipient(address);
+                    cmd = recipientCommand(recipient, notify);
+                }
                 EnvelopeCommand command = captureEnvelopeCommand(cmd, address);
                 long size = (long) command.bytes.length + CRLF.length;
                 if (!commands.isEmpty() &&
@@ -2311,6 +2321,16 @@ public class SMTPTransport extends Transport {
                 return state.failure == null;
             }
 
+            private boolean rejectRecipient(InternetAddress address)
+                    throws MessagingException {
+                // Process earlier replies before recording a local rejection.
+                flush();
+                if (state.failure != null)
+                    return false;
+                state.recipients.rejectInvalid(address);
+                return true;
+            }
+
             private void flush() throws MessagingException {
                 if (commands.isEmpty())
                     return;
@@ -2322,13 +2342,15 @@ public class SMTPTransport extends Transport {
 
         private final class EnvelopeState {
             final String from;
+            final String senderCommand;
             RecipientState recipients;
             MessagingException failure;
             int code;
             String response;
 
-            EnvelopeState(String from) {
+            EnvelopeState(String from, String senderCommand) {
                 this.from = from;
+                this.senderCommand = senderCommand;
             }
 
             void fail(MessagingException ex) {
@@ -2349,7 +2371,7 @@ public class SMTPTransport extends Transport {
             private boolean sendPartial;
             private boolean sendFailed;
             private MessagingException mex;
-            private int replies;
+            private int processed;
 
             RecipientState() {
                 validSentAddr = validUnsentAddr = invalidAddr = null;
@@ -2361,6 +2383,19 @@ public class SMTPTransport extends Transport {
                             "mail." + name + ".sendpartial", false);
                 if (sendPartial)
                     logger.fine("sendPartial set");
+            }
+
+            void rejectInvalid(InternetAddress address) {
+                if (!sendPartial)
+                    sendFailed = true;
+                invalid.add(address);
+                AddressException ex = new AddressException(
+                        "Illegal character in SMTP envelope recipient", address.getAddress());
+                if (mex == null)
+                    mex = ex;
+                else
+                    mex.setNextException(ex);
+                processed++;
             }
 
             void accept(InternetAddress ia, String cmd, int retCode)
@@ -2469,7 +2504,7 @@ public class SMTPTransport extends Transport {
                             mex.setNextException(sfex);
                         break;
                 }
-                replies++;
+                processed++;
             }
 
             /**
@@ -2489,7 +2524,7 @@ public class SMTPTransport extends Transport {
                 invalidAddr = invalid.toArray(new Address[0]);
                 List<Address> unsent = new ArrayList<>(valid);
                 unsent.addAll(validUnsent);
-                for (int i = replies; i < addresses.length; i++)
+                for (int i = processed; i < addresses.length; i++)
                     unsent.add(addresses[i]);
                 validUnsentAddr = unsent.toArray(new Address[0]);
             }
