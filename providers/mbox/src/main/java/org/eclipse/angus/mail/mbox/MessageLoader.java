@@ -112,7 +112,12 @@ final class MessageLoader {
             }
         } finally {
             try {
-                fc.close();    // also closes fis
+                fc.close();
+            } catch (IOException ex) {
+                // ignore
+            }
+            try {
+                fis.close();
             } catch (IOException ex) {
                 // ignore
             }
