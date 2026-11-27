@@ -133,7 +133,9 @@ public class SocketFetcher {
      * SocketFactory is returned. <p>
      *
      * If the socketFactory.fallback property is set to false, don't
-     * fall back to using regular sockets if the socket factory fails. <p>
+     * fall back to using regular sockets if the socket factory fails.
+     * A failure of an SSLSocketFactory is never retried using a plain
+     * socket, since that would silently disable SSL. <p>
      *
      * The socketFactory.port specifies a port to use when connecting
      * through the socket factory.  If unset, the port argument will be
@@ -187,6 +189,7 @@ public class SocketFetcher {
                 prefix + ".socketFactory.fallback", true);
         SocketFactory transportFactory = getTransportSocketFactory(props, prefix);
         boolean transportAttempted = false;
+        boolean sslAttempted = false;
 
         int sfPort = -1;
         String sfErr = "unknown socket factory";
@@ -233,6 +236,8 @@ public class SocketFetcher {
                 if (sf != null)
                     sfPort = PropUtil.getIntProperty(props,
                             prefix + sfPortName, -1);
+                // the fallback socket would not use SSL
+                sslAttempted = !useSSL && sf instanceof SSLSocketFactory;
 
                 // if port passed in via property isn't valid, use param
                 if (sfPort == -1)
@@ -251,7 +256,7 @@ public class SocketFetcher {
         } catch (SocketTimeoutException sex) {
             throw sex;
         } catch (Exception ex) {
-            if (!fb || transportAttempted) {
+            if (!fb || transportAttempted || sslAttempted) {
                 if (ex instanceof InvocationTargetException) {
                     Throwable t =
                             ((InvocationTargetException) ex).getTargetException();

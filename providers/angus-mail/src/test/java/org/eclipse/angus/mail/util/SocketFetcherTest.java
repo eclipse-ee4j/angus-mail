@@ -349,6 +349,49 @@ public final class SocketFetcherTest {
                 "javax.net.ssl.SSLSocketFactory");
     }
 
+    /**
+     * Test that a failure of an SSL socket factory class is not retried
+     * using a plain socket, which would send the login in the clear.
+     */
+    @Test
+    public void testSSLSocketFactoryClassNoPlainFallback() throws Exception {
+        assertThrows(MessagingException.class, () -> connectPlainServer(
+                "javax.net.ssl.SSLSocketFactory"));
+    }
+
+    /**
+     * Test that a socket factory class that can't be loaded still falls
+     * back to a plain socket.
+     */
+    @Test
+    public void testMissingSocketFactoryClassFallback() throws Exception {
+        connectPlainServer("org.eclipse.angus.mail.util.NoSuchSocketFactory");
+    }
+
+    private void connectPlainServer(String factoryClass) throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.imap.host", "localhost");
+        properties.setProperty("mail.imap.socketFactory.class", factoryClass);
+
+        TestServer server = null;
+        try {
+            server = new TestServer(new IMAPHandler(), false);
+            server.start();
+
+            properties.setProperty("mail.imap.port",
+                    Integer.toString(server.getPort()));
+            final Session session = Session.getInstance(properties);
+
+            try (Store store = session.getStore("imap")) {
+                store.connect("test", "test");
+            }
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
+    }
+
     private void connectWithSSLTrust(String factoryProperty, Object factory)
             throws Exception {
         final Properties properties = new Properties();
