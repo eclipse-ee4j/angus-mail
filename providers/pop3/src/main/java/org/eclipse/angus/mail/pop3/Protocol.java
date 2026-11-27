@@ -669,7 +669,7 @@ class Protocol {
         String getInitialResponse(String host, String authzid, String user,
                                   String passwd) throws IOException {
             ntlm = new Ntlm(props.getProperty(prefix + ".auth.ntlm.domain"),
-                    getLocalHost(), user, passwd, logger);
+                    getLocalHost(), user, passwd, logger, props);
 
             int flags = PropUtil.getIntProperty(
                     props, prefix + ".auth.ntlm.flags", 0);

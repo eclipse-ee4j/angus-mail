@@ -76,6 +76,101 @@ public final class SMTPAuthDebugTest {
     }
 
     /**
+     * Test that the DIGEST-MD5 response isn't logged by the
+     * authenticator when the protocol trace is suppressed.
+     */
+    @Test
+    public void testNoDigestMD5Response() throws Exception {
+        final Properties properties = new Properties();
+        assertFalse("response in debug output",
+                saslOutput(properties).contains("response="));
+    }
+
+    @Test
+    public void testNoSaslResponse() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.smtp.sasl.enable", "true");
+        properties.setProperty("mail.smtp.sasl.mechanisms", "DIGEST-MD5");
+        assertFalse("response in debug output",
+                saslOutput(properties).contains("response="));
+    }
+
+    /**
+     * Test that the DIGEST-MD5 response *is* logged when the protocol
+     * trace isn't suppressed, or when the password is allowed in the
+     * non-protocol debug output.
+     */
+    @Test
+    public void testDigestMD5ResponseWithDebugAuth() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.debug.auth", "true");
+        assertTrue("response not in debug output",
+                saslOutput(properties).contains("response="));
+    }
+
+    @Test
+    public void testDigestMD5ResponseWithDebugPassword() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.debug.auth.password", "true");
+        assertTrue("response not in debug output",
+                saslOutput(properties).contains("response="));
+    }
+
+    @Test
+    public void testSaslResponseWithDebugPassword() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.smtp.sasl.enable", "true");
+        properties.setProperty("mail.smtp.sasl.mechanisms", "DIGEST-MD5");
+        properties.setProperty("mail.debug.auth.password", "true");
+        assertTrue("response not in debug output",
+                saslOutput(properties).contains("response="));
+    }
+
+    /**
+     * Test that the user name is suppressed in the DIGEST-MD5 debug
+     * output when mail.debug.auth.username is false.
+     */
+    @Test
+    public void testNoDigestMD5Username() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.debug.auth.username", "false");
+        assertFalse("user name in debug output",
+                saslOutput(properties).contains("username=\"test\""));
+    }
+
+    /**
+     * Connect to a DIGEST-MD5 server and return all of the debug output.
+     */
+    private static String saslOutput(Properties properties) throws Exception {
+        TestServer server = null;
+        try {
+            server = new TestServer(new SMTPSaslHandler());
+            server.start();
+
+            properties.setProperty("mail.smtp.host", "localhost");
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
+            final Session session = Session.getInstance(properties);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(bos, true, "US-ASCII");
+            session.setDebugOut(ps);
+            session.setDebug(true);
+
+            final Transport t = session.getTransport("smtp");
+            try {
+                t.connect("test", "test");
+            } finally {
+                t.close();
+            }
+            ps.close();
+            return bos.toString("US-ASCII");
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
+    }
+
+    /**
      * Create a test server, connect to it, and collect the debug output.
      * Scan the debug output looking for "expect", return true if found.
      */

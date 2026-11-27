@@ -21,6 +21,7 @@
 package org.eclipse.angus.mail.auth;
 
 import org.eclipse.angus.mail.util.MailLogger;
+import org.eclipse.angus.mail.util.PropUtil;
 
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
@@ -36,6 +37,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Locale;
+import java.util.Properties;
 import java.util.Random;
 import java.util.logging.Level;
 
@@ -61,6 +63,8 @@ public class Ntlm {
 
     private Mac hmac;
     private boolean v2;    // NTLMv2 requested in the type 1 message
+    // include the type 3 message in non-protocol debug output?
+    private final boolean debugresponse;
 
     private final MailLogger logger;
 
@@ -126,6 +130,25 @@ public class Ntlm {
      */
     public Ntlm(String ntdomain, String hostname, String username,
                 String password, MailLogger logger) {
+        this(ntdomain, hostname, username, password, logger, new Properties());
+    }
+
+    /**
+     * Create an NTLM authenticator that honors the mail.debug.auth
+     * properties when writing the type 3 message to the debug output.
+     * Username may be specified as domain\\username in the Authenticator.
+     * If this notation is not used, then the domain will be taken
+     * from the ntdomain parameter.
+     *
+     * @param    ntdomain    the NT domain
+     * @param    hostname    the host name
+     * @param    username    the user name
+     * @param    password    the password
+     * @param    logger        the MailLogger
+     * @param    props        the session properties
+     */
+    public Ntlm(String ntdomain, String hostname, String username,
+                String password, MailLogger logger, Properties props) {
         int i = hostname.indexOf('.');
         if (i != -1) {
             hostname = hostname.substring(0, i);
@@ -142,6 +165,17 @@ public class Ntlm {
         this.username = username;
         this.password = password;
         this.logger = logger.getLogger(this.getClass(), "DEBUG NTLM");
+        /*
+         * The type 3 message carries the LM and NT responses, which allow
+         * an offline password guessing attack, so it's only included in the
+         * debug output if mail.debug.auth leaves the protocol trace enabled
+         * during authentication, or if mail.debug.auth.password allows the
+         * password in non-protocol debug output.
+         */
+        this.debugresponse =
+                PropUtil.getBooleanProperty(props, "mail.debug.auth", false) ||
+                        PropUtil.getBooleanProperty(props,
+                                "mail.debug.auth.password", false);
         init0();
     }
 
@@ -428,7 +462,9 @@ public class Ntlm {
             System.arraycopy(type3, 0, msg, 0, l);
 
             if (logger.isLoggable(Level.FINE))
-                logger.fine("type 3 message: " + toHex(msg));
+                logger.fine(debugresponse ?
+                        "type 3 message: " + toHex(msg) :
+                        "type 3 message length: " + msg.length);
 
             String result = new String(Base64.getEncoder().encode(msg),
                     StandardCharsets.ISO_8859_1);

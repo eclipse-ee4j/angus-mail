@@ -29,6 +29,7 @@ for the Eclipse EE4J Angus Mail project:
 253: mbox MessageLoader trusts the Content-Length header of a delivered message
 232: Derive osgi.ee from the compiled bytecode level
 241: Hostname verification gaps with Conscrypt and MailHostnameVerifier
+254: do not log SASL, DIGEST-MD5 and NTLM responses in debug output
 250: reject CR and LF in the proxy CONNECT target host
 249: IMAP APPEND can write past the literal when the message changes between passes
 248: reject envelope addresses that add ESMTP parameters to MAIL and RCPT
