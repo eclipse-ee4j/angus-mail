@@ -255,6 +255,15 @@ public class IMAPSaslAuthenticator implements SaslAuthenticator {
                 }
             }
 
+            if (r.isOK() && !sc.isComplete()) {
+                /*
+                 * The server claims success before the mechanism finished,
+                 * e.g. without the DIGEST-MD5 rspauth or the final GSSAPI
+                 * token that authenticates the server to the client.
+                 */
+                logger.fine("SASL authentication not complete despite server OK");
+                return false;
+            }
             if (sc.isComplete() /*&& res.status == SUCCESS*/) {
                 String qop = (String) sc.getNegotiatedProperty(Sasl.QOP);
                 if (qop != null && (qop.equalsIgnoreCase("auth-int") ||

@@ -285,4 +285,95 @@ public class SMTPSaslLoginTest {
             }
         }
     }
+
+    /**
+     * Test that non-SASL DIGEST-MD5 fails when the server claims success
+     * without the rspauth challenge that authenticates it to the client.
+     */
+    @Test
+    public void testIncomplete() {
+        assertAuthenticationFails(new SMTPSaslHandler(false), false);
+    }
+
+    /**
+     * Test that non-SASL DIGEST-MD5 fails when the server claims success
+     * without sending any challenge.
+     */
+    @Test
+    public void testNoChallenge() {
+        assertAuthenticationFails(new SMTPSaslHandler() {
+            @Override
+            public void auth(String line) throws IOException {
+                println("235 Authenticated");
+            }
+        }, false);
+    }
+
+    /**
+     * Test that SASL DIGEST-MD5 fails when the server claims success
+     * without the rspauth challenge that authenticates it to the client.
+     */
+    @Test
+    public void testSaslIncomplete() {
+        assertAuthenticationFails(new SMTPSaslHandler(false), true);
+    }
+
+    /**
+     * Test that SASL DIGEST-MD5 fails when the server claims success
+     * without sending any challenge.
+     */
+    @Test
+    public void testSaslNoChallenge() {
+        assertAuthenticationFails(new SMTPSaslHandler() {
+            @Override
+            public void auth(String line) throws IOException {
+                println("235 Authenticated");
+            }
+        }, true);
+    }
+
+    /**
+     * Connect to the given server and expect the DIGEST-MD5
+     * authentication to fail.
+     */
+    private void assertAuthenticationFails(SMTPHandler handler,
+                                           boolean sasl) {
+        TestServer server = null;
+        try {
+            server = new TestServer(handler);
+            server.start();
+
+            Properties properties = new Properties();
+            properties.setProperty("mail.smtp.host", "localhost");
+            properties.setProperty("mail.smtp.port", String.valueOf(server.getPort()));
+            if (sasl) {
+                properties.setProperty("mail.smtp.sasl.enable", "true");
+                properties.setProperty("mail.smtp.sasl.mechanisms", "DIGEST-MD5");
+            }
+            //properties.setProperty("mail.debug.auth", "true");
+            Session session = Session.getInstance(properties);
+            //session.setDebug(true);
+
+            Transport t = session.getTransport("smtp");
+            try {
+                t.connect("test", "test");
+                // should have failed
+                fail("incomplete authentication succeeded");
+            } catch (AuthenticationFailedException ex) {
+                // success!
+            } catch (Exception ex) {
+                fail(ex.toString());
+            } finally {
+                t.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            if (server != null) {
+                server.quit();
+                server.interrupt();
+            }
+        }
+    }
 }

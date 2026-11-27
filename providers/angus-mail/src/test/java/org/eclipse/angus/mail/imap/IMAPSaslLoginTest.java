@@ -16,6 +16,7 @@
 
 package org.eclipse.angus.mail.imap;
 
+import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
@@ -59,6 +60,49 @@ public final class IMAPSaslLoginTest {
             } catch (Exception ex) {
                 System.out.println(ex);
                 //ex.printStackTrace();
+                fail(ex.toString());
+            } finally {
+                store.close();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            if (server != null) {
+                server.quit();
+            }
+        }
+    }
+
+    /**
+     * Test that a server claiming success before the mechanism completes,
+     * here by skipping the DIGEST-MD5 rspauth challenge that authenticates
+     * the server to the client, is not trusted.
+     */
+    @Test
+    public void testSaslLoginIncomplete() {
+        TestServer server = null;
+        try {
+            IMAPHandler handler = new IMAPSaslHandler(false);
+            server = new TestServer(handler);
+            server.start();
+
+            Properties properties = new Properties();
+            properties.setProperty("mail.imap.host", "localhost");
+            properties.setProperty("mail.imap.port", String.valueOf(server.getPort()));
+            properties.setProperty("mail.imap.sasl.enable", "true");
+            properties.setProperty("mail.imap.sasl.mechanisms", "DIGEST-MD5");
+            Session session = Session.getInstance(properties);
+            //session.setDebug(true);
+
+            Store store = session.getStore("imap");
+            try {
+                store.connect("test", "test");
+                fail("incomplete SASL authentication succeeded");
+            } catch (AuthenticationFailedException ex) {
+                // success!
+            } catch (Exception ex) {
                 fail(ex.toString());
             } finally {
                 store.close();

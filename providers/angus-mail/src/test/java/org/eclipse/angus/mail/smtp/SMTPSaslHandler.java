@@ -40,6 +40,17 @@ import java.util.logging.Level;
  */
 public class SMTPSaslHandler extends SMTPHandler {
 
+    /** Send the final challenge, e.g. the DIGEST-MD5 rspauth, before 235? */
+    private final boolean finalChallenge;
+
+    public SMTPSaslHandler() {
+        this(true);
+    }
+
+    public SMTPSaslHandler(boolean finalChallenge) {
+        this.finalChallenge = finalChallenge;
+    }
+
     /**
      * EHLO command.
      *
@@ -135,6 +146,8 @@ public class SMTPSaslHandler extends SMTPHandler {
         while (!ss.isComplete()) {
             try {
                 byte[] chal = ss.evaluateResponse(response);
+                if (ss.isComplete() && !finalChallenge)
+                    break;    // claim success without the final challenge
                 // send challenge
                 if (LOGGER.isLoggable(Level.FINE))
                     LOGGER.fine("SASL challenge: " +
