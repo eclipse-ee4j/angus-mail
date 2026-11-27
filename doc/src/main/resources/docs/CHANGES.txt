@@ -28,6 +28,7 @@ for the Eclipse EE4J Angus Mail project:
 224: POP3 and mbox message cache files are created world-readable
 232: Derive osgi.ee from the compiled bytecode level
 241: Hostname verification gaps with Conscrypt and MailHostnameVerifier
+254: do not log SASL, DIGEST-MD5 and NTLM responses in debug output
 
           CHANGES IN THE 2.0.5 RELEASE
           ----------------------------
